@@ -16,6 +16,7 @@ import {
 import { SendOutlined, WarningOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useCurrentHREmployee, useCreateResignationRequest } from '@/hooks/api/useHR';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import EmployeeInfoCard from '@/features/hr/components/EmployeeInfoCard';
 import type { CreateResignationRequestDto } from '@/types/hr.types';
 
@@ -46,7 +47,7 @@ export default function ResignationRequestPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ marginBottom: 16 }}>{isAr ? 'طلب استقالة' : 'Resignation Request'}</h2>
+      <HRPageHeader title={isAr ? 'طلب استقالة' : 'Resignation Request'} icon={<WarningOutlined />} />
 
       <Alert
         type="warning"

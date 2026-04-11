@@ -12,9 +12,10 @@ import {
   Divider,
   Spin,
 } from 'antd';
-import { SendOutlined } from '@ant-design/icons';
+import { SendOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useCurrentHREmployee, useCreateEntitlementsRequest } from '@/hooks/api/useHR';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import { HR_ENTITLEMENT_TYPE } from '@/constants/hr.enums';
 import { toSelectOptions } from '@/constants/enums';
 import EmployeeInfoCard from '@/features/hr/components/EmployeeInfoCard';
@@ -47,7 +48,7 @@ export default function EntitlementsRequestPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ marginBottom: 16 }}>{isAr ? 'طلب مستحقات' : 'Entitlements Request'}</h2>
+      <HRPageHeader title={isAr ? 'طلب مستحقات' : 'Entitlements Request'} icon={<FileTextOutlined />} />
 
       <EmployeeInfoCard employee={currentEmployee} loading={empLoading} />
 

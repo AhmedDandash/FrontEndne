@@ -10,16 +10,14 @@ import {
   Col,
   Card,
   Progress,
-  Typography,
   Space,
 } from 'antd';
 import { SearchOutlined, ReloadOutlined, CalendarOutlined } from '@ant-design/icons';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import type { ColumnsType } from 'antd/es/table';
 import { useAuthStore } from '@/store/authStore';
 import { useHRLeaveBalance, useHREmployees } from '@/hooks/api/useHR';
 import type { LeaveBalance, LeaveBalanceFilterDto } from '@/types/hr.types';
-
-const { Title } = Typography;
 
 export default function LeaveBalancePage() {
   const language = useAuthStore((s) => s.language);
@@ -100,12 +98,7 @@ export default function LeaveBalancePage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <Space align="center" style={{ marginBottom: 16 }}>
-        <CalendarOutlined style={{ fontSize: 20 }} />
-        <Title level={4} style={{ margin: 0 }}>
-          {isAr ? 'رصيد الإجازات' : 'Leave Balance'}
-        </Title>
-      </Space>
+      <HRPageHeader title={isAr ? 'رصيد الإجازات' : 'Leave Balance'} icon={<CalendarOutlined />} />
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Row gutter={12} align="bottom">

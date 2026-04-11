@@ -10,20 +10,17 @@ import {
   Col,
   Card,
   Tag,
-  Typography,
-  Space,
   Popconfirm,
   Tooltip,
 } from 'antd';
 import { SearchOutlined, DeleteOutlined, DollarOutlined } from '@ant-design/icons';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import type { ColumnsType } from 'antd/es/table';
 import { useAuthStore } from '@/store/authStore';
 import { useHRCommissions, useDeleteHRCommission, useHREmployees } from '@/hooks/api/useHR';
 import { HR_COMMISSION_TYPE } from '@/constants/hr.enums';
 import { getEnumLabel } from '@/constants/enums';
 import type { EmployeeCommission, CommissionFilterDto } from '@/types/hr.types';
-
-const { Title } = Typography;
 
 export default function EmployeeCommissionPage() {
   const language = useAuthStore((s) => s.language);
@@ -117,12 +114,7 @@ export default function EmployeeCommissionPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <Space align="center" style={{ marginBottom: 16 }}>
-        <DollarOutlined style={{ fontSize: 20 }} />
-        <Title level={4} style={{ margin: 0 }}>
-          {isAr ? 'عمولات الموظفين' : 'Employee Commissions'}
-        </Title>
-      </Space>
+      <HRPageHeader title={isAr ? 'عمولات الموظفين' : 'Employee Commissions'} icon={<DollarOutlined />} />
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Row gutter={12} align="bottom">

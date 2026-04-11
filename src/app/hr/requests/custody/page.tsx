@@ -17,9 +17,10 @@ import {
   Table,
   Space,
 } from 'antd';
-import { SendOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { SendOutlined, PlusOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useCurrentHREmployee, useHRCustodyTypes, useCreateCustodyRequest } from '@/hooks/api/useHR';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import EmployeeInfoCard from '@/features/hr/components/EmployeeInfoCard';
 import type { CreateCustodyRequestDto, CustodyItem } from '@/types/hr.types';
 
@@ -100,7 +101,7 @@ export default function CustodyRequestPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ marginBottom: 16 }}>{isAr ? 'طلب استلام عهدة' : 'Request Receipt Custody'}</h2>
+      <HRPageHeader title={isAr ? 'طلب استلام عهدة' : 'Request Receipt Custody'} icon={<GiftOutlined />} />
 
       <EmployeeInfoCard employee={currentEmployee} loading={empLoading} />
 

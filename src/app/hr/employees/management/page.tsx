@@ -9,17 +9,15 @@ import {
   Col,
   Card,
   Tag,
-  Typography,
   Space,
   Tooltip,
 } from 'antd';
 import { SearchOutlined, ReloadOutlined, TeamOutlined, EyeOutlined } from '@ant-design/icons';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import type { ColumnsType } from 'antd/es/table';
 import { useAuthStore } from '@/store/authStore';
 import { useEmployees } from '@/hooks/api/useHR';
 import type { Employee, EmployeesFilterDto } from '@/types/hr.types';
-
-const { Title } = Typography;
 
 export default function EmployeesManagementPage() {
   const language = useAuthStore((s) => s.language);
@@ -92,12 +90,7 @@ export default function EmployeesManagementPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <Space align="center" style={{ marginBottom: 16 }}>
-        <TeamOutlined style={{ fontSize: 20 }} />
-        <Title level={4} style={{ margin: 0 }}>
-          {isAr ? 'إدارة الموظفين' : 'Employees Management'}
-        </Title>
-      </Space>
+      <HRPageHeader title={isAr ? 'إدارة الموظفين' : 'Employees Management'} icon={<TeamOutlined />} />
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Row gutter={12} align="bottom">

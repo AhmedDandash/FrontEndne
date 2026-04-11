@@ -16,6 +16,7 @@ import {
 import { SendOutlined, DollarOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useCurrentHREmployee, useCreateLoanRequest } from '@/hooks/api/useHR';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import EmployeeInfoCard from '@/features/hr/components/EmployeeInfoCard';
 import type { CreateLoanRequestDto } from '@/types/hr.types';
 
@@ -49,7 +50,7 @@ export default function LoansRequestPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ marginBottom: 16 }}>{isAr ? 'طلب قرض' : 'Loans Request'}</h2>
+      <HRPageHeader title={isAr ? 'طلب قرض' : 'Loans Request'} icon={<DollarOutlined />} />
 
       {/* Employee info with salary details */}
       <EmployeeInfoCard employee={currentEmployee} loading={empLoading} showSalary />

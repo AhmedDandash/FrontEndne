@@ -10,18 +10,16 @@ import {
   Col,
   Card,
   Tag,
-  Typography,
   Space,
 } from 'antd';
 import { SearchOutlined, ReloadOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import type { ColumnsType } from 'antd/es/table';
 import { useAuthStore } from '@/store/authStore';
 import { useHRAttendance, useHREmployees } from '@/hooks/api/useHR';
 import { HR_ATTENDANCE_STATUS } from '@/constants/hr.enums';
 import { getEnumLabel } from '@/constants/enums';
 import type { AttendanceRecord, AttendanceFilterDto } from '@/types/hr.types';
-
-const { Title } = Typography;
 
 const STATUS_COLORS: Record<number, string> = {
   0: 'default',
@@ -86,12 +84,7 @@ export default function AttendancePage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <Space align="center" style={{ marginBottom: 16 }}>
-        <ClockCircleOutlined style={{ fontSize: 20 }} />
-        <Title level={4} style={{ margin: 0 }}>
-          {isAr ? 'الحضور والانصراف' : 'Attendance & Check-Out'}
-        </Title>
-      </Space>
+      <HRPageHeader title={isAr ? 'الحضور والانصراف' : 'Attendance & Check-Out'} icon={<ClockCircleOutlined />} />
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Row gutter={12} align="bottom">
