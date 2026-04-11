@@ -29,9 +29,7 @@ export default function RequestsInboxPage() {
     {
       title: isAr ? 'نوع الطلب' : 'Request Type',
       dataIndex: 'processState',
-      render: (v) => (
-        <Tag>{getEnumLabel(HR_PROCESS_STATE, v, language)}</Tag>
-      ),
+      render: (v) => <Tag>{getEnumLabel(HR_PROCESS_STATE, v, language)}</Tag>,
     },
     {
       title: isAr ? 'اسم الموظف' : 'Employee',
@@ -65,7 +63,7 @@ export default function RequestsInboxPage() {
       title: '',
       key: 'actions',
       width: 60,
-      render: (_, record) => (
+      render: () => (
         <Tooltip title={isAr ? 'عرض' : 'View'}>
           <Button type="text" icon={<EyeOutlined />} size="small" />
         </Tooltip>

@@ -41,11 +41,7 @@ export default function EmployeeCommissionPage() {
       comDateTo: dates[1],
     });
 
-  const handleReset = () => {
-    setEmpId(undefined);
-    setDates([]);
-    setFilter({});
-  };
+ 
 
   const empOptions = employees.map((e) => ({
     value: e.id,

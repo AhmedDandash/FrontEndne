@@ -7,6 +7,7 @@
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { AuthService } from './auth.service';
 import type {
   HREmployee,
   HRLookupItem,
@@ -82,11 +83,48 @@ export class HREmployeeService {
     return MOCK_EMPLOYEES.find((e) => e.id === id);
   }
 
-  static async getCurrent(userId: number): Promise<HREmployee | undefined> {
+  static async getCurrent(userId: number | null): Promise<HREmployee | undefined> {
     // TODO: replace with real API
     // const response = await api.get(API_ENDPOINTS.HR_EMPLOYEES.GET_CURRENT);
     // return response.data;
-    return MOCK_HR_EMPLOYEES[0]; // placeholder until auth-linked employee API is ready
+    const currentUser = AuthService.getCurrentUser();
+    const userName =
+      currentUser?.username ||
+      currentUser?.userName ||
+      currentUser?.loginName ||
+      currentUser?.fullName ||
+      currentUser?.name;
+
+    const candidateIds = [
+      currentUser?.employeeId,
+      currentUser?.employeeGuid,
+      currentUser?.employee?.id,
+      currentUser?.id,
+      userId,
+      typeof window !== 'undefined' ? localStorage.getItem('employeeId') : null,
+      typeof window !== 'undefined' ? localStorage.getItem('userId') : null,
+    ]
+      .filter((v): v is string | number => v !== null && v !== undefined)
+      .map((v) => String(v));
+
+    if (candidateIds.length) {
+      const byId = MOCK_HR_EMPLOYEES.find((e) => candidateIds.includes(e.id));
+      if (byId) return byId;
+    }
+
+    if (userName) {
+      const normalized = String(userName).toLowerCase();
+      const linkedEmployee = MOCK_EMPLOYEES.find((e) => {
+        const login = e.loginName?.toLowerCase();
+        const enName = e.nameEn?.toLowerCase();
+        return login === normalized || enName === normalized;
+      });
+      if (linkedEmployee) {
+        return MOCK_HR_EMPLOYEES.find((e) => e.id === linkedEmployee.id);
+      }
+    }
+
+    return MOCK_HR_EMPLOYEES[0];
   }
 
   static async search(query: string): Promise<HREmployee[]> {

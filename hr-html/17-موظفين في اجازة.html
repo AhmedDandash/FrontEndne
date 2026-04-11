@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr" style="" class=" js flexbox flexboxlegacy canvas canvastext webgl no-touch geolocation postmessage no-websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers no-applicationcache svg inlinesvg smil svgclippaths js flexbox flexboxlegacy canvas canvastext webgl no-touch geolocation postmessage no-websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers no-applicationcache svg inlinesvg smil svgclippaths"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>موظفين في اجازة </title>
+    <meta name="google-site-verification" content="VEb6bE4-uNCNGtQEZeWtEusYDZkWi2hH9dxL9_Dqg_s">
+
+
+<link href="/Content/cssstrap?v=9F4Y7HXFx-1c9Tg3xpOAuja48f7guU-P4GHS-npXUO41" rel="stylesheet">
+        <style>
+             @import Url('https://fonts.googleapis.com/css?family=Quicksand:400,500,700&display=swap&subset=vietnamese');
+        </style>
+
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.2/css/all.css">
+
+    <link href="/Content/css?v=emy_v3vaAZNEV1yxKK1wF1nUEi_Ja61fnurU1SuQ9-81" rel="stylesheet">
+
+    <link href="/Content/AppStyles?v=5u9X7bF1xaW2QdQ_JW0-NGGYJ2reCppSYqYrHjWIPhw1" rel="stylesheet">
+
+
+    <script src="/bundles/modernizr?v=w9fZKPSiHtN4N4FRqV7jn-3kGoQY5hHpkwFv5TfMrus1"></script>
+
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.6.0/dist/geosearch.css">
+    <script src="https://unpkg.com/leaflet-geosearch@3.6.0/dist/bundle.min.js"></script>
+    <style>
+        .leaflet-container {
+            height: 400px;
+            width: 600px;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .blink-bg {
+            color: #fff;
+            padding: 10px;
+            display: inline-block;
+            border-radius: 5px;
+            animation: blinkingBackground 4s infinite;
+        }
+
+        @keyframes blinkingBackground {
+            0% {
+                background-color: #740000;
+            }
+
+            25% {
+                background-color: #1056c0;
+            }
+
+            50% {
+                background-color: #ef0a1a;
+            }
+
+            75% {
+                background-color: #a30357;
+            }
+
+            100% {
+                background-color: #d50404;
+            }
+        }
+
+        /* حل مشكلة إخفاء مربع البحث */
+   
+
+            .leaflet-control-geosearch form {
+                direction: rtl !important;
+                text-align: right;
+            }
+
+            .leaflet-control-geosearch input {
+                width: 100% !important;
+                height: 40px !important;
+                font-size: 16px !important;
+                padding: 5px 10px !important;
+            }
+        .select2-container { 
+            z-index: 999999;
+        }
+    </style>
+</head>
+<body class="fixed-left white widescreen">
+    
+
+
+        <div id="wrapper">
+            
+<div class="topbar">
+    <div class="topbar-left">
+
+        <a class="logo">
+            <img src="/up/74/Branch/logo/3ecc0db1-fefb-45e4-b24b-feec003f44bf.jpg" style="height:50px; text-align:center;">
+        </a>
+    </div>
+
+    <div class="navbar navbar-default" role="navigation">
+        <div class="container">
+
+
+            <!-- Page title -->
+            <ul class="nav navbar-nav navbar-left">
+                <li>
+                    <button class="button-menu-mobile open-left">
+                        <i class="zmdi zmdi-menu"></i>
+                    </button>
+                </li>
+
+            </ul>
+            <div class="Musa3edLogo">
+                <img src="/Content/images/Musa3ed.png">
+            </div>
+            <ul class="nav navbar-nav navbar-right ">
+                    <li class="dropdown m-t-10  ">
+                        <select class="form-control    ui-selectee" disabled="" style="border: 2px solid #aaf3a2 !important; background-color: #e0fadd !important;border-radius: 5px; height:40px; min-width: 70px;">
+                            <option value="0" class="ui-selectee">show All branchs</option>
+                                <option selected="'selected'" class="ui-selectee"> Sigma competences recruitment office</option>
+                                <option class="ui-selectee">SIGMA</option>
+                        </select>
+                    </li>
+                <li class="dropdown" id="User">
+                    <a class="dropdown-toggle waves-effect" id="dLabel" role="button" data-toggle="dropdown" data-target="#" href="#">
+                            <span class="fa fa-user-circle " style="font-size:30px;"></span>
+                    </a>
+                    <div class="dropdown-menu right-dropdown-menu border-radius-10 m-t-20 keep-Open">
+                        <span class="arrow right-arrow" style=""></span>
+
+                        <div class="row" role="menu" aria-labelledby="dLabel">
+                            <div class="col-md-12 m-15">
+                                <div class="row">
+                                    
+                                    <div class="col-md-12">
+                                        <h4 class="text-left m-l-10 m-b-0"></h4>
+                                        <p class="text-left m-l-10">Branch </p>
+                                        <ul class="list-unstyled">
+                                            <li class="m-r-20 m-10">
+                                                <a href="/en-us/appearancesettings/themes" class="p-t-10"><i class="fa fa-paint-brush"></i><span class="text-left m-l-10 m-r-10">اعدادات السمات</span></a>
+
+                                            </li>
+                                            <li class="m-r-20 m-10">
+                                                <a href="/en-us/Profile" class="p-t-10"><i class="fa fa-grin"></i><span class="text-left m-l-10 m-r-10">الصفحه الشخصيه</span></a>
+
+                                            </li>
+                                            <li class="m-r-20 m-10">
+                                                <a onclick="ChangePassowrd()" class="p-t-10"><i class="fa fa-rotate"></i><span class="text-left m-l-10 m-r-10"> تغير كلمة المرور</span></a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <hr style="margin: 0; ">
+                                    <ul class="ul-list">
+                                        <li class="col-md-12" id="logout">
+<form action="/en-us/Account/LogOff" class="text-custom" id="logoutForm" method="post"><input name="__RequestVerificationToken" type="hidden" value="XScCZD-JaeTgSxo5wn-th_cfQ0g60EMq6mhpcSuO8o85jrmQTxLb_1CbSiuH3f1vBKAgSxTQraVg1EAjOLzdPM6sEHiTuTFLNn5p0PJt1zBj5Hb0BXL2Ly4T2HUm1pBM4BVsakv6308Ds4Y9yZK_1w2">                                                <a href="javascript:document.getElementById('logoutForm').submit()" class="logout_btn" style="background: rgba(77, 77, 77, 0.08) !important;"><i class="fa fa-sign-out-alt p-l-5"></i><span>Logout</span></a>
+</form>                                        </li>
+                                    </ul>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+
+
+
+
+                <li>
+                    <a href="/en-us/Home/ChangeLang?Lang=ar-sa&amp;ReturnUrl=%252fen-us%252fHR%252fEmployeesAttendance%252fEmployeesOnVacation" class="font-16"><span class="fa fa-language text-primary"></span> العربية</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+            
+            
+
+
+
+
+<div class="left side-menu">
+    <div class="slimScrollDiv" style="position: relative; overflow: hidden; width: auto; height: 650px;"><div class="sidebar-inner slimscrollleft " style="overflow: hidden; width: auto; height: 650px;">
+ 
+        <div id="sidebar-menu" class="m-t-15">
+            <ul>
+                <li>
+                    <a href="/en-us/Home/Dashboard" class="waves-effect">
+                        <i class="fa fa-tachometer-alt  text-primary "></i>
+
+                        <span> Home </span>
+                    </a>
+                </li>
+
+
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-building text-primary "></i> 
+                                        <span>The Offic   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Branch" style="font-weight:normal;border-right: 0px;">Company Data  </a></li><li><a href="/en-us/Document" style="font-weight:normal;border-right: 0px;">Documents  </a></li><li><a href="/en-us/RulesManagement" style="font-weight:normal;border-right: 0px;">Privileges  </a></li>
+                        </ul>
+                    </li>
+ 
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-cog text-primary "></i> 
+                                        <span>Customer Web Site   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/CustomerWebPage/Settings" style="font-weight:normal;border-right: 0px;">WebSite Setting  </a></li><li><a href="/en-us/CustomerWebPage/ContactUs" style="font-weight:normal;border-right: 0px;">Contact Us  </a></li><li><a href="/en-us/CustomerWebPage/ScreensAndLinks" style="font-weight:normal;border-right: 0px;">Screens and links  </a></li>
+                        </ul>
+                    </li>
+
+
+                
+
+
+
+                <li>
+                   <a href="/en-us/Agent" class="waves-effect"><i class="fa fa-user-secret  text-primary "></i>
+                         
+                            <span> Agents </span></a>
+               </li>
+
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-chart-line text-primary "></i> 
+                                        <span>Statistics   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Statistics/AgentProductivity" style="font-weight:normal;border-right: 0px;">Agent Productivity  </a></li><li><a href="/en-us/Statistics/OfficeProductivity" style="font-weight:normal;border-right: 0px;">Office Productivity  </a></li><li><a href="/en-us/Contract/EmployeesProductivity" style="font-weight:normal;border-right: 0px;">Employees Productivity  </a></li><li><a href="/en-us/Statistics/TotalProductivity" style="font-weight:normal;border-right: 0px;">Total Productivity  </a></li><li><a href="/en-us/Statistics/FollowUpStatistics" style="font-weight:normal;border-right: 0px;">Follow-Up Statistics  </a></li><li><a href="/en-us/Statistics/ApplicantStatistics" style="font-weight:normal;border-right: 0px;">Applicants Statistics  </a></li><li><a href="/en-us/Statistics/OperationVisasStatistics" style="font-weight:normal;border-right: 0px;">Visas Statistics  </a></li>
+                        </ul>
+                    </li>
+
+
+                
+
+
+                 
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-envelope text-primary "></i> 
+                                        <span>SMS   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/CustomerSMS" style="font-weight:normal;border-right: 0px;">Send SMS  </a></li><li><a href="/en-us/SendEmail" style="font-weight:normal;border-right: 0px;">Send Email   </a></li><li><a href="/en-us/Automatic_SMS" style="font-weight:normal;border-right: 0px;">Mobile Archive  </a></li><li><a href="/en-us/AutomaticTrackingSMS" style="font-weight:normal;border-right: 0px;">SMS Template Setting  </a></li><li><a href="/en-us/SMS_Settting" style="font-weight:normal;border-right: 0px;">SMS Settting  </a></li>
+                        </ul>
+                    </li>
+
+
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-users text-primary "></i> 
+                                        <span>Customers   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/AllCustomer" style="font-weight:normal;border-right: 0px;">Customers  </a></li><li><a href="/en-us/cer/CustomerPhone" style="font-weight:normal;border-right: 0px;">جهات الاتصال  </a></li><li><a href="/en-us/CustomerContacts" style="font-weight:normal;border-right: 0px;">Customer Contacts  </a></li>
+                        </ul>
+                    </li>
+
+
+                
+
+                
+
+
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-paper-plane text-primary "></i> 
+                                        <span>Recruitment requests   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/RecruitmentRequest" style="font-weight:normal;border-right: 0px;">Recruitment requests  </a></li>
+                        </ul>
+                    </li>
+
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-paper-plane text-primary "></i> 
+                                        <span>Reception   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/MediationOffers" style="font-weight:normal;border-right: 0px;">عروض واسعار التوسط  </a></li><li><a href="/en-us/RentOffers" style="font-weight:normal;border-right: 0px;">عروض واسعار التشغيل  </a></li>
+                        </ul>
+                    </li>
+
+                <li>
+                   <a href="/en-us/Complaints" class="waves-effect"><i class="fas fa-file  text-primary "></i>
+                         
+                            <span> Complaints </span></a>
+               </li>
+
+<li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fas fa-file text-primary "></i> 
+                                        <span>Mediation Contracts    </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Contract" style="font-weight:normal;border-right: 0px;">Mediation Contracts   </a></li><li><a href="/en-us/AutomaticFollowup" style="font-weight:normal;border-right: 0px;">FollowUp  </a></li><li><a href="/en-us/AutomaticFollowup?OPI=1" style="font-weight:normal;border-right: 0px;">Operation FollowUp  </a></li><li><a href="/en-us/NotFollowUp" style="font-weight:normal;border-right: 0px;">Incomplete Follow-up  </a></li><li><a href="/en-us/Warranty" style="font-weight:normal;border-right: 0px;">The Warranty  </a></li><li><a href="/en-us/AgentAssignment" style="font-weight:normal;border-right: 0px;">Requests  </a></li><li><a href="/en-us/Complaints" style="font-weight:normal;border-right: 0px;">Complaints  </a></li>
+                        </ul>
+                    </li>
+                
+
+                 <li>
+                   <a href="/en-us/SponsorshipTransfer" class="waves-effect"><i class="fas fa-file  text-primary "></i>
+                         
+                            <span> Sponsorship Transfer contracts </span></a>
+               </li>
+
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-user-secret text-primary "></i> 
+                                        <span>Mediation Contract Reports   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/ArrivalReport" style="font-weight:normal;border-right: 0px;">Arrival Report  </a></li><li><a href="/en-us/AlternativesReport" style="font-weight:normal;border-right: 0px;">Alternatives Agents  </a></li><li><a href="/en-us/Contract_Delegates" style="font-weight:normal;border-right: 0px;">Delegates  </a></li><li><a href="/en-us/Visa" style="font-weight:normal;border-right: 0px;">Visas Request  </a></li><li><a href="/en-us/CancellationOfCanceledContracts" style="font-weight:normal;border-right: 0px;">Cancellation penalty  </a></li><li><a href="/en-us/ContractPenalty" style="font-weight:normal;border-right: 0px;">Delay penalty  </a></li><li><a href="/en-us/Contract/Transmital" style="font-weight:normal;border-right: 0px;">Transmital  </a></li>
+                        </ul>
+                    </li>
+
+
+                
+
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-file-alt text-primary "></i> 
+                                        <span>operation Contracts   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/RentContract" style="font-weight:normal;border-right: 0px;">operation Contracts  </a></li><li><a href="/en-us/RentPriceOffer" style="font-weight:normal;border-right: 0px;">operation Prices And Offers  </a></li><li><a href="/en-us/Applicants/AvailableApplicants?RRTC=1" style="font-weight:normal;border-right: 0px;">Available applicants  </a></li><li><a href="/en-us/CollectionAndRenewal" style="font-weight:normal;border-right: 0px;">Collection and renewal  </a></li>
+                        </ul>
+                    </li>
+            
+                
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect  active subdrop" style="color: #505050  !important;"><i class="fas fa-users text-primary "></i> 
+                                        <span>HR Management   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="display: block;">
+                            <li><a href="/en-us/HR/Department/Index" style="font-weight:normal;border-right: 0px;">Departments  </a></li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fas fa-pen-square text-primary "></i> 
+                                        <span>Requests   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/HR/RequestsArchivee/Index" style="font-weight:normal;border-right: 0px;">Requests Archivee  </a></li><li><a href="/en-us/HR/Vacation/MakeRequest" style="font-weight:normal;border-right: 0px;">Vacation Request  </a></li><li><a href="/en-us/HR/Permission/MakeRequest/Permission" style="font-weight:normal;border-right: 0px;">Request permission  </a></li><li><a href="/en-us/HR/Custody/MakeReceiptRequest" style="font-weight:normal;border-right: 0px;">Request receipt custody  </a></li><li><a href="/en-us/HR/JobModify/MakeRequest" style="font-weight:normal;border-right: 0px;">Request job modification  </a></li><li><a href="/en-us/HR/RequstExperience/Index" style="font-weight:normal;border-right: 0px;">Experience requst  </a></li><li><a href="/en-us/HR/RequestResignation/MakeRequest" style="font-weight:normal;border-right: 0px;">Request Resignation  </a></li><li><a href="/en-us/HR/RequestEntitlement/Index" style="font-weight:normal;border-right: 0px;">Entitlements Request  </a></li><li><a href="/en-us/HR/Loans/MakeRequest" style="font-weight:normal;border-right: 0px;">Loans  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-eye text-primary "></i> 
+                                        <span>Inquiry   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/HR/Instance" style="font-weight:normal;border-right: 0px;">Requests inbox  </a></li><li><a href="/en-us/HR/Instance/Outbox" style="font-weight:normal;border-right: 0px;">Requests outbox  </a></li>
+                        </ul>
+                    </li><li class="has_sub active">
+                        <a href="javascript:void(0);" class="waves-effect  active" style="color: #ff5b5b !important;"><i class="fa fa-user  "></i> 
+                                        <span>Employees   </span> <span class="menu-arrow "></span></a>
+                        <ul class="list-unstyled" style="display: none;">
+                            <li><a href="/en-us/emp" style="font-weight:normal;border-right: 0px;">employees Management  </a></li><li><a href="/en-us/Accounts/EmpCommission" style="font-weight:normal;border-right: 0px;">Employee Commission  </a></li><li><a href="/en-us/co/Commission" style="font-weight:normal;border-right: 0px;">الشرائح والعمولات الجديدة  </a></li><li><a href="/en-us/CommisionSlices" style="font-weight:normal;border-right: 0px;">Commision Slices  </a></li><li><a href="/en-us/HR/EmployeesAttendance/index" style="font-weight:normal;border-right: 0px;">الحضور والانصراف الجديدة  </a></li><li><a href="/en-us/HR/EmployeesAttendance/VacationsBalance" style="font-weight:normal;border-right: 0px;">رصيد الاجازات  </a></li><li class="active subdrop"><a href="/en-us/HR/EmployeesAttendance/EmployeesOnVacation" class="active" style="color: #ff5b5b !important;">موظفين في اجازة  </a></li><li><a href="/en-us/Emp/EmployeesAttendence" style="font-weight:normal;border-right: 0px;">Attendce And Departing  </a></li>
+                        </ul>
+                    </li><li><a href="/en-us/EmployeeComplaints" style="font-weight:normal;border-right: 0px;">Employee Complaints  </a></li><li><a href="/en-us/HR/SalaryDefinition/Index" style="font-weight:normal;border-right: 0px;">Salary declaration letter  </a></li>
+                        </ul>
+                    </li>
+
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-th-list text-primary "></i> 
+                                        <span>Operation Management   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/OperationManagement/VisaRequest" style="font-weight:normal;border-right: 0px;">Visa Request  </a></li><li><a href="/en-us/OperationManagement/VisaPayment" style="font-weight:normal;border-right: 0px;">Request for issuing a financial visa  </a></li><li><a href="/en-us/OperationManagement/VisaRecoveryPayment" style="font-weight:normal;border-right: 0px;">Visa Recovery Payment  </a></li><li><a href="/en-us/OperationManagement/OperationPlans" style="font-weight:normal;border-right: 0px;">Issuing Plan  </a></li>
+                        </ul>
+                    </li>
+ 
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fas fa-home text-primary "></i> 
+                                        <span>Management of housing   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Applicants" style="font-weight:normal;border-right: 0px;">Applicant  </a></li><li><a href="/en-us/Applicants/AvailableApplicants" style="font-weight:normal;border-right: 0px;">Available Applicants  </a></li><li><a href="/en-us/Applicants/ApplicantsNationality" style="font-weight:normal;border-right: 0px;">Follow-up operation workers  </a></li><li><a href="/en-us/Applicants/ApplicantsFollowUp" style="font-weight:normal;border-right: 0px;">Arrived Applicants Follow Up  </a></li>
+                        </ul>
+                    </li>
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-plane text-primary "></i> 
+                                        <span>Logistic services   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/housing" style="font-weight:normal;border-right: 0px;">Housing  </a></li><li><a href="/en-us/RequestRations" style="font-weight:normal;border-right: 0px;">Requests Rations  </a></li><li><a href="/en-us/ReceiveApplicants/PickUp" style="font-weight:normal;border-right: 0px;">Pick up  </a></li><li><a href="/en-us/lgs/HousingApplicants" style="font-weight:normal;border-right: 0px;">Housing  </a></li><li><a href="/en-us/lgs/DailyMovements" style="font-weight:normal;border-right: 0px;">Daily movements  </a></li><li><a href="/en-us/HousingEmp" style="font-weight:normal;border-right: 0px;">Applicant accommodation management  </a></li>
+                        </ul>
+                    </li>
+
+
+
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fas fa-chart-line text-primary "></i> 
+                                        <span>Accounting   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Accounts/Transactions" style="font-weight:normal;border-right: 0px;">Journal Entry  </a></li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-dollar-sign text-primary "></i> 
+                                        <span>Accounts   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Accounts" style="font-weight:normal;border-right: 0px;">Accounts Tree  </a></li><li><a href="/en-us/CustomerAccountStatement" style="font-weight:normal;border-right: 0px;">Account statement  </a></li><li><a href="/en-us/Accounts/RevenuesAndExpenses" style="font-weight:normal;border-right: 0px;">Revenues And Expenses  </a></li><li><a href="/en-us/Accounts/LiquidityIndex" style="font-weight:normal;border-right: 0px;">Liquidity report  </a></li><li><a href="/en-us/TrialBalance" style="font-weight:normal;border-right: 0px;">Trial Balance  </a></li><li><a href="/en-us/TrialBalance/IndexGroups" style="font-weight:normal;border-right: 0px;">Trial Balance Groups  </a></li><li><a href="/en-us/AccountsSettings" style="font-weight:normal;border-right: 0px;">Accounts Settings  </a></li><li><a href="/en-us/Accounts/AccountsList" style="font-weight:normal;border-right: 0px;">Accounts List  </a></li><li><a href="/en-us/AccountStatement/TaxReport" style="font-weight:normal;border-right: 0px;">Tax report  </a></li><li><a href="/en-us/ContractProfit" style="font-weight:normal;border-right: 0px;">Contracts Profit And Costs  </a></li><li><a href="/en-us/Acc/ContractProfit2" style="font-weight:normal;border-right: 0px;">Contracts Profit And Costs  الجديدة    </a></li><li><a href="/en-us/Accounts/AccountsAnalysing" style="font-weight:normal;border-right: 0px;">Accounts Analysing  </a></li><li><a href="/en-us/ClosingOfTheFiscalYear" style="font-weight:normal;border-right: 0px;">Closing Of The Fiscal Year  </a></li><li><a href="/en-us/ClosingOfTheFiscalYear/Budget" style="font-weight:normal;border-right: 0px;">Budget  </a></li><li><a href="/en-us/ClosingOfTheFiscalYear/Budget_Periodic" style="font-weight:normal;border-right: 0px;">Statement of financial position  </a></li><li><a href="/en-us/ClosingOfTheFiscalYear/IncomeList" style="font-weight:normal;border-right: 0px;"> Income List  </a></li><li><a href="/en-us/ClosingOfTheFiscalYear/BalanceSheet" style="font-weight:normal;border-right: 0px;">Balance Sheet  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-dollar-sign text-primary "></i> 
+                                        <span>Debentures   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Accounts/PublicDebenture" style="font-weight:normal;border-right: 0px;">Public Transactions  </a></li><li><a href="/en-us/Accounts/FixedAssetsDebenture" style="font-weight:normal;border-right: 0px;">Fixed Assets Debenture  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-dollar-sign text-primary "></i> 
+                                        <span>Account Statement   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Acc/AccPages/CustomerStatement" style="font-weight:normal;border-right: 0px;">Customer Account Statement  </a></li><li><a href="/en-us/Acc/AccPages/CustomersStatement" style="font-weight:normal;border-right: 0px;">Customers Account Statement  </a></li><li><a href="/en-us/Acc/AccPages/BankAccounts" style="font-weight:normal;border-right: 0px;">Bank Accounts  </a></li><li><a href="/en-us/AgentAccountStatement/AgentStatement" style="font-weight:normal;border-right: 0px;">Agent Account Statement  </a></li><li><a href="/en-us/AccountStatement/DetailedAccountStatement" style="font-weight:normal;border-right: 0px;">Detailed Account Statement  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-dollar-sign text-primary "></i> 
+                                        <span>Tax Invoices   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Acc/Zatca" style="font-weight:normal;border-right: 0px;">Tax invoice  </a></li><li><a href="/en-us/Acc/Zatca/Settings" style="font-weight:normal;border-right: 0px;">اعدادات الربط  </a></li><li><a href="/en-us/Acc/Zatca/Settings" style="font-weight:normal;border-right: 0px;">تفعيل الربط  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-dollar-sign text-primary "></i> 
+                                        <span>Fixed Assets   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/AssetsClassification" style="font-weight:normal;border-right: 0px;">Assets Classification  </a></li><li><a href="/en-us/AssetsManagement" style="font-weight:normal;border-right: 0px;">Assets Management  </a></li><li><a href="/en-us/AssetsBalance" style="font-weight:normal;border-right: 0px;"> Assets Balance  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-dollar-sign text-primary "></i> 
+                                        <span>رواتب العمالة   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Acc/ApplicantSalary" style="font-weight:normal;border-right: 0px;">رواتب العمالة  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-dollar-sign text-primary "></i> 
+                                        <span>اقساط العقود   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/ctim/ContractInstalments" style="font-weight:normal;border-right: 0px;">اقساط العقود  </a></li>
+                        </ul>
+                    </li>
+                        </ul>
+                    </li>
+
+
+                <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-cogs text-primary "></i> 
+                                        <span>Settings   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-cogs text-primary "></i> 
+                                        <span>General Settings   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/SystemEntities" style="font-weight:normal;border-right: 0px;">General Settings  </a></li><li><a href="/en-us/AirlineCompanies" style="font-weight:normal;border-right: 0px;">Airlines  </a></li><li><a href="/en-us/ReportsSetttings" style="font-weight:normal;border-right: 0px;">Report settings  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-cogs text-primary "></i> 
+                                        <span>النماذج والتقارير   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/templates" style="font-weight:normal;border-right: 0px;">templates  </a></li><li><a href="/en-us/ReportGenerator" style="font-weight:normal;border-right: 0px;">Reports  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-cogs text-primary "></i> 
+                                        <span>Rent   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/RentGeneralSettings" style="font-weight:normal;border-right: 0px;">Rent Settings  </a></li><li><a href="/en-us/RentWarningPeriod" style="font-weight:normal;border-right: 0px;">Expiry alert period  </a></li><li><a href="/en-us/ReportGenerator/Rents" style="font-weight:normal;border-right: 0px;">Report Generator  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-cogs text-primary "></i> 
+                                        <span>Recruitment   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/MediationSettings" style="font-weight:normal;border-right: 0px;">Recruitment Settings  </a></li><li><a href="/en-us/cts/OtherExpenses" style="font-weight:normal;border-right: 0px;">تكاليف أخرى للعقود  </a></li><li><a href="/en-us/cts/Tags" style="font-weight:normal;border-right: 0px;">تصنيفات العقود  </a></li><li><a href="/en-us/PriceOffer" style="font-weight:normal;border-right: 0px;">Prices of contracts  </a></li><li><a href="/en-us/ReportGenerator/Mediation" style="font-weight:normal;border-right: 0px;">Report Generator  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-cogs text-primary "></i> 
+                                        <span>Sponsorship   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/SponsorshipSettings" style="font-weight:normal;border-right: 0px;">Sponsorship  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-cogs text-primary "></i> 
+                                        <span>Human Resources   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/HR/HRSettings/Index" style="font-weight:normal;border-right: 0px;">HR Settings  </a></li><li><a href="/en-us/HR/Custody/Index" style="font-weight:normal;border-right: 0px;">Custody type  </a></li><li><a href="/en-us/HR/CustomVacation/Index" style="font-weight:normal;border-right: 0px;">Vacation type  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-cogs text-primary "></i> 
+                                        <span>Finance   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/FinancialSettings" style="font-weight:normal;border-right: 0px;">Financial Settings  </a></li><li><a href="/en-us/Acc/EditAccountTree" style="font-weight:normal;border-right: 0px;">Modify account tree  </a></li><li><a href="/en-us/ReportGenerator/Accounting" style="font-weight:normal;border-right: 0px;">Accounts Report Generator  </a></li>
+                        </ul>
+                    </li><li class="has_sub ">
+                        <a href="javascript:void(0);" class="waves-effect" style="color: #505050  !important;"><i class="fa fa-cogs text-primary "></i> 
+                                        <span>Ration Setting   </span> <span class="menu-arrow text-primary"></span></a>
+                        <ul class="list-unstyled" style="">
+                            <li><a href="/en-us/Meals" style="font-weight:normal;border-right: 0px;">Ration Setting  </a></li>
+                        </ul>
+                    </li><li><a href="/en-us/PageFilter/PageFilter" style="font-weight:normal;border-right: 0px;">Quick Search  </a></li>
+                        </ul>
+                    </li>
+ 
+<li>
+                   <a href="/en-us/CompaniesStats/BillingAndSubscriptions" class="waves-effect"><i class="fa-solid fa-file-invoice-dollar  text-primary "></i>
+                         
+                            <span> Billing and subscriptions </span></a>
+               </li>
+
+
+                
+
+
+                
+ 
+                
+
+
+
+
+
+
+
+
+
+
+            </ul>
+
+
+
+            <div class="clearfix  "></div>
+        </div>
+        <div class="clearfix"></div>
+    </div><div class="slimScrollBar" style="background: rgb(220, 220, 220); width: 5px; position: absolute; top: 0px; opacity: 0.4; display: block; border-radius: 7px; z-index: 99; left: 1px; height: 402.381px; visibility: visible;"></div><div class="slimScrollRail" style="width: 5px; height: 100%; position: absolute; top: 0px; display: none; border-radius: 7px; background: rgb(51, 51, 51); opacity: 0.2; z-index: 90; left: 1px;"></div></div>
+    <div class="clearfix"></div>
+</div>
+
+<style>
+    html[dir=rtl] #sidebar-menu li a {
+        padding-left: 1px;
+    }
+
+    html[dir=rtl] #sidebar-menu i {
+        margin: auto;
+    }
+</style>
+
+            <div class="content-page">
+                <div class="content">
+                    <div class="container m-b-30">
+                        <div class="row m-t-30">
+                            <div class="col-md-12">
+                                <div class="breadcrumbDiv">
+                                    <h3 class="ui-dialog-title title-right pull-left">
+                                        موظفين في اجازة
+                                    </h3>
+                                    <ul class="list-inline col-md-9 d-inline-block ul-mrg-top-3 breadcrumb">
+                                        <li class="breadcrumb-item ">
+                                            <a href="/en-us">
+                                                <span class="list-inline-item h4 fa fa-home"></span>
+                                            </a>
+                                        </li>
+                                        
+    <li class="breadcrumb-item">موظفين في اجازة</li>
+
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+
+
+
+
+<div class="col-sm-12">
+    <div class="panel panel-primary panel-border">
+        <div class="panel-heading">
+        </div>
+        <div class="panel-body">
+            <div class="col-md-12">
+                <table class="table table-hover ">
+                    <thead>
+                        <tr>
+                            <td>
+                                اسم الموظف
+                            </td>
+                            <td>
+                                عدد ايام الاجازة
+                            </td>
+                            <td>
+                                تاريخ البدء
+                            </td>
+                            <td>
+                                تاريخ الانتهاء
+                            </td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    </div>
+                </div>
+
+                <footer class="footer m-t-20">
+                    <div class="row">
+                        <div class="col-md-6">
+
+                        </div>
+                        <div class="col-md-6">
+                            <h4>2026 © Derayah Ltd Version 1.7.0</h4>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+            
+
+        </div>
+
+    <script>
+        var resizefunc = [];
+    </script>
+    <script src="/bundles/jqueryrtl?v=gkWyJthHPtwkFjvHuNinBjchIfwLwc_KbE-H26J2kAI1"></script>
+
+    <script src="/bundles/jqueryui?v=BldxLTj4uQvGaqoOuk_iW7oilq2izVF8FhmSdhDiBzo1"></script>
+
+
+<script src="/bundles/bootstrap?v=lescQEuG5u4jd-GcVDBcbpUOSyTDIg0Kk9zHDX55GCw1"></script>
+    <script src="/bundles/jqueryval?v=jTPefzwFx0iM3EsWaYKTfsfd9Bl-EGtCr4NXRQtZFHM1"></script>
+
+    <script src="/bundles/echarts?v=j_2baJQttvm-hKE1asyxHGYSuQ2NTqRPaNwQ6MJLnSw1"></script>
+
+    <script src="/bundles/Lap?v=FGg_1fJw3kz_MNCtZXohz2WucC3zs8nrNRjOD4qCawI1"></script>
+
+    <script src="/bundles/app?v=XqbNofKj5WgKfUlEPW7bMH1gjfmc90v7g294yRVzC201"></script>
+
+<script src="/bundles/LapEN?v=4fVuGNcYlez9i0Z0stxQlxTxGwaYkU3mVpztLrZgzho1"></script>
+
+    <script src="/bundles/js/ar?v=4b42879zzG4HTEWAvgKe_TGtQmNrnNNWl1nuFMGDm4Y1"></script>
+
+
+
+    <script src="https://cdn.tiny.cloud/1/fmp9yoy3kxjg6me4b3cenypfbdyvv3527j9kzdbnfmgl79pc/tinymce/5/tinymce.min.js" referrerpolicy="origin"></script>
+
+    
+    <input id="ScreenId" name="ScreenId" type="hidden" value="">
+    <div id="ChangePassowrd" class="modal-demo" style="min-width:600px">
+    <button type="button" class="close" onclick="Custombox.close();">
+        <span>×</span><span class="sr-only">Close</span>
+    </button>
+    <h4 class="custom-modal-title">تغير الحالة</h4>
+    <div class="custom-modal-text">
+        <div class="row">
+<form action="/en-us/HR/Account/ChangePassowrd" class="p-t-15" method="post" role="form" novalidate="novalidate">                
+                    <input name="__RequestVerificationToken" type="hidden" value="OSJmbvOw68KkjS5DMGKqsXMdbpUoUoS0M2DI49-G86idMyZj1V9rWsq0I55l62hTXddJJI5kO8uliz7nH09stIbG_MMzz-YQvWaXLWNx2MoMQI2IHb5rYombs_U5moDRKIGzbTtBBX0OTr8auTquLQ2">
+                    <div class="row">
+                        <div class="col-md-12 form-group ">
+                            <label>كلمة السر الحالية  </label>
+                            <span class="field-validation-valid text-danger" data-valmsg-for="CurrentPassowrd" data-valmsg-replace="true"></span>
+                            <input class="form-control" id="CurrentPassowrd" name="CurrentPassowrd" type="password">
+                        </div>
+                        <div class="col-md-12 form-group">
+                            <label>  كلمة المرور الجديدة</label>
+                            <span class="field-validation-valid text-danger" data-valmsg-for="Password" data-valmsg-replace="true"></span>
+                            <input class="form-control" data-val="true" data-val-length="The Password must be at least 6 characters long." data-val-length-max="100" data-val-length-min="6" data-val-required="The Password field is required." id="Password" name="Password" type="password">
+                        </div>
+                        <div class="col-md-12 form-group">
+                            <label> تأكيد كلمة المرور الجديدة </label>
+                            <span class="field-validation-valid text-danger" data-valmsg-for="ConfirmPassword" data-valmsg-replace="true"></span>
+                            <input class="form-control" data-val="true" data-val-equalto="The password and confirmation password do not match." data-val-equalto-other="*.Password" id="ConfirmPassword" name="ConfirmPassword" type="password">
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-success waves-effect waves-light p-l-r-50">
+                                    Save
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                
+</form>        </div>
+    </div>
+</div>
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+
+
+
+
+
+        $('#EmpBranchListItem').on('change', function() {
+             window.location='/en-us/home/ChangebranchId/' + $(this).val();
+         });
+           //$('.dropdown-toggle').dropdown();
+           // $('.selectpicker').selectpicker();
+            //alert("sdfsd")
+            //alert("sdfsd")
+        });
+        function ChangePassowrd() {
+            Custombox.open({
+                target: "#ChangePassowrd",
+                effect: "rotate",
+                overlaySpeed: 100,
+                overlayColor: "#36404a",
+            });
+        }
+    </script>
+            <div>
+            <a target="_blank" href="https://wa.me/966112333799" style="position: fixed; bottom: 15px;left: 2px;">
+                <img src="/Content/whatsapp.png" style="width: 80px;">
+            </a>
+        </div>
+    
+    
+  
+
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+
+    
+    <style>
+        .st-action-image {
+            max-height: 45px !important;
+            width: 40px !important;
+        }
+    </style>
+
+
+<div><div class="sweet-overlay" tabindex="-1"></div><div class="sweet-alert" tabindex="-1"><div class="icon error"><span class="x-mark"><span class="line left"></span><span class="line right"></span></span></div><div class="icon warning"> <span class="body"></span> <span class="dot"></span> </div> <div class="icon info"></div> <div class="icon success"> <span class="line tip"></span> <span class="line long"></span> <div class="placeholder"></div> <div class="fix"></div> </div> <div class="icon custom"></div> <h2>Title</h2><p class="lead text-muted">Text</p><p><button class="cancel btn btn-lg" tabindex="2">Cancel</button> <button class="confirm btn btn-lg" tabindex="1">OK</button></p></div></div></body></html>

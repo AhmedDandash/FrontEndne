@@ -6,6 +6,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
+import { AuthService } from '@/services/auth.service';
 import {
   HREmployeeService,
   HRLookupService,
@@ -40,7 +41,7 @@ import type {
   LeaveBalanceFilterDto,
   CreateHRComplaintDto,
   ReplyHRComplaintDto,
-  EmployeeCommission,
+  // EmployeeCommission,
 } from '@/types/hr.types';
 
 // ─────────────────────────────────────────────
@@ -63,8 +64,10 @@ export const useHREmployee = (id: string) =>
 export const useCurrentHREmployee = (userId: number | null) =>
   useQuery({
     queryKey: ['hr-current-employee', userId],
-    queryFn: () => HREmployeeService.getCurrent(userId!),
-    enabled: userId !== null,
+    queryFn: () => HREmployeeService.getCurrent(userId),
+    // Keep HR forms functional even if zustand userId is not hydrated yet,
+    // as long as an auth token exists in storage.
+    enabled: userId !== null || !!AuthService.getToken(),
   });
 
 export const useHREmployeeSearch = (query: string) =>
