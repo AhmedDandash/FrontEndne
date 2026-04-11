@@ -15,7 +15,7 @@ import {
   Spin,
   Upload,
 } from 'antd';
-import { UploadOutlined, SendOutlined } from '@ant-design/icons';
+import { UploadOutlined, SendOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useCurrentHREmployee, useCreateVacationRequest } from '@/hooks/api/useHR';
 import { HR_VACATION_TYPE } from '@/constants/hr.enums';
@@ -71,7 +71,7 @@ export default function VacationRequestPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ marginBottom: 16 }}>{isAr ? 'طلب إجازة' : 'Vacation Request'}</h2>
+      <HRPageHeader title={isAr ? 'طلب إجازة' : 'Vacation Request'} icon={<CalendarOutlined />} />
 
       {/* Employee Info – read-only, auto-filled */}
       <EmployeeInfoCard employee={currentEmployee} loading={empLoading} />

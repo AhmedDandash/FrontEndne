@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Table, Tag, Typography, Space, Button, Tooltip } from 'antd';
+import { Table, Tag, Button, Tooltip } from 'antd';
 import { EyeOutlined, InboxOutlined } from '@ant-design/icons';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import type { ColumnsType } from 'antd/es/table';
 import { useAuthStore } from '@/store/authStore';
 import { useHRInbox } from '@/hooks/api/useHR';
@@ -11,8 +12,6 @@ import { getEnumLabel } from '@/constants/enums';
 import RequestStatusBadge from '@/features/hr/components/RequestStatusBadge';
 import RequestsFilterPanel from '@/features/hr/components/RequestsFilterPanel';
 import type { HRRequestSummary, HRRequestsFilterDto } from '@/types/hr.types';
-
-const { Title } = Typography;
 
 export default function RequestsInboxPage() {
   const language = useAuthStore((s) => s.language);
@@ -74,12 +73,7 @@ export default function RequestsInboxPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <Space align="center" style={{ marginBottom: 16 }}>
-        <InboxOutlined style={{ fontSize: 20 }} />
-        <Title level={4} style={{ margin: 0 }}>
-          {isAr ? 'صندوق الوارد – الطلبات' : 'Requests Inbox'}
-        </Title>
-      </Space>
+      <HRPageHeader title={isAr ? 'صندوق الوارد – الطلبات' : 'Requests Inbox'} icon={<InboxOutlined />} />
 
       <RequestsFilterPanel onFilter={setFilter} loading={isLoading} />
 

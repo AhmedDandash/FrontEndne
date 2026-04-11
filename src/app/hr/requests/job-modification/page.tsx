@@ -16,6 +16,7 @@ import {
 } from 'antd';
 import { SendOutlined, SwapOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import {
   useCurrentHREmployee,
   useHRDepartments,
@@ -65,7 +66,7 @@ export default function JobModificationRequestPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ marginBottom: 16 }}>{isAr ? 'طلب تعديل وظيفي' : 'Job Modification Request'}</h2>
+      <HRPageHeader title={isAr ? 'طلب تعديل وظيفي' : 'Job Modification Request'} icon={<SwapOutlined />} />
 
       <EmployeeInfoCard employee={currentEmployee} loading={empLoading} />
 

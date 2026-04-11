@@ -15,9 +15,10 @@ import {
   Spin,
   Radio,
 } from 'antd';
-import { SendOutlined } from '@ant-design/icons';
+import { SendOutlined, AuditOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useCurrentHREmployee, useCreatePermissionRequest } from '@/hooks/api/useHR';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import { HR_PERMISSION_TYPE, HR_PERMISSION_NATURE } from '@/constants/hr.enums';
 import { toSelectOptions } from '@/constants/enums';
 import EmployeeInfoCard from '@/features/hr/components/EmployeeInfoCard';
@@ -57,7 +58,7 @@ export default function PermissionRequestPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ marginBottom: 16 }}>{isAr ? 'طلب إذن' : 'Leave Permission Request'}</h2>
+      <HRPageHeader title={isAr ? 'طلب إذن' : 'Leave Permission Request'} icon={<AuditOutlined />} />
 
       <EmployeeInfoCard employee={currentEmployee} loading={empLoading} />
 

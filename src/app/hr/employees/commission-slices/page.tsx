@@ -12,8 +12,6 @@ import {
   Switch,
   Row,
   Col,
-  Typography,
-  Space,
   Tag,
   Popconfirm,
   Tooltip,
@@ -23,6 +21,7 @@ import {
   DeleteOutlined,
   AppstoreOutlined,
 } from '@ant-design/icons';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import type { ColumnsType } from 'antd/es/table';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -33,8 +32,6 @@ import {
 import { HR_COMMISSION_TYPE } from '@/constants/hr.enums';
 import { toSelectOptions, getEnumLabel } from '@/constants/enums';
 import type { CommissionSlice, CreateCommissionSliceDto } from '@/types/hr.types';
-
-const { Title } = Typography;
 
 export default function CommissionSlicesPage() {
   const [form] = Form.useForm();
@@ -101,21 +98,16 @@ export default function CommissionSlicesPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Space align="center">
-            <AppstoreOutlined style={{ fontSize: 20 }} />
-            <Title level={4} style={{ margin: 0 }}>
-              {isAr ? 'شرائح العمولات' : 'Commission Slices'}
-            </Title>
-          </Space>
-        </Col>
-        <Col>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            {isAr ? 'إضافة شريحة' : 'Add Slice'}
-          </Button>
-        </Col>
-      </Row>
+      <HRPageHeader
+        title={isAr ? 'شرائح العمولات' : 'Commission Slices'}
+        icon={<AppstoreOutlined />}
+        actions={[{
+          key: 'add',
+          label: isAr ? 'إضافة شريحة' : 'Add Slice',
+          icon: <PlusOutlined />,
+          onClick: () => setModalOpen(true),
+        }]}
+      />
 
       <Table
         columns={columns}

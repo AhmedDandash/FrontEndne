@@ -23,6 +23,7 @@ import {
   MoreOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import { useAuthStore } from '@/store/authStore';
@@ -37,7 +38,6 @@ import { HR_COMPLAINT_STATUS } from '@/constants/hr.enums';
 import { getEnumLabel } from '@/constants/enums';
 import type { HRComplaint, CreateHRComplaintDto, ReplyHRComplaintDto } from '@/types/hr.types';
 
-const { Title } = Typography;
 const { TextArea } = Input;
 
 const STATUS_COLORS: Record<number, string> = { 1: 'processing', 2: 'success', 3: 'default' };
@@ -167,21 +167,17 @@ export default function HRComplaintsPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Space align="center">
-            <WarningOutlined style={{ fontSize: 20 }} />
-            <Title level={4} style={{ margin: 0 }}>
-              {isAr ? 'شكاوى الموظفين' : 'Employee Complaints'}
-            </Title>
-          </Space>
-        </Col>
-        <Col>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-            {isAr ? 'شكوى جديدة' : 'New Complaint'}
-          </Button>
-        </Col>
-      </Row>
+      <HRPageHeader
+        title={isAr ? 'شكاوى الموظفين' : 'Employee Complaints'}
+        icon={<WarningOutlined />}
+        actions={[{
+          key: 'new',
+          label: isAr ? 'شكوى جديدة' : 'New Complaint',
+          icon: <PlusOutlined />,
+          onClick: () => setCreateOpen(true),
+          loading: creating,
+        }]}
+      />
 
       <Table
         columns={columns}
