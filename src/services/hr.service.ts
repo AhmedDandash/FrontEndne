@@ -339,7 +339,9 @@ export class HRCommissionService {
     return result;
   }
 
-  static async create(data: Omit<EmployeeCommission, 'id' | 'employeeName'>): Promise<EmployeeCommission> {
+  static async create(
+    data: Omit<EmployeeCommission, 'id' | 'employeeName'>
+  ): Promise<EmployeeCommission> {
     const response = await api.post<EmployeeCommission>(API_ENDPOINTS.HR_COMMISSION.CREATE, data);
     return response.data;
   }
@@ -360,12 +362,21 @@ export class HRCommissionSliceService {
   }
 
   static async create(data: CreateCommissionSliceDto): Promise<CommissionSlice> {
-    const response = await api.post<CommissionSlice>(API_ENDPOINTS.HR_COMMISSION_SLICES.CREATE, data);
+    const response = await api.post<CommissionSlice>(
+      API_ENDPOINTS.HR_COMMISSION_SLICES.CREATE,
+      data
+    );
     return response.data;
   }
 
-  static async update(id: number, data: Partial<CreateCommissionSliceDto>): Promise<CommissionSlice> {
-    const response = await api.put<CommissionSlice>(API_ENDPOINTS.HR_COMMISSION_SLICES.UPDATE(id), data);
+  static async update(
+    id: number,
+    data: Partial<CreateCommissionSliceDto>
+  ): Promise<CommissionSlice> {
+    const response = await api.put<CommissionSlice>(
+      API_ENDPOINTS.HR_COMMISSION_SLICES.UPDATE(id),
+      data
+    );
     return response.data;
   }
 
@@ -383,7 +394,8 @@ export class HRAttendanceService {
     // TODO: const response = await api.post(API_ENDPOINTS.HR_ATTENDANCE.FILTER, filter);
     let result = [...MOCK_ATTENDANCE];
     if (filter?.employeeId) result = result.filter((a) => a.employeeId === filter.employeeId);
-    if (filter?.attendanceDay) result = result.filter((a) => a.attendanceDay === filter.attendanceDay);
+    if (filter?.attendanceDay)
+      result = result.filter((a) => a.attendanceDay === filter.attendanceDay);
     return result;
   }
 }

@@ -21,6 +21,7 @@ import { useCurrentHREmployee, useCreateVacationRequest } from '@/hooks/api/useH
 import { HR_VACATION_TYPE } from '@/constants/hr.enums';
 import { toSelectOptions } from '@/constants/enums';
 import EmployeeInfoCard from '@/features/hr/components/EmployeeInfoCard';
+import HRPageHeader from '@/features/hr/components/HRPageHeader';
 import type { CreateVacationRequestDto } from '@/types/hr.types';
 import dayjs from 'dayjs';
 
@@ -109,7 +110,12 @@ export default function VacationRequestPage() {
                   label={isAr ? 'عدد أيام الإجازة' : 'Vacation Days'}
                   rules={[
                     { required: true, message: isAr ? 'مطلوب' : 'Required' },
-                    { type: 'number', min: 1, max: 365, message: isAr ? 'من 1 إلى 365 يوم' : '1 to 365 days' },
+                    {
+                      type: 'number',
+                      min: 1,
+                      max: 365,
+                      message: isAr ? 'من 1 إلى 365 يوم' : '1 to 365 days',
+                    },
                   ]}
                 >
                   <InputNumber
@@ -175,11 +181,12 @@ export default function VacationRequestPage() {
               </Col>
 
               <Col xs={24} sm={12}>
-                <Form.Item name="attachment" label={isAr ? 'المرفق (اختياري)' : 'Attachment (optional)'}>
+                <Form.Item
+                  name="attachment"
+                  label={isAr ? 'المرفق (اختياري)' : 'Attachment (optional)'}
+                >
                   <Upload maxCount={1} beforeUpload={() => false}>
-                    <Button icon={<UploadOutlined />}>
-                      {isAr ? 'رفع ملف' : 'Upload file'}
-                    </Button>
+                    <Button icon={<UploadOutlined />}>{isAr ? 'رفع ملف' : 'Upload file'}</Button>
                   </Upload>
                 </Form.Item>
               </Col>
