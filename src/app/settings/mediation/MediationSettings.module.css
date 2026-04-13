@@ -6,14 +6,14 @@
   contain: layout style paint;
 }
 
-/* Header */
-.header {
+/* Page Header */
+.pageHeader {
   background: linear-gradient(135deg, #003366 0%, #00478c 100%);
-  padding: 32px;
   border-radius: 12px;
+  padding: 32px;
   margin-bottom: 24px;
+  color: #ffffff;
   box-shadow: 0 4px 12px rgba(0, 51, 102, 0.15);
-  animation: fadeIn 0.3s ease-in;
 }
 
 .headerContent {
@@ -24,11 +24,22 @@
   gap: 16px;
 }
 
-.title {
-  color: #fff;
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.headerIcon {
+  font-size: 48px;
+  color: #00aa64;
+}
+
+.pageTitle {
   margin: 0;
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 /* Parent list */
@@ -170,11 +181,11 @@
     padding: 12px;
   }
 
-  .header {
+  .pageHeader {
     padding: 20px;
   }
 
-  .title {
+  .pageTitle {
     font-size: 22px;
   }
 
