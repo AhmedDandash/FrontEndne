@@ -26,6 +26,7 @@ import {
   RightOutlined,
   DeleteOutlined,
   LinkOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -139,10 +140,15 @@ export default function MediationSettingsPage() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
+      {/* Page Header */}
+      <div className={styles.pageHeader}>
         <div className={styles.headerContent}>
-          <h1 className={styles.title}>{t('pageTitle')}</h1>
+          <div className={styles.headerLeft}>
+            <SettingOutlined className={styles.headerIcon} />
+            <div>
+              <h1 className={styles.pageTitle}>{t('pageTitle')}</h1>
+            </div>
+          </div>
         </div>
       </div>
 

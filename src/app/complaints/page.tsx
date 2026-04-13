@@ -792,20 +792,22 @@ export default function ComplaintsPage() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <FileTextOutlined style={{ fontSize: 28, color: '#fff' }} />
-            <h1 className={styles.title}>{t('complaintsManagement')}</h1>
+      {/* Page Header */}
+      <div className={styles.pageHeader}>
+        <div className={styles.headerContent}>
+          <div className={styles.headerLeft}>
+            <FileTextOutlined className={styles.headerIcon} />
+            <div>
+              <h1 className={styles.pageTitle}>{t('complaintsManagement')}</h1>
+            </div>
           </div>
           <Button
             type="primary"
             size="large"
             icon={<PlusOutlined />}
+            className={styles.addButton}
             onClick={handleAdd}
             loading={createMutation.isPending}
-            style={{ background: '#00aa64', borderColor: '#00aa64', borderRadius: 8 }}
           >
             {t('addComplaint')}
           </Button>

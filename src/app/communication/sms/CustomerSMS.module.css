@@ -6,21 +6,58 @@
   contain: layout style paint;
 }
 
-/* Header */
-.header {
+/* Page Header */
+.pageHeader {
   background: linear-gradient(135deg, #003366 0%, #00478c 100%);
-  padding: 32px;
   border-radius: 12px;
+  padding: 32px;
   margin-bottom: 24px;
+  color: #ffffff;
   box-shadow: 0 4px 12px rgba(0, 51, 102, 0.15);
-  animation: fadeIn 0.3s ease-in;
 }
 
-.title {
-  color: #fff;
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.headerIcon {
+  font-size: 48px;
+  color: #00aa64;
+}
+
+.pageTitle {
   margin: 0;
-  font-size: 28px;
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.addButton {
+  height: 48px;
+  padding: 0 32px;
+  font-size: 16px;
   font-weight: 600;
+  background: #00aa64;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 170, 100, 0.3);
+  transition: all 0.3s ease;
+}
+
+.addButton:hover {
+  background: #00b478 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 170, 100, 0.4) !important;
 }
 
 /* Statistics */
@@ -410,11 +447,11 @@ html[dir='rtl'] .messageStats {
     padding: 16px;
   }
 
-  .header {
+  .pageHeader {
     padding: 24px 16px;
   }
 
-  .title {
+  .pageTitle {
     font-size: 24px;
   }
 
@@ -455,11 +492,11 @@ html[dir='rtl'] .messageStats {
 }
 
 @media (max-width: 480px) {
-  .header {
+  .pageHeader {
     padding: 20px 12px;
   }
 
-  .title {
+  .pageTitle {
     font-size: 20px;
   }
 

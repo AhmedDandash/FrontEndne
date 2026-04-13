@@ -234,16 +234,21 @@ export default function ContractCreationRequirementsPage() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
+      {/* Page Header */}
+      <div className={styles.pageHeader}>
         <div className={styles.headerContent}>
-          <h1 className={styles.title}>{t('pageTitle')}</h1>
+          <div className={styles.headerLeft}>
+            <FileTextOutlined className={styles.headerIcon} />
+            <div>
+              <h1 className={styles.pageTitle}>{t('pageTitle')}</h1>
+            </div>
+          </div>
           <Button
             type="primary"
-            icon={<PlusOutlined />}
             size="large"
+            icon={<PlusOutlined />}
+            className={styles.addButton}
             onClick={handleOpenCreate}
-            style={{ background: '#00aa64', borderColor: '#00aa64' }}
             aria-label={t('addBtn')}
           >
             {t('addBtn')}

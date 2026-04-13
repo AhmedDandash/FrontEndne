@@ -467,20 +467,22 @@ export default function MediationOffersPage() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
+      {/* Page Header */}
+      <div className={styles.pageHeader}>
         <div className={styles.headerContent}>
           <div className={styles.headerLeft}>
-            <ShopOutlined style={{ fontSize: 28, color: '#fff' }} />
-            <h1 className={styles.title}>{t('mediationOffers')}</h1>
+            <ShopOutlined className={styles.headerIcon} />
+            <div>
+              <h1 className={styles.pageTitle}>{t('mediationOffers')}</h1>
+            </div>
           </div>
           <Button
             type="primary"
             size="large"
             icon={<PlusOutlined />}
+            className={styles.addButton}
             onClick={handleAdd}
             loading={createMutation.isPending}
-            style={{ background: '#00aa64', borderColor: '#00aa64', borderRadius: 8 }}
           >
             {t('addOffer')}
           </Button>

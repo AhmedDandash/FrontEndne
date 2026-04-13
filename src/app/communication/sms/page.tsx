@@ -418,9 +418,16 @@ export default function CustomerSMSPage() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <h1 className={styles.title}>{t('customerSMS')}</h1>
+      {/* Page Header */}
+      <div className={styles.pageHeader}>
+        <div className={styles.headerContent}>
+          <div className={styles.headerLeft}>
+            <MessageOutlined className={styles.headerIcon} />
+            <div>
+              <h1 className={styles.pageTitle}>{t('customerSMS')}</h1>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Statistics */}
