@@ -1,6 +1,11 @@
 /**
- * Complaint Hooks
- * React Query hooks for complaint CRUD operations
+ * Complaint Hooks — migrated to new API contract.
+ *
+ * Breaking changes from old hooks:
+ *  - useFinishComplaint: mutationFn now takes id only (no {id,note} object)
+ *  - useHoldComplaint:   mutationFn now takes {id, reason} (reason required)
+ *  - useUpdateComplaint: removed — use useAddComplaintUpdate instead
+ *  - useAddIssue:        AddIssueDto now uses File objects (file1/file2)
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,8 +13,7 @@ import { ComplaintService } from '@/services/complaint.service';
 import type {
   Complaint,
   CreateComplaintDto,
-  UpdateComplaintDto,
-  FinishComplaintDto,
+  CreateComplaintUpdateDto,
   AddIssueDto,
   ComplaintIssue,
 } from '@/types/api.types';
@@ -17,20 +21,16 @@ import { message } from 'antd';
 
 const QUERY_KEY = 'complaints';
 
-/**
- * Fetch all complaints
- */
-export const useComplaints = () => {
+/** Fetch all complaints */
+export const useComplaints = (params?: { pageNumber?: number; pageSize?: number; search?: string }) => {
   return useQuery<Complaint[], Error>({
-    queryKey: [QUERY_KEY],
-    queryFn: ComplaintService.getAll,
+    queryKey: [QUERY_KEY, params],
+    queryFn: () => ComplaintService.getAll(params),
   });
 };
 
-/**
- * Fetch complaint by ID
- */
-export const useComplaint = (id: number) => {
+/** Fetch complaint by ID (response includes updates[]) */
+export const useComplaint = (id: number | string) => {
   return useQuery<Complaint, Error>({
     queryKey: [QUERY_KEY, id],
     queryFn: () => ComplaintService.getById(id),
@@ -38,9 +38,7 @@ export const useComplaint = (id: number) => {
   });
 };
 
-/**
- * Create new complaint
- */
+/** Create new complaint */
 export const useCreateComplaint = () => {
   const queryClient = useQueryClient();
 
@@ -58,33 +56,11 @@ export const useCreateComplaint = () => {
   });
 };
 
-/**
- * Update complaint
- */
-export const useUpdateComplaint = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<Complaint, Error, { id: number; data: UpdateComplaintDto }>({
-    mutationFn: ({ id, data }) => ComplaintService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      message.success('تم تحديث الشكوى بنجاح / Complaint updated successfully');
-    },
-    onError: (error: any) => {
-      message.error(
-        error?.response?.data?.message || 'فشل تحديث الشكوى / Failed to update complaint'
-      );
-    },
-  });
-};
-
-/**
- * Delete complaint
- */
+/** Delete complaint */
 export const useDeleteComplaint = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, number>({
+  return useMutation<void, Error, number | string>({
     mutationFn: ComplaintService.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
@@ -99,12 +75,13 @@ export const useDeleteComplaint = () => {
 };
 
 /**
- * Finish (close) a complaint with notes
+ * Finish (close) a complaint.
+ * New API: POST /api/Complaint/{id}/finish — no body, no finish note.
  */
 export const useFinishComplaint = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<Complaint, Error, FinishComplaintDto>({
+  return useMutation<void, Error, number | string>({
     mutationFn: ComplaintService.finish,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
@@ -119,27 +96,51 @@ export const useFinishComplaint = () => {
 };
 
 /**
- * Put a complaint on hold
+ * Toggle hold on a complaint.
+ * New API: POST /api/Complaint/{id}/toggle-hold?reason=<reason>
+ * reason is REQUIRED.
  */
-export const useHoldComplaint = () => {
+export const useToggleHoldComplaint = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<Complaint, Error, number>({
-    mutationFn: ComplaintService.hold,
+  return useMutation<void, Error, { id: number | string; reason: string }>({
+    mutationFn: ({ id, reason }) => ComplaintService.toggleHold(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      message.success('تم تعليق الشكوى بنجاح / Complaint put on hold successfully');
+      message.success('تم تحديث حالة الشكوى بنجاح / Complaint hold status updated');
     },
     onError: (error: any) => {
       message.error(
-        error?.response?.data?.message || 'فشل تعليق الشكوى / Failed to hold complaint'
+        error?.response?.data?.message || 'فشل تعليق الشكوى / Failed to update hold status'
       );
     },
   });
 };
 
 /**
- * Add an issue/case to a complaint
+ * Add a note/update to an existing complaint.
+ * New API: POST /api/Complaint/update
+ */
+export const useAddComplaintUpdate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, CreateComplaintUpdateDto>({
+    mutationFn: ComplaintService.addUpdate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      message.success('تمت إضافة التحديث بنجاح / Update added successfully');
+    },
+    onError: (error: any) => {
+      message.error(
+        error?.response?.data?.message || 'فشل إضافة التحديث / Failed to add update'
+      );
+    },
+  });
+};
+
+/**
+ * Add an issue/case to a complaint.
+ * New API: POST /api/Complaint/issue — multipart/form-data with File objects.
  */
 export const useAddIssue = () => {
   const queryClient = useQueryClient();
@@ -157,10 +158,8 @@ export const useAddIssue = () => {
   });
 };
 
-/**
- * Get issues for a complaint
- */
-export const useComplaintIssues = (complaintId: number) => {
+/** Get issues for a complaint */
+export const useComplaintIssues = (complaintId: number | string) => {
   return useQuery<ComplaintIssue[], Error>({
     queryKey: ['complaint-issues', complaintId],
     queryFn: () => ComplaintService.getIssueById(complaintId),

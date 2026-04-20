@@ -66,15 +66,30 @@ export const COMPLAINT_TYPE = [
   { value: 3, labelAr: 'معاملة', labelEn: 'Transaction' },
 ] as const;
 
-// ==================== Complaint From ====================
-// مصدر الشكوى
-export const COMPLAINT_FROM = [
+// ==================== Complaint Source (new API field: source) ====================
+// مصدر الشكوى — ComplaintSource enum in new API
+// Values changed from old COMPLAINT_FROM: Worker 5→2, Agent 2→3, Embassy 3→4, Ministry 4→5
+export const COMPLAINT_SOURCE = [
   { value: 1, labelAr: 'من العميل', labelEn: 'From Customer' },
-  { value: 5, labelAr: 'من العامل', labelEn: 'From Worker' },
-  { value: 2, labelAr: 'من الوكيل', labelEn: 'From Agent' },
-  { value: 3, labelAr: 'من السفارة', labelEn: 'From Embassy' },
-  { value: 4, labelAr: 'من الوزارة', labelEn: 'From Ministry' },
+  { value: 2, labelAr: 'من العامل', labelEn: 'From Worker' },
+  { value: 3, labelAr: 'من الوكيل', labelEn: 'From Agent' },
+  { value: 4, labelAr: 'من السفارة', labelEn: 'From Embassy' },
+  { value: 5, labelAr: 'من الوزارة', labelEn: 'From Ministry' },
   { value: 6, labelAr: 'شكوى لعقد', labelEn: 'Contract Complaint' },
+] as const;
+
+/**
+ * @deprecated Use COMPLAINT_SOURCE — kept only for displaying legacy records that
+ * were created before the API migration and may have old numeric values stored.
+ */
+export const COMPLAINT_FROM = COMPLAINT_SOURCE;
+
+// ==================== Complaint Priority ====================
+// أولوية الشكوى — new field in new API
+export const COMPLAINT_PRIORITY = [
+  { value: 1, labelAr: 'أخضر (منخفضة)', labelEn: 'Green (Low)' },
+  { value: 2, labelAr: 'أصفر (متوسطة)', labelEn: 'Yellow (Medium)' },
+  { value: 3, labelAr: 'أحمر (عالية)', labelEn: 'Red (High)' },
 ] as const;
 
 // ==================== Worker Location ====================
@@ -328,13 +343,13 @@ export const COMPLAINT_STATUS = [
 ] as const;
 
 // ==================== Submission Authority (Issue) ====================
-// جهة التقديم (القضية)
+// جهة التقديم (القضية) — SubmissionAuthority enum in new API
+// Values updated to match new swagger: 1=LaborOffice, 2=Court, 3=Police, 4=LaborCommittee
 export const SUBMISSION_AUTHORITY = [
-  { value: 1, labelAr: 'اللجان العمالية', labelEn: 'Labor Committees' },
-  { value: 2, labelAr: 'وحدة الدعم والحماية', labelEn: 'Support & Protection Unit' },
-  { value: 3, labelAr: 'مكتب العمل', labelEn: 'Labor Office' },
-  { value: 4, labelAr: 'الشرطة', labelEn: 'Police' },
-  { value: 5, labelAr: 'السفارة', labelEn: 'Embassy' },
+  { value: 1, labelAr: 'مكتب العمل', labelEn: 'Labor Office' },
+  { value: 2, labelAr: 'المحكمة', labelEn: 'Court' },
+  { value: 3, labelAr: 'الشرطة', labelEn: 'Police' },
+  { value: 4, labelAr: 'اللجنة العمالية', labelEn: 'Labor Committee' },
 ] as const;
 
 // ==================== Issue Status (Open/Closed) ====================
@@ -342,6 +357,15 @@ export const SUBMISSION_AUTHORITY = [
 export const ISSUE_STATUS = [
   { value: 1, labelAr: 'مفتوحة', labelEn: 'Open' },
   { value: 2, labelAr: 'مغلقة', labelEn: 'Closed' },
+] as const;
+
+// ==================== Operating Contract Status ====================
+// حالة عقد التشغيل — ContractStatus enum in new API
+export const OPERATING_CONTRACT_STATUS = [
+  { value: 1, labelAr: 'مسودة', labelEn: 'Draft' },
+  { value: 2, labelAr: 'موقع', labelEn: 'Signed' },
+  { value: 3, labelAr: 'قيد التنفيذ', labelEn: 'Executing' },
+  { value: 4, labelAr: 'منتهي', labelEn: 'Finished' },
 ] as const;
 
 // ==================== Mediation Contract Status ====================

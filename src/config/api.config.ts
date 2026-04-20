@@ -116,23 +116,33 @@ export const API_ENDPOINTS = {
   EMPLOYMENT_OPERATING_CONTRACT: {
     GET_ALL: '/api/EmploymentOperatingContract',
     CREATE: '/api/EmploymentOperatingContract',
-    GET_BY_ID: (id: number) => `/api/EmploymentOperatingContract/${id}`,
-    UPDATE: (id: number) => `/api/EmploymentOperatingContract/${id}`,
-    DELETE: (id: number) => `/api/EmploymentOperatingContract/${id}`,
-    END_CONTRACT: '/api/EmploymentOperatingContract/EndContract',
+    GET_BY_ID: (id: number | string) => `/api/EmploymentOperatingContract/${id}`,
+    UPDATE: (id: number | string) => `/api/EmploymentOperatingContract/${id}`,
+    DELETE: (id: number | string) => `/api/EmploymentOperatingContract/${id}`,
+    // Lifecycle transitions (replaces old EndContract)
+    SIGN: (id: number | string) => `/api/EmploymentOperatingContract/${id}/sign`,
+    START_EXECUTION: (id: number | string) => `/api/EmploymentOperatingContract/${id}/start-execution`,
+    RENEW: (id: number | string) => `/api/EmploymentOperatingContract/${id}/renew`,
+    TERMINATE: (id: number | string) => `/api/EmploymentOperatingContract/${id}/terminate`,
+    PRINT_RECEIPT_FORM: (id: number | string) => `/api/EmploymentOperatingContract/${id}/print-receipt-form`,
   },
 
   // Complaint
   COMPLAINT: {
     GET_ALL: '/api/Complaint',
-    GET_BY_ID: (id: number) => `/api/Complaint/${id}`,
+    GET_BY_ID: (id: number | string) => `/api/Complaint/${id}`,
     CREATE: '/api/Complaint',
-    UPDATE: (id: number) => `/api/Complaint/${id}`,
-    DELETE: (id: number) => `/api/Complaint/${id}`,
-    FINISH: '/api/Complaint/FinishComplaint',
-    HOLD: (id: number) => `/api/Complaint/HoldComplaint/${id}`,
-    ADD_ISSUE: '/api/Complaint/AddIssue',
-    GET_ISSUE: (id: number) => `/api/Complaint/GetIssueById/${id}`,
+    DELETE: (id: number | string) => `/api/Complaint/${id}`,
+    // POST /api/Complaint/{id}/finish — no request body
+    FINISH: (id: number | string) => `/api/Complaint/${id}/finish`,
+    // POST /api/Complaint/{id}/toggle-hold?reason=... — reason is required query param
+    HOLD: (id: number | string) => `/api/Complaint/${id}/toggle-hold`,
+    // POST /api/Complaint/issue — multipart/form-data
+    ADD_ISSUE: '/api/Complaint/issue',
+    // GET /api/Complaint/{id}/issue
+    GET_ISSUE: (id: number | string) => `/api/Complaint/${id}/issue`,
+    // POST /api/Complaint/update — add update/note to existing complaint
+    ADD_UPDATE: '/api/Complaint/update',
   },
 
   // Nationality (General Options)

@@ -22,6 +22,7 @@ import {
   Tag,
   List,
   Upload,
+  message,
 } from 'antd';
 import type { FormInstance, MenuProps } from 'antd';
 import {
@@ -45,10 +46,10 @@ import {
 import {
   useComplaints,
   useCreateComplaint,
-  useUpdateComplaint,
   useDeleteComplaint,
   useFinishComplaint,
-  useHoldComplaint,
+  useToggleHoldComplaint,
+  useAddComplaintUpdate,
   useAddIssue,
   useComplaintIssues,
 } from '@/hooks/api/useComplaints';
@@ -57,8 +58,8 @@ import { useWorkers } from '@/hooks/api/useWorkers';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import {
-  COMPLAINT_TYPE,
-  COMPLAINT_FROM,
+  COMPLAINT_SOURCE,
+  COMPLAINT_PRIORITY,
   COMPLAINT_STATUS,
   WORKER_LOCATION,
   CONTRACT_TYPE,
@@ -70,8 +71,7 @@ import {
 import type {
   Complaint,
   CreateComplaintDto,
-  UpdateComplaintDto,
-  FinishComplaintDto,
+  CreateComplaintUpdateDto,
   AddIssueDto,
 } from '@/types/api.types';
 import styles from './Complaints.module.css';
@@ -85,15 +85,15 @@ const getComplaintStatus = (complaint: Complaint): number => {
   return COMPLAINT_STATUS[0].value; // 1 = Open
 };
 
-// complaintFrom values (derived from COMPLAINT_FROM enum):
-// 1 = من العميل  → show Customer only
-// 5 = من العامل  → show Worker + WorkerLocation
-// 2,3,4,6        → show ContractType + ContractId + WorkerLocation
-const CUSTOMER_FROM = COMPLAINT_FROM.find((o) => o.labelEn === 'From Customer')!.value; // 1
-const WORKER_FROM = COMPLAINT_FROM.find((o) => o.labelEn === 'From Worker')!.value; // 5
-const CONTRACT_SOURCES = COMPLAINT_FROM.filter(
+// source values (COMPLAINT_SOURCE enum — new API):
+// 1 = Customer → show Customer selector
+// 2 = Worker   → show Worker + WorkerLocation
+// 3,4,5,6      → show ContractType + ContractId + WorkerLocation
+const CUSTOMER_FROM = COMPLAINT_SOURCE.find((o) => o.labelEn === 'From Customer')!.value; // 1
+const WORKER_FROM = COMPLAINT_SOURCE.find((o) => o.labelEn === 'From Worker')!.value; // 2
+const CONTRACT_SOURCES = COMPLAINT_SOURCE.filter(
   (o) => !['From Customer', 'From Worker'].includes(o.labelEn)
-).map((o) => o.value); // [2, 3, 4, 6]
+).map((o) => o.value); // [3, 4, 5, 6]
 
 interface ComplaintFormProps {
   form: FormInstance;
@@ -103,13 +103,13 @@ interface ComplaintFormProps {
 }
 
 function ComplaintForm({ form, language, isArabic, t }: ComplaintFormProps) {
-  const complaintFromValue = Form.useWatch('complaintFrom', form);
+  const sourceValue = Form.useWatch('source', form);
 
-  const showCustomer = complaintFromValue === CUSTOMER_FROM;
-  const showWorker = complaintFromValue === WORKER_FROM;
+  const showCustomer = sourceValue === CUSTOMER_FROM;
+  const showWorker = sourceValue === WORKER_FROM;
   const showAgent =
-    complaintFromValue === COMPLAINT_FROM.find((o) => o.labelEn === 'From Agent')?.value; // من الوكيل
-  const showContract = CONTRACT_SOURCES.includes(complaintFromValue);
+    sourceValue === COMPLAINT_SOURCE.find((o) => o.labelEn === 'From Agent')?.value; // 3 = Agent
+  const showContract = CONTRACT_SOURCES.includes(sourceValue);
   const showWorkerLocation = showWorker || showContract || showCustomer;
 
   // API data
@@ -148,30 +148,30 @@ function ComplaintForm({ form, language, isArabic, t }: ComplaintFormProps) {
   return (
     <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
       <Row gutter={[16, 0]}>
-        {/* Complaint Type */}
+        {/* Complaint Source (replaces old complaintFrom + type) */}
         <Col xs={24} md={12}>
           <Form.Item
-            name="type"
-            label={t('complaintType')}
-            rules={[{ required: true, message: isArabic ? 'مطلوب' : 'Required' }]}
-          >
-            <Select
-              placeholder={t('complaintType')}
-              options={toSelectOptions(COMPLAINT_TYPE, language)}
-            />
-          </Form.Item>
-        </Col>
-
-        {/* Complaint From */}
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="complaintFrom"
+            name="source"
             label={t('complaintFrom')}
             rules={[{ required: true, message: isArabic ? 'مطلوب' : 'Required' }]}
           >
             <Select
               placeholder={t('complaintFrom')}
-              options={toSelectOptions(COMPLAINT_FROM, language)}
+              options={toSelectOptions(COMPLAINT_SOURCE, language)}
+            />
+          </Form.Item>
+        </Col>
+
+        {/* Priority (new field) */}
+        <Col xs={24} md={12}>
+          <Form.Item
+            name="priority"
+            label={isArabic ? 'الأولوية' : 'Priority'}
+            rules={[{ required: true, message: isArabic ? 'مطلوب' : 'Required' }]}
+          >
+            <Select
+              placeholder={isArabic ? 'اختر الأولوية' : 'Select priority'}
+              options={toSelectOptions(COMPLAINT_PRIORITY, language)}
             />
           </Form.Item>
         </Col>
@@ -323,10 +323,10 @@ export default function ComplaintsPage() {
   // API hooks
   const { data: complaints = [], isLoading } = useComplaints();
   const createMutation = useCreateComplaint();
-  const updateMutation = useUpdateComplaint();
   const deleteMutation = useDeleteComplaint();
   const finishMutation = useFinishComplaint();
-  const holdMutation = useHoldComplaint();
+  const toggleHoldMutation = useToggleHoldComplaint();
+  const addUpdateMutation = useAddComplaintUpdate();
   const addIssueMutation = useAddIssue();
 
   // State
@@ -335,7 +335,6 @@ export default function ComplaintsPage() {
   const [contractTypeFilter, setContractTypeFilter] = useState<string>('all');
   const [complaintFromFilter, setComplaintFromFilter] = useState<string>('all');
   const [workerLocationFilter, setWorkerLocationFilter] = useState<string>('all');
-  const [typeTabFilter, setTypeTabFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -493,25 +492,22 @@ export default function ComplaintsPage() {
       const matchesStatus =
         statusFilter === 'all' || getComplaintStatus(complaint).toString() === statusFilter;
       const matchesContractType =
-        contractTypeFilter === 'all' || complaint.contractType?.toString() === contractTypeFilter;
+        contractTypeFilter === 'all' ||
+        complaint.relatedContractType?.toString() === contractTypeFilter;
       const matchesComplaintFrom =
         complaintFromFilter === 'all' ||
-        complaint.complaintFrom?.toString() === complaintFromFilter;
+        complaint.source?.toString() === complaintFromFilter;
       const matchesWorkerLocation =
         workerLocationFilter === 'all' ||
         complaint.workerLocation?.toString() === workerLocationFilter;
 
       // Tab filter by complaint type
-      const matchesTypeTab =
-        typeTabFilter === 'all' || complaint.type?.toString() === typeTabFilter;
-
       return (
         matchesSearch &&
         matchesStatus &&
         matchesContractType &&
         matchesComplaintFrom &&
-        matchesWorkerLocation &&
-        matchesTypeTab
+        matchesWorkerLocation
       );
     });
   }, [
@@ -520,7 +516,6 @@ export default function ComplaintsPage() {
     contractTypeFilter,
     complaintFromFilter,
     workerLocationFilter,
-    typeTabFilter,
     complaints,
   ]);
 
@@ -566,13 +561,13 @@ export default function ComplaintsPage() {
   const handleEdit = (complaint: Complaint) => {
     setEditingComplaint(complaint);
     form.setFieldsValue({
-      type: complaint.type,
-      complaintFrom: complaint.complaintFrom,
+      source: complaint.source,
+      priority: complaint.priority,
       customerId: complaint.customerId,
       workerId: complaint.workerId,
       workerLocation: complaint.workerLocation,
-      contractType: complaint.contractType,
-      contractId: complaint.contractId,
+      relatedContractType: complaint.relatedContractType,
+      relatedContractId: complaint.relatedContractId,
       notesAr: complaint.notesAr,
       notesEn: complaint.notesEn,
     });
@@ -594,27 +589,16 @@ export default function ComplaintsPage() {
   const handleModalSubmit = async () => {
     try {
       const values = await form.validateFields();
-      if (editingComplaint) {
-        const dto: UpdateComplaintDto = values;
-        updateMutation.mutate(
-          { id: editingComplaint.id, data: dto },
-          {
-            onSuccess: () => {
-              setIsModalVisible(false);
-              form.resetFields();
-              setEditingComplaint(null);
-            },
-          }
-        );
-      } else {
-        const dto: CreateComplaintDto = values;
-        createMutation.mutate(dto, {
-          onSuccess: () => {
-            setIsModalVisible(false);
-            form.resetFields();
-          },
-        });
-      }
+      // New API has no PUT/update for complaints — create only.
+      // Editing mode is disabled; modal is create-only.
+      const dto: CreateComplaintDto = values;
+      createMutation.mutate(dto, {
+        onSuccess: () => {
+          setIsModalVisible(false);
+          form.resetFields();
+          setEditingComplaint(null);
+        },
+      });
     } catch (error) {
       console.error('Validation failed:', error);
     }
@@ -634,35 +618,41 @@ export default function ComplaintsPage() {
   };
 
   const handleFinishSubmit = async () => {
-    try {
-      const values = await finishForm.validateFields();
-      if (!finishingComplaint) return;
-      const dto: FinishComplaintDto = {
-        id: finishingComplaint.id,
-        note: values.note || null,
-      };
-      finishMutation.mutate(dto, {
-        onSuccess: () => {
-          setIsFinishModalVisible(false);
-          finishForm.resetFields();
-          setFinishingComplaint(null);
-        },
-      });
-    } catch (error) {
-      console.error('Validation failed:', error);
-    }
+    if (!finishingComplaint) return;
+    // New API: POST /api/Complaint/{id}/finish — no body, no note.
+    finishMutation.mutate(finishingComplaint.id, {
+      onSuccess: () => {
+        setIsFinishModalVisible(false);
+        setFinishingComplaint(null);
+      },
+    });
   };
 
-  // Hold complaint handler
+  // Hold/unhold complaint handler — new API requires a reason string
   const handleHold = (complaint: Complaint) => {
+    let reason = '';
     Modal.confirm({
       title: t('holdComplaint'),
       icon: <PauseCircleOutlined style={{ color: '#8c0000' }} />,
-      content: t('confirmHold'),
+      content: (
+        <div>
+          <p style={{ marginBottom: 8 }}>{t('confirmHold')}</p>
+          <Input
+            placeholder={isArabic ? 'سبب التعليق (مطلوب)' : 'Hold reason (required)'}
+            onChange={(e) => { reason = e.target.value; }}
+          />
+        </div>
+      ),
       okText: t('holdComplaint'),
       cancelText: t('cancel'),
       okButtonProps: { style: { background: '#8c0000', borderColor: '#8c0000' } },
-      onOk: () => holdMutation.mutate(complaint.id),
+      onOk: () => {
+        if (!reason.trim()) {
+          message.warning(isArabic ? 'يرجى إدخال سبب التعليق' : 'Please enter a hold reason');
+          return Promise.reject();
+        }
+        return toggleHoldMutation.mutate({ id: complaint.id, reason });
+      },
     });
   };
 
@@ -678,17 +668,9 @@ export default function ComplaintsPage() {
       const values = await issueForm.validateFields();
       if (!issueComplaint) return;
 
-      // Convert selected file to base64 string
-      let attachmentFileStr: string | null = null;
-      const fileObj: File | undefined = values.attachmentFile?.[0]?.originFileObj;
-      if (fileObj) {
-        attachmentFileStr = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve((reader.result as string).split(',')[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(fileObj);
-        });
-      }
+      // New API: multipart/form-data — pass File objects directly (no base64)
+      const file1: File | undefined = values.attachmentFile?.[0]?.originFileObj;
+      const file2: File | undefined = values.attachmentFile2?.[0]?.originFileObj;
 
       const dto: AddIssueDto = {
         complaintId: issueComplaint.id,
@@ -697,7 +679,8 @@ export default function ComplaintsPage() {
         transactionDate: values.transactionDate
           ? values.transactionDate.format('YYYY-MM-DDTHH:mm:ss.SSS[Z]')
           : null,
-        attachmentFile: attachmentFileStr,
+        file1: file1 ?? null,
+        file2: file2 ?? null,
       };
       addIssueMutation.mutate(dto, {
         onSuccess: () => {
@@ -858,23 +841,7 @@ export default function ComplaintsPage() {
         </Col>
       </Row>
 
-      {/* Type Tabs */}
-      <div className={styles.filtersCard} style={{ marginBottom: 16 }}>
-        <Tabs
-          activeKey={typeTabFilter}
-          onChange={(key) => {
-            setTypeTabFilter(key);
-            setCurrentPage(1);
-          }}
-          items={[
-            { key: 'all', label: t('allTab') },
-            ...COMPLAINT_TYPE.map((ct) => ({
-              key: ct.value.toString(),
-              label: isArabic ? ct.labelAr : ct.labelEn,
-            })),
-          ]}
-        />
-      </div>
+      {/* Type tabs removed — `type` field no longer in new API complaint response */}
 
       {/* Filters */}
       <div className={styles.filtersCard}>
@@ -939,7 +906,7 @@ export default function ComplaintsPage() {
               }}
               options={[
                 { label: t('all'), value: 'all' },
-                ...toSelectOptions(COMPLAINT_FROM, language).map((o) => ({
+                ...toSelectOptions(COMPLAINT_SOURCE, language).map((o) => ({
                   ...o,
                   value: o.value.toString(),
                 })),
@@ -981,13 +948,12 @@ export default function ComplaintsPage() {
                 {/* Top badges row */}
                 <div className={styles.badgesRow}>
                   <div className={styles.badgesLeft}>
-                    <Tag color="blue">{getEnumLabel(COMPLAINT_TYPE, complaint.type, language)}</Tag>
                     <Tag color="purple">
-                      {getEnumLabel(COMPLAINT_FROM, complaint.complaintFrom, language)}
+                      {getEnumLabel(COMPLAINT_SOURCE, complaint.source, language)}
                     </Tag>
-                    {complaint.contractType && (
+                    {complaint.relatedContractType && (
                       <Tag color="geekblue">
-                        {getEnumLabel(CONTRACT_TYPE, complaint.contractType, language)}
+                        {getEnumLabel(CONTRACT_TYPE, complaint.relatedContractType, language)}
                       </Tag>
                     )}
                     {complaint.workerLocation != null && complaint.workerLocation !== 0 && (
@@ -1169,7 +1135,7 @@ export default function ComplaintsPage() {
         onCancel={handleModalCancel}
         okText={t('save')}
         cancelText={t('cancel')}
-        confirmLoading={createMutation.isPending || updateMutation.isPending}
+        confirmLoading={createMutation.isPending}
         width={700}
         destroyOnClose
       >
@@ -1198,16 +1164,18 @@ export default function ComplaintsPage() {
         destroyOnClose
       >
         {finishingComplaint && (
-          <div style={{ marginBottom: 16, padding: 12, background: '#f5f7fa', borderRadius: 8 }}>
-            <strong>#{finishingComplaint.id}</strong> –{' '}
-            {finishingComplaint.customerName || finishingComplaint.workerName || ''}
+          <div style={{ padding: 12, background: '#f5f7fa', borderRadius: 8 }}>
+            <strong>#{finishingComplaint.id}</strong>{' '}
+            {finishingComplaint.customerName || finishingComplaint.workerName
+              ? `– ${finishingComplaint.customerName || finishingComplaint.workerName}`
+              : ''}
+            <p style={{ marginTop: 8, color: '#666' }}>
+              {isArabic
+                ? 'هل أنت متأكد من إنهاء هذه الشكوى؟'
+                : 'Are you sure you want to finish this complaint?'}
+            </p>
           </div>
         )}
-        <Form form={finishForm} layout="vertical">
-          <Form.Item name="note" label={t('finishNotes')}>
-            <Input.TextArea rows={3} placeholder={t('finishNotes')} />
-          </Form.Item>
-        </Form>
       </Modal>
 
       {/* Add Issue Modal */}
@@ -1268,7 +1236,19 @@ export default function ComplaintsPage() {
                 getValueFromEvent={(e: any) => e?.fileList || e}
               >
                 <Upload maxCount={1} beforeUpload={() => false} accept="*/*">
-                  <Button icon={<UploadOutlined />}>{isArabic ? 'اختر ملف' : 'Select File'}</Button>
+                  <Button icon={<UploadOutlined />}>{isArabic ? 'ملف 1' : 'File 1'}</Button>
+                </Upload>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="attachmentFile2"
+                label={t('attachment2')}
+                valuePropName="fileList"
+                getValueFromEvent={(e: any) => e?.fileList || e}
+              >
+                <Upload maxCount={1} beforeUpload={() => false} accept="*/*">
+                  <Button icon={<UploadOutlined />}>{isArabic ? 'ملف 2' : 'File 2'}</Button>
                 </Upload>
               </Form.Item>
             </Col>
@@ -1334,16 +1314,10 @@ function ViewDetailsModal({
         <Row gutter={[16, 16]}>
           <Col xs={12} md={8}>
             <div style={{ color: '#6c757d', fontSize: 12, marginBottom: 4 }}>
-              {t('complaintType')}
-            </div>
-            <Tag color="blue">{getEnumLabel(COMPLAINT_TYPE, complaint.type, language)}</Tag>
-          </Col>
-          <Col xs={12} md={8}>
-            <div style={{ color: '#6c757d', fontSize: 12, marginBottom: 4 }}>
               {t('complaintFrom')}
             </div>
             <Tag color="purple">
-              {getEnumLabel(COMPLAINT_FROM, complaint.complaintFrom, language)}
+              {getEnumLabel(COMPLAINT_SOURCE, complaint.source, language)}
             </Tag>
           </Col>
           <Col xs={12} md={8}>
@@ -1374,13 +1348,13 @@ function ViewDetailsModal({
                 : '—'}
             </div>
           </Col>
-          {complaint.contractType && (
+          {complaint.relatedContractType && (
             <Col xs={12} md={8}>
               <div style={{ color: '#6c757d', fontSize: 12, marginBottom: 4 }}>
                 {t('contractType')}
               </div>
               <Tag color="geekblue">
-                {getEnumLabel(CONTRACT_TYPE, complaint.contractType, language)}
+                {getEnumLabel(CONTRACT_TYPE, complaint.relatedContractType, language)}
               </Tag>
             </Col>
           )}
