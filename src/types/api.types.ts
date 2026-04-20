@@ -634,28 +634,52 @@ export interface EmploymentContractOfferSummary {
 }
 
 // ==================== Employment Operating Contract Types ====================
+// ContractStatus enum: 1=Draft, 2=Signed, 3=Executing, 4=Finished
+export const CONTRACT_STATUS_VALUES = {
+  Draft: 1,
+  Signed: 2,
+  Executing: 3,
+  Finished: 4,
+} as const;
+
 export interface EmploymentOperatingContract {
-  id: number;
-  createdBy?: number | null;
+  id: number | string;
+  createdBy?: number | string | null;
   createdAt?: string | null;
-  customerId?: number | null;
+  customerId?: number | string | null;
   customerNameAr?: string | null;
   mobile?: string | null;
   customerIdentiy?: string | null;
+  marketerId?: number | string | null;
+  contractCategory?: number | null;
+  offerId?: number | string | null;
   offerContractType?: number | null;
   offerType?: number | null;
-  nationalityId?: number | null;
-  jobId?: number | null;
+  operationType?: number | null;
+  paymentMethod?: number | null;
+  nationalityId?: number | string | null;
+  jobId?: number | string | null;
   jobName?: string | null;
   duration?: number | null;
   contractStartDate?: string | null;
   contractEndDate?: string | null;
+  previousExperience?: number | null;
+  offerPrice?: number | null;
+  workerId?: number | string | null;
+  laborManagement?: number | null;
+  workerNameEn?: string | null;
+  workerNameAr?: string | null;
+  workerPhone?: string | null;
+  workersCount?: number | null;
   customerAddress?: string | null;
   cost?: number | null;
+  insurance?: number | null;
   costTax?: number | null;
   totalCostWithTax?: number | null;
+  // ContractStatus: 1=Draft, 2=Signed, 3=Executing, 4=Finished
+  contractStatus?: number | null;
   isFinish?: boolean | null;
-  finishBy?: number | null;
+  finishBy?: string | null;
   finishDate?: string | null;
   noteFinish?: string | null;
 }
@@ -708,92 +732,116 @@ export interface UpdateEmploymentOperatingContractDto {
   customerAddress?: string | null;
 }
 
-export interface EndContractDto {
-  contractId: number;
-  endDate?: string | null;
-  reason?: string | null;
+/** POST /api/EmploymentOperatingContract/{id}/renew */
+export interface RenewContractDto {
+  newEndDate: string;
+}
+
+/** POST /api/EmploymentOperatingContract/{id}/terminate */
+export interface TerminateContractDto {
+  note: string;
+}
+
+/** GET /api/EmploymentOperatingContract/{id}/print-receipt-form */
+export interface ContractPrintReceiptData {
+  customerData?: Record<string, any> | null;
+  workerData?: Record<string, any> | null;
+  priceDetails?: Record<string, any> | null;
+  duration?: number | null;
+  contractStartDate?: string | null;
+  contractEndDate?: string | null;
 }
 
 // ==================== Complaint Types ====================
+// ComplaintSource enum (new API): 1=Customer, 2=Worker, 3=Agent, 4=Embassy, 5=Ministry, 6=Contract
+// ComplaintPriority enum: 1=Green, 2=Yellow, 3=Red
+// ComplaintStatus enum: 1=Open, 2=Hold, 3=Finished
 export interface Complaint {
-  id: number;
-  type?: number | null;
-  complaintFrom?: number | null;
-  customerId?: number | null;
-  workerId?: number | null;
+  id: number | string;
+  complaintNumber?: string | null;
+  // new field name (replaces old complaintFrom)
+  source?: number | null;
+  priority?: number | null;
+  customerId?: number | string | null;
+  workerId?: number | string | null;
   workerLocation?: number | null;
-  contractType?: number | null;
-  contractId?: number | null;
+  // renamed from contractType / contractId
+  relatedContractType?: number | null;
+  relatedContractId?: number | string | null;
   notesAr?: string | null;
   notesEn?: string | null;
   createdAt?: string | null;
-  createdBy?: number | null;
+  createdBy?: number | string | null;
   updatedAt?: string | null;
-  updatedBy?: number | null;
+  updatedBy?: number | string | null;
   // Read-only joined fields from API response
   customerName?: string | null;
   workerName?: string | null;
   contractNumber?: string | null;
-  // Status fields from API (no single status field)
+  // Status flags from API
   isFinish?: boolean | null;
   finishNote?: string | null;
   ishold?: boolean | null;
+  // GET /api/Complaint/{id} returns array of updates
+  updates?: ComplaintUpdate[] | null;
   /** @deprecated Derived from isFinish/ishold for UI compatibility */
   status?: number | null;
 }
 
+/** POST /api/Complaint — create a new complaint */
 export interface CreateComplaintDto {
-  type?: number | null;
-  complaintFrom?: number | null;
-  customerId?: number | null;
-  workerId?: number | null;
+  // ComplaintSource: 1=Customer, 2=Worker, 3=Agent, 4=Embassy, 5=Ministry, 6=Contract
+  source?: number | null;
+  // ComplaintPriority: 1=Green, 2=Yellow, 3=Red
+  priority?: number | null;
+  customerId?: number | string | null;
+  workerId?: number | string | null;
   workerLocation?: number | null;
-  contractType?: number | null;
-  contractId?: number | null;
+  relatedContractType?: number | null;
+  relatedContractId?: number | string | null;
   notesAr?: string | null;
   notesEn?: string | null;
 }
 
-export interface UpdateComplaintDto {
-  type?: number | null;
-  complaintFrom?: number | null;
-  customerId?: number | null;
-  workerId?: number | null;
-  workerLocation?: number | null;
-  contractType?: number | null;
-  contractId?: number | null;
-  notesAr?: string | null;
-  notesEn?: string | null;
+/** POST /api/Complaint/update — add a note/update to an existing complaint */
+export interface CreateComplaintUpdateDto {
+  complaintId: number | string;
+  noteAr?: string | null;
+  noteEn?: string | null;
 }
 
-export interface FinishComplaintDto {
-  id: number;
-  note?: string | null;
+export interface ComplaintUpdate {
+  id: number | string;
+  complaintId?: number | string | null;
+  noteAr?: string | null;
+  noteEn?: string | null;
+  createdAt?: string | null;
+  createdByName?: string | null;
 }
 
-export interface HoldComplaintDto {
-  id: number;
-}
-
+/** POST /api/Complaint/issue — multipart/form-data */
 export interface AddIssueDto {
-  complaintId: number;
+  complaintId: number | string;
   incomingNumber?: string | null;
+  // SubmissionAuthority: 1=LaborOffice, 2=Court, 3=Police, 4=LaborCommittee
   submissionAuthority?: number | null;
   transactionDate?: string | null;
-  attachmentFile?: string | null;
+  // Binary file objects for multipart upload
+  file1?: File | null;
+  file2?: File | null;
 }
 
 export interface ComplaintIssue {
-  id: number;
-  complaintParentId?: number | null;
+  id: number | string;
+  complaintParentId?: number | string | null;
   incomingNumber?: string | null;
   submissionAuthority?: number | null;
   transactionDate?: string | null;
-  attachmentFile?: string | null;
-  attachmentFile2?: string | null;
+  attachmentPath1?: string | null;
+  attachmentPath2?: string | null;
   status?: number | null;
   createdAt?: string | null;
-  createdBy?: number | null;
+  createdBy?: number | string | null;
 }
 
 // ==================== Nationality Extended Types ====================

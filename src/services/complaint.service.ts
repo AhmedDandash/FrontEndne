@@ -1,6 +1,13 @@
 /**
  * Complaint Service
- * Handles all complaint-related API calls
+ * Handles all complaint-related API calls — migrated to new API contract.
+ *
+ * Key changes from old API:
+ *  - finish:    POST /FinishComplaint (body) → POST /{id}/finish (no body)
+ *  - hold:      POST /HoldComplaint/{id}    → POST /{id}/toggle-hold?reason=...
+ *  - addIssue:  POST /AddIssue (JSON+base64) → POST /issue (multipart/form-data)
+ *  - getIssue:  GET  /GetIssueById/{id}     → GET  /{id}/issue
+ *  - update:    PUT  /{id} (removed)        → POST /update (notes only)
  */
 
 import { api } from '@/lib/api/client';
@@ -8,20 +15,23 @@ import { API_ENDPOINTS } from '@/config/api.config';
 import type {
   Complaint,
   CreateComplaintDto,
-  UpdateComplaintDto,
-  FinishComplaintDto,
+  CreateComplaintUpdateDto,
   AddIssueDto,
   ComplaintIssue,
+  ComplaintUpdate,
 } from '@/types/api.types';
 
 export class ComplaintService {
   /**
-   * Get all complaints
+   * GET /api/Complaint?pageNumber=&pageSize=&search=
    */
-  static async getAll(): Promise<Complaint[]> {
-    const response = await api.get<any>(API_ENDPOINTS.COMPLAINT.GET_ALL);
+  static async getAll(params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    search?: string;
+  }): Promise<Complaint[]> {
+    const response = await api.get<any>(API_ENDPOINTS.COMPLAINT.GET_ALL, { params });
 
-    // Handle different response structures
     let complaints: Complaint[] = [];
     if (Array.isArray(response.data)) {
       complaints = response.data;
@@ -32,23 +42,25 @@ export class ComplaintService {
       else if (Array.isArray(data.items)) complaints = data.items;
     }
 
-    // Derive status from isFinish / ishold for UI compatibility
+    // Derive UI status from boolean flags (isFinish / ishold)
     return complaints.map((c) => ({
       ...c,
-      status: c.isFinish ? 2 : c.ishold ? 3 : 1,
+      status: c.isFinish ? 3 : c.ishold ? 2 : 1, // 1=Open, 2=Hold, 3=Finished
     }));
   }
 
   /**
-   * Get complaint by ID
+   * GET /api/Complaint/{id}  — returns complaint + updates[] array
    */
-  static async getById(id: number): Promise<Complaint> {
+  static async getById(id: number | string): Promise<Complaint> {
     const response = await api.get<Complaint>(API_ENDPOINTS.COMPLAINT.GET_BY_ID(id));
     return response.data;
   }
 
   /**
-   * Create new complaint
+   * POST /api/Complaint
+   * Payload: CreateComplaintDto (source, priority, customerId, workerId,
+   *          workerLocation, relatedContractType, relatedContractId, notesAr, notesEn)
    */
   static async create(data: CreateComplaintDto): Promise<Complaint> {
     const response = await api.post<Complaint>(API_ENDPOINTS.COMPLAINT.CREATE, data);
@@ -56,59 +68,64 @@ export class ComplaintService {
   }
 
   /**
-   * Update complaint
+   * DELETE /api/Complaint/{id}
    */
-  static async update(id: number, data: UpdateComplaintDto): Promise<Complaint> {
-    const response = await api.put<Complaint>(API_ENDPOINTS.COMPLAINT.UPDATE(id), data);
-    return response.data;
-  }
-
-  /**
-   * Delete complaint
-   */
-  static async delete(id: number): Promise<void> {
+  static async delete(id: number | string): Promise<void> {
     await api.delete(API_ENDPOINTS.COMPLAINT.DELETE(id));
   }
 
   /**
-   * Finish (close) a complaint with notes
-   * API expects an array: [{ id, note }]
+   * POST /api/Complaint/{id}/finish  — no request body
+   * Status transition: Open/Hold → Finished
    */
-  static async finish(data: FinishComplaintDto): Promise<Complaint> {
-    console.log('[ComplaintService] Finishing complaint with data:', JSON.stringify(data));
-    const response = await api.post<Complaint>(API_ENDPOINTS.COMPLAINT.FINISH, [data]);
-    console.log('[ComplaintService] Finish response:', JSON.stringify(response.data));
+  static async finish(id: number | string): Promise<void> {
+    await api.post(API_ENDPOINTS.COMPLAINT.FINISH(id), null);
+  }
+
+  /**
+   * POST /api/Complaint/{id}/toggle-hold?reason=<reason>
+   * reason is REQUIRED by the new API.
+   * Status transitions: Open ↔ Hold
+   */
+  static async toggleHold(id: number | string, reason: string): Promise<void> {
+    await api.post(API_ENDPOINTS.COMPLAINT.HOLD(id), null, {
+      params: { reason },
+    });
+  }
+
+  /**
+   * POST /api/Complaint/update
+   * Adds a bilingual note/update to an existing complaint.
+   */
+  static async addUpdate(data: CreateComplaintUpdateDto): Promise<ComplaintUpdate> {
+    const response = await api.post<ComplaintUpdate>(API_ENDPOINTS.COMPLAINT.ADD_UPDATE, data);
     return response.data;
   }
 
   /**
-   * Put a complaint on hold
-   */
-  static async hold(id: number): Promise<Complaint> {
-    const response = await api.post<Complaint>(API_ENDPOINTS.COMPLAINT.HOLD(id), {});
-    return response.data;
-  }
-
-  /**
-   * Add an issue/case to a complaint (supports file upload)
+   * POST /api/Complaint/issue  — multipart/form-data
+   * Files are uploaded as binary (File objects), not base64.
    */
   static async addIssue(data: AddIssueDto): Promise<ComplaintIssue> {
-    const payload: Record<string, any> = {
-      complaintId: data.complaintId,
-    };
-    if (data.incomingNumber != null) payload.incomingNumber = data.incomingNumber;
-    if (data.submissionAuthority != null) payload.submissionAuthority = data.submissionAuthority;
-    if (data.transactionDate != null) payload.transactionDate = data.transactionDate;
-    if (data.attachmentFile != null) payload.attachmentFile = data.attachmentFile;
+    const form = new FormData();
+    form.append('ComplaintId', String(data.complaintId));
+    if (data.incomingNumber != null) form.append('IncomingNumber', data.incomingNumber);
+    if (data.submissionAuthority != null)
+      form.append('SubmissionAuthority', String(data.submissionAuthority));
+    if (data.transactionDate != null) form.append('TransactionDate', data.transactionDate);
+    if (data.file1 instanceof File) form.append('file1', data.file1);
+    if (data.file2 instanceof File) form.append('file2', data.file2);
 
-    const response = await api.post<ComplaintIssue>(API_ENDPOINTS.COMPLAINT.ADD_ISSUE, payload);
+    const response = await api.post<ComplaintIssue>(API_ENDPOINTS.COMPLAINT.ADD_ISSUE, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   }
 
   /**
-   * Get issue by complaint ID
+   * GET /api/Complaint/{id}/issue
    */
-  static async getIssueById(id: number): Promise<ComplaintIssue[]> {
+  static async getIssueById(id: number | string): Promise<ComplaintIssue[]> {
     const response = await api.get<any>(API_ENDPOINTS.COMPLAINT.GET_ISSUE(id));
     if (Array.isArray(response.data)) return response.data;
     if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;
