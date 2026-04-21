@@ -50,7 +50,7 @@ export class JobService {
   /**
    * Get job by ID
    */
-  static async getById(id: number): Promise<Job | null> {
+  static async getById(id: number | string): Promise<Job | null> {
     try {
       const response = await api.get<Job>(API_ENDPOINTS.JOB.GET_BY_ID(id));
       return response.data;
@@ -80,7 +80,7 @@ export class JobService {
   /**
    * Update existing job
    */
-  static async update(id: number, data: UpdateJobDto): Promise<Job> {
+  static async update(id: number | string, data: UpdateJobDto): Promise<Job> {
     // Convert to proper types
     const payload = {
       ...data,
@@ -97,7 +97,7 @@ export class JobService {
   /**
    * Delete job
    */
-  static async delete(id: number): Promise<void> {
+  static async delete(id: number | string): Promise<void> {
     await api.delete(API_ENDPOINTS.JOB.DELETE(id));
   }
 }

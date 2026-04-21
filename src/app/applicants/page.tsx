@@ -61,9 +61,7 @@ import { useAuthStore } from '@/store/authStore';
 import {
   useWorkers,
   useWorker,
-  useWorkerEscape,
   useWorkerRefused,
-  useWorkerSick,
   useWorkerDeactivate,
   useWorkerOut,
   useCreateWorker,
@@ -490,9 +488,7 @@ export default function WorkersPage() {
   const { mutate: createWorker, isPending: isCreating } = useCreateWorker();
   const { mutate: updateWorker, isPending: isUpdating } = useUpdateWorker();
   const { mutate: deleteWorker } = useDeleteWorker();
-  const { mutate: workerEscape } = useWorkerEscape();
   const { mutate: workerRefused } = useWorkerRefused();
-  const { mutate: workerSick } = useWorkerSick();
   const { mutate: workerDeactivate, isPending: isDeactivating } = useWorkerDeactivate();
   const { mutate: workerOut } = useWorkerOut();
   const { mutate: createMedicalExamination, isPending: isCreatingMedicalExam } =
@@ -536,10 +532,10 @@ export default function WorkersPage() {
       const matchesAgent = !filters.agent || worker.agentId === Number(filters.agent);
       const matchesExperience =
         filters.hasExperience === undefined || worker.hasExperience === filters.hasExperience;
-      const matchesStatus = !filters.status || worker.workerSatus === Number(filters.status);
+      const matchesStatus = !filters.status || worker.workerStatus === Number(filters.status);
 
       // Tab-based workerSatus filtering: 0=All, 1=Trial, 2=Available, 3=Under Procedure, 4=Back Out, 5=Inside Kingdom, 6=Deported
-      const matchesTab = activeTab === 0 || worker.workerSatus === activeTab;
+      const matchesTab = activeTab === 0 || worker.workerStatus === activeTab;
 
       return (
         matchesSearch &&
@@ -600,9 +596,9 @@ export default function WorkersPage() {
   useEffect(() => {
     if (editingWorker) {
       // Pre-load existing image for editing
-      if (editingWorker.uploadimage) {
-        setWorkerImageBase64(editingWorker.uploadimage);
-        setWorkerImagePreview(editingWorker.uploadimage);
+      if (editingWorker.uploadImage) {
+        setWorkerImageBase64(editingWorker.uploadImage);
+        setWorkerImagePreview(editingWorker.uploadImage);
       }
       form.setFieldsValue({
         ...editingWorker,
@@ -627,13 +623,12 @@ export default function WorkersPage() {
       gender: restValues.gender !== undefined ? Number(restValues.gender) : undefined,
       maritalStatus:
         restValues.maritalStatus !== undefined ? Number(restValues.maritalStatus) : undefined,
-      nationalityId: restValues.nationalityId ? Number(restValues.nationalityId) : undefined,
-      jobId: restValues.jobId ? Number(restValues.jobId) : undefined,
-      agentId: restValues.agentId ? Number(restValues.agentId) : undefined,
+      nationalityId: restValues.nationalityId ? String(restValues.nationalityId) : undefined,
+      jobId: restValues.jobId ? String(restValues.jobId) : undefined,
+      agentId: restValues.agentId ? String(restValues.agentId) : undefined,
       workerType: restValues.workerType ? Number(restValues.workerType) : undefined,
-      workerSatus: restValues.workerSatus ? Number(restValues.workerSatus) : undefined,
-      // Include the Base64-encoded image (Option A: store directly in uploadimage field)
-      uploadimage: workerImageBase64 || undefined,
+      workerStatus: restValues.workerStatus ? Number(restValues.workerStatus) : undefined,
+      uploadImage: workerImageBase64 || undefined,
     };
 
     if (editingWorkerId !== null) {
@@ -684,31 +679,33 @@ export default function WorkersPage() {
 
     switch (action) {
       case 'escape':
-        workerEscape({ id: worker.id, date: actionDate });
+        // WorkerEscape removed in new API — no replacement
+        message.warning('هذا الإجراء غير متاح في الواجهة الجديدة / This action is not available in the new API');
         break;
       case 'refused':
-        workerRefused({ id: worker.id, date: actionDate });
+        workerRefused(worker.id);
         break;
       case 'sick':
-        workerSick({ id: worker.id, date: actionDate });
+        // WorkerSick removed in new API — no replacement
+        message.warning('هذا الإجراء غير متاح في الواجهة الجديدة / This action is not available in the new API');
         break;
       case 'deactivate':
-        workerDeactivate({ id: worker.id, date: actionDate });
+        workerDeactivate(worker.id);
         break;
       case 'out':
-        workerOut({ id: worker.id, date: actionDate });
+        workerOut(worker.id);
         break;
       case 'received':
-        updateWorker({ id: worker.id, data: { workerSatus: 1 } });
+        updateWorker({ id: worker.id, data: { workerStatus: 1 } });
         break;
       case 'suspended':
-        updateWorker({ id: worker.id, data: { workerSatus: 6 } });
+        updateWorker({ id: worker.id, data: { workerStatus: 6 } });
         break;
       case 'finalExit':
-        updateWorker({ id: worker.id, data: { workerSatus: 7 } });
+        updateWorker({ id: worker.id, data: { workerStatus: 7 } });
         break;
       case 'returnWork':
-        updateWorker({ id: worker.id, data: { workerSatus: 8 } });
+        updateWorker({ id: worker.id, data: { workerStatus: 8 } });
         break;
     }
   };
@@ -1221,16 +1218,16 @@ export default function WorkersPage() {
                       size="small"
                     />
                   </Tooltip>
-                  {getStatusTag(worker.workerSatus)}
+                  {getStatusTag(worker.workerStatus)}
                 </div>
               </div>
 
               <div className={styles.workerCardBody}>
                 {/* Worker Image */}
                 <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                  {worker.uploadimage ? (
+                  {worker.uploadImage ? (
                     <Image
-                      src={worker.uploadimage}
+                      src={worker.uploadImage}
                       alt={worker.fullNameAr || 'Worker'}
                       width={100}
                       height={100}
@@ -1417,9 +1414,9 @@ export default function WorkersPage() {
           <div>
             {/* Worker Image */}
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              {viewingWorker?.uploadimage ? (
+              {viewingWorker?.uploadImage ? (
                 <Image
-                  src={viewingWorker?.uploadimage}
+                  src={viewingWorker?.uploadImage}
                   alt={viewingWorker?.fullNameAr || 'Worker'}
                   width={150}
                   height={150}
@@ -1444,7 +1441,7 @@ export default function WorkersPage() {
               <p style={{ color: '#6b7280', margin: 0 }}>
                 {language === 'ar' ? viewingWorker?.fullNameEn : viewingWorker?.fullNameAr}
               </p>
-              <div style={{ marginTop: 8 }}>{getStatusTag(viewingWorker?.workerSatus)}</div>
+              <div style={{ marginTop: 8 }}>{getStatusTag(viewingWorker?.workerStatus)}</div>
             </div>
 
             <Divider />
@@ -1895,7 +1892,7 @@ export default function WorkersPage() {
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Form.Item label={t('workerStatus')} name="workerSatus">
+              <Form.Item label={t('workerStatus')} name="workerStatus">
                 <Select
                   size="large"
                   placeholder={t('workerStatus')}

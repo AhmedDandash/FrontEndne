@@ -19,7 +19,7 @@ export class BranchService {
   /**
    * Get branch by ID
    */
-  static async getById(id: number): Promise<Branch> {
+  static async getById(id: number | string): Promise<Branch> {
     const response = await api.get<Branch>(API_ENDPOINTS.BRANCH.GET_BY_ID(id));
     return response.data;
   }
@@ -35,7 +35,7 @@ export class BranchService {
   /**
    * Update branch
    */
-  static async update(id: number, data: BranchDto): Promise<Branch> {
+  static async update(id: number | string, data: BranchDto): Promise<Branch> {
     const response = await api.put<Branch>(API_ENDPOINTS.BRANCH.UPDATE(id), data);
     return response.data;
   }
@@ -43,7 +43,7 @@ export class BranchService {
   /**
    * Delete branch
    */
-  static async delete(id: number): Promise<void> {
+  static async delete(id: number | string): Promise<void> {
     await api.delete(API_ENDPOINTS.BRANCH.DELETE(id));
   }
 }

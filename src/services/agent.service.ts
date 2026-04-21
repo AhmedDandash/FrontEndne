@@ -50,7 +50,7 @@ export class AgentService {
   /**
    * Get agent by ID
    */
-  static async getById(id: number): Promise<Agent> {
+  static async getById(id: number | string): Promise<Agent> {
     const response = await api.get<Agent>(API_ENDPOINTS.AGENT.GET_BY_ID(id));
     return response.data;
   }
@@ -59,34 +59,15 @@ export class AgentService {
    * Create new agent
    */
   static async create(data: CreateAgentDto): Promise<Agent> {
-    // Ensure proper types before sending
-    const payload: CreateAgentDto = {
-      ...data,
-      nationalityId: data.nationalityId ? Number(data.nationalityId) : undefined,
-      contractType: data.contractType !== undefined ? Number(data.contractType) : undefined,
-      sendAllEmails: Boolean(data.sendAllEmails),
-      isActive: Boolean(data.isActive),
-    };
-
-    console.log('Creating agent with payload:', payload);
-    const response = await api.post<Agent>(API_ENDPOINTS.AGENT.CREATE, payload);
+    const response = await api.post<Agent>(API_ENDPOINTS.AGENT.CREATE, data);
     return response.data;
   }
 
   /**
-   * Update agent
+   * Update agent — new API requires id in body (UpdateAgentDto.id)
    */
-  static async update(id: number, data: UpdateAgentDto): Promise<Agent> {
-    // Ensure proper types before sending
-    const payload: UpdateAgentDto = {
-      ...data,
-      nationalityId: data.nationalityId ? Number(data.nationalityId) : undefined,
-      contractType: data.contractType !== undefined ? Number(data.contractType) : undefined,
-      sendAllEmails: Boolean(data.sendAllEmails),
-      isActive: Boolean(data.isActive),
-    };
-
-    console.log('Updating agent with payload:', payload);
+  static async update(id: number | string, data: UpdateAgentDto): Promise<Agent> {
+    const payload: UpdateAgentDto = { ...data, id: String(id) };
     const response = await api.put<Agent>(API_ENDPOINTS.AGENT.UPDATE(id), payload);
     return response.data;
   }
@@ -94,7 +75,7 @@ export class AgentService {
   /**
    * Delete agent
    */
-  static async delete(id: number): Promise<void> {
+  static async delete(id: number | string): Promise<void> {
     await api.delete(API_ENDPOINTS.AGENT.DELETE(id));
   }
 }

@@ -291,9 +291,9 @@ export default function WorkersFollowupPage() {
         worker.passportNo?.toLowerCase().includes(searchLower) ||
         worker.referenceNo?.toLowerCase().includes(searchLower);
 
-      const matchesStatus = !filters.status || worker.workerSatus === Number(filters.status);
+      const matchesStatus = !filters.status || worker.workerStatus === Number(filters.status);
       const matchesNationality =
-        !filters.nationality || worker.nationalityId === Number(filters.nationality);
+        !filters.nationality || String(worker.nationalityId) === String(filters.nationality);
       const matchesJob = !filters.job || worker.jobname === filters.job;
 
       return matchesSearch && matchesStatus && matchesNationality && matchesJob;
@@ -304,9 +304,9 @@ export default function WorkersFollowupPage() {
   const stats = useMemo(() => {
     return {
       total: filteredWorkers.length,
-      active: filteredWorkers.filter((w) => w.workerSatus === 2).length,
-      pending: filteredWorkers.filter((w) => w.workerSatus === 1).length,
-      issues: filteredWorkers.filter((w) => [2, 3, 4].includes(w.workerSatus || 0)).length,
+      active: filteredWorkers.filter((w) => w.workerStatus === 2).length,
+      pending: filteredWorkers.filter((w) => w.workerStatus === 1).length,
+      issues: filteredWorkers.filter((w) => [2, 3, 4].includes(w.workerStatus || 0)).length,
     };
   }, [filteredWorkers]);
 
@@ -501,7 +501,7 @@ export default function WorkersFollowupPage() {
       title: t('status'),
       key: 'status',
       width: 120,
-      render: (_, worker) => getStatusTag(worker.workerSatus),
+      render: (_, worker) => getStatusTag(worker.workerStatus),
     },
     {
       title: t('username'),

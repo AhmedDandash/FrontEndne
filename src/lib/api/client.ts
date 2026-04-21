@@ -102,7 +102,7 @@ class ApiClient {
           const isAuthRoute =
             requestUrl.includes(API_ENDPOINTS.AUTH.LOGIN) ||
             requestUrl.includes(API_ENDPOINTS.AUTH.LOGOUT) ||
-            requestUrl.includes(API_ENDPOINTS.AUTH.REFRESH);
+            requestUrl.includes(API_ENDPOINTS.AUTH.REFRESH_TOKEN);
 
           // Handle 401 Unauthorized
           if (status === 401) {
@@ -179,7 +179,7 @@ class ApiClient {
   private async refreshAccessToken(): Promise<string | null> {
     try {
       const response = await this.client.post<{ accessToken?: string; token?: string }>(
-        API_ENDPOINTS.AUTH.REFRESH
+        API_ENDPOINTS.AUTH.REFRESH_TOKEN
       );
       return response.data?.accessToken || response.data?.token || null;
     } catch (refreshError) {

@@ -24,7 +24,7 @@ export class CustomerService {
   /**
    * Get customer by ID
    */
-  static async getById(id: number): Promise<Customer> {
+  static async getById(id: number | string): Promise<Customer> {
     const response = await api.get<Customer>(API_ENDPOINTS.CUSTOMERS.GET_BY_ID(id));
     return response.data;
   }
@@ -40,7 +40,7 @@ export class CustomerService {
   /**
    * Update customer
    */
-  static async update(id: number, data: UpdateCustomerDto): Promise<Customer> {
+  static async update(id: number | string, data: UpdateCustomerDto): Promise<Customer> {
     const response = await api.put<Customer>(API_ENDPOINTS.CUSTOMERS.UPDATE(id), data);
     return response.data;
   }
@@ -48,23 +48,7 @@ export class CustomerService {
   /**
    * Delete customer
    */
-  static async delete(id: number): Promise<void> {
+  static async delete(id: number | string): Promise<void> {
     await api.delete(API_ENDPOINTS.CUSTOMERS.DELETE(id));
   }
-
-//   /**
-//    * Get all customer phones
-//    */
-//   static async getAllPhones(): Promise<CustomerPhoneDto[]> {
-//     const response = await api.get<CustomerPhoneDto[]>(API_ENDPOINTS.CUSTOMERS.GET_ALL_PHONES);
-//     return response.data;
-//   }
-
-//   /**
-//    * Create customer phone
-//    */
-//   static async createPhone(data: CustomerPhoneDto): Promise<CustomerPhoneDto> {
-//     const response = await api.post<CustomerPhoneDto>(API_ENDPOINTS.CUSTOMERS.CREATE_PHONE, data);
-//     return response.data;
-//   }
 }
