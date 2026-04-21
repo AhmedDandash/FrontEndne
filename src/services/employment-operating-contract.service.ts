@@ -120,20 +120,24 @@ export class EmploymentOperatingContractService {
   /**
    * POST /api/EmploymentOperatingContract/{id}/renew
    * Extends contractEndDate while keeping status as Executing.
-   * Body: { newEndDate: "YYYY-MM-DD" }
+   * Body: raw date-time string e.g. "2025-12-31T00:00:00"
    */
-  static async renew(id: number | string, data: RenewContractDto): Promise<void> {
-    await api.post(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.RENEW(id), data);
+  static async renew(id: number | string, newEndDate: string): Promise<void> {
+    await api.post(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.RENEW(id), JSON.stringify(newEndDate), {
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   /**
    * POST /api/EmploymentOperatingContract/{id}/terminate
    * Transition: Executing → Finished.
    * Backend automatically sets WorkerStatus → 3 (InAccommodation) and IsFinish → true.
-   * Body: { note: string }
+   * Body: raw string note e.g. "Termination reason"
    */
-  static async terminate(id: number | string, data: TerminateContractDto): Promise<void> {
-    await api.post(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.TERMINATE(id), data);
+  static async terminate(id: number | string, note: string): Promise<void> {
+    await api.post(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.TERMINATE(id), JSON.stringify(note), {
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   /**

@@ -429,3 +429,16 @@ export const ARRIVAL_DESTINATIONS = [
   { value: 15, labelAr: 'القصيم', labelEn: 'Qassim' },
   { value: 16, labelAr: 'عرعر', labelEn: 'Arar' },
 ] as const;
+
+// ==================== Transfer Contract Status ====================
+// حالة عقد النقل — values per swagger TransferContractStatus enum
+export const TRANSFER_CONTRACT_STATUS = [
+  { value: 1, labelAr: 'مسودة', labelEn: 'Draft' },
+  { value: 2, labelAr: 'موقّع', labelEn: 'Signed' },
+  { value: 3, labelAr: 'مكتمل', labelEn: 'Completed' },
+  { value: 4, labelAr: 'مُقدَّم للجهة', labelEn: 'Submitted to Authority' },
+  { value: 5, labelAr: 'قيد المراجعة', labelEn: 'Under Review' },
+  { value: 6, labelAr: 'مقبول', labelEn: 'Accepted' },
+  { value: 7, labelAr: 'مرفوض', labelEn: 'Rejected' },
+] as const;
+

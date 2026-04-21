@@ -73,10 +73,17 @@ export class TransferContractService {
   }
 
   /**
-   * POST /api/TransferContract/{id}/authority-status
+   * PATCH /api/TransferContract/{id}/authority-status?status=&note=
    * Updates submission authority status.
+   * @param status — TransferContractStatus enum value (1-7)
+   * @param note   — optional note string
    */
-  static async updateAuthorityStatus(id: number | string, data?: Record<string, any>): Promise<void> {
-    await api.post(API_ENDPOINTS.TRANSFER_CONTRACT.AUTHORITY_STATUS(id), data ?? null);
+  static async updateAuthorityStatus(
+    id: number | string,
+    params?: { status?: number; note?: string }
+  ): Promise<void> {
+    await api.patch(API_ENDPOINTS.TRANSFER_CONTRACT.AUTHORITY_STATUS(id), null, {
+      params: params ?? {},
+    });
   }
 }
