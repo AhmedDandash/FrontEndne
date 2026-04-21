@@ -219,7 +219,9 @@ export interface UpdateCustomerDto {
 
 export interface CustomerPhoneDto {
   phoneNumber?: string | null;
-  phoneType?: string | null;
+  /** PhoneType enum — integer 1-7 */
+  type?: number | null;
+  isPrimary?: boolean;
 }
 
 // ==================== Document Types ====================
@@ -488,7 +490,8 @@ export interface UpdateJobDto {
 
 // ==================== Nationality Types ====================
 export interface Nationality {
-  id: number;
+  /** UUID string per swagger */
+  id: string;
   nationalityNameAr?: string | null;
   nationalityNameEn?: string | null;
   isActive?: boolean;
