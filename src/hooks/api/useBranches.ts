@@ -23,23 +23,27 @@ export function useBranches() {
     queryKey: [QUERY_KEY],
     queryFn: async () => {
       const result = await BranchService.getAll();
+      const branchesList = Array.isArray(result) ? result : [];
       console.log('🏢 Branches fetched from API:', result);
-      console.log('📊 First branch sample:', result?.[0]);
-      console.log('🔍 First branch keys:', result?.[0] ? Object.keys(result[0]) : 'No branches');
-      console.log('🆔 Does first branch have id?', result?.[0]?.id !== undefined);
+      console.log('📊 First branch sample:', branchesList[0]);
+      console.log(
+        '🔍 First branch keys:',
+        branchesList[0] ? Object.keys(branchesList[0]) : 'No branches'
+      );
+      console.log('🆔 Does first branch have id?', branchesList[0]?.id !== undefined);
 
       // Check if branches have id field, if not, log a warning
-      if (result && result.length > 0 && !result[0].hasOwnProperty('id')) {
+      if (branchesList.length > 0 && !branchesList[0].hasOwnProperty('id')) {
         console.error('❌ WARNING: Branches from API are missing the "id" field!');
-        console.log('Available fields:', Object.keys(result[0]));
+        console.log('Available fields:', Object.keys(branchesList[0]));
       }
 
-      return result;
+      return branchesList;
     },
   });
 
   // Get branch by ID
-  const useBranch = (id: number) => {
+  const useBranch = (id: number | string) => {
     return useQuery({
       queryKey: [QUERY_KEY, id],
       queryFn: () => BranchService.getById(id),
@@ -61,7 +65,8 @@ export function useBranches() {
 
   // Update branch
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: BranchDto }) => BranchService.update(id, data),
+    mutationFn: ({ id, data }: { id: number | string; data: BranchDto }) =>
+      BranchService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       message.success('تم تحديث الفرع بنجاح / Branch updated successfully');
@@ -73,7 +78,7 @@ export function useBranches() {
 
   // Delete branch
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => BranchService.delete(id),
+    mutationFn: (id: number | string) => BranchService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       message.success('تم حذف الفرع بنجاح / Branch deleted successfully');

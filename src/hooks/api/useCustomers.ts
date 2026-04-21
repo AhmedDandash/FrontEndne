@@ -25,7 +25,7 @@ export function useCustomers() {
   });
 
   // Get customer by ID
-  const useCustomer = (id: number) => {
+  const useCustomer = (id: number | string) => {
     return useQuery({
       queryKey: [QUERY_KEY, id],
       queryFn: () => CustomerService.getById(id),
@@ -49,7 +49,7 @@ export function useCustomers() {
 
   // Update customer
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateCustomerDto }) =>
+    mutationFn: ({ id, data }: { id: number | string; data: UpdateCustomerDto }) =>
       CustomerService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
@@ -64,7 +64,7 @@ export function useCustomers() {
 
   // Delete customer
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => CustomerService.delete(id),
+    mutationFn: (id: number | string) => CustomerService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       message.success('تم حذف العميل بنجاح / Customer deleted successfully');

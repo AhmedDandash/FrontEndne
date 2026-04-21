@@ -5,6 +5,7 @@
 
 // ==================== Auth Types ====================
 export interface LoginDto {
+  email?: string | null;
   username?: string | null;
   password?: string | null;
 }
@@ -24,7 +25,7 @@ export interface AuthResponse {
 
 // ==================== Branch Types ====================
 export interface Branch {
-  id: number;
+  id: number | string;
   nameAr?: string | null;
   nameEn?: string | null;
   organizationTypeAr?: number | null;

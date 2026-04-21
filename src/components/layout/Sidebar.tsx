@@ -72,10 +72,10 @@ export default function Sidebar({
           key: '/branch/management',
           label: language === 'ar' ? 'إدارة الفروع' : 'Branch Management',
         },
-        {
-          key: '/branch/documents',
-          label: language === 'ar' ? 'المستندات' : 'Documents',
-        },
+        // {
+        //   key: '/branch/documents',
+        //   label: language === 'ar' ? 'المستندات' : 'Documents',
+        // },
       ],
     },
     // {

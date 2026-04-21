@@ -12,31 +12,42 @@ export class AuthService {
    * Login user
    */
   static async login(credentials: LoginDto): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
+    const payload = {
+      email: credentials.email ?? credentials.username ?? '',
+      password: credentials.password ?? '',
+    };
+
+    const response = await api.post<any>(API_ENDPOINTS.AUTH.LOGIN, payload);
 
     // Store token if present
     if (typeof window !== 'undefined') {
-      // Handle both 'token' and 'accessToken' field names
+      // Support both direct auth payloads and wrapped envelopes: { success, data, ... }
       const responseData: any = response.data;
-      const tokenValue = responseData?.accessToken || responseData?.token;
+      const authData: any = responseData?.data ?? responseData;
+      const tokenValue = authData?.accessToken || authData?.token;
 
       if (tokenValue) {
         localStorage.setItem('authToken', tokenValue);
 
-        const userData = responseData?.user;
+        // Keep compatibility with middleware that checks refreshToken cookie
+        if (authData?.refreshToken) {
+          document.cookie = `refreshToken=${encodeURIComponent(authData.refreshToken)}; path=/; SameSite=Lax`;
+        }
+
+        const userData = authData?.user;
         if (userData) {
           localStorage.setItem('user', JSON.stringify(userData));
           // Cache user ID and username for header display
           if (userData.id) {
             localStorage.setItem('userId', String(userData.id));
           }
-          if (userData.username || userData.fullName) {
-            localStorage.setItem('username', userData.username || userData.fullName);
+          if (userData.fullName || userData.username) {
+            localStorage.setItem('username', userData.fullName || userData.username);
           }
         }
 
         // Fallback: decode the JWT payload to get user claims
-        if (!responseData?.user?.id) {
+        if (!authData?.user?.id) {
           try {
             const payloadBase64 = tokenValue.split('.')[1];
             const payload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
@@ -54,6 +65,11 @@ export class AuthService {
             // JWT decode failed — not fatal
           }
         }
+
+        // Prefer fullName from auth payload for header display when provided
+        if (authData?.fullName) {
+          localStorage.setItem('username', String(authData.fullName));
+        }
       } else {
         console.error('No token found in response data');
         console.error('Response data structure:', JSON.stringify(response.data, null, 2));
@@ -61,7 +77,7 @@ export class AuthService {
       }
     }
 
-    return response.data;
+    return (response.data?.data ?? response.data) as AuthResponse;
   }
 
   /**
