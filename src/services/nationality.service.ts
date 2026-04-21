@@ -61,10 +61,10 @@ export class NationalityService {
   }
 
   /**
-   * POST /api/V1/Nationality/{id}/toggle-status
+   * PUT /api/V1/Nationality/{id}/toggle-status
    * Toggles isActive for the nationality. No request body.
    */
   static async toggleStatus(id: number | string): Promise<void> {
-    await api.post(API_ENDPOINTS.NATIONALITY.TOGGLE_STATUS(id), null);
+    await api.put(API_ENDPOINTS.NATIONALITY.TOGGLE_STATUS(id), null);
   }
 }

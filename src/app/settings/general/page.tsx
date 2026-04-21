@@ -51,12 +51,7 @@ import type {
   CreateNationalityDto,
   UpdateNationalityDto,
 } from '@/types/api.types';
-import {
-  AUTHORIZATION_SYSTEM,
-  NATIONALITIES,
-  getEnumLabel,
-  toSelectOptions,
-} from '@/constants/enums';
+import { toSelectOptions } from '@/constants/enums';
 import { useAuthStore } from '@/store/authStore';
 import styles from './GeneralSettings.module.css';
 
@@ -255,7 +250,6 @@ export default function GeneralSettingsPage() {
     total: nationalities.length,
     active: nationalities.filter((n) => n.isActive).length,
     inactive: nationalities.filter((n) => !n.isActive).length,
-    musaned: nationalities.filter((n) => n.authorizationSystem === 1).length,
   };
 
   const nationalityColumns: ColumnsType<NationalityExtended> = [
@@ -267,40 +261,16 @@ export default function GeneralSettingsPage() {
       align: 'center',
     },
     {
-      title: isRTL ? 'اسم الجنسية' : 'Nationality Name',
-      dataIndex: 'nationalityId',
-      key: 'nationalityName',
+      title: isRTL ? 'اسم الجنسية (عربي)' : 'Nationality Name (AR)',
+      dataIndex: 'nationalityNameAr',
+      key: 'nationalityNameAr',
       ellipsis: true,
-      render: (natId: number | null | undefined) => {
-        const natsArray = [...NATIONALITIES] as {
-          value: number;
-          labelAr: string;
-          labelEn: string;
-        }[];
-        const entry = natsArray.find((n) => n.value === natId);
-        return entry ? (isRTL ? entry.labelAr : entry.labelEn) : (natId ?? '-');
-      },
     },
     {
-      title: isRTL ? 'نظام التفويض' : 'Authorization System',
-      dataIndex: 'authorizationSystem',
-      key: 'authorizationSystem',
-      width: 150,
-      align: 'center',
-      render: (val: number | null | undefined) => (
-        <Tag color={val === 1 ? 'blue' : val === 2 ? 'orange' : 'default'}>
-          {getEnumLabel([...AUTHORIZATION_SYSTEM], val, language)}
-        </Tag>
-      ),
-    },
-    {
-      title: isRTL ? 'سعر التذكرة' : 'Ticket Price',
-      dataIndex: 'ticketPrice',
-      key: 'ticketPrice',
-      width: 130,
-      align: 'center',
-      render: (price: number | null) =>
-        price !== null && price !== undefined ? `${price.toLocaleString()} SAR` : '-',
+      title: isRTL ? 'اسم الجنسية (إنجليزي)' : 'Nationality Name (EN)',
+      dataIndex: 'nationalityNameEn',
+      key: 'nationalityNameEn',
+      ellipsis: true,
     },
     {
       title: isRTL ? 'الحالة' : 'Status',
@@ -362,10 +332,8 @@ export default function GeneralSettingsPage() {
   const handleNatEdit = (nat: NationalityExtended) => {
     setSelectedNationality(nat);
     natEditForm.setFieldsValue({
-      nationalityId: nat.nationalityId,
-      authorizationSystem: nat.authorizationSystem,
-      ticketPrice: nat.ticketPrice,
-      headerFile: nat.headerFile,
+      nationalityNameAr: nat.nationalityNameAr,
+      nationalityNameEn: nat.nationalityNameEn,
       isActive: nat.isActive,
     });
     setIsNatEditOpen(true);
@@ -383,12 +351,10 @@ export default function GeneralSettingsPage() {
   const handleNatCreateSubmit = async () => {
     try {
       const values = await natCreateForm.validateFields();
-      const natEntry = (
-        NATIONALITIES as readonly { value: number; labelAr: string; labelEn: string }[]
-      ).find((n) => n.value === values.nationalityId);
       const payload: CreateNationalityDto = {
-        ...values,
-        nationalityName: natEntry ? (isRTL ? natEntry.labelAr : natEntry.labelEn) : undefined,
+        nationalityNameAr: values.nationalityNameAr,
+        nationalityNameEn: values.nationalityNameEn,
+        isActive: values.isActive ?? true,
       };
       await createNatMutation.mutateAsync(payload);
       setIsNatCreateOpen(false);
@@ -402,12 +368,11 @@ export default function GeneralSettingsPage() {
     if (!selectedNationality) return;
     try {
       const values = await natEditForm.validateFields();
-      const natEntry = (
-        NATIONALITIES as readonly { value: number; labelAr: string; labelEn: string }[]
-      ).find((n) => n.value === values.nationalityId);
       const payload: UpdateNationalityDto = {
-        ...values,
-        nationalityName: natEntry ? (isRTL ? natEntry.labelAr : natEntry.labelEn) : undefined,
+        id: String(selectedNationality.id),
+        nationalityNameAr: values.nationalityNameAr,
+        nationalityNameEn: values.nationalityNameEn,
+        isActive: values.isActive,
       };
       await updateNatMutation.mutateAsync({
         id: selectedNationality.id,
@@ -448,19 +413,6 @@ export default function GeneralSettingsPage() {
             <div className={styles.statInfo}>
               <p className={styles.statLabel}>{isRTL ? 'نشطة' : 'Active'}</p>
               <h2 className={styles.statValue}>{natStats.active}</h2>
-            </div>
-          </div>
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} lg={6}>
-        <Card bordered={false} className={styles.statCard}>
-          <div className={styles.statContent}>
-            <div className={`${styles.statIcon} ${styles.statIconBlue}`}>
-              <FileTextOutlined />
-            </div>
-            <div className={styles.statInfo}>
-              <p className={styles.statLabel}>{isRTL ? 'مساند' : 'Musaned'}</p>
-              <h2 className={styles.statValue}>{natStats.musaned}</h2>
             </div>
           </div>
         </Card>
@@ -1032,51 +984,23 @@ export default function GeneralSettingsPage() {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                label={isRTL ? 'الجنسية' : 'Nationality'}
-                name="nationalityId"
+                label={isRTL ? 'الاسم بالعربي' : 'Name (Arabic)'}
+                name="nationalityNameAr"
                 rules={[{ required: true, message: isRTL ? 'مطلوب' : 'Required' }]}
               >
-                <Select
-                  showSearch
-                  placeholder={isRTL ? 'اختر الجنسية' : 'Select nationality'}
-                  filterOption={(input, option) =>
-                    ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  options={toSelectOptions([...NATIONALITIES], language)}
-                />
+                <Input placeholder={isRTL ? 'مثال: سعودي' : 'e.g. سعودي'} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
-                label={isRTL ? 'نظام التفويض' : 'Authorization System'}
-                name="authorizationSystem"
+                label={isRTL ? 'الاسم بالإنجليزي' : 'Name (English)'}
+                name="nationalityNameEn"
+                rules={[{ required: true, message: isRTL ? 'مطلوب' : 'Required' }]}
               >
-                <Select
-                  placeholder={isRTL ? 'اختر النظام' : 'Select system'}
-                  allowClear
-                  options={toSelectOptions([...AUTHORIZATION_SYSTEM], language)}
-                />
+                <Input placeholder="e.g. Saudi" />
               </Form.Item>
             </Col>
           </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label={isRTL ? 'سعر التذكرة' : 'Ticket Price'} name="ticketPrice">
-                <InputNumber
-                  style={{ width: '100%' }}
-                  min={0}
-                  placeholder={isRTL ? 'أدخل السعر' : 'Enter price'}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label={isRTL ? 'ملف الرأس' : 'Header File'} name="headerFile">
-                <Input placeholder={isRTL ? 'أدخل اسم الملف' : 'Enter file name'} />
-              </Form.Item>
-            </Col>
-          </Row>
-
           <Form.Item
             label={isRTL ? 'الحالة' : 'Status'}
             name="isActive"
@@ -1109,51 +1033,23 @@ export default function GeneralSettingsPage() {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                label={isRTL ? 'الجنسية' : 'Nationality'}
-                name="nationalityId"
+                label={isRTL ? 'الاسم بالعربي' : 'Name (Arabic)'}
+                name="nationalityNameAr"
                 rules={[{ required: true, message: isRTL ? 'مطلوب' : 'Required' }]}
               >
-                <Select
-                  showSearch
-                  placeholder={isRTL ? 'اختر الجنسية' : 'Select nationality'}
-                  filterOption={(input, option) =>
-                    ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  options={toSelectOptions([...NATIONALITIES], language)}
-                />
+                <Input placeholder={isRTL ? 'مثال: سعودي' : 'e.g. سعودي'} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
-                label={isRTL ? 'نظام التفويض' : 'Authorization System'}
-                name="authorizationSystem"
+                label={isRTL ? 'الاسم بالإنجليزي' : 'Name (English)'}
+                name="nationalityNameEn"
+                rules={[{ required: true, message: isRTL ? 'مطلوب' : 'Required' }]}
               >
-                <Select
-                  placeholder={isRTL ? 'اختر النظام' : 'Select system'}
-                  allowClear
-                  options={toSelectOptions([...AUTHORIZATION_SYSTEM], language)}
-                />
+                <Input placeholder="e.g. Saudi" />
               </Form.Item>
             </Col>
           </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label={isRTL ? 'سعر التذكرة' : 'Ticket Price'} name="ticketPrice">
-                <InputNumber
-                  style={{ width: '100%' }}
-                  min={0}
-                  placeholder={isRTL ? 'أدخل السعر' : 'Enter price'}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label={isRTL ? 'ملف الرأس' : 'Header File'} name="headerFile">
-                <Input placeholder={isRTL ? 'أدخل اسم الملف' : 'Enter file name'} />
-              </Form.Item>
-            </Col>
-          </Row>
-
           <Form.Item label={isRTL ? 'الحالة' : 'Status'} name="isActive" valuePropName="checked">
             <Switch
               checkedChildren={isRTL ? 'نشط' : 'Active'}
@@ -1188,27 +1084,13 @@ export default function GeneralSettingsPage() {
                 </div>
               </Col>
 
-              <Col span={24}>
+              <Col span={12}>
                 <div className={styles.viewModalField}>
                   <div className={styles.viewModalFieldLabel}>
-                    {isRTL ? 'الجنسية' : 'Nationality'}
+                    {isRTL ? 'الاسم بالعربية' : 'Name (Arabic)'}
                   </div>
                   <div className={styles.viewModalFieldValue}>
-                    {(() => {
-                      const natsArray = [...NATIONALITIES] as {
-                        value: number;
-                        labelAr: string;
-                        labelEn: string;
-                      }[];
-                      const entry = natsArray.find(
-                        (n) => n.value === selectedNationality.nationalityId
-                      );
-                      return entry
-                        ? isRTL
-                          ? entry.labelAr
-                          : entry.labelEn
-                        : (selectedNationality.nationalityId ?? '-');
-                    })()}
+                    {selectedNationality.nationalityNameAr || '-'}
                   </div>
                 </div>
               </Col>
@@ -1216,48 +1098,10 @@ export default function GeneralSettingsPage() {
               <Col span={12}>
                 <div className={styles.viewModalField}>
                   <div className={styles.viewModalFieldLabel}>
-                    {isRTL ? 'نظام التفويض' : 'Authorization'}
-                  </div>
-                  <div>
-                    <Tag
-                      color={
-                        selectedNationality.authorizationSystem === 1
-                          ? 'blue'
-                          : selectedNationality.authorizationSystem === 2
-                            ? 'orange'
-                            : 'default'
-                      }
-                    >
-                      {getEnumLabel(
-                        [...AUTHORIZATION_SYSTEM],
-                        selectedNationality.authorizationSystem,
-                        language
-                      )}
-                    </Tag>
-                  </div>
-                </div>
-              </Col>
-
-              <Col span={12}>
-                <div className={styles.viewModalField}>
-                  <div className={styles.viewModalFieldLabel}>
-                    {isRTL ? 'سعر التذكرة' : 'Ticket Price'}
-                  </div>
-                  <div className={styles.viewModalFieldValueBold}>
-                    {selectedNationality.ticketPrice
-                      ? `${selectedNationality.ticketPrice.toLocaleString()} SAR`
-                      : '-'}
-                  </div>
-                </div>
-              </Col>
-
-              <Col span={12}>
-                <div className={styles.viewModalField}>
-                  <div className={styles.viewModalFieldLabel}>
-                    {isRTL ? 'ملف الرأس' : 'Header File'}
+                    {isRTL ? 'الاسم بالإنجليزية' : 'Name (English)'}
                   </div>
                   <div className={styles.viewModalFieldValue}>
-                    {selectedNationality.headerFile || '-'}
+                    {selectedNationality.nationalityNameEn || '-'}
                   </div>
                 </div>
               </Col>

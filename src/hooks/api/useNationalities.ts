@@ -81,7 +81,7 @@ export const useUpdateNationality = () => {
 export const useDeleteNationality = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, number>({
+  return useMutation<void, Error, number | string>({
     mutationFn: NationalityService.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
@@ -90,6 +90,27 @@ export const useDeleteNationality = () => {
     onError: (error: any) => {
       message.error(
         error?.response?.data?.message || 'فشل حذف الجنسية / Failed to delete nationality'
+      );
+    },
+  });
+};
+
+/**
+ * Toggle nationality active status
+ * PUT /api/V1/Nationality/{id}/toggle-status
+ */
+export const useToggleNationalityStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number | string>({
+    mutationFn: NationalityService.toggleStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      message.success('تم تغيير حالة الجنسية / Nationality status toggled');
+    },
+    onError: (error: any) => {
+      message.error(
+        error?.response?.data?.message || 'فشل تغيير حالة الجنسية / Failed to toggle nationality status'
       );
     },
   });

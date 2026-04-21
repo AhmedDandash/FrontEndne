@@ -98,12 +98,15 @@ export function useCompleteTransferContract() {
   });
 }
 
-/** POST /api/TransferContract/{id}/authority-status */
+/**
+ * PATCH /api/TransferContract/{id}/authority-status?status=&note=
+ * Pass status (TransferContractStatus 1-7) and optional note as query params.
+ */
 export function useUpdateTransferContractAuthorityStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data?: Record<string, any> }) =>
-      TransferContractService.updateAuthorityStatus(id, data),
+    mutationFn: ({ id, status, note }: { id: number | string; status?: number; note?: string }) =>
+      TransferContractService.updateAuthorityStatus(id, { status, note }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       message.success('تم تحديث حالة الجهة بنجاح / Authority status updated successfully');

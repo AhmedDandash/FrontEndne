@@ -16,8 +16,6 @@ import {
 import type {
   CreateEmploymentOperatingContractDto,
   UpdateEmploymentOperatingContractDto,
-  RenewContractDto,
-  TerminateContractDto,
 } from '@/types/api.types';
 
 const QUERY_KEY = 'employment-operating-contracts';
@@ -115,10 +113,13 @@ export function useEmploymentOperatingContracts(
     },
   });
 
-  /** Extend end date (while Executing) */
+  /**
+   * Extend end date (while Executing)
+   * Body: raw date-time string — pass newEndDate as ISO string e.g. "2025-12-31T00:00:00"
+   */
   const renewMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: RenewContractDto }) =>
-      EmploymentOperatingContractService.renew(id, data),
+    mutationFn: ({ id, newEndDate }: { id: number | string; newEndDate: string }) =>
+      EmploymentOperatingContractService.renew(id, newEndDate),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       message.success('تم تجديد العقد / Contract renewed');
@@ -130,10 +131,13 @@ export function useEmploymentOperatingContracts(
     },
   });
 
-  /** Executing → Finished (worker returns to accommodation) */
+  /**
+   * Executing → Finished (worker returns to accommodation)
+   * Body: raw note string
+   */
   const terminateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: TerminateContractDto }) =>
-      EmploymentOperatingContractService.terminate(id, data),
+    mutationFn: ({ id, note }: { id: number | string; note: string }) =>
+      EmploymentOperatingContractService.terminate(id, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       message.success('تم إنهاء العقد / Contract terminated');
