@@ -72,12 +72,12 @@ import {
 } from '@/hooks/api/useWorkers';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useJobs } from '@/hooks/api/useJobs';
+import { useNationalities } from '@/hooks/api/useNationalities';
 import type { Worker, WorkerDto } from '@/types/api.types';
 import {
   GENDER,
   MARITAL_STATUS,
   RELIGION,
-  NATIONALITIES,
   WORKER_CONTRACT_TYPE,
   WORKER_SATUS,
   MEDICAL_STATUS,
@@ -459,6 +459,7 @@ export default function WorkersPage() {
   const { data: workers = [], isLoading } = useWorkers();
   const { data: jobs = [] } = useJobs();
   const { data: agents = [] } = useAgents();
+  const { data: nationalities = [] } = useNationalities();
   const { data: medicalExaminations = [] } = useMedicalExaminations();
 
   // Only show active jobs in the filter
@@ -526,7 +527,7 @@ export default function WorkersPage() {
 
       const matchesGender = !filters.gender || worker.gender === Number(filters.gender);
       const matchesNationality =
-        !filters.nationality || worker.nationalityId === Number(filters.nationality);
+        !filters.nationality || worker.nationalityId === filters.nationality;
       const matchesReligion = !filters.religion || worker.religion === Number(filters.religion);
       const matchesJob = !filters.job || worker.jobId === Number(filters.job);
       const matchesAgent = !filters.agent || worker.agentId === Number(filters.agent);
@@ -1008,9 +1009,9 @@ export default function WorkersPage() {
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  options={toSelectOptions([...NATIONALITIES], language).map((o) => ({
-                    value: String(o.value),
-                    label: o.label,
+                  options={nationalities.map((n) => ({
+                    value: n.id,
+                    label: language === 'ar' ? n.nationalityNameAr : n.nationalityNameEn,
                   }))}
                 />
               </Col>
@@ -1264,7 +1265,13 @@ export default function WorkersPage() {
                   <div className={styles.detailRow}>
                     <EnvironmentOutlined className={styles.detailIcon} />
                     <span className={styles.detailLabel}>{t('nationality')}:</span>
-                    <span className={styles.detailValue}>{worker.nationalityId || 'N/A'}</span>
+                    <span className={styles.detailValue}>
+                      {worker.nationalityId
+                        ? (nationalities.find((n) => n.id === worker.nationalityId)?.[
+                            language === 'ar' ? 'nationalityNameAr' : 'nationalityNameEn'
+                          ] ?? 'N/A')
+                        : 'N/A'}
+                    </span>
                   </div>
 
                   <div className={styles.detailRow}>
@@ -1480,7 +1487,11 @@ export default function WorkersPage() {
                   : '-'}
               </Descriptions.Item>
               <Descriptions.Item label={t('nationality')}>
-                {viewingWorker?.nationalityId || '-'}
+                {viewingWorker?.nationalityId
+                  ? (nationalities.find((n) => n.id === viewingWorker.nationalityId)?.[
+                      language === 'ar' ? 'nationalityNameAr' : 'nationalityNameEn'
+                    ] ?? '-')
+                  : '-'}
               </Descriptions.Item>
               <Descriptions.Item label={t('nationalId')}>
                 {viewingWorker?.nationalId || '-'}
@@ -1770,9 +1781,9 @@ export default function WorkersPage() {
                   placeholder={t('nationality')}
                   showSearch
                   optionFilterProp="label"
-                  options={[...NATIONALITIES].map((n) => ({
-                    value: n.value,
-                    label: language === 'ar' ? n.labelAr : n.labelEn,
+                  options={nationalities.map((n) => ({
+                    value: n.id,
+                    label: language === 'ar' ? n.nationalityNameAr : n.nationalityNameEn,
                   }))}
                 />
               </Form.Item>
