@@ -45,6 +45,7 @@ import { useNationalities } from '@/hooks/api/useNationalities';
 import RentOfferSelector from '@/components/contracts/RentOfferSelector';
 import type {
   Customer,
+  CustomerPhoneDto,
   CreateCustomerDto,
   UpdateCustomerDto,
   CreateEmploymentOperatingContractDto,
@@ -160,11 +161,16 @@ export default function CustomersPage() {
     if (!customers) return [];
 
     return customers.filter((customer) => {
+      // Collect all phone numbers from phones array for search
+      const allPhones = (customer.phones || [])
+        .map((p) => p.phoneNumber || '')
+        .join(' ');
       const matchesSearch =
         searchText === '' ||
         (customer.arabicName || '').toLowerCase().includes(searchText.toLowerCase()) ||
+        (customer.englishName || '').toLowerCase().includes(searchText.toLowerCase()) ||
         (customer.identityNumber || '').includes(searchText) ||
-        (customer.mobile || '').includes(searchText);
+        allPhones.includes(searchText);
 
       const matchesCity =
         cityFilter === 'all' || customer.cityAr === cityFilter || customer.cityEn === cityFilter;
@@ -193,11 +199,17 @@ export default function CustomersPage() {
 
   const handleEditCustomer = (customer: Customer) => {
     setEditingCustomer(customer);
+    // Extract primary phone (or first phone) from phones array
+    const primaryPhone =
+      customer.phones?.find((p) => p.isPrimary)?.phoneNumber ??
+      customer.phones?.[0]?.phoneNumber ??
+      '';
     form.setFieldsValue({
       arabicName: customer.arabicName,
+      englishName: customer.englishName,
       identityNumber: customer.identityNumber,
       nationality: customer.nationality,
-      mobile: customer.mobile,
+      mobile: primaryPhone,
       cityAr: customer.cityAr,
       cityEn: customer.cityEn,
       housingType: customer.housingType,
@@ -224,15 +236,24 @@ export default function CustomersPage() {
     try {
       const values = await form.validateFields();
 
+      // Transform mobile text field → phones array expected by the API
+      const { mobile, ...rest } = values;
+      const payload = {
+        ...rest,
+        phones: mobile
+          ? [{ phoneNumber: mobile, type: 1, isPrimary: true } as CustomerPhoneDto]
+          : undefined,
+      };
+
       if (editingCustomer && editingCustomer.id) {
         // Update existing customer
         await updateCustomer({
           id: editingCustomer.id,
-          data: values as UpdateCustomerDto,
+          data: payload as UpdateCustomerDto,
         });
       } else {
         // Create new customer
-        await createCustomer(values as CreateCustomerDto);
+        await createCustomer(payload as CreateCustomerDto);
       }
 
       setIsModalVisible(false);
@@ -535,7 +556,16 @@ export default function CustomersPage() {
                   <div className={styles.customerHeaderLeft}>
                     <Avatar size={64} icon={<UserOutlined />} className={styles.customerAvatar} />
                     <div className={styles.customerNameSection}>
-                      <h3 className={styles.customerName}>{customer.arabicName}</h3>
+                      <h3 className={styles.customerName}>
+                        {language === 'ar'
+                          ? customer.arabicName
+                          : customer.englishName || customer.arabicName}
+                      </h3>
+                      {customer.englishName && customer.arabicName && (
+                        <p style={{ margin: 0, fontSize: 13, color: '#888', fontWeight: 400 }}>
+                          {language === 'ar' ? customer.englishName : customer.arabicName}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <Dropdown menu={getActionMenu(customer)} trigger={['click']}>
@@ -558,15 +588,18 @@ export default function CustomersPage() {
                     </div>
                   )}
 
-                  {/* Contact Information */}
-                  {customer.mobile && (
+                  {/* Contact Information — from phones array */}
+                  {customer.phones && customer.phones.length > 0 && (
                     <div className={styles.infoRow}>
                       <div className={styles.infoIcon}>
                         <PhoneOutlined />
                       </div>
                       <div className={styles.infoContent}>
                         <p className={styles.infoLabel}>{t('mobile')}</p>
-                        <p className={styles.infoValue}>{customer.mobile}</p>
+                        <p className={styles.infoValue}>
+                          {(customer.phones.find((p) => p.isPrimary) ?? customer.phones[0])
+                            .phoneNumber || '-'}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -680,13 +713,25 @@ export default function CustomersPage() {
         width={600}
       >
         <Form form={form} layout="vertical">
-          <Form.Item
-            label={t('arabicName')}
-            name="arabicName"
-            rules={[{ required: true, message: 'Please enter Arabic name' }]}
-          >
-            <Input prefix={<UserOutlined />} placeholder={t('arabicName')} />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label={t('arabicName')}
+                name="arabicName"
+                rules={[{ required: true, message: 'Please enter Arabic name' }]}
+              >
+                <Input prefix={<UserOutlined />} placeholder={t('arabicName')} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label={t('englishName')}
+                name="englishName"
+              >
+                <Input prefix={<UserOutlined />} placeholder={t('englishName')} />
+              </Form.Item>
+            </Col>
+          </Row>
 
           <Form.Item
             label={t('identityNumber')}
