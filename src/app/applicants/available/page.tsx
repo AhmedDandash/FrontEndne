@@ -685,9 +685,9 @@ export default function AvailableWorkersPage() {
         {(isViewingLoading || viewingWorker) && (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              {viewingWorker?.uploadimage ? (
+              {viewingWorker?.uploadImage ? (
                 <Image
-                  src={viewingWorker.uploadimage}
+                  src={viewingWorker.uploadImage}
                   alt={viewingWorker.fullNameAr || 'Worker'}
                   width={150}
                   height={150}

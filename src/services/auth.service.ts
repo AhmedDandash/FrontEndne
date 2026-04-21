@@ -5,7 +5,7 @@
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
-import type { LoginDto, RegisterDto, AuthResponse } from '@/types/api.types';
+import type { LoginDto, AuthResponse } from '@/types/api.types';
 
 export class AuthService {
   /**
@@ -65,10 +65,10 @@ export class AuthService {
   }
 
   /**
-   * Register new user
+   * Add admin user (renamed from register — new API: POST /api/V1/Auth/add-admin)
    */
-  static async register(userData: RegisterDto): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, userData);
+  static async addAdmin(userData: any): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>(API_ENDPOINTS.AUTH.ADD_ADMIN, userData);
     return response.data;
   }
 

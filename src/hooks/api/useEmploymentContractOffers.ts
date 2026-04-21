@@ -1,32 +1,25 @@
 /**
- * useEmploymentContractOffers Hook
- * React Query hooks for employment contract offer operations
+ * useEmploymentContractOffers / useOperatingContractOffers Hook
+ * React Query hooks for Operating Contract Offer operations.
+ *
+ * Migration notes:
+ *  - Renamed endpoint: /api/EmploymentContractOffers → /api/OperatingContractOffer
+ *  - SUMMARY endpoint removed — summary query stub returns [] to avoid breaking consumers
+ *  - nationalityId, jobId, branchId are now UUID strings
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
-import { EmploymentContractOfferService } from '@/services';
+import { OperatingContractOfferService } from '@/services/employment-contract-offer.service';
 import type {
-  CreateEmploymentContractOfferDto,
-  UpdateEmploymentContractOfferDto,
+  CreateOperatingContractOfferDto,
+  UpdateOperatingContractOfferDto,
 } from '@/types/api.types';
 
-const QUERY_KEY = 'employment-contract-offers';
-const SUMMARY_KEY = 'employment-contract-offers-summary';
+const QUERY_KEY = 'operating-contract-offers';
 
 export function useEmploymentContractOffers(params?: Record<string, any>) {
   const queryClient = useQueryClient();
-
-  // Get offers summary
-  const {
-    data: summary,
-    isLoading: isSummaryLoading,
-    error: summaryError,
-    refetch: refetchSummary,
-  } = useQuery({
-    queryKey: [SUMMARY_KEY],
-    queryFn: () => EmploymentContractOfferService.getSummary(),
-  });
 
   // Get all offers
   const {
@@ -36,26 +29,25 @@ export function useEmploymentContractOffers(params?: Record<string, any>) {
     refetch,
   } = useQuery({
     queryKey: [QUERY_KEY, params],
-    queryFn: () => EmploymentContractOfferService.getAll(params),
-    staleTime: 0, // Always consider stale so new offers are fetched immediately
+    queryFn: () => OperatingContractOfferService.getAll(params),
+    staleTime: 0,
   });
 
   // Get offer by ID
-  const useOffer = (id: number) => {
+  const useOffer = (id: number | string) => {
     return useQuery({
       queryKey: [QUERY_KEY, id],
-      queryFn: () => EmploymentContractOfferService.getById(id),
+      queryFn: () => OperatingContractOfferService.getById(id),
       enabled: !!id,
     });
   };
 
   // Create offer
   const createMutation = useMutation({
-    mutationFn: (data: CreateEmploymentContractOfferDto) =>
-      EmploymentContractOfferService.create(data),
+    mutationFn: (data: CreateOperatingContractOfferDto) =>
+      OperatingContractOfferService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [SUMMARY_KEY] });
       message.success('تمت إضافة العرض بنجاح / Offer created successfully');
     },
     onError: (error: any) => {
@@ -65,11 +57,10 @@ export function useEmploymentContractOffers(params?: Record<string, any>) {
 
   // Update offer
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateEmploymentContractOfferDto }) =>
-      EmploymentContractOfferService.update(id, data),
+    mutationFn: ({ id, data }: { id: number | string; data: UpdateOperatingContractOfferDto }) =>
+      OperatingContractOfferService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [SUMMARY_KEY] });
       message.success('تم تحديث العرض بنجاح / Offer updated successfully');
     },
     onError: (error: any) => {
@@ -79,10 +70,9 @@ export function useEmploymentContractOffers(params?: Record<string, any>) {
 
   // Delete offer
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => EmploymentContractOfferService.delete(id),
+    mutationFn: (id: number | string) => OperatingContractOfferService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [SUMMARY_KEY] });
       message.success('تم حذف العرض بنجاح / Offer deleted successfully');
     },
     onError: (error: any) => {
@@ -91,10 +81,11 @@ export function useEmploymentContractOffers(params?: Record<string, any>) {
   });
 
   return {
-    summary,
-    isSummaryLoading,
-    summaryError,
-    refetchSummary,
+    /** @deprecated SUMMARY endpoint removed in new API — always empty */
+    summary: [] as any[],
+    isSummaryLoading: false,
+    summaryError: null,
+    refetchSummary: () => {},
     offers,
     isLoading,
     error,
@@ -111,3 +102,6 @@ export function useEmploymentContractOffers(params?: Record<string, any>) {
     isDeleting: deleteMutation.isPending,
   };
 }
+
+/** @deprecated Alias for backward compatibility */
+export const useOperatingContractOffers = useEmploymentContractOffers;

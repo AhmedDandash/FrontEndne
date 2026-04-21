@@ -43,7 +43,9 @@ export interface Branch {
   poBox?: string | null;
   postalCode?: string | null;
   managerNameAr?: string | null;
-  EmbassyBranch?: string | null;
+  /** renamed from EmbassyBranch */
+  philippineEmbassyBranch?: string | null;
+  openingConversation?: string | null;
   whatsAppWelcomeTemplate?: string | null;
   mainBranch?: number | null;
   taxNumber?: string | null;
@@ -79,7 +81,9 @@ export interface BranchDto {
   poBox?: string | null;
   postalCode?: string | null;
   managerNameAr?: string | null;
-  EmbassyBranch?: string | null;
+  /** renamed from EmbassyBranch */
+  philippineEmbassyBranch?: string | null;
+  openingConversation?: string | null;
   whatsAppWelcomeTemplate?: string | null;
   mainBranch?: number | null;
   taxNumber?: string | null;
@@ -118,21 +122,17 @@ export interface UpdateRoleDto {
 
 // ==================== Customer Types ====================
 export interface Customer {
-  id: number;
+  id: number | string;
   arabicName?: string | null;
   englishName?: string | null;
-  userId?: number | null;
-  nationality?: number | null;
+  /** UUID string — userId removed in new API */
+  nationality?: string | null;
   identityType?: number | null;
   identityNumber?: string | null;
   identityIssueDate?: string | null;
   birthDate?: string | null;
   maritalStatus?: number | null;
   housingType?: number | null;
-  mobile?: string | null;
-  mobile2?: string | null;
-  homePhone?: string | null;
-  workPhone?: string | null;
   email?: string | null;
   fax?: string | null;
   poBox?: string | null;
@@ -165,51 +165,20 @@ export interface Customer {
   iban?: string | null;
   bankAccountNumber?: string | null;
   taxNumber?: string | null;
+  phones?: CustomerPhoneDto[] | null;
 }
 
 export interface CreateCustomerDto {
   arabicName?: string | null;
   englishName?: string | null;
-  userId: number;
-  nationality: number;
-  identityType: number;
-  identityNumber?: string | null;
-  identityIssueDate?: string | null;
-  birthDate?: string | null;
-  maritalStatus: number;
-  housingType: number;
-  mobile?: string | null;
-  mobile2?: string | null;
-  homePhone?: string | null;
-  workPhone?: string | null;
-  email?: string | null;
-  districtAr?: string | null;
-  districtEn?: string | null;
-  addressAr?: string | null;
-  addressEn?: string | null;
-  cityAr?: string | null;
-  cityEn?: string | null;
-  familyMembers: number;
-  childrenCount: number;
-  domesticWorkers: number;
-  monthlyIncome?: number | null;
-}
-
-export interface UpdateCustomerDto {
-  arabicName?: string | null;
-  englishName?: string | null;
-  userId?: number | null;
-  nationality?: number | null;
+  /** UUID string — userId removed in new API */
+  nationality?: string | null;
   identityType?: number | null;
   identityNumber?: string | null;
   identityIssueDate?: string | null;
   birthDate?: string | null;
   maritalStatus?: number | null;
   housingType?: number | null;
-  mobile?: string | null;
-  mobile2?: string | null;
-  homePhone?: string | null;
-  workPhone?: string | null;
   email?: string | null;
   districtAr?: string | null;
   districtEn?: string | null;
@@ -221,11 +190,36 @@ export interface UpdateCustomerDto {
   childrenCount?: number | null;
   domesticWorkers?: number | null;
   monthlyIncome?: number | null;
+  phones?: CustomerPhoneDto[] | null;
+}
+
+export interface UpdateCustomerDto {
+  arabicName?: string | null;
+  englishName?: string | null;
+  nationality?: string | null;
+  identityType?: number | null;
+  identityNumber?: string | null;
+  identityIssueDate?: string | null;
+  birthDate?: string | null;
+  maritalStatus?: number | null;
+  housingType?: number | null;
+  email?: string | null;
+  districtAr?: string | null;
+  districtEn?: string | null;
+  addressAr?: string | null;
+  addressEn?: string | null;
+  cityAr?: string | null;
+  cityEn?: string | null;
+  familyMembers?: number | null;
+  childrenCount?: number | null;
+  domesticWorkers?: number | null;
+  monthlyIncome?: number | null;
+  phones?: CustomerPhoneDto[] | null;
 }
 
 export interface CustomerPhoneDto {
-  customerName?: string | null;
   phoneNumber?: string | null;
+  phoneType?: string | null;
 }
 
 // ==================== Document Types ====================
@@ -312,19 +306,20 @@ export interface ApiError {
 
 // ==================== Worker/Applicant Types ====================
 export interface WorkerActionDto {
-  id: number;
+  id: number | string;
   date: string;
 }
 
 export interface MedicalExaminationDto {
-  workerId: number;
-  examDate: string;
+  /** UUID string in new API */
+  workerId: string;
+  examDate?: string | null;
   medicalStatus: number;
-  notes?: string;
+  notes?: string | null;
 }
 
 export interface MedicalExamination extends MedicalExaminationDto {
-  id: number;
+  id: number | string;
   createdAt: string;
 }
 
@@ -332,14 +327,18 @@ export interface WorkerDto {
   referenceNo?: string | null;
   fullNameAr?: string | null;
   fullNameEn?: string | null;
-  workerSatus?: number | null;
+  /** renamed from workerSatus (typo fix) */
+  workerStatus?: number | null;
   religion?: number | null;
-  jobId?: number | null;
+  /** UUID string in new API */
+  jobId?: string | null;
   gender?: number | null; // 0 = Male, 1 = Female
-  nationalityId?: number | null;
+  /** UUID string in new API */
+  nationalityId?: string | null;
   basicSalary?: number | null;
-  agentId?: number | null;
-  responsibleUserId?: number | null;
+  /** UUID string in new API */
+  agentId?: string | null;
+  responsibleUserId?: string | null;
   boxNumber?: string | null;
   borderNumber?: string | null;
   birthDate?: string | null;
@@ -360,19 +359,26 @@ export interface WorkerDto {
   passportExpiryDate?: string | null;
   passportIssuePlaceAr?: string | null;
   passportIssuePlaceEn?: string | null;
-  hasExperience?: boolean;
-  skills?: string[] | null;
+  relativeNameAr?: string | null;
+  relativeNameEn?: string | null;
+  relativeMobile?: string | null;
+  hasExperience?: boolean | null;
+  /** Single string in new API (was string[]) */
+  skills?: string | null;
+  arabicLanguageLevel?: number | null;
+  englishLanguageLevel?: number | null;
   workerType?: number | null;
-  uploadimage?: string | null;
+  /** renamed from uploadimage */
+  uploadImage?: string | null;
+  isActive?: boolean | null;
 }
 
 export interface Worker extends WorkerDto {
-  id: number;
+  id: number | string;
   // Read-only fields from GET response
   agentName?: string | null;
   userName?: string | null;
   jobname?: string | null;
-  isActive?: boolean;
   workerEscape?: boolean;
   workerRefusedWork?: boolean;
   workerOut?: boolean;
@@ -432,6 +438,8 @@ export interface CreateAgentDto {
 }
 
 export interface UpdateAgentDto {
+  /** UUID — required by new PUT /api/V1/Agent/{id} body */
+  id: string;
   agentNameAr?: string | null;
   agentNameEn?: string | null;
   username?: string | null;
@@ -448,8 +456,8 @@ export interface UpdateAgentDto {
   followUpEmails?: string | null;
   warrantyEmails?: string | null;
   accountingEmails?: string | null;
-  sendAllEmails?: boolean;
-  isActive?: boolean;
+  sendAllEmails?: boolean | null;
+  isActive?: boolean | null;
 }
 
 // ==================== Job Types ====================
@@ -538,23 +546,26 @@ export interface RequestActionDto {
   requestId: number;
 }
 
-// ==================== Employment Contract Offer Types ====================
-export interface EmploymentContractOffer {
-  id: number;
+// ==================== Operating Contract Offer Types ====================
+// (renamed from EmploymentContractOffer — endpoint is now /api/OperatingContractOffer)
+export interface OperatingContractOffer {
+  id: number | string;
   offerType?: number | null;
   offerContractType?: number | null;
   offerTitle?: string | null;
   numberOfDays?: number | null;
-  nationalityId?: number | null;
+  /** UUID string in new API */
+  nationalityId?: string | null;
   nationalityName?: string | null;
-  jobId?: number | null;
+  /** UUID string in new API */
+  jobId?: string | null;
   jobName?: string | null;
   duration?: number | null;
   dateFrom?: string | null;
   dateTo?: string | null;
-  showForExternalCustomers?: boolean;
-  showForReception?: boolean;
-  isActive?: boolean;
+  showForExternalCustomers?: boolean | null;
+  showForReception?: boolean | null;
+  isActive?: boolean | null;
   cost?: number | null;
   costTax?: number | null;
   promissoryNoteAmount?: number | null;
@@ -563,26 +574,32 @@ export interface EmploymentContractOffer {
   dailyPriceWithoutTax?: number | null;
   workerSalary?: number | null;
   totalCostWithTax?: number | null;
-  branchId?: number | null;
+  /** UUID string in new API */
+  branchId?: string | null;
   branchName?: string | null;
   offersCount?: number | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
 
-export interface CreateEmploymentContractOfferDto {
+/** @deprecated Use OperatingContractOffer */
+export type EmploymentContractOffer = OperatingContractOffer;
+
+export interface CreateOperatingContractOfferDto {
   offerType?: number | null;
   offerContractType?: number | null;
   offerTitle?: string | null;
   numberOfDays?: number | null;
-  nationalityId?: number | null;
-  jobId?: number | null;
+  /** UUID string */
+  nationalityId?: string | null;
+  /** UUID string */
+  jobId?: string | null;
   duration?: number | null;
   dateFrom?: string | null;
   dateTo?: string | null;
-  showForExternalCustomers?: boolean;
-  showForReception?: boolean;
-  isActive?: boolean;
+  showForExternalCustomers?: boolean | null;
+  showForReception?: boolean | null;
+  isActive?: boolean | null;
   cost?: number | null;
   costTax?: number | null;
   promissoryNoteAmount?: number | null;
@@ -591,46 +608,27 @@ export interface CreateEmploymentContractOfferDto {
   dailyPriceWithoutTax?: number | null;
   workerSalary?: number | null;
   totalCostWithTax?: number | null;
-  branchId?: number | null;
-  // Additional fields for special offers and packages
-  isOffer?: boolean;
-  isPremium?: boolean;
-  offersCount?: number | null;
+  /** UUID string */
+  branchId?: string | null;
 }
 
-export interface UpdateEmploymentContractOfferDto {
-  offerType?: number | null;
-  offerContractType?: number | null;
-  offerTitle?: string | null;
-  numberOfDays?: number | null;
-  nationalityId?: number | null;
-  jobId?: number | null;
-  duration?: number | null;
-  dateFrom?: string | null;
-  dateTo?: string | null;
-  showForExternalCustomers?: boolean;
-  showForReception?: boolean;
-  isActive?: boolean;
-  cost?: number | null;
-  costTax?: number | null;
-  promissoryNoteAmount?: number | null;
-  insurance?: number | null;
-  previousExperience?: number | null;
-  dailyPriceWithoutTax?: number | null;
-  workerSalary?: number | null;
-  totalCostWithTax?: number | null;
-  branchId?: number | null;
-}
+/** @deprecated Use CreateOperatingContractOfferDto */
+export type CreateEmploymentContractOfferDto = CreateOperatingContractOfferDto;
+
+export interface UpdateOperatingContractOfferDto extends CreateOperatingContractOfferDto {}
+
+/** @deprecated Use UpdateOperatingContractOfferDto */
+export type UpdateEmploymentContractOfferDto = UpdateOperatingContractOfferDto;
 
 export interface EmploymentContractOfferSummary {
-  nationalityId?: number | null;
+  nationalityId?: string | null;
   nationalityName?: string | null;
-  jobId?: number | null;
+  jobId?: string | null;
   jobName?: string | null;
-  branchId?: number | null;
+  branchId?: string | null;
   branchName?: string | null;
   availableOffersCount?: number | null;
-  offersCount?: number | null; // Legacy field
+  offersCount?: number | null;
 }
 
 // ==================== Employment Operating Contract Types ====================
@@ -845,38 +843,27 @@ export interface ComplaintIssue {
 }
 
 // ==================== Nationality Extended Types ====================
+/** @deprecated Legacy — use Nationality from new API */
 export interface NationalityExtended {
-  id: number;
-  nationalityId?: number | null;
-  authorizationSystem?: number | null;
-  ticketPrice?: number | null;
-  headerFile?: string | null;
-  isActive?: boolean | null;
-  createdAt?: string | null;
-  createdBy?: number | null;
-  updatedAt?: string | null;
-  updatedBy?: number | null;
-  // Joined fields
-  nationalityName?: string | null;
+  id: number | string;
   nationalityNameAr?: string | null;
   nationalityNameEn?: string | null;
+  isActive?: boolean | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface CreateNationalityDto {
-  nationalityId?: number | null;
-  nationalityName?: string | null;
-  authorizationSystem?: number | null;
-  ticketPrice?: number | null;
-  headerFile?: string | null;
+  nationalityNameAr?: string | null;
+  nationalityNameEn?: string | null;
   isActive?: boolean | null;
 }
 
 export interface UpdateNationalityDto {
-  nationalityId?: number | null;
-  nationalityName?: string | null;
-  authorizationSystem?: number | null;
-  ticketPrice?: number | null;
-  headerFile?: string | null;
+  /** UUID — required in new PUT body */
+  id: string;
+  nationalityNameAr?: string | null;
+  nationalityNameEn?: string | null;
   isActive?: boolean | null;
 }
 
@@ -1267,4 +1254,95 @@ export interface UpdateNationalityFollowUpStatusDto {
   fileNameAr?: string | null;
   whatsAppStatusName?: string | null;
   maxDays?: number | null;
+}
+
+// ==================== Marketer Types ====================
+export interface Marketer {
+  id: number | string;
+  nameAr?: string | null;
+  nameEn?: string | null;
+  createdAt?: string | null;
+}
+
+export interface CreateMarketerDto {
+  nameAr?: string | null;
+  nameEn?: string | null;
+}
+
+export interface UpdateMarketerDto {
+  nameAr?: string | null;
+  nameEn?: string | null;
+}
+
+// ==================== Receipt Voucher Types ====================
+export interface ReceiptVoucher {
+  id: number | string;
+  voucherNumber?: string | null;
+  voucherDate?: string | null;
+  amount?: number | null;
+  notes?: string | null;
+  /** UUID string */
+  employmentOperatingContractId?: string | null;
+  createdAt?: string | null;
+}
+
+export interface CreateReceiptVoucherDto {
+  voucherNumber?: string | null;
+  voucherDate: string;
+  amount: number;
+  notes?: string | null;
+  /** UUID string */
+  employmentOperatingContractId: string;
+}
+
+export interface UpdateReceiptVoucherDto {
+  voucherNumber?: string | null;
+  voucherDate?: string | null;
+  amount?: number | null;
+  notes?: string | null;
+  employmentOperatingContractId?: string | null;
+}
+
+// ==================== Transfer Contract Types ====================
+// TransferContractStatus: 1=Draft, 2=Signed, 3=Completed
+export interface TransferContract {
+  id: number | string;
+  /** UUID string */
+  customerId?: string | null;
+  customerName?: string | null;
+  /** UUID string */
+  workerId?: string | null;
+  workerName?: string | null;
+  /** UUID string */
+  marketerId?: string | null;
+  marketerName?: string | null;
+  transferFees?: number | null;
+  governmentFees?: number | null;
+  totalAmount?: number | null;
+  notes?: string | null;
+  status?: number | null;
+  createdAt?: string | null;
+}
+
+export interface CreateTransferContractDto {
+  /** UUID string */
+  customerId: string;
+  /** UUID string */
+  workerId: string;
+  /** UUID string */
+  marketerId?: string | null;
+  transferFees: number;
+  governmentFees: number;
+  totalAmount: number;
+  notes?: string | null;
+}
+
+export interface UpdateTransferContractDto {
+  customerId?: string | null;
+  workerId?: string | null;
+  marketerId?: string | null;
+  transferFees?: number | null;
+  governmentFees?: number | null;
+  totalAmount?: number | null;
+  notes?: string | null;
 }

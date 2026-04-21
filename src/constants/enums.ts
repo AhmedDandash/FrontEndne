@@ -269,7 +269,7 @@ export const MEDICAL_STATUS = [
 
 // ==================== Worker Workflow Status ====================
 // حالة العامل (حالة سير العمل)
-// Note: API field is 'workerSatus' (typo preserved from backend)
+// Note: API field renamed from 'workerSatus' (typo) to 'workerStatus' in new API
 export const WORKER_SATUS = [
   { value: 1, labelAr: 'مرحلة التجربة', labelEn: 'Trial' },
   { value: 2, labelAr: 'متاح', labelEn: 'Available' },

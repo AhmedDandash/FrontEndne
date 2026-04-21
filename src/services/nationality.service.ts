@@ -1,83 +1,70 @@
 /**
  * Nationality Service
- * Handles all nationality-related API calls (General Options)
+ * Migrated to new API contract: /api/V1/Nationality
+ *
+ * Breaking changes from old API:
+ *  - Paths changed from /api/Nationality/GetAllNationality etc. to RESTful /api/V1/Nationality
+ *  - DTO simplified: removed nationalityId, authorizationSystem, ticketPrice, headerFile
+ *  - New: toggleStatus() — POST /api/V1/Nationality/{id}/toggle-status
  */
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
-import type {
-  NationalityExtended,
-  CreateNationalityDto,
-  UpdateNationalityDto,
-} from '@/types/api.types';
+import type { Nationality, CreateNationalityDto, UpdateNationalityDto } from '@/types/api.types';
 
 export class NationalityService {
   /**
-   * Get all nationalities
+   * GET /api/V1/Nationality
    */
-  static async getAll(): Promise<NationalityExtended[]> {
+  static async getAll(): Promise<Nationality[]> {
     const response = await api.get<any>(API_ENDPOINTS.NATIONALITY.GET_ALL);
 
-    // Handle different response structures
-    let items: NationalityExtended[] = [];
-    if (Array.isArray(response.data)) {
-      items = response.data;
-    } else if (response.data && typeof response.data === 'object') {
-      const data = response.data as any;
-      if (Array.isArray(data.data)) items = data.data;
-      else if (Array.isArray(data.result)) items = data.result;
-      else if (Array.isArray(data.items)) items = data.items;
-    }
-    return items;
+    if (Array.isArray(response.data)) return response.data;
+    if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;
+    if (response.data?.result && Array.isArray(response.data.result)) return response.data.result;
+    if (response.data?.items && Array.isArray(response.data.items)) return response.data.items;
+    return [];
   }
 
   /**
-   * Get nationality by ID
+   * GET /api/V1/Nationality/{id}
    */
-  static async getById(id: number): Promise<NationalityExtended> {
-    const response = await api.get<NationalityExtended>(API_ENDPOINTS.NATIONALITY.GET_BY_ID(id));
+  static async getById(id: number | string): Promise<Nationality> {
+    const response = await api.get<Nationality>(API_ENDPOINTS.NATIONALITY.GET_BY_ID(id));
     return response.data;
   }
 
   /**
-   * Create new nationality
+   * POST /api/V1/Nationality
+   * Body: { nationalityNameAr, nationalityNameEn, isActive }
    */
-  static async create(data: CreateNationalityDto): Promise<NationalityExtended> {
-    const payload = {
-      ...data,
-      nationalityId: data.nationalityId ? Number(data.nationalityId) : null,
-      authorizationSystem:
-        data.authorizationSystem !== undefined ? Number(data.authorizationSystem) : null,
-      ticketPrice: data.ticketPrice ? Number(data.ticketPrice) : null,
-      isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
-    };
-    const response = await api.post<NationalityExtended>(API_ENDPOINTS.NATIONALITY.CREATE, payload);
+  static async create(data: CreateNationalityDto): Promise<Nationality> {
+    const response = await api.post<Nationality>(API_ENDPOINTS.NATIONALITY.CREATE, data);
     return response.data;
   }
 
   /**
-   * Update nationality
+   * PUT /api/V1/Nationality/{id}
+   * Body: { id (uuid), nationalityNameAr, nationalityNameEn, isActive }
    */
-  static async update(id: number, data: UpdateNationalityDto): Promise<NationalityExtended> {
-    const payload = {
-      ...data,
-      nationalityId: data.nationalityId ? Number(data.nationalityId) : null,
-      authorizationSystem:
-        data.authorizationSystem !== undefined ? Number(data.authorizationSystem) : null,
-      ticketPrice: data.ticketPrice ? Number(data.ticketPrice) : null,
-      isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
-    };
-    const response = await api.put<NationalityExtended>(
-      API_ENDPOINTS.NATIONALITY.UPDATE(id),
-      payload
-    );
+  static async update(id: number | string, data: UpdateNationalityDto): Promise<Nationality> {
+    const payload: UpdateNationalityDto = { ...data, id: String(id) };
+    const response = await api.put<Nationality>(API_ENDPOINTS.NATIONALITY.UPDATE(id), payload);
     return response.data;
   }
 
   /**
-   * Delete nationality
+   * DELETE /api/V1/Nationality/{id}
    */
-  static async delete(id: number): Promise<void> {
+  static async delete(id: number | string): Promise<void> {
     await api.delete(API_ENDPOINTS.NATIONALITY.DELETE(id));
+  }
+
+  /**
+   * POST /api/V1/Nationality/{id}/toggle-status
+   * Toggles isActive for the nationality. No request body.
+   */
+  static async toggleStatus(id: number | string): Promise<void> {
+    await api.post(API_ENDPOINTS.NATIONALITY.TOGGLE_STATUS(id), null);
   }
 }

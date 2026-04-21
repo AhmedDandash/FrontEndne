@@ -11,32 +11,32 @@ export const API_CONFIG = {
 } as const;
 
 export const API_ENDPOINTS = {
-  // Auth
+  // Auth — all paths moved to /api/V1/Auth/*
   AUTH: {
-    LOGIN: '/api/Auth/login',
-    REGISTER: '/api/Auth/register',
-    LOGOUT: '/api/Auth/logout',
-    REFRESH: '/api/Auth/refresh',
+    LOGIN: '/api/V1/Auth/login',
+    LOGOUT: '/api/V1/Auth/logout',
+    REFRESH_TOKEN: '/api/V1/Auth/refresh-token',
+    ME: '/api/V1/Auth/me',
+    CHANGE_PASSWORD: '/api/V1/Auth/change-password',
+    ADD_ADMIN: '/api/V1/Auth/add-admin',
   },
 
-  // Branch
+  // Branch — RESTful /api/V1/Branch
   BRANCH: {
-    GET_ALL: '/api/Branch/GetAllBranch',
-    GET_BY_ID: (id: number) => `/api/Branch/GetBranchById/${id}`,
-    CREATE: '/api/Branch/CreateBranch',
-    UPDATE: (id: number) => `/api/Branch/UpdateBranch/${id}`,
-    DELETE: (id: number) => `/api/Branch/DeleteBranch/${id}`,
+    GET_ALL: '/api/V1/Branch',
+    GET_BY_ID: (id: number | string) => `/api/V1/Branch/${id}`,
+    CREATE: '/api/V1/Branch',
+    UPDATE: (id: number | string) => `/api/V1/Branch/${id}`,
+    DELETE: (id: number | string) => `/api/V1/Branch/${id}`,
   },
 
-  // Customers
+  // Customers — RESTful /api/V1/Customer
   CUSTOMERS: {
-    GET_ALL: '/api/Customers/GetAllCustomer',
-    GET_BY_ID: (id: number) => `/api/Customers/GetCustomerById/${id}`,
-    CREATE: '/api/Customers/CreateCustomer',
-    UPDATE: (id: number) => `/api/Customers/UpdateCustomer/${id}`,
-    DELETE: (id: number) => `/api/Customers/DeleteCustomer/${id}`,
-    // GET_ALL_PHONES: '/api/Customers/GetAllCustomerPhone',
-    CREATE_PHONE: '/api/Customers/CreateCustomerPhone',
+    GET_ALL: '/api/V1/Customer',
+    GET_BY_ID: (id: number | string) => `/api/V1/Customer/${id}`,
+    CREATE: '/api/V1/Customer',
+    UPDATE: (id: number | string) => `/api/V1/Customer/${id}`,
+    DELETE: (id: number | string) => `/api/V1/Customer/${id}`,
   },
 
   // Document
@@ -66,28 +66,35 @@ export const API_ENDPOINTS = {
     DELETE: (id: number) => `/api/Users/DeleteUserById/${id}`,
   },
 
-  // Agent
+  // Agent — RESTful /api/V1/Agent
   AGENT: {
-    GET_ALL: '/api/Agent',
-    GET_BY_ID: (id: number) => `/api/Agent/${id}`,
-    CREATE: '/api/Agent',
-    UPDATE: (id: number) => `/api/Agent/${id}`,
-    DELETE: (id: number) => `/api/Agent/${id}`,
+    GET_ALL: '/api/V1/Agent',
+    GET_BY_ID: (id: number | string) => `/api/V1/Agent/${id}`,
+    CREATE: '/api/V1/Agent',
+    UPDATE: (id: number | string) => `/api/V1/Agent/${id}`,
+    DELETE: (id: number | string) => `/api/V1/Agent/${id}`,
   },
 
-  // General Options - Jobs
+  // Jobs — RESTful /api/V1/Job
   JOB: {
-    GET_ALL: '/api/GeneralOptions/Job',
-    GET_BY_ID: (id: number) => `/api/GeneralOptions/Job/${id}`,
-    CREATE: '/api/GeneralOptions/Job',
-    UPDATE: (id: number) => `/api/GeneralOptions/Job/${id}`,
-    DELETE: (id: number) => `/api/GeneralOptions/Job/${id}`,
+    GET_ALL: '/api/V1/Job',
+    GET_BY_ID: (id: number | string) => `/api/V1/Job/${id}`,
+    CREATE: '/api/V1/Job',
+    UPDATE: (id: number | string) => `/api/V1/Job/${id}`,
+    DELETE: (id: number | string) => `/api/V1/Job/${id}`,
   },
 
-  // Workers
+  // Workers — RESTful /api/V1/Worker + lifecycle transitions
   WORKERS: {
-    GET_ALL: '/api/Worker',
-    GET_BY_ID: (id: number) => `/api/Worker/${id}`,
+    GET_ALL: '/api/V1/Worker',
+    GET_BY_ID: (id: number | string) => `/api/V1/Worker/${id}`,
+    CREATE: '/api/V1/Worker',
+    UPDATE: (id: number | string) => `/api/V1/Worker/${id}`,
+    DELETE: (id: number | string) => `/api/V1/Worker/${id}`,
+    // Lifecycle (replaces old WorkerIsNoActive / WorkerOut / WorkerRefused)
+    ACTIVATE: (id: number | string) => `/api/V1/Worker/${id}/activate`,
+    MOVE_TO_ACCOMMODATION: (id: number | string) => `/api/V1/Worker/${id}/move-to-accommodation`,
+    SET_REFUSAL: (id: number | string) => `/api/V1/Worker/${id}/set-refusal`,
   },
 
   // Recruitment Request
@@ -102,14 +109,13 @@ export const API_ENDPOINTS = {
     ACCEPT_REQUEST: '/api/RecruitmentRequest/AcceptRequest',
   },
 
-  // Employment Contract Offers
-  EMPLOYMENT_CONTRACT_OFFERS: {
-    SUMMARY: '/api/EmploymentContractOffers/summary',
-    GET_ALL: '/api/EmploymentContractOffers',
-    CREATE: '/api/EmploymentContractOffers',
-    GET_BY_ID: (id: number) => `/api/EmploymentContractOffers/${id}`,
-    UPDATE: (id: number) => `/api/EmploymentContractOffers/${id}`,
-    DELETE: (id: number) => `/api/EmploymentContractOffers/${id}`,
+  // Operating Contract Offer (renamed from EmploymentContractOffers)
+  OPERATING_CONTRACT_OFFER: {
+    GET_ALL: '/api/OperatingContractOffer',
+    CREATE: '/api/OperatingContractOffer',
+    GET_BY_ID: (id: number | string) => `/api/OperatingContractOffer/${id}`,
+    UPDATE: (id: number | string) => `/api/OperatingContractOffer/${id}`,
+    DELETE: (id: number | string) => `/api/OperatingContractOffer/${id}`,
   },
 
   // Employment Operating Contract
@@ -145,13 +151,14 @@ export const API_ENDPOINTS = {
     ADD_UPDATE: '/api/Complaint/update',
   },
 
-  // Nationality (General Options)
+  // Nationality — RESTful /api/V1/Nationality
   NATIONALITY: {
-    GET_ALL: '/api/Nationality/GetAllNationality',
-    GET_BY_ID: (id: number) => `/api/Nationality/GetByIdNationality/${id}`,
-    CREATE: '/api/Nationality/CreateNationality',
-    UPDATE: (id: number) => `/api/Nationality/UpdateNationality/${id}`,
-    DELETE: (id: number) => `/api/Nationality/DeleteNationality/${id}`,
+    GET_ALL: '/api/V1/Nationality',
+    GET_BY_ID: (id: number | string) => `/api/V1/Nationality/${id}`,
+    CREATE: '/api/V1/Nationality',
+    UPDATE: (id: number | string) => `/api/V1/Nationality/${id}`,
+    DELETE: (id: number | string) => `/api/V1/Nationality/${id}`,
+    TOGGLE_STATUS: (id: number | string) => `/api/V1/Nationality/${id}/toggle-status`,
   },
 
   // Mediation Contract Offer
@@ -226,6 +233,46 @@ export const API_ENDPOINTS = {
     UPDATE: (id: number) => `/api/Nationality/UpdateNationalityFollowUpStatus/${id}`,
     TOGGLE_ACTIVE: (id: number) => `/api/Nationality/NationalityFollowUpStatusIsActive/${id}`,
     DELETE: (id: number) => `/api/Nationality/DeleteNationalityFollowUpStatus/${id}`,
+  },
+
+  // Marketer — /api/V1/Marketer
+  MARKETER: {
+    GET_ALL: '/api/V1/Marketer',
+    GET_BY_ID: (id: number | string) => `/api/V1/Marketer/${id}`,
+    CREATE: '/api/V1/Marketer',
+    UPDATE: (id: number | string) => `/api/V1/Marketer/${id}`,
+    DELETE: (id: number | string) => `/api/V1/Marketer/${id}`,
+  },
+
+  // Receipt Voucher — /api/ReceiptVoucher
+  RECEIPT_VOUCHER: {
+    GET_ALL: '/api/ReceiptVoucher',
+    GET_BY_ID: (id: number | string) => `/api/ReceiptVoucher/${id}`,
+    CREATE: '/api/ReceiptVoucher',
+    UPDATE: (id: number | string) => `/api/ReceiptVoucher/${id}`,
+    DELETE: (id: number | string) => `/api/ReceiptVoucher/${id}`,
+  },
+
+  // Transfer Contract — /api/TransferContract
+  TRANSFER_CONTRACT: {
+    GET_ALL: '/api/TransferContract',
+    GET_BY_ID: (id: number | string) => `/api/TransferContract/${id}`,
+    CREATE: '/api/TransferContract',
+    UPDATE: (id: number | string) => `/api/TransferContract/${id}`,
+    DELETE: (id: number | string) => `/api/TransferContract/${id}`,
+    SIGN: (id: number | string) => `/api/TransferContract/${id}/sign`,
+    COMPLETE: (id: number | string) => `/api/TransferContract/${id}/complete`,
+    AUTHORITY_STATUS: (id: number | string) => `/api/TransferContract/${id}/authority-status`,
+  },
+
+  // Medical Examination — /api/V1/MedicalExamination
+  MEDICAL_EXAMINATION: {
+    GET_ALL: '/api/V1/MedicalExamination',
+    GET_BY_ID: (id: number | string) => `/api/V1/MedicalExamination/${id}`,
+    CREATE: '/api/V1/MedicalExamination',
+    UPDATE: (id: number | string) => `/api/V1/MedicalExamination/${id}`,
+    DELETE: (id: number | string) => `/api/V1/MedicalExamination/${id}`,
+    REPORT: (id: number | string) => `/api/V1/MedicalExamination/report/${id}`,
   },
 
   // ─── HR Module ───────────────────────────────────────────────────────────
