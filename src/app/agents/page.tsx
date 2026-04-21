@@ -46,14 +46,9 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useAgents, useCreateAgent, useUpdateAgent, useDeleteAgent } from '@/hooks/api/useAgents';
+import { useNationalities } from '@/hooks/api/useNationalities';
 import type { Agent, CreateAgentDto, UpdateAgentDto } from '@/types/api.types';
-import {
-  AGENT_CONTRACT_TYPE,
-  NATIONALITIES,
-  getEnumLabel,
-  toSelectOptions,
-} from '@/constants/enums';
-import type { EnumOption } from '@/constants/enums';
+import { AGENT_CONTRACT_TYPE, getEnumLabel, toSelectOptions } from '@/constants/enums';
 import styles from './Agents.module.css';
 
 export default function AgentsPage() {
@@ -71,11 +66,27 @@ export default function AgentsPage() {
 
   // Fetch agents data
   const { data: agents = [], isLoading } = useAgents();
+  const { data: nationalitiesData = [] } = useNationalities();
   const { mutate: createAgent, isPending: isCreating } = useCreateAgent();
   const { mutate: updateAgent, isPending: isUpdating } = useUpdateAgent();
   const { mutate: deleteAgent } = useDeleteAgent();
 
-  // Use NATIONALITIES and AGENT_CONTRACT_TYPE from enums
+  const nationalities = useMemo(() => {
+    const raw = Array.isArray(nationalitiesData)
+      ? nationalitiesData
+      : (nationalitiesData as any)?.$values;
+    return Array.isArray(raw) ? raw : [];
+  }, [nationalitiesData]);
+
+  const getNationalityOptionValue = (nationality: any) =>
+    nationality?.nationalityId ?? nationality?.id ?? nationality?.value;
+
+  const getNationalityName = (n: any) => {
+    if (language === 'ar') {
+      return n?.nationalityNameAr || n?.nationalityName || n?.name || '-';
+    }
+    return n?.nationalityNameEn || n?.nationalityName || n?.name || '-';
+  };
 
   const t = (key: string) => {
     const translations: { [key: string]: { ar: string; en: string } } = {
@@ -185,7 +196,10 @@ export default function AgentsPage() {
       setEditingAgent(agent);
       form.setFieldsValue({
         ...agent,
-        nationalityId: agent.nationalityId || undefined,
+        nationalityId:
+          agent.nationalityId !== undefined && agent.nationalityId !== null
+            ? agent.nationalityId
+            : undefined,
         contractType: agent.contractType !== undefined ? agent.contractType : undefined,
       });
     } else {
@@ -208,9 +222,19 @@ export default function AgentsPage() {
   };
 
   const handleSubmit = async (values: any) => {
+    const nationalityRaw = values.nationalityId;
+    const normalizedNationalityId =
+      nationalityRaw === undefined || nationalityRaw === null || nationalityRaw === ''
+        ? undefined
+        : typeof nationalityRaw === 'number'
+          ? nationalityRaw
+          : /^\d+$/.test(String(nationalityRaw).trim())
+            ? Number(nationalityRaw)
+            : String(nationalityRaw).trim();
+
     const agentData: CreateAgentDto = {
       ...values,
-      nationalityId: values.nationalityId ? Number(values.nationalityId) : undefined,
+      nationalityId: normalizedNationalityId as any,
       contractType: values.contractType !== undefined ? Number(values.contractType) : 0,
       sendAllEmails: Boolean(values.sendAllEmails),
       isActive: Boolean(values.isActive),
@@ -246,9 +270,12 @@ export default function AgentsPage() {
     });
   };
 
-  const getNationalityLabel = (nationalityId?: number | null) => {
+  const getNationalityLabel = (nationalityId?: number | string | null) => {
     if (!nationalityId) return 'N/A';
-    return getEnumLabel([...NATIONALITIES], nationalityId, language);
+    const id = String(nationalityId);
+    const match = nationalities.find((n: any) => String(getNationalityOptionValue(n)) === id);
+    if (match) return getNationalityName(match);
+    return id;
   };
 
   const getContractTypeLabel = (contractType?: number | null) => {
@@ -415,10 +442,12 @@ export default function AgentsPage() {
                   value={selectedNationalities}
                   onChange={setSelectedNationalities}
                   style={{ width: '100%' }}
-                  options={[...NATIONALITIES].map((n: EnumOption) => ({
-                    value: String(n.value),
-                    label: language === 'ar' ? n.labelAr : n.labelEn,
-                  }))}
+                  options={nationalities
+                    .filter((n: any) => n.isActive !== false)
+                    .map((n: any) => ({
+                      value: String(getNationalityOptionValue(n)),
+                      label: getNationalityName(n),
+                    }))}
                   allowClear
                   showSearch
                   optionFilterProp="label"
@@ -651,10 +680,12 @@ export default function AgentsPage() {
                   placeholder={t('nationality')}
                   showSearch
                   optionFilterProp="label"
-                  options={[...NATIONALITIES].map((n: EnumOption) => ({
-                    value: String(n.value),
-                    label: language === 'ar' ? n.labelAr : n.labelEn,
-                  }))}
+                  options={nationalities
+                    .filter((n: any) => n.isActive !== false)
+                    .map((n: any) => ({
+                      value: getNationalityOptionValue(n),
+                      label: getNationalityName(n),
+                    }))}
                 />
               </Form.Item>
             </Col>

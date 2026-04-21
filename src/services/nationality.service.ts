@@ -19,10 +19,21 @@ export class NationalityService {
   static async getAll(): Promise<Nationality[]> {
     const response = await api.get<any>(API_ENDPOINTS.NATIONALITY.GET_ALL);
 
-    if (Array.isArray(response.data)) return response.data;
-    if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;
-    if (response.data?.result && Array.isArray(response.data.result)) return response.data.result;
-    if (response.data?.items && Array.isArray(response.data.items)) return response.data.items;
+    const body = response.data;
+    const candidates = [
+      body,
+      body?.data,
+      body?.result,
+      body?.items,
+      body?.data?.items,
+      body?.result?.items,
+    ];
+
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) return candidate;
+      if (Array.isArray(candidate?.$values)) return candidate.$values;
+    }
+
     return [];
   }
 

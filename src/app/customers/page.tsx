@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -101,6 +101,20 @@ export default function CustomersPage() {
   // Nationalities API
   const { data: nationalitiesData = [] } = useNationalities();
 
+  const nationalities = useMemo(() => {
+    const raw = Array.isArray(nationalitiesData)
+      ? nationalitiesData
+      : (nationalitiesData as any)?.$values;
+    return Array.isArray(raw) ? raw : [];
+  }, [nationalitiesData]);
+
+  const getNationalityLabel = (n: any) => {
+    if (language === 'ar') {
+      return n?.nationalityNameAr || n?.nationalityName || n?.name || '-';
+    }
+    return n?.nationalityNameEn || n?.nationalityName || n?.name || '-';
+  };
+
   // Safely extract jobs array from API response and filter active jobs only
   const jobs = useMemo(() => {
     if (!jobsData) return [];
@@ -156,15 +170,24 @@ export default function CustomersPage() {
     return translations[key]?.[language] || key;
   };
 
+  const getCustomerCityLabel = (customer: Customer) => {
+    return language === 'ar'
+      ? (customer.cityAr || customer.cityEn || '').trim()
+      : (customer.cityEn || customer.cityAr || '').trim();
+  };
+
+  useEffect(() => {
+    // Reset city filter when switching language to avoid stale value mismatch.
+    setCityFilter('all');
+  }, [language]);
+
   // Filter customers
   const filteredCustomers = useMemo(() => {
     if (!customers) return [];
 
     return customers.filter((customer) => {
       // Collect all phone numbers from phones array for search
-      const allPhones = (customer.phones || [])
-        .map((p) => p.phoneNumber || '')
-        .join(' ');
+      const allPhones = (customer.phones || []).map((p) => p.phoneNumber || '').join(' ');
       const matchesSearch =
         searchText === '' ||
         (customer.arabicName || '').toLowerCase().includes(searchText.toLowerCase()) ||
@@ -172,23 +195,22 @@ export default function CustomersPage() {
         (customer.identityNumber || '').includes(searchText) ||
         allPhones.includes(searchText);
 
-      const matchesCity =
-        cityFilter === 'all' || customer.cityAr === cityFilter || customer.cityEn === cityFilter;
+      const matchesCity = cityFilter === 'all' || getCustomerCityLabel(customer) === cityFilter;
 
       return matchesSearch && matchesCity;
     });
-  }, [customers, searchText, cityFilter]);
+  }, [customers, searchText, cityFilter, language]);
 
-  // Get unique cities for filter
+  // Get unique cities for filter in the active UI language
   const cities = useMemo(() => {
     if (!customers) return [];
     const citySet = new Set<string>();
     customers.forEach((c) => {
-      if (c.cityAr) citySet.add(c.cityAr);
-      if (c.cityEn) citySet.add(c.cityEn);
+      const label = getCustomerCityLabel(c);
+      if (label) citySet.add(label);
     });
     return Array.from(citySet);
-  }, [customers]);
+  }, [customers, language]);
 
   // Handler functions
   const handleAddCustomer = () => {
@@ -438,8 +460,8 @@ export default function CustomersPage() {
   const getNationality = (nationality: string | number | null | undefined) => {
     if (!nationality) return '-';
     const id = String(nationality);
-    const match = (nationalitiesData as any[]).find((n: any) => String(n.id) === id);
-    if (match) return language === 'ar' ? match.nationalityNameAr : match.nationalityNameEn;
+    const match = nationalities.find((n: any) => String(n.id ?? n.nationalityId ?? n.value) === id);
+    if (match) return getNationalityLabel(match);
     return id;
   };
 
@@ -612,9 +634,7 @@ export default function CustomersPage() {
                       </div>
                       <div className={styles.infoContent}>
                         <p className={styles.infoLabel}>{t('city')}</p>
-                        <p className={styles.infoValue}>
-                          {language === 'ar' ? customer.cityAr : customer.cityEn}
-                        </p>
+                        <p className={styles.infoValue}>{getCustomerCityLabel(customer)}</p>
                       </div>
                     </div>
                   )}
@@ -724,10 +744,7 @@ export default function CustomersPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item
-                label={t('englishName')}
-                name="englishName"
-              >
+              <Form.Item label={t('englishName')} name="englishName">
                 <Input prefix={<UserOutlined />} placeholder={t('englishName')} />
               </Form.Item>
             </Col>
@@ -750,11 +767,11 @@ export default function CustomersPage() {
               placeholder={t('nationality')}
               showSearch
               optionFilterProp="label"
-              options={(nationalitiesData as any[])
+              options={nationalities
                 .filter((n: any) => n.isActive !== false)
                 .map((n: any) => ({
-                  value: String(n.id),
-                  label: language === 'ar' ? n.nationalityNameAr : n.nationalityNameEn,
+                  value: String(n.id ?? n.nationalityId ?? n.value),
+                  label: getNationalityLabel(n),
                 }))}
             />
           </Form.Item>
@@ -954,12 +971,9 @@ export default function CustomersPage() {
                   showSearch
                   optionFilterProp="label"
                   placeholder={language === 'ar' ? 'اختر الجنسية' : 'Select Nationality'}
-                  options={(nationalitiesData as any[]).map((n: any) => ({
-                    value: n.id,
-                    label:
-                      language === 'ar'
-                        ? n.nationalityNameAr || n.name
-                        : n.nationalityName || n.name,
+                  options={nationalities.map((n: any) => ({
+                    value: n.id ?? n.nationalityId ?? n.value,
+                    label: getNationalityLabel(n),
                   }))}
                 />
               </Form.Item>

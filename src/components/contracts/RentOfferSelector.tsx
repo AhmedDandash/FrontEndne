@@ -30,7 +30,7 @@ import { OFFER_TYPE, NATIONALITIES, getEnumLabel } from '@/constants/enums';
 
 interface RentOfferSelectorProps {
   /** Currently selected offer ID (controlled) */
-  selectedOfferId?: number | null;
+  selectedOfferId?: number | string | null;
   /** Callback when an offer row is selected */
   onSelect: (offer: EmploymentContractOffer) => void;
   /** Language: 'ar' | 'en' */
@@ -232,7 +232,7 @@ export default function RentOfferSelector({
       dataIndex: 'id',
       key: 'id',
       width: 60,
-      render: (id: number) => (
+      render: (id: number | string) => (
         <span style={{ fontWeight: selectedOfferId === id ? 700 : 400 }}>
           {id}
           {selectedOfferId === id && (
