@@ -413,24 +413,13 @@ export default function CustomersPage() {
   const getHousingType = (type: string | number | null | undefined) =>
     getEnumLabel([...HOUSING_TYPE], Number(type), language);
 
-  // Nationality mapping
+  // Nationality display — lookup by id from API data
   const getNationality = (nationality: string | number | null | undefined) => {
-    const nationalities: { [key: string]: { ar: string; en: string } } = {
-      '1': { ar: 'سعودي', en: 'Saudi' },
-      '2': { ar: 'مصري', en: 'Egyptian' },
-      '3': { ar: 'هندي', en: 'Indian' },
-      '4': { ar: 'باكستاني', en: 'Pakistani' },
-      '5': { ar: 'فلبيني', en: 'Filipino' },
-      '6': { ar: 'يمني', en: 'Yemeni' },
-      '7': { ar: 'سوداني', en: 'Sudanese' },
-      '8': { ar: 'بنغلاديشي', en: 'Bangladeshi' },
-      '9': { ar: 'إثيوبي', en: 'Ethiopian' },
-      '10': { ar: 'إندونيسي', en: 'Indonesian' },
-      '11': { ar: 'سريلانكي', en: 'Sri Lankan' },
-      '12': { ar: 'نيبالي', en: 'Nepalese' },
-    };
-    const nationalityStr = String(nationality || '');
-    return nationalities[nationalityStr]?.[language] || nationalityStr;
+    if (!nationality) return '-';
+    const id = String(nationality);
+    const match = (nationalitiesData as any[]).find((n: any) => String(n.id) === id);
+    if (match) return language === 'ar' ? match.nationalityNameAr : match.nationalityNameEn;
+    return id;
   };
 
   return (
@@ -712,20 +701,17 @@ export default function CustomersPage() {
             name="nationality"
             rules={[{ required: true, message: 'Please select nationality' }]}
           >
-            <Select placeholder={t('nationality')}>
-              <Select.Option value={1}>{getNationality(1)}</Select.Option>
-              <Select.Option value={2}>{getNationality(2)}</Select.Option>
-              <Select.Option value={3}>{getNationality(3)}</Select.Option>
-              <Select.Option value={4}>{getNationality(4)}</Select.Option>
-              <Select.Option value={5}>{getNationality(5)}</Select.Option>
-              <Select.Option value={6}>{getNationality(6)}</Select.Option>
-              <Select.Option value={7}>{getNationality(7)}</Select.Option>
-              <Select.Option value={8}>{getNationality(8)}</Select.Option>
-              <Select.Option value={9}>{getNationality(9)}</Select.Option>
-              <Select.Option value={10}>{getNationality(10)}</Select.Option>
-              <Select.Option value={11}>{getNationality(11)}</Select.Option>
-              <Select.Option value={12}>{getNationality(12)}</Select.Option>
-            </Select>
+            <Select
+              placeholder={t('nationality')}
+              showSearch
+              optionFilterProp="label"
+              options={(nationalitiesData as any[])
+                .filter((n: any) => n.isActive !== false)
+                .map((n: any) => ({
+                  value: String(n.id),
+                  label: language === 'ar' ? n.nationalityNameAr : n.nationalityNameEn,
+                }))}
+            />
           </Form.Item>
 
           <Form.Item
