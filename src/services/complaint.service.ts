@@ -1,13 +1,6 @@
 /**
  * Complaint Service
- * Handles all complaint-related API calls — migrated to new API contract.
- *
- * Key changes from old API:
- *  - finish:    POST /FinishComplaint (body) → POST /{id}/finish (no body)
- *  - hold:      POST /HoldComplaint/{id}    → POST /{id}/toggle-hold?reason=...
- *  - addIssue:  POST /AddIssue (JSON+base64) → POST /issue (multipart/form-data)
- *  - getIssue:  GET  /GetIssueById/{id}     → GET  /{id}/issue
- *  - update:    PUT  /{id} (removed)        → POST /update (notes only)
+ * Handles all complaint-related API calls.
  */
 
 import { api } from '@/lib/api/client';
@@ -21,115 +14,197 @@ import type {
   ComplaintUpdate,
 } from '@/types/api.types';
 
+const extractArray = <T>(payload: any): T[] => {
+  const candidates = [
+    payload,
+    payload?.data,
+    payload?.result,
+    payload?.items,
+    payload?.data?.data,
+    payload?.data?.result,
+    payload?.data?.items,
+    payload?.result?.data,
+    payload?.result?.items,
+    payload?.$values,
+    payload?.data?.$values,
+    payload?.result?.$values,
+    payload?.items?.$values,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+    if (Array.isArray(candidate?.$values)) return candidate.$values;
+  }
+
+  return [];
+};
+
+const extractObject = <T>(payload: any): T | null => {
+  const candidates = [payload?.data, payload?.result, payload?.item, payload];
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+      return candidate as T;
+    }
+  }
+
+  return null;
+};
+
+const normalizeBoolean = (value: unknown): boolean => {
+  return value === true || value === 'true' || value === 1 || value === '1';
+};
+
+const normalizeNullableString = (value: unknown): string | null => {
+  if (value == null) return null;
+
+  const normalized = String(value).trim();
+  return normalized || null;
+};
+
+const normalizeComplaint = (raw: any): Complaint => {
+  const complaint: Complaint = {
+    id: raw?.id ?? raw?.Id ?? raw?.complaintId ?? raw?.ComplaintId,
+    complaintNumber: normalizeNullableString(raw?.complaintNumber ?? raw?.ComplaintNumber),
+    source: raw?.source ?? raw?.Source ?? null,
+    priority: raw?.priority ?? raw?.Priority ?? null,
+    customerId: raw?.customerId ?? raw?.CustomerId ?? null,
+    workerId: raw?.workerId ?? raw?.WorkerId ?? null,
+    workerLocation: raw?.workerLocation ?? raw?.WorkerLocation ?? null,
+    relatedContractType:
+      raw?.relatedContractType ??
+      raw?.RelatedContractType ??
+      raw?.contractType ??
+      raw?.ContractType ??
+      null,
+    relatedContractId:
+      raw?.relatedContractId ?? raw?.RelatedContractId ?? raw?.contractId ?? raw?.ContractId ?? null,
+    notesAr: raw?.notesAr ?? raw?.NotesAr ?? null,
+    notesEn: raw?.notesEn ?? raw?.NotesEn ?? null,
+    createdAt: raw?.createdAt ?? raw?.CreatedAt ?? null,
+    createdBy: raw?.createdBy ?? raw?.CreatedBy ?? null,
+    updatedAt: raw?.updatedAt ?? raw?.UpdatedAt ?? null,
+    updatedBy: raw?.updatedBy ?? raw?.UpdatedBy ?? null,
+    customerName:
+      raw?.customerName ?? raw?.CustomerName ?? raw?.customerNameAr ?? raw?.CustomerNameAr ?? null,
+    workerName: raw?.workerName ?? raw?.WorkerName ?? raw?.workerNameAr ?? raw?.WorkerNameAr ?? null,
+    contractNumber: raw?.contractNumber ?? raw?.ContractNumber ?? null,
+    isFinish: normalizeBoolean(raw?.isFinish ?? raw?.IsFinish),
+    finishNote: raw?.finishNote ?? raw?.FinishNote ?? null,
+    ishold: normalizeBoolean(raw?.ishold ?? raw?.isHold ?? raw?.Ishold ?? raw?.IsHold),
+    updates: extractArray<ComplaintUpdate>(raw?.updates ?? raw?.Updates),
+  };
+
+  complaint.status = complaint.isFinish ? 3 : complaint.ishold ? 2 : 1;
+
+  return complaint;
+};
+
+const normalizeComplaintIssue = (raw: any): ComplaintIssue => ({
+  id: raw?.id ?? raw?.Id,
+  complaintParentId: raw?.complaintParentId ?? raw?.ComplaintParentId ?? null,
+  incomingNumber: raw?.incomingNumber ?? raw?.IncomingNumber ?? null,
+  submissionAuthority: raw?.submissionAuthority ?? raw?.SubmissionAuthority ?? null,
+  submissionAuthorityName: normalizeNullableString(
+    raw?.submissionAuthorityName ?? raw?.SubmissionAuthorityName
+  ),
+  submissionAuthorityNameAr: normalizeNullableString(
+    raw?.submissionAuthorityNameAr ?? raw?.SubmissionAuthorityNameAr
+  ),
+  submissionAuthorityNameEn: normalizeNullableString(
+    raw?.submissionAuthorityNameEn ?? raw?.SubmissionAuthorityNameEn
+  ),
+  transactionDate: raw?.transactionDate ?? raw?.TransactionDate ?? null,
+  attachmentPath1: raw?.attachmentPath1 ?? raw?.AttachmentPath1 ?? null,
+  attachmentPath2: raw?.attachmentPath2 ?? raw?.AttachmentPath2 ?? null,
+  status: raw?.status ?? raw?.Status ?? null,
+  createdAt: raw?.createdAt ?? raw?.CreatedAt ?? null,
+  createdBy: raw?.createdBy ?? raw?.CreatedBy ?? null,
+});
+
+const sortComplaints = (complaints: Complaint[]): Complaint[] => {
+  return [...complaints].sort((left, right) => {
+    const rightTime = Date.parse(right.createdAt || right.updatedAt || '') || 0;
+    const leftTime = Date.parse(left.createdAt || left.updatedAt || '') || 0;
+
+    if (rightTime !== leftTime) return rightTime - leftTime;
+
+    return String(right.id ?? '').localeCompare(String(left.id ?? ''), undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    });
+  });
+};
+
 export class ComplaintService {
-  /**
-   * GET /api/Complaint?pageNumber=&pageSize=&search=
-   */
   static async getAll(params?: {
     pageNumber?: number;
     pageSize?: number;
     search?: string;
   }): Promise<Complaint[]> {
     const response = await api.get<any>(API_ENDPOINTS.COMPLAINT.GET_ALL, { params });
-
-    let complaints: Complaint[] = [];
-    if (Array.isArray(response.data)) {
-      complaints = response.data;
-    } else if (response.data && typeof response.data === 'object') {
-      const data = response.data as any;
-      if (Array.isArray(data.data)) complaints = data.data;
-      else if (Array.isArray(data.result)) complaints = data.result;
-      else if (Array.isArray(data.items)) complaints = data.items;
-    }
-
-    // Derive UI status from boolean flags (isFinish / ishold)
-    return complaints.map((c) => ({
-      ...c,
-      status: c.isFinish ? 3 : c.ishold ? 2 : 1, // 1=Open, 2=Hold, 3=Finished
-    }));
+    const complaints = extractArray<any>(response.data).map(normalizeComplaint);
+    return sortComplaints(complaints);
   }
 
-  /**
-   * GET /api/Complaint/{id}  — returns complaint + updates[] array
-   */
   static async getById(id: number | string): Promise<Complaint> {
-    const response = await api.get<Complaint>(API_ENDPOINTS.COMPLAINT.GET_BY_ID(id));
-    return response.data;
+    const response = await api.get<any>(API_ENDPOINTS.COMPLAINT.GET_BY_ID(id));
+    const complaint = extractObject<any>(response.data);
+    return normalizeComplaint(complaint);
   }
 
-  /**
-   * POST /api/Complaint
-   * Payload: CreateComplaintDto (source, priority, customerId, workerId,
-   *          workerLocation, relatedContractType, relatedContractId, notesAr, notesEn)
-   */
   static async create(data: CreateComplaintDto): Promise<Complaint> {
-    const response = await api.post<Complaint>(API_ENDPOINTS.COMPLAINT.CREATE, data);
-    return response.data;
+    const response = await api.post<any>(API_ENDPOINTS.COMPLAINT.CREATE, data);
+    const complaint = extractObject<any>(response.data);
+    return normalizeComplaint(complaint ?? data);
   }
 
-  /**
-   * DELETE /api/Complaint/{id}
-   */
   static async delete(id: number | string): Promise<void> {
     await api.delete(API_ENDPOINTS.COMPLAINT.DELETE(id));
   }
 
-  /**
-   * POST /api/Complaint/{id}/finish  — no request body
-   * Status transition: Open/Hold → Finished
-   */
   static async finish(id: number | string): Promise<void> {
     await api.post(API_ENDPOINTS.COMPLAINT.FINISH(id), null);
   }
 
-  /**
-   * POST /api/Complaint/{id}/toggle-hold?reason=<reason>
-   * reason is REQUIRED by the new API.
-   * Status transitions: Open ↔ Hold
-   */
   static async toggleHold(id: number | string, reason: string): Promise<void> {
     await api.post(API_ENDPOINTS.COMPLAINT.HOLD(id), null, {
       params: { reason },
     });
   }
 
-  /**
-   * POST /api/Complaint/update
-   * Adds a bilingual note/update to an existing complaint.
-   */
   static async addUpdate(data: CreateComplaintUpdateDto): Promise<ComplaintUpdate> {
     const response = await api.post<ComplaintUpdate>(API_ENDPOINTS.COMPLAINT.ADD_UPDATE, data);
     return response.data;
   }
 
-  /**
-   * POST /api/Complaint/issue  — multipart/form-data
-   * Files are uploaded as binary (File objects), not base64.
-   */
   static async addIssue(data: AddIssueDto): Promise<ComplaintIssue> {
     const form = new FormData();
     form.append('ComplaintId', String(data.complaintId));
     if (data.incomingNumber != null) form.append('IncomingNumber', data.incomingNumber);
-    if (data.submissionAuthority != null)
+    if (data.submissionAuthority != null) {
       form.append('SubmissionAuthority', String(data.submissionAuthority));
+    }
     if (data.transactionDate != null) form.append('TransactionDate', data.transactionDate);
     if (data.file1 instanceof File) form.append('file1', data.file1);
     if (data.file2 instanceof File) form.append('file2', data.file2);
 
-    const response = await api.post<ComplaintIssue>(API_ENDPOINTS.COMPLAINT.ADD_ISSUE, form, {
+    const response = await api.post<any>(API_ENDPOINTS.COMPLAINT.ADD_ISSUE, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return response.data;
+    const issue = extractObject<any>(response.data);
+    return normalizeComplaintIssue(issue ?? response.data);
   }
 
-  /**
-   * GET /api/Complaint/{id}/issue
-   */
   static async getIssueById(id: number | string): Promise<ComplaintIssue[]> {
     const response = await api.get<any>(API_ENDPOINTS.COMPLAINT.GET_ISSUE(id));
-    if (Array.isArray(response.data)) return response.data;
-    if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;
-    if (response.data?.result && Array.isArray(response.data.result)) return response.data.result;
-    return response.data ? [response.data] : [];
+    const issues = extractArray<any>(response.data);
+
+    if (issues.length > 0) {
+      return issues.map(normalizeComplaintIssue);
+    }
+
+    const issue = extractObject<any>(response.data);
+    return issue ? [normalizeComplaintIssue(issue)] : [];
   }
 }

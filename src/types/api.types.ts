@@ -381,7 +381,12 @@ export interface Worker extends WorkerDto {
   // Read-only fields from GET response
   agentName?: string | null;
   userName?: string | null;
+  /** API returns as jobName (capital N) */
+  jobName?: string | null;
+  /** legacy lowercase alias — prefer jobName */
   jobname?: string | null;
+  /** API returns nationality name directly */
+  nationalityName?: string | null;
   workerEscape?: boolean;
   workerRefusedWork?: boolean;
   workerOut?: boolean;
@@ -838,6 +843,9 @@ export interface ComplaintIssue {
   complaintParentId?: number | string | null;
   incomingNumber?: string | null;
   submissionAuthority?: number | null;
+  submissionAuthorityName?: string | null;
+  submissionAuthorityNameAr?: string | null;
+  submissionAuthorityNameEn?: string | null;
   transactionDate?: string | null;
   attachmentPath1?: string | null;
   attachmentPath2?: string | null;

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr create --title 'fix\\(applicants\\): load nationality dropdown from API' --body ' *)",
+      "Bash(gh auth *)",
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

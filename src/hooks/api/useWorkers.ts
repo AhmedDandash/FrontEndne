@@ -22,18 +22,37 @@ import { api } from '@/lib/api/client';
 const WORKERS_KEY = ['workers'];
 const MEDICAL_EXAMINATIONS_KEY = ['medical-examinations'];
 
+const extractWorkerArray = (payload: any): Worker[] => {
+  const candidates = [
+    payload,
+    payload?.data,
+    payload?.result,
+    payload?.items,
+    payload?.data?.data,
+    payload?.data?.result,
+    payload?.data?.items,
+    payload?.result?.data,
+    payload?.result?.items,
+    payload?.$values,
+    payload?.data?.$values,
+    payload?.result?.$values,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate) && candidate.length >= 0) return candidate as Worker[];
+    if (Array.isArray(candidate?.$values)) return candidate.$values as Worker[];
+  }
+
+  return [];
+};
+
 /** Fetch all workers */
 export function useWorkers() {
   return useQuery<Worker[]>({
     queryKey: WORKERS_KEY,
     queryFn: async () => {
       const response = await api.get(API_ENDPOINTS.WORKERS.GET_ALL);
-      const payload = response.data;
-      if (Array.isArray(payload)) return payload as Worker[];
-      if (payload?.data && Array.isArray(payload.data)) return payload.data as Worker[];
-      if (payload?.result && Array.isArray(payload.result)) return payload.result as Worker[];
-      if (payload?.items && Array.isArray(payload.items)) return payload.items as Worker[];
-      return [] as Worker[];
+      return extractWorkerArray(response.data);
     },
   });
 }
