@@ -1,14 +1,5 @@
-/**
- * Complaint Hooks — migrated to new API contract.
- *
- * Breaking changes from old hooks:
- *  - useFinishComplaint: mutationFn now takes id only (no {id,note} object)
- *  - useHoldComplaint:   mutationFn now takes {id, reason} (reason required)
- *  - useUpdateComplaint: removed — use useAddComplaintUpdate instead
- *  - useAddIssue:        AddIssueDto now uses File objects (file1/file2)
- */
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { message } from 'antd';
 import { ComplaintService } from '@/services/complaint.service';
 import type {
   Complaint,
@@ -17,11 +8,21 @@ import type {
   AddIssueDto,
   ComplaintIssue,
 } from '@/types/api.types';
-import { message } from 'antd';
 
 const QUERY_KEY = 'complaints';
 
-/** Fetch all complaints */
+const upsertComplaint = (
+  complaints: Complaint[] | undefined,
+  createdComplaint: Complaint
+): Complaint[] => {
+  const current = Array.isArray(complaints) ? complaints : [];
+  const withoutDuplicate = current.filter(
+    (complaint) => String(complaint.id ?? '') !== String(createdComplaint.id ?? '')
+  );
+
+  return [createdComplaint, ...withoutDuplicate];
+};
+
 export const useComplaints = (params?: { pageNumber?: number; pageSize?: number; search?: string }) => {
   return useQuery<Complaint[], Error>({
     queryKey: [QUERY_KEY, params],
@@ -29,7 +30,6 @@ export const useComplaints = (params?: { pageNumber?: number; pageSize?: number;
   });
 };
 
-/** Fetch complaint by ID (response includes updates[]) */
 export const useComplaint = (id: number | string) => {
   return useQuery<Complaint, Error>({
     queryKey: [QUERY_KEY, id],
@@ -38,13 +38,19 @@ export const useComplaint = (id: number | string) => {
   });
 };
 
-/** Create new complaint */
 export const useCreateComplaint = () => {
   const queryClient = useQueryClient();
 
   return useMutation<Complaint, Error, CreateComplaintDto>({
     mutationFn: ComplaintService.create,
-    onSuccess: () => {
+    onSuccess: (createdComplaint) => {
+      if (createdComplaint?.id != null) {
+        queryClient.setQueryData<Complaint[]>(
+          [QUERY_KEY, undefined],
+          (current) => upsertComplaint(current, createdComplaint)
+        );
+      }
+
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       message.success('تمت إضافة الشكوى بنجاح / Complaint created successfully');
     },
@@ -56,7 +62,6 @@ export const useCreateComplaint = () => {
   });
 };
 
-/** Delete complaint */
 export const useDeleteComplaint = () => {
   const queryClient = useQueryClient();
 
@@ -67,17 +72,11 @@ export const useDeleteComplaint = () => {
       message.success('تم حذف الشكوى بنجاح / Complaint deleted successfully');
     },
     onError: (error: any) => {
-      message.error(
-        error?.response?.data?.message || 'فشل حذف الشكوى / Failed to delete complaint'
-      );
+      message.error(error?.response?.data?.message || 'فشل حذف الشكوى / Failed to delete complaint');
     },
   });
 };
 
-/**
- * Finish (close) a complaint.
- * New API: POST /api/Complaint/{id}/finish — no body, no finish note.
- */
 export const useFinishComplaint = () => {
   const queryClient = useQueryClient();
 
@@ -95,11 +94,6 @@ export const useFinishComplaint = () => {
   });
 };
 
-/**
- * Toggle hold on a complaint.
- * New API: POST /api/Complaint/{id}/toggle-hold?reason=<reason>
- * reason is REQUIRED.
- */
 export const useToggleHoldComplaint = () => {
   const queryClient = useQueryClient();
 
@@ -117,10 +111,6 @@ export const useToggleHoldComplaint = () => {
   });
 };
 
-/**
- * Add a note/update to an existing complaint.
- * New API: POST /api/Complaint/update
- */
 export const useAddComplaintUpdate = () => {
   const queryClient = useQueryClient();
 
@@ -131,17 +121,11 @@ export const useAddComplaintUpdate = () => {
       message.success('تمت إضافة التحديث بنجاح / Update added successfully');
     },
     onError: (error: any) => {
-      message.error(
-        error?.response?.data?.message || 'فشل إضافة التحديث / Failed to add update'
-      );
+      message.error(error?.response?.data?.message || 'فشل إضافة التحديث / Failed to add update');
     },
   });
 };
 
-/**
- * Add an issue/case to a complaint.
- * New API: POST /api/Complaint/issue — multipart/form-data with File objects.
- */
 export const useAddIssue = () => {
   const queryClient = useQueryClient();
 
@@ -158,7 +142,6 @@ export const useAddIssue = () => {
   });
 };
 
-/** Get issues for a complaint */
 export const useComplaintIssues = (complaintId: number | string) => {
   return useQuery<ComplaintIssue[], Error>({
     queryKey: ['complaint-issues', complaintId],

@@ -15,7 +15,6 @@ import {
   Form,
   Spin,
   Dropdown,
-  Tabs,
   DatePicker,
   Tooltip,
   Divider,
@@ -49,7 +48,6 @@ import {
   useDeleteComplaint,
   useFinishComplaint,
   useToggleHoldComplaint,
-  useAddComplaintUpdate,
   useAddIssue,
   useComplaintIssues,
 } from '@/hooks/api/useComplaints';
@@ -71,7 +69,7 @@ import {
 import type {
   Complaint,
   CreateComplaintDto,
-  CreateComplaintUpdateDto,
+  ComplaintIssue,
   AddIssueDto,
 } from '@/types/api.types';
 import styles from './Complaints.module.css';
@@ -83,6 +81,56 @@ const getComplaintStatus = (complaint: Complaint): number => {
   if (complaint.isFinish) return COMPLAINT_STATUS[1].value; // 2 = Closed
   if (complaint.ishold) return COMPLAINT_STATUS[2].value; // 3 = On Hold
   return COMPLAINT_STATUS[0].value; // 1 = Open
+};
+
+const normalizeIdentifierPart = (value: unknown): string => {
+  if (value == null) return '';
+  return String(value).trim();
+};
+
+const getComplaintDisplayNumber = (complaint: Complaint): string => {
+  const complaintNumber = normalizeIdentifierPart(complaint.complaintNumber);
+  if (complaintNumber) return complaintNumber;
+
+  const id = normalizeIdentifierPart(complaint.id);
+  if (id.length <= 14) return id;
+
+  return `${id.slice(0, 8)}...${id.slice(-5)}`;
+};
+
+const getComplaintFullIdentifier = (complaint: Complaint): string => {
+  const id = normalizeIdentifierPart(complaint.id);
+  const complaintNumber = normalizeIdentifierPart(complaint.complaintNumber);
+
+  if (complaintNumber && complaintNumber !== id) {
+    return `${complaintNumber} • ${id}`;
+  }
+
+  return complaintNumber || id;
+};
+
+const getIssueSubmissionAuthorityLabel = (
+  issue: ComplaintIssue,
+  language: 'ar' | 'en',
+  isArabic: boolean
+): string => {
+  const issueRecord = issue as ComplaintIssue & Record<string, unknown>;
+  const localizedName = isArabic
+    ? normalizeIdentifierPart(
+        issue.submissionAuthorityNameAr ?? issueRecord.SubmissionAuthorityNameAr
+      )
+    : normalizeIdentifierPart(
+        issue.submissionAuthorityNameEn ?? issueRecord.SubmissionAuthorityNameEn
+      );
+  const genericName = normalizeIdentifierPart(
+    issue.submissionAuthorityName ?? issueRecord.SubmissionAuthorityName
+  );
+  const authorityLabel =
+    localizedName ||
+    genericName ||
+    getEnumLabel(SUBMISSION_AUTHORITY, issue.submissionAuthority, language);
+
+  return authorityLabel || (isArabic ? 'غير محدد' : 'Not Specified');
 };
 
 // source values (COMPLAINT_SOURCE enum — new API):
@@ -260,7 +308,7 @@ function ComplaintForm({ form, language, isArabic, t }: ComplaintFormProps) {
         {showContract && (
           <>
             <Col xs={24} md={12}>
-              <Form.Item name="contractType" label={t('contractType')}>
+              <Form.Item name="relatedContractType" label={t('contractType')}>
                 <Select
                   placeholder={t('contractType')}
                   options={toSelectOptions(CONTRACT_TYPE, language)}
@@ -269,7 +317,7 @@ function ComplaintForm({ form, language, isArabic, t }: ComplaintFormProps) {
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item name="contractId" label={isArabic ? 'العقد' : 'Contract'}>
+              <Form.Item name="relatedContractId" label={isArabic ? 'العقد' : 'Contract'}>
                 <Select
                   showSearch
                   allowClear
@@ -326,7 +374,6 @@ export default function ComplaintsPage() {
   const deleteMutation = useDeleteComplaint();
   const finishMutation = useFinishComplaint();
   const toggleHoldMutation = useToggleHoldComplaint();
-  const addUpdateMutation = useAddComplaintUpdate();
   const addIssueMutation = useAddIssue();
 
   // State
@@ -594,6 +641,7 @@ export default function ComplaintsPage() {
       const dto: CreateComplaintDto = values;
       createMutation.mutate(dto, {
         onSuccess: () => {
+          setCurrentPage(1);
           setIsModalVisible(false);
           form.resetFields();
           setEditingComplaint(null);
@@ -942,6 +990,8 @@ export default function ComplaintsPage() {
           paginatedComplaints.map((complaint, index) => {
             const isClosed = complaint.isFinish === true;
             const isOnHold = complaint.ishold === true && !complaint.isFinish;
+            const complaintDisplayNumber = getComplaintDisplayNumber(complaint);
+            const complaintFullIdentifier = getComplaintFullIdentifier(complaint);
 
             return (
               <div key={complaint.id} className={styles.complaintCard}>
@@ -972,14 +1022,16 @@ export default function ComplaintsPage() {
                     <div className={styles.sequenceNumber}>
                       {(currentPage - 1) * pageSize + index + 1}
                     </div>
-                    <div
-                      className={styles.complaintNumber}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => handleViewDetails(complaint)}
-                      title={t('viewDetails')}
-                    >
-                      #{complaint.id}
-                    </div>
+                    <Tooltip title={complaintFullIdentifier}>
+                      <div
+                        className={styles.complaintNumber}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleViewDetails(complaint)}
+                        title={t('viewDetails')}
+                      >
+                        #{complaintDisplayNumber}
+                      </div>
+                    </Tooltip>
                     <div className={styles.dateText}>
                       {complaint.createdAt
                         ? new Date(complaint.createdAt).toLocaleDateString(
@@ -1447,7 +1499,7 @@ function ViewDetailsModal({
                 }
                 description={
                   <span>
-                    {getEnumLabel(SUBMISSION_AUTHORITY, issue.submissionAuthority, language)}
+                    {getIssueSubmissionAuthorityLabel(issue, language, isArabic)}
                     {issue.transactionDate && (
                       <>
                         {' • '}

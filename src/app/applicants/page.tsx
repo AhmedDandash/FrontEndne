@@ -69,15 +69,17 @@ import {
   useDeleteWorker,
   useCreateMedicalExamination,
   useMedicalExaminations,
+  useUpdateMedicalExamination,
+  useDeleteMedicalExamination,
 } from '@/hooks/api/useWorkers';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useJobs } from '@/hooks/api/useJobs';
+import { useNationalities } from '@/hooks/api/useNationalities';
 import type { Worker, WorkerDto } from '@/types/api.types';
 import {
   GENDER,
   MARITAL_STATUS,
   RELIGION,
-  NATIONALITIES,
   WORKER_CONTRACT_TYPE,
   WORKER_SATUS,
   MEDICAL_STATUS,
@@ -429,7 +431,8 @@ export default function WorkersPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [editingWorkerId, setEditingWorkerId] = useState<number | null>(null);
   const [viewingWorkerId, setViewingWorkerId] = useState<number | null>(null);
-  const [medicalExamWorkerId, setMedicalExamWorkerId] = useState<number | null>(null);
+  const [medicalExamWorkerId, setMedicalExamWorkerId] = useState<number | string | null>(null);
+  const [medicalExamId, setMedicalExamId] = useState<number | string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [filters, setFilters] = useState<{
     search?: string;
@@ -459,6 +462,7 @@ export default function WorkersPage() {
   const { data: workers = [], isLoading } = useWorkers();
   const { data: jobs = [] } = useJobs();
   const { data: agents = [] } = useAgents();
+  const { data: nationalities = [] } = useNationalities();
   const { data: medicalExaminations = [] } = useMedicalExaminations();
 
   // Only show active jobs in the filter
@@ -493,6 +497,10 @@ export default function WorkersPage() {
   const { mutate: workerOut } = useWorkerOut();
   const { mutate: createMedicalExamination, isPending: isCreatingMedicalExam } =
     useCreateMedicalExamination();
+  const { mutate: updateMedicalExamination, isPending: isUpdatingMedicalExam } =
+    useUpdateMedicalExamination();
+  const { mutate: deleteMedicalExamination, isPending: isDeletingMedicalExam } =
+    useDeleteMedicalExamination();
 
   // Fetch editing worker details when opening edit modal
   const { data: editingWorker } = useWorker(editingWorkerId ? String(editingWorkerId) : undefined);
@@ -526,10 +534,10 @@ export default function WorkersPage() {
 
       const matchesGender = !filters.gender || worker.gender === Number(filters.gender);
       const matchesNationality =
-        !filters.nationality || worker.nationalityId === Number(filters.nationality);
+        !filters.nationality || worker.nationalityId === filters.nationality;
       const matchesReligion = !filters.religion || worker.religion === Number(filters.religion);
-      const matchesJob = !filters.job || worker.jobId === Number(filters.job);
-      const matchesAgent = !filters.agent || worker.agentId === Number(filters.agent);
+      const matchesJob = !filters.job || String(worker.jobId) === String(filters.job);
+      const matchesAgent = !filters.agent || String(worker.agentId) === String(filters.agent);
       const matchesExperience =
         filters.hasExperience === undefined || worker.hasExperience === filters.hasExperience;
       const matchesStatus = !filters.status || worker.workerStatus === Number(filters.status);
@@ -576,7 +584,7 @@ export default function WorkersPage() {
   // Modal handlers
   const handleOpenModal = (worker?: Worker) => {
     if (worker?.id) {
-      setEditingWorkerId(worker.id);
+      setEditingWorkerId(Number(worker.id));
     } else {
       setEditingWorkerId(null);
       form.resetFields();
@@ -602,6 +610,9 @@ export default function WorkersPage() {
       }
       form.setFieldsValue({
         ...editingWorker,
+        jobId: editingWorker.jobId ? String(editingWorker.jobId) : undefined,
+        agentId: editingWorker.agentId ? String(editingWorker.agentId) : undefined,
+        nationalityId: editingWorker.nationalityId ? String(editingWorker.nationalityId) : undefined,
         birthDate: editingWorker.birthDate ? dayjs(editingWorker.birthDate) : undefined,
         passportIssueDate: editingWorker.passportIssueDate
           ? dayjs(editingWorker.passportIssueDate)
@@ -642,23 +653,51 @@ export default function WorkersPage() {
   const handleMedicalExamSubmit = async (values: any) => {
     if (medicalExamWorkerId === null) return;
 
-    createMedicalExamination(
-      {
-        workerId: medicalExamWorkerId,
-        examDate: values.examDate?.format('YYYY-MM-DD'),
-        medicalStatus: Number(values.medicalStatus),
-        notes: values.notes || '',
-      },
-      {
-        onSuccess: () => {
-          medicalExamForm.resetFields();
-          setMedicalExamWorkerId(null);
-        },
-      }
-    );
+    const payload = {
+      workerId: String(medicalExamWorkerId),
+      examDate: values.examDate?.toISOString() ?? null,
+      medicalStatus: Number(values.medicalStatus),
+      notes: values.notes || '',
+    };
+
+    const onSuccess = () => {
+      medicalExamForm.resetFields();
+      setMedicalExamWorkerId(null);
+      setMedicalExamId(null);
+    };
+
+    if (medicalExamId !== null) {
+      updateMedicalExamination({ id: medicalExamId, data: payload }, { onSuccess });
+    } else {
+      createMedicalExamination(payload, { onSuccess });
+    }
   };
 
-  const handleDelete = (id: number) => {
+  const handleMedicalExamDelete = () => {
+    if (medicalExamId === null) return;
+    Modal.confirm({
+      title: language === 'ar' ? 'حذف الفحص الطبي' : 'Delete Medical Examination',
+      icon: <ExclamationCircleOutlined />,
+      content:
+        language === 'ar'
+          ? 'هل أنت متأكد من حذف هذا الفحص الطبي؟'
+          : 'Are you sure you want to delete this medical examination?',
+      okText: t('delete'),
+      cancelText: t('cancel'),
+      okButtonProps: { danger: true },
+      onOk: () => {
+        deleteMedicalExamination(medicalExamId, {
+          onSuccess: () => {
+            medicalExamForm.resetFields();
+            setMedicalExamWorkerId(null);
+            setMedicalExamId(null);
+          },
+        });
+      },
+    });
+  };
+
+  const handleDelete = (id: number | string) => {
     Modal.confirm({
       title: t('deleteTitle'),
       icon: <ExclamationCircleOutlined />,
@@ -675,8 +714,6 @@ export default function WorkersPage() {
   };
 
   const handleWorkerStatusAction = (worker: Worker, action: string) => {
-    const actionDate = new Date().toISOString();
-
     switch (action) {
       case 'escape':
         // WorkerEscape removed in new API — no replacement
@@ -721,12 +758,9 @@ export default function WorkersPage() {
     });
   };
 
-  const handleIsActiveToggle = (workerId: number | null) => {
-    if (!workerId) {
-      return;
-    }
-
-    workerDeactivate({ id: workerId, date: new Date().toISOString() });
+  const handleIsActiveToggle = (workerId: number | string | null) => {
+    if (!workerId) return;
+    workerDeactivate(workerId);
   };
 
   // Status tag
@@ -1008,9 +1042,9 @@ export default function WorkersPage() {
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  options={toSelectOptions([...NATIONALITIES], language).map((o) => ({
-                    value: String(o.value),
-                    label: o.label,
+                  options={nationalities.map((n) => ({
+                    value: n.id,
+                    label: language === 'ar' ? n.nationalityNameAr : n.nationalityNameEn,
                   }))}
                 />
               </Col>
@@ -1212,7 +1246,7 @@ export default function WorkersPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Tooltip title={worker.isActive ? t('active') : t('inactive')}>
                     <Switch
-                      checked={worker.isActive}
+                      checked={worker.isActive ?? false}
                       onChange={() => handleIsActiveToggle(worker.id)}
                       loading={isDeactivating}
                       size="small"
@@ -1264,13 +1298,28 @@ export default function WorkersPage() {
                   <div className={styles.detailRow}>
                     <EnvironmentOutlined className={styles.detailIcon} />
                     <span className={styles.detailLabel}>{t('nationality')}:</span>
-                    <span className={styles.detailValue}>{worker.nationalityId || 'N/A'}</span>
+                    <span className={styles.detailValue}>
+                      {worker.nationalityName ||
+                        (worker.nationalityId
+                          ? (nationalities.find((n) => n.id === worker.nationalityId)?.[
+                              language === 'ar' ? 'nationalityNameAr' : 'nationalityNameEn'
+                            ] ?? 'N/A')
+                          : 'N/A')}
+                    </span>
                   </div>
 
                   <div className={styles.detailRow}>
                     <TrophyOutlined className={styles.detailIcon} />
                     <span className={styles.detailLabel}>{t('jobname')}:</span>
-                    <span className={styles.detailValue}>{worker.jobname || 'N/A'}</span>
+                    <span className={styles.detailValue}>
+                      {worker.jobName || worker.jobname ||
+                        (() => {
+                          const job = jobs.find((j) => String(j.id) === String(worker.jobId));
+                          return job
+                            ? (language === 'ar' ? job.jobNameAr || job.jobNameEn : job.jobNameEn || job.jobNameAr) || 'N/A'
+                            : 'N/A';
+                        })()}
+                    </span>
                   </div>
 
                   <div className={styles.detailRow}>
@@ -1296,13 +1345,15 @@ export default function WorkersPage() {
                   </div>
 
                   {/* Medical Examination */}
-                  {medicalExaminations.find((exam) => exam.workerId === worker.id) && (
+                  {medicalExaminations.find((exam) => String(exam.workerId) === String(worker.id)) && (
                     <div className={styles.detailRow}>
                       <MedicineBoxOutlined className={styles.detailIcon} />
                       <span className={styles.detailLabel}>{t('medicalExamination')}:</span>
                       <span className={styles.detailValue}>
                         {(() => {
-                          const exam = medicalExaminations.find((e) => e.workerId === worker.id);
+                          const exam = medicalExaminations.find(
+                            (e) => String(e.workerId) === String(worker.id)
+                          );
                           return exam
                             ? getEnumLabel(MEDICAL_STATUS, exam.medicalStatus, language)
                             : 'N/A';
@@ -1358,7 +1409,7 @@ export default function WorkersPage() {
                     type="text"
                     icon={<EyeOutlined />}
                     className={styles.actionButton}
-                    onClick={() => setViewingWorkerId(worker.id)}
+                    onClick={() => setViewingWorkerId(Number(worker.id))}
                   />
                 </Tooltip>
                 <Tooltip title={t('edit')}>
@@ -1374,7 +1425,23 @@ export default function WorkersPage() {
                     type="text"
                     icon={<MedicineBoxOutlined />}
                     className={styles.actionButton}
-                    onClick={() => setMedicalExamWorkerId(worker.id)}
+                    onClick={() => {
+                      const existingExam = medicalExaminations.find(
+                        (e) => String(e.workerId) === String(worker.id)
+                      );
+                      setMedicalExamWorkerId(worker.id);
+                      if (existingExam) {
+                        setMedicalExamId(existingExam.id);
+                        medicalExamForm.setFieldsValue({
+                          examDate: existingExam.examDate ? dayjs(existingExam.examDate) : undefined,
+                          medicalStatus: existingExam.medicalStatus,
+                          notes: existingExam.notes,
+                        });
+                      } else {
+                        setMedicalExamId(null);
+                        medicalExamForm.resetFields();
+                      }
+                    }}
                   />
                 </Tooltip>
                 <Dropdown menu={getActionMenu(worker)} trigger={['click']}>
@@ -1480,7 +1547,12 @@ export default function WorkersPage() {
                   : '-'}
               </Descriptions.Item>
               <Descriptions.Item label={t('nationality')}>
-                {viewingWorker?.nationalityId || '-'}
+                {viewingWorker?.nationalityName ||
+                  (viewingWorker?.nationalityId
+                    ? (nationalities.find((n) => n.id === viewingWorker.nationalityId)?.[
+                        language === 'ar' ? 'nationalityNameAr' : 'nationalityNameEn'
+                      ] ?? '-')
+                    : '-')}
               </Descriptions.Item>
               <Descriptions.Item label={t('nationalId')}>
                 {viewingWorker?.nationalId || '-'}
@@ -1540,7 +1612,7 @@ export default function WorkersPage() {
               style={{ marginBottom: 16 }}
             >
               <Descriptions.Item label={t('jobname')}>
-                {viewingWorker?.jobname || '-'}
+                {viewingWorker?.jobName || viewingWorker?.jobname || '-'}
               </Descriptions.Item>
               <Descriptions.Item label={t('basicSalary')}>
                 {viewingWorker?.basicSalary || '-'}
@@ -1597,15 +1669,18 @@ export default function WorkersPage() {
             </Descriptions>
 
             {/* Skills */}
-            {viewingWorker?.skills && viewingWorker.skills.length > 0 && (
+            {viewingWorker?.skills && (
               <div style={{ marginTop: 16 }}>
                 <h4 style={{ color: '#003366', marginBottom: 8 }}>{t('skills')}</h4>
                 <Space wrap>
-                  {viewingWorker.skills.map((skill, i) => (
-                    <Tag key={i} color="blue">
-                      {skill}
-                    </Tag>
-                  ))}
+                  {String(viewingWorker.skills)
+                    .split(',')
+                    .filter(Boolean)
+                    .map((skill, i) => (
+                      <Tag key={i} color="blue">
+                        {skill.trim()}
+                      </Tag>
+                    ))}
                 </Space>
               </div>
             )}
@@ -1770,9 +1845,12 @@ export default function WorkersPage() {
                   placeholder={t('nationality')}
                   showSearch
                   optionFilterProp="label"
-                  options={[...NATIONALITIES].map((n) => ({
-                    value: n.value,
-                    label: language === 'ar' ? n.labelAr : n.labelEn,
+                  options={nationalities.map((n) => ({
+                    value: n.id,
+                    label:
+                      language === 'ar'
+                        ? n.nationalityNameAr || n.nationalityNameEn || ''
+                        : n.nationalityNameEn || n.nationalityNameAr || '',
                   }))}
                 />
               </Form.Item>
@@ -1848,7 +1926,7 @@ export default function WorkersPage() {
                   showSearch
                   optionFilterProp="label"
                   options={availableJobs.map((job) => ({
-                    value: Number(job.value),
+                    value: job.value,
                     label: job.label,
                   }))}
                 />
@@ -1876,7 +1954,7 @@ export default function WorkersPage() {
                   showSearch
                   optionFilterProp="label"
                   style={{ width: '100%' }}
-                  options={availableAgents.map((a) => ({ value: Number(a.value), label: a.label }))}
+                  options={availableAgents.map((a) => ({ value: a.value, label: a.label }))}
                 />
               </Form.Item>
             </Col>
@@ -1948,12 +2026,15 @@ export default function WorkersPage() {
         title={
           <Space>
             <MedicineBoxOutlined />
-            <span>{t('createMedicalExam')}</span>
+            <span>
+              {medicalExamId !== null ? t('medicalExamination') : t('createMedicalExam')}
+            </span>
           </Space>
         }
         open={medicalExamWorkerId !== null}
         onCancel={() => {
           setMedicalExamWorkerId(null);
+          setMedicalExamId(null);
           medicalExamForm.resetFields();
         }}
         footer={null}
@@ -1971,7 +2052,7 @@ export default function WorkersPage() {
             name="examDate"
             rules={[{ required: true, message: 'Please select examination date' }]}
           >
-            <DatePicker size="large" style={{ width: '100%' }} />
+            <DatePicker size="large" style={{ width: '100%' }} showTime={false} />
           </Form.Item>
 
           <Form.Item
@@ -1993,9 +2074,20 @@ export default function WorkersPage() {
           </Form.Item>
 
           <div className={styles.modalActions}>
+            {medicalExamId !== null && (
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                loading={isDeletingMedicalExam}
+                onClick={handleMedicalExamDelete}
+              >
+                {t('delete')}
+              </Button>
+            )}
             <Button
               onClick={() => {
                 setMedicalExamWorkerId(null);
+                setMedicalExamId(null);
                 medicalExamForm.resetFields();
               }}
             >
@@ -2004,10 +2096,10 @@ export default function WorkersPage() {
             <Button
               type="primary"
               htmlType="submit"
-              loading={isCreatingMedicalExam}
+              loading={isCreatingMedicalExam || isUpdatingMedicalExam}
               icon={<MedicineBoxOutlined />}
             >
-              {t('createMedicalExam')}
+              {t('save')}
             </Button>
           </div>
         </Form>

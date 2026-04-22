@@ -262,9 +262,9 @@ export const PAYMENT_METHOD = [
 // ==================== Medical Status ====================
 // الحالة الطبية
 export const MEDICAL_STATUS = [
-  { value: 0, labelAr: 'قيد الانتظار', labelEn: 'Pending' },
-  { value: 1, labelAr: 'ناجح', labelEn: 'Passed' },
-  { value: 2, labelAr: 'راسب', labelEn: 'Failed' },
+  { value: 1, labelAr: 'قيد الانتظار', labelEn: 'Pending' },
+  { value: 2, labelAr: 'ناجح', labelEn: 'Passed' },
+  { value: 3, labelAr: 'راسب', labelEn: 'Failed' },
 ] as const;
 
 // ==================== Worker Workflow Status ====================

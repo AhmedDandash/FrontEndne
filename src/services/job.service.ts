@@ -22,21 +22,24 @@ export class JobService {
       });
 
       // Handle different response structures
-      let jobs: Job[] = [];
+      const payload = response.data;
+      const candidates = [
+        payload,
+        payload?.data,
+        payload?.result,
+        payload?.items,
+        payload?.jobs,
+        payload?.data?.data,
+        payload?.data?.result,
+        payload?.data?.items,
+        payload?.$values,
+        payload?.data?.$values,
+      ];
 
-      if (Array.isArray(response.data)) {
-        jobs = response.data;
-      } else if (response.data && typeof response.data === 'object') {
-        // Check common nested patterns
-        if (Array.isArray(response.data.jobs)) {
-          jobs = response.data.jobs;
-        } else if (Array.isArray(response.data.data)) {
-          jobs = response.data.data;
-        } else if (Array.isArray(response.data.result)) {
-          jobs = response.data.result;
-        } else if (Array.isArray(response.data.items)) {
-          jobs = response.data.items;
-        }
+      let jobs: Job[] = [];
+      for (const candidate of candidates) {
+        if (Array.isArray(candidate)) { jobs = candidate; break; }
+        if (Array.isArray(candidate?.$values)) { jobs = candidate.$values; break; }
       }
 
       console.log('✅ Parsed Jobs:', jobs.length, 'items');
