@@ -37,7 +37,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useEmploymentContractOffers } from '@/hooks/api/useEmploymentContractOffers';
 import { useBranches } from '@/hooks/api/useBranches';
 import { useJobs } from '@/hooks/api/useJobs';
-import { NATIONALITIES } from '@/constants/enums';
+import { useNationalities } from '@/hooks/api/useNationalities';
 import type { EmploymentContractOffer, UpdateEmploymentContractOfferDto } from '@/types/api.types';
 import styles from '../RentPricesOffers.module.css';
 
@@ -73,9 +73,9 @@ function DetailsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const nationalityId = Number(searchParams.get('nationalityId') || 0);
-  const jobId = Number(searchParams.get('jobId') || 0);
-  const branchId = Number(searchParams.get('branchId') || 0);
+  const nationalityId = searchParams.get('nationalityId') || '';
+  const jobId = searchParams.get('jobId') || '';
+  const branchId = searchParams.get('branchId') || '';
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<EmploymentContractOffer | null>(null);
@@ -98,6 +98,7 @@ function DetailsContent() {
 
   const { branches } = useBranches();
   const { data: jobsData } = useJobs();
+  const { data: nationalitiesData = [] } = useNationalities();
 
   const t = (key: string) => {
     const translations: Record<string, { ar: string; en: string }> = {
@@ -166,19 +167,26 @@ function DetailsContent() {
   // Filter to offers matching the summary row that was clicked
   const offers = useMemo(() => {
     return allOffers.filter((o) => {
-      const natMatch = nationalityId === 0 || o.nationalityId === nationalityId;
-      const jobMatch = jobId === 0 || o.jobId === jobId;
-      const branchMatch = branchId === 0 || o.branchId === branchId;
+      const natMatch = !nationalityId || String(o.nationalityId) === nationalityId;
+      const jobMatch = !jobId || String(o.jobId) === jobId;
+      const branchMatch = !branchId || String(o.branchId) === branchId;
       return natMatch && jobMatch && branchMatch;
     });
   }, [allOffers, nationalityId, jobId, branchId]);
 
   // Lookup maps
   const nationalityMap = useMemo(() => {
-    const m = new Map<number, string>();
-    NATIONALITIES.forEach((n) => m.set(n.value, isArabic ? n.labelAr : n.labelEn));
+    const m = new Map<string, string>();
+    nationalitiesData.forEach((n) =>
+      m.set(
+        String(n.id),
+        isArabic
+          ? n.nationalityNameAr || n.nationalityNameEn || String(n.id)
+          : n.nationalityNameEn || n.nationalityNameAr || String(n.id)
+      )
+    );
     return m;
-  }, [isArabic]);
+  }, [nationalitiesData, isArabic]);
 
   const jobMap = useMemo(() => {
     const m = new Map<number, string>();
@@ -195,10 +203,11 @@ function DetailsContent() {
     return m;
   }, [branches, isArabic]);
 
-  const getNat = (id?: number | null) => (id ? nationalityMap.get(id) || String(id) : '—');
-  const getJob = (id?: number | null) => (id ? jobMap.get(id) || String(id) : '—');
-  const getBranch = (id?: number | null) =>
-    id ? branchMap.get(id) || String(id) : t('allBranches');
+  const getNat = (id?: string | null) => (id ? nationalityMap.get(String(id)) || String(id) : '—');
+  const getJob = (id?: string | number | null) =>
+    id ? jobMap.get(Number(id)) || jobMap.get(id as number) || String(id) : '—';
+  const getBranch = (id?: string | number | null) =>
+    id ? branchMap.get(Number(id)) || String(id) : t('allBranches');
   const getDuration = (id?: number | null) => {
     if (!id) return '—';
     const p = periodTypes.find((x) => x.id === id);
@@ -227,8 +236,8 @@ function DetailsContent() {
     setEditSalary(salVal);
     setEditPeriodId(perVal);
     form.setFieldsValue({
-      nationalityId: offer.nationalityId ?? 0,
-      jobId: offer.jobId ?? 0,
+      nationalityId: offer.nationalityId ?? null,
+      jobId: offer.jobId ?? null,
       branchId: offer.branchId ?? null,
       duration: offer.duration ?? periodTypes[0].id,
       cost: costVal,
@@ -399,16 +408,15 @@ function DetailsContent() {
   const jobLabel = jobId ? getJob(jobId) : '';
   const branchLabel = branchId ? getBranch(branchId) : '';
 
-  // Nationality options for select
+  // Nationality options for edit modal Select — built from API (UUID string values)
   const natOptions = useMemo(() => {
-    const opts: { value: number; label: string }[] = [
-      { value: 0, label: isArabic ? 'الكل' : 'All' },
-    ];
-    NATIONALITIES.forEach((n) =>
-      opts.push({ value: n.value, label: isArabic ? n.labelAr : n.labelEn })
-    );
-    return opts;
-  }, [isArabic]);
+    return nationalitiesData.map((n) => ({
+      value: String(n.id),
+      label: isArabic
+        ? n.nationalityNameAr || n.nationalityNameEn || String(n.id)
+        : n.nationalityNameEn || n.nationalityNameAr || String(n.id),
+    }));
+  }, [nationalitiesData, isArabic]);
 
   const jobOptions = useMemo(() => {
     const arr = Array.isArray(jobsData) ? jobsData : ((jobsData as any)?.data ?? []);

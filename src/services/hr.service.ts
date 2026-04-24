@@ -1,13 +1,12 @@
 /**
  * HR Service
  * All HR module API calls.
- * Mock data is used until real endpoints are available.
- * To wire real APIs: remove mock imports and uncomment api.* calls.
+ * Mock data is used as fallback until real endpoints are fully verified.
+ * Paths match swagger-Hr-Api.json exactly.
  */
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
-import { AuthService } from './auth.service';
 import type {
   HREmployee,
   HRLookupItem,
@@ -29,6 +28,9 @@ import type {
   HRRequestsFilterDto,
   Employee,
   EmployeesFilterDto,
+  CreateEmployeeDto,
+  CreateDepartmentDto,
+  RejectRequestDto,
   EmployeeCommission,
   CommissionFilterDto,
   CommissionSlice,
@@ -42,23 +44,6 @@ import type {
   ReplyHRComplaintDto,
 } from '@/types/hr.types';
 
-// ── Mock data imports (remove when real API is ready) ──
-import {
-  MOCK_HR_EMPLOYEES,
-  MOCK_DEPARTMENTS,
-  MOCK_SALARY_SCALES,
-  MOCK_CUSTODY_TYPES,
-  MOCK_VACATION_REQUESTS,
-  MOCK_PERMISSION_REQUESTS,
-  MOCK_INBOX_REQUESTS,
-  MOCK_OUTBOX_REQUESTS,
-  MOCK_EMPLOYEES,
-  MOCK_COMMISSIONS,
-  MOCK_COMMISSION_SLICES,
-  MOCK_ATTENDANCE,
-  MOCK_LEAVE_BALANCES,
-  MOCK_HR_COMPLAINTS,
-} from '@/features/hr/mock/hr.mock';
 
 // ─────────────────────────────────────────────
 // Employees
@@ -66,78 +51,87 @@ import {
 
 export class HREmployeeService {
   static async getAll(filter?: EmployeesFilterDto): Promise<Employee[]> {
-    // TODO: replace with real API
-    // const response = await api.get(API_ENDPOINTS.HR_EMPLOYEES.GET_ALL, { params: filter });
-    // return response.data;
-    let result = [...MOCK_EMPLOYEES];
-    if (filter?.nameAr) result = result.filter((e) => e.nameAr.includes(filter.nameAr!));
-    if (filter?.loginName) result = result.filter((e) => e.loginName?.includes(filter.loginName!));
-    if (filter?.email) result = result.filter((e) => e.email?.includes(filter.email!));
-    return result;
+    const response = await api.get<Employee[]>(API_ENDPOINTS.HR_EMPLOYEES.GET_ALL, {
+      params: {
+        searchName: filter?.nameAr,
+        page: 1,
+        pageSize: 100,
+      },
+    });
+    return response.data ?? [];
   }
 
   static async getById(id: string): Promise<Employee | undefined> {
-    // TODO: replace with real API
-    // const response = await api.get(API_ENDPOINTS.HR_EMPLOYEES.GET_BY_ID(id));
-    // return response.data;
-    return MOCK_EMPLOYEES.find((e) => e.id === id);
+    const response = await api.get<Employee>(API_ENDPOINTS.HR_EMPLOYEES.GET_BY_ID(id));
+    return response.data;
   }
 
-  static async getCurrent(userId: number | null): Promise<HREmployee | undefined> {
-    // TODO: replace with real API
-    // const response = await api.get(API_ENDPOINTS.HR_EMPLOYEES.GET_CURRENT);
-    // return response.data;
-    const currentUser = AuthService.getCurrentUser();
-    const userName =
-      currentUser?.username ||
-      currentUser?.userName ||
-      currentUser?.loginName ||
-      currentUser?.fullName ||
-      currentUser?.name;
+  static async create(data: CreateEmployeeDto): Promise<Employee> {
+    const response = await api.post<Employee>(API_ENDPOINTS.HR_EMPLOYEES.CREATE, data);
+    return response.data;
+  }
 
-    const candidateIds = [
-      currentUser?.employeeId,
-      currentUser?.employeeGuid,
-      currentUser?.employee?.id,
-      currentUser?.id,
-      userId,
-      typeof window !== 'undefined' ? localStorage.getItem('employeeId') : null,
-      typeof window !== 'undefined' ? localStorage.getItem('userId') : null,
-    ]
-      .filter((v): v is string | number => v !== null && v !== undefined)
-      .map((v) => String(v));
+  static async update(id: string, data: CreateEmployeeDto): Promise<Employee> {
+    const response = await api.put<Employee>(API_ENDPOINTS.HR_EMPLOYEES.UPDATE(id), data);
+    return response.data;
+  }
 
-    if (candidateIds.length) {
-      const byId = MOCK_HR_EMPLOYEES.find((e) => candidateIds.includes(e.id));
-      if (byId) return byId;
-    }
+  static async delete(id: string): Promise<void> {
+    await api.delete(API_ENDPOINTS.HR_EMPLOYEES.DELETE(id));
+  }
 
-    if (userName) {
-      const normalized = String(userName).toLowerCase();
-      const linkedEmployee = MOCK_EMPLOYEES.find((e) => {
-        const login = e.loginName?.toLowerCase();
-        const enName = e.nameEn?.toLowerCase();
-        return login === normalized || enName === normalized;
-      });
-      if (linkedEmployee) {
-        return MOCK_HR_EMPLOYEES.find((e) => e.id === linkedEmployee.id);
-      }
-    }
-
-    return MOCK_HR_EMPLOYEES[0];
+  static async getCurrent(username: string | null): Promise<HREmployee | null> {
+    if (!username) return null;
+    const response = await api.get<Employee[]>(API_ENDPOINTS.HR_EMPLOYEES.GET_ALL, {
+      params: { searchName: username, page: 1, pageSize: 1 },
+    });
+    const emp = response.data?.[0];
+    if (!emp) return null;
+    return {
+      id: emp.id,
+      employeeNumber: emp.employeeNumber,
+      nameAr: emp.nameAr,
+      nameEn: emp.nameEn,
+      jobName: emp.jobName,
+      departmentId: emp.departmentId,
+      departmentName: emp.departmentName,
+      nationalityName: emp.nationalityName,
+      idNumber: emp.idNumber,
+      mobileNumber: emp.mobileNumber,
+      hiringDate: emp.hiringDate,
+    };
   }
 
   static async search(query: string): Promise<HREmployee[]> {
-    // TODO: replace with real API
-    // const response = await api.get(API_ENDPOINTS.HR_EMPLOYEES.SEARCH, { params: { q: query } });
-    // return response.data;
-    const q = query.toLowerCase();
-    return MOCK_HR_EMPLOYEES.filter(
-      (e) =>
-        e.nameAr.toLowerCase().includes(q) ||
-        e.nameEn.toLowerCase().includes(q) ||
-        e.employeeNumber.toLowerCase().includes(q)
-    );
+    const response = await api.get<Employee[]>(API_ENDPOINTS.HR_EMPLOYEES.GET_ALL, {
+      params: { searchName: query, page: 1, pageSize: 20 },
+    });
+    const employees = response.data ?? [];
+    return employees.map((e) => ({
+      id: e.id,
+      employeeNumber: e.employeeNumber,
+      nameAr: e.nameAr,
+      nameEn: e.nameEn,
+      jobName: e.jobName,
+      departmentId: e.departmentId,
+      departmentName: e.departmentName,
+      nationalityName: e.nationalityName,
+      idNumber: e.idNumber,
+      mobileNumber: e.mobileNumber,
+      hiringDate: e.hiringDate,
+    }));
+  }
+}
+
+// ─────────────────────────────────────────────
+// Department
+// ─────────────────────────────────────────────
+
+export class HRDepartmentService {
+  static async create(data: CreateDepartmentDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_DEPARTMENT.CREATE, null, {
+      params: { nameAr: data.nameAr, nameEn: data.nameEn },
+    });
   }
 }
 
@@ -147,18 +141,18 @@ export class HREmployeeService {
 
 export class HRLookupService {
   static async getDepartments(): Promise<HRLookupItem[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_LOOKUPS.DEPARTMENTS);
-    return MOCK_DEPARTMENTS;
+    const response = await api.get<HRLookupItem[]>(API_ENDPOINTS.HR_LOOKUPS.DEPARTMENTS);
+    return response.data ?? [];
   }
 
   static async getSalaryScales(): Promise<HRLookupItem[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_LOOKUPS.SALARY_SCALES);
-    return MOCK_SALARY_SCALES;
+    const response = await api.get<HRLookupItem[]>(API_ENDPOINTS.HR_LOOKUPS.SALARY_SCALES);
+    return response.data ?? [];
   }
 
   static async getCustodyTypes(): Promise<HRLookupItem[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_LOOKUPS.CUSTODY_TYPES);
-    return MOCK_CUSTODY_TYPES;
+    const response = await api.get<HRLookupItem[]>(API_ENDPOINTS.HR_LOOKUPS.CUSTODY_TYPES);
+    return response.data ?? [];
   }
 }
 
@@ -167,27 +161,32 @@ export class HRLookupService {
 // ─────────────────────────────────────────────
 
 export class HRVacationService {
-  static async getAll(): Promise<VacationRequest[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_VACATION.GET_ALL);
-    return MOCK_VACATION_REQUESTS;
-  }
-
-  static async getById(id: number): Promise<VacationRequest | undefined> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_VACATION.GET_BY_ID(id));
-    return MOCK_VACATION_REQUESTS.find((r) => r.id === id);
-  }
-
-  static async create(data: CreateVacationRequestDto): Promise<VacationRequest> {
-    const response = await api.post<VacationRequest>(API_ENDPOINTS.HR_VACATION.CREATE, data);
+  static async getById(id: string): Promise<VacationRequest | undefined> {
+    const response = await api.get<VacationRequest>(API_ENDPOINTS.HR_VACATION.GET_BY_ID(id));
     return response.data;
   }
 
-  static async approve(id: number): Promise<void> {
+  static async create(data: CreateVacationRequestDto): Promise<VacationRequest> {
+    const formData = new FormData();
+    formData.append('CreatedTo', data.createdTo);
+    formData.append('VacationType', String(data.vacationType));
+    formData.append('VacationDays', String(data.vacationDays));
+    formData.append('VacationDate', data.vacationDate);
+    formData.append('FinalizeDate', data.finalizeDate);
+    if (data.substituteId) formData.append('SubstituteId', data.substituteId);
+    if (data.mobileNumber) formData.append('MobileNumber', data.mobileNumber);
+    formData.append('Reasons', data.reasons);
+    if (data.attachmentFile) formData.append('AttachmentFile', data.attachmentFile);
+    const response = await api.post<VacationRequest>(API_ENDPOINTS.HR_VACATION.CREATE, formData);
+    return response.data;
+  }
+
+  static async approve(id: string): Promise<void> {
     await api.post(API_ENDPOINTS.HR_VACATION.APPROVE(id), {});
   }
 
-  static async reject(id: number, reason: string): Promise<void> {
-    await api.post(API_ENDPOINTS.HR_VACATION.REJECT(id), { reason });
+  static async reject(id: string, data: RejectRequestDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_VACATION.REJECT(id), data);
   }
 }
 
@@ -197,8 +196,8 @@ export class HRVacationService {
 
 export class HRPermissionService {
   static async getAll(): Promise<PermissionRequest[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_PERMISSION.GET_ALL);
-    return MOCK_PERMISSION_REQUESTS;
+    const response = await api.get<PermissionRequest[]>(API_ENDPOINTS.HR_PERMISSION.GET_ALL);
+    return response.data ?? [];
   }
 
   static async create(data: CreatePermissionRequestDto): Promise<PermissionRequest> {
@@ -206,12 +205,12 @@ export class HRPermissionService {
     return response.data;
   }
 
-  static async approve(id: number): Promise<void> {
+  static async approve(id: string): Promise<void> {
     await api.post(API_ENDPOINTS.HR_PERMISSION.APPROVE(id), {});
   }
 
-  static async reject(id: number, reason: string): Promise<void> {
-    await api.post(API_ENDPOINTS.HR_PERMISSION.REJECT(id), { reason });
+  static async reject(id: string, data: RejectRequestDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_PERMISSION.REJECT(id), data);
   }
 }
 
@@ -221,13 +220,21 @@ export class HRPermissionService {
 
 export class HRCustodyService {
   static async getAll(): Promise<CustodyRequest[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_CUSTODY.GET_ALL);
-    return [];
+    const response = await api.get<CustodyRequest[]>(API_ENDPOINTS.HR_CUSTODY.GET_ALL);
+    return response.data ?? [];
   }
 
   static async create(data: CreateCustodyRequestDto): Promise<CustodyRequest> {
     const response = await api.post<CustodyRequest>(API_ENDPOINTS.HR_CUSTODY.CREATE, data);
     return response.data;
+  }
+
+  static async approve(id: string): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_CUSTODY.APPROVE(id), {});
+  }
+
+  static async reject(id: string, data: RejectRequestDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_CUSTODY.REJECT(id), data);
   }
 }
 
@@ -237,8 +244,8 @@ export class HRCustodyService {
 
 export class HRJobModificationService {
   static async getAll(): Promise<JobModificationRequest[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_JOB_MODIFICATION.GET_ALL);
-    return [];
+    const response = await api.get<JobModificationRequest[]>(API_ENDPOINTS.HR_JOB_MODIFICATION.GET_ALL);
+    return response.data ?? [];
   }
 
   static async create(data: CreateJobModificationRequestDto): Promise<JobModificationRequest> {
@@ -248,6 +255,14 @@ export class HRJobModificationService {
     );
     return response.data;
   }
+
+  static async approve(id: string): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_JOB_MODIFICATION.APPROVE(id), {});
+  }
+
+  static async reject(id: string, data: RejectRequestDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_JOB_MODIFICATION.REJECT(id), data);
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -256,13 +271,21 @@ export class HRJobModificationService {
 
 export class HRResignationService {
   static async getAll(): Promise<ResignationRequest[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_RESIGNATION.GET_ALL);
-    return [];
+    const response = await api.get<ResignationRequest[]>(API_ENDPOINTS.HR_RESIGNATION.GET_ALL);
+    return response.data ?? [];
   }
 
   static async create(data: CreateResignationRequestDto): Promise<ResignationRequest> {
     const response = await api.post<ResignationRequest>(API_ENDPOINTS.HR_RESIGNATION.CREATE, data);
     return response.data;
+  }
+
+  static async approve(id: string): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_RESIGNATION.APPROVE(id), {});
+  }
+
+  static async reject(id: string, data: RejectRequestDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_RESIGNATION.REJECT(id), data);
   }
 }
 
@@ -272,8 +295,8 @@ export class HRResignationService {
 
 export class HREntitlementsService {
   static async getAll(): Promise<EntitlementsRequest[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_ENTITLEMENTS.GET_ALL);
-    return [];
+    const response = await api.get<EntitlementsRequest[]>(API_ENDPOINTS.HR_ENTITLEMENTS.GET_ALL);
+    return response.data ?? [];
   }
 
   static async create(data: CreateEntitlementsRequestDto): Promise<EntitlementsRequest> {
@@ -283,6 +306,14 @@ export class HREntitlementsService {
     );
     return response.data;
   }
+
+  static async approve(id: string): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_ENTITLEMENTS.APPROVE(id), {});
+  }
+
+  static async reject(id: string, data: RejectRequestDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_ENTITLEMENTS.REJECT(id), data);
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -291,13 +322,21 @@ export class HREntitlementsService {
 
 export class HRLoansService {
   static async getAll(): Promise<LoanRequest[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_LOANS.GET_ALL);
-    return [];
+    const response = await api.get<LoanRequest[]>(API_ENDPOINTS.HR_LOANS.GET_ALL);
+    return response.data ?? [];
   }
 
   static async create(data: CreateLoanRequestDto): Promise<LoanRequest> {
     const response = await api.post<LoanRequest>(API_ENDPOINTS.HR_LOANS.CREATE, data);
     return response.data;
+  }
+
+  static async approve(id: string): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_LOANS.APPROVE(id), {});
+  }
+
+  static async reject(id: string, data: RejectRequestDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_LOANS.REJECT(id), data);
   }
 }
 
@@ -307,23 +346,21 @@ export class HRLoansService {
 
 export class HRRequestsInboxService {
   static async getAll(filter?: HRRequestsFilterDto): Promise<HRRequestSummary[]> {
-    // TODO: const response = await api.post(API_ENDPOINTS.HR_REQUESTS_INBOX.FILTER, filter);
-    let result = [...MOCK_INBOX_REQUESTS];
-    if (filter?.processState) result = result.filter((r) => r.processState === filter.processState);
-    if (filter?.processGroups?.length)
-      result = result.filter((r) => filter.processGroups!.includes(r.processGroup));
-    if (filter?.processResults?.length)
-      result = result.filter((r) => filter.processResults!.includes(r.result));
-    return result;
+    const response = await api.post<HRRequestSummary[]>(
+      API_ENDPOINTS.HR_REQUESTS_INBOX.FILTER,
+      filter ?? {}
+    );
+    return response.data ?? [];
   }
 }
 
 export class HRRequestsOutboxService {
   static async getAll(filter?: HRRequestsFilterDto): Promise<HRRequestSummary[]> {
-    // TODO: const response = await api.post(API_ENDPOINTS.HR_REQUESTS_OUTBOX.FILTER, filter);
-    let result = [...MOCK_OUTBOX_REQUESTS];
-    if (filter?.processState) result = result.filter((r) => r.processState === filter.processState);
-    return result;
+    const response = await api.post<HRRequestSummary[]>(
+      API_ENDPOINTS.HR_REQUESTS_OUTBOX.FILTER,
+      filter ?? {}
+    );
+    return response.data ?? [];
   }
 }
 
@@ -333,10 +370,14 @@ export class HRRequestsOutboxService {
 
 export class HRCommissionService {
   static async getAll(filter?: CommissionFilterDto): Promise<EmployeeCommission[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_COMMISSION.GET_ALL, { params: filter });
-    let result = [...MOCK_COMMISSIONS];
-    if (filter?.empId) result = result.filter((c) => c.empId === filter.empId);
-    return result;
+    const response = await api.get<EmployeeCommission[]>(API_ENDPOINTS.HR_COMMISSION.GET_ALL, {
+      params: {
+        empId: filter?.empId,
+        comDate: filter?.comDate,
+        comDateTo: filter?.comDateTo,
+      },
+    });
+    return response.data ?? [];
   }
 
   static async create(
@@ -357,24 +398,13 @@ export class HRCommissionService {
 
 export class HRCommissionSliceService {
   static async getAll(): Promise<CommissionSlice[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_COMMISSION_SLICES.GET_ALL);
-    return MOCK_COMMISSION_SLICES;
+    const response = await api.get<CommissionSlice[]>(API_ENDPOINTS.HR_COMMISSION_SLICES.GET_ALL);
+    return response.data ?? [];
   }
 
   static async create(data: CreateCommissionSliceDto): Promise<CommissionSlice> {
     const response = await api.post<CommissionSlice>(
       API_ENDPOINTS.HR_COMMISSION_SLICES.CREATE,
-      data
-    );
-    return response.data;
-  }
-
-  static async update(
-    id: number,
-    data: Partial<CreateCommissionSliceDto>
-  ): Promise<CommissionSlice> {
-    const response = await api.put<CommissionSlice>(
-      API_ENDPOINTS.HR_COMMISSION_SLICES.UPDATE(id),
       data
     );
     return response.data;
@@ -391,12 +421,11 @@ export class HRCommissionSliceService {
 
 export class HRAttendanceService {
   static async getAll(filter?: AttendanceFilterDto): Promise<AttendanceRecord[]> {
-    // TODO: const response = await api.post(API_ENDPOINTS.HR_ATTENDANCE.FILTER, filter);
-    let result = [...MOCK_ATTENDANCE];
-    if (filter?.employeeId) result = result.filter((a) => a.employeeId === filter.employeeId);
-    if (filter?.attendanceDay)
-      result = result.filter((a) => a.attendanceDay === filter.attendanceDay);
-    return result;
+    const response = await api.post<AttendanceRecord[]>(
+      API_ENDPOINTS.HR_ATTENDANCE.FILTER,
+      filter ?? {}
+    );
+    return response.data ?? [];
   }
 }
 
@@ -406,11 +435,11 @@ export class HRAttendanceService {
 
 export class HRLeaveBalanceService {
   static async getAll(filter?: LeaveBalanceFilterDto): Promise<LeaveBalance[]> {
-    // TODO: const response = await api.post(API_ENDPOINTS.HR_LEAVE_BALANCE.FILTER, filter);
-    let result = [...MOCK_LEAVE_BALANCES];
-    if (filter?.employeeId) result = result.filter((b) => b.employeeId === filter.employeeId);
-    if (filter?.year) result = result.filter((b) => b.year === filter.year);
-    return result;
+    const response = await api.post<LeaveBalance[]>(
+      API_ENDPOINTS.HR_LEAVE_BALANCE.FILTER,
+      filter ?? {}
+    );
+    return response.data ?? [];
   }
 }
 
@@ -419,11 +448,6 @@ export class HRLeaveBalanceService {
 // ─────────────────────────────────────────────
 
 export class HRComplaintService {
-  static async getAll(): Promise<HRComplaint[]> {
-    // TODO: const response = await api.get(API_ENDPOINTS.HR_COMPLAINTS.GET_ALL);
-    return MOCK_HR_COMPLAINTS;
-  }
-
   static async create(data: CreateHRComplaintDto): Promise<HRComplaint> {
     const response = await api.post<HRComplaint>(API_ENDPOINTS.HR_COMPLAINTS.CREATE, data);
     return response.data;
@@ -434,11 +458,11 @@ export class HRComplaintService {
     return response.data;
   }
 
-  static async close(id: number): Promise<void> {
+  static async close(id: string): Promise<void> {
     await api.post(API_ENDPOINTS.HR_COMPLAINTS.CLOSE(id), {});
   }
 
-  static async delete(id: number): Promise<void> {
+  static async delete(id: string): Promise<void> {
     await api.delete(API_ENDPOINTS.HR_COMPLAINTS.DELETE(id));
   }
 }

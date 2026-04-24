@@ -13,20 +13,20 @@ interface EmployeeInfoCardProps {
   showSalary?: boolean;
 }
 
-/**
- * Read-only employee info card.
- * Auto-populated from authenticated user context.
- * Used across all HR request forms.
- */
 export default function EmployeeInfoCard({
   employee,
   loading = false,
   showSalary = false,
 }: EmployeeInfoCardProps) {
   const language = useAuthStore((s) => s.language);
+  const sessionName = useAuthStore((s) => s.username);
   const isAr = language === 'ar';
 
-  if (loading) {
+  const displayName = isAr
+    ? (employee?.nameAr || sessionName || '—')
+    : (employee?.nameEn || sessionName || '—');
+
+  if (loading && !sessionName) {
     return (
       <Card size="small" style={{ marginBottom: 16 }}>
         <Skeleton active paragraph={{ rows: 3 }} />
@@ -34,72 +34,72 @@ export default function EmployeeInfoCard({
     );
   }
 
-  if (!employee) return null;
+  if (!employee && !sessionName) return null;
 
   const items = [
     {
       key: 'name',
       label: isAr ? 'اسم الموظف' : 'Employee Name',
-      children: isAr ? employee.nameAr : employee.nameEn,
+      children: displayName,
     },
     {
       key: 'number',
       label: isAr ? 'رقم الموظف' : 'Employee No.',
-      children: employee.employeeNumber,
+      children: employee?.employeeNumber || '—',
     },
     {
       key: 'id',
       label: isAr ? 'رقم الهوية' : 'ID Number',
-      children: employee.idNumber,
+      children: employee?.idNumber || '—',
     },
     {
       key: 'job',
       label: isAr ? 'المسمى الوظيفي' : 'Job Title',
-      children: employee.jobName,
+      children: employee?.jobName || '—',
     },
     {
       key: 'dept',
       label: isAr ? 'القسم' : 'Department',
-      children: employee.departmentName,
+      children: employee?.departmentName || '—',
     },
     {
       key: 'nationality',
       label: isAr ? 'الجنسية' : 'Nationality',
-      children: employee.nationalityName,
+      children: employee?.nationalityName || '—',
     },
   ];
 
-  const salaryItems = showSalary
+  const salaryItems = showSalary && employee
     ? [
         {
           key: 'basic',
           label: isAr ? 'الراتب الأساسي' : 'Basic Salary',
-          children: employee.basicSalary?.toLocaleString(),
+          children: employee.basicSalary?.toLocaleString() ?? '—',
         },
         {
           key: 'housing',
           label: isAr ? 'بدل السكن' : 'Housing Allowance',
-          children: employee.housingAllowance?.toLocaleString(),
+          children: employee.housingAllowance?.toLocaleString() ?? '—',
         },
         {
           key: 'mobility',
           label: isAr ? 'بدل المواصلات' : 'Mobility Allowance',
-          children: employee.mobilityAllowance?.toLocaleString(),
+          children: employee.mobilityAllowance?.toLocaleString() ?? '—',
         },
         {
           key: 'other',
           label: isAr ? 'بدلات أخرى' : 'Other Allowances',
-          children: employee.otherAllowances?.toLocaleString(),
+          children: employee.otherAllowances?.toLocaleString() ?? '—',
         },
         {
           key: 'total',
           label: isAr ? 'إجمالي الراتب' : 'Total Salary',
-          children: <strong>{employee.totalSalary?.toLocaleString()}</strong>,
+          children: <strong>{employee.totalSalary?.toLocaleString() ?? '—'}</strong>,
         },
         {
           key: 'hiring',
           label: isAr ? 'تاريخ التعيين' : 'Hiring Date',
-          children: employee.hiringDate,
+          children: employee.hiringDate ?? '—',
         },
       ]
     : [];

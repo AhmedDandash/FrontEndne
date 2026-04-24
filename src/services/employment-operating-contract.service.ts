@@ -42,14 +42,25 @@ export class EmploymentOperatingContractService {
   static async getAll(
     params?: GetContractsParams | Record<string, any>
   ): Promise<EmploymentOperatingContract[]> {
+    // Always fetch all items — API defaults to pageSize=1 which hides data
+    const mergedParams = { PageSize: 9999, PageNumber: 1, ...params };
     const response = await api.get<any>(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.GET_ALL, {
-      params,
+      params: mergedParams,
     });
+    const d = response.data;
 
-    if (Array.isArray(response.data)) return response.data;
-    if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;
-    if (response.data?.result && Array.isArray(response.data.result)) return response.data.result;
-    if (response.data?.items && Array.isArray(response.data.items)) return response.data.items;
+    // flat array
+    if (Array.isArray(d)) return d;
+    // { success, data: { items: [...] } }  ← confirmed API shape
+    if (Array.isArray(d?.data?.items)) return d.data.items;
+    // { data: [...] }
+    if (Array.isArray(d?.data)) return d.data;
+    // { items: [...] }
+    if (Array.isArray(d?.items)) return d.items;
+    // { result: [...] }
+    if (Array.isArray(d?.result)) return d.result;
+
+    console.warn('[EmploymentOperatingContractService] Unexpected response shape:', d);
     return [];
   }
 

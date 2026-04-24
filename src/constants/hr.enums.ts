@@ -22,29 +22,30 @@ export const HR_REQUEST_RESULT: readonly EnumOption[] = [
 export const HR_PROCESS_STATE: readonly EnumOption[] = [
   { value: 1, labelAr: 'إجازة', labelEn: 'Vacation' },
   { value: 2, labelAr: 'إذن', labelEn: 'Permission' },
+  { value: 3, labelAr: 'عمولة', labelEn: 'Commission' },
   { value: 4, labelAr: 'عهدة', labelEn: 'Custody' },
   { value: 5, labelAr: 'تعديل وظيفي', labelEn: 'Job Modification' },
   { value: 6, labelAr: 'استقالة', labelEn: 'Resignation' },
   { value: 7, labelAr: 'مستحقات', labelEn: 'Entitlements' },
   { value: 8, labelAr: 'قرض', labelEn: 'Loan' },
-  { value: 9, labelAr: 'أخرى', labelEn: 'Other' },
 ] as const;
 
 // ─────────────────────────────────────────────
 // Vacation Type (نوع الإجازة)
 // Values map to backend enum IDs from legacy HTML
 // ─────────────────────────────────────────────
+// Values 1–10 per swagger-Hr-Api.json HRVacationType enum
 export const HR_VACATION_TYPE: readonly EnumOption[] = [
-  { value: 81, labelAr: 'إجازة سنوية', labelEn: 'Annual Leave' },
-  { value: 72, labelAr: 'إجازة مرضية', labelEn: 'Sick Leave' },
-  { value: 77, labelAr: 'إجازة بدون راتب', labelEn: 'Unpaid Leave' },
-  { value: 78, labelAr: 'إجازة وضع', labelEn: 'Maternity Leave' },
-  { value: 79, labelAr: 'إجازة عارضة', labelEn: 'Casual Leave' },
-  { value: 84, labelAr: 'إجازة حج', labelEn: 'Hajj Leave' },
-  { value: 80, labelAr: 'إجازة زواج', labelEn: 'Marriage Leave' },
-  { value: 73, labelAr: 'إجازة وفاة', labelEn: 'Bereavement Leave' },
-  { value: 82, labelAr: 'إجازة اضطرارية', labelEn: 'Emergency Leave' },
-  { value: 83, labelAr: 'إجازة رياضية', labelEn: 'Sports Leave' },
+  { value: 1, labelAr: 'إجازة سنوية', labelEn: 'Annual Leave' },
+  { value: 2, labelAr: 'إجازة مرضية', labelEn: 'Sick Leave' },
+  { value: 3, labelAr: 'إجازة اضطرارية', labelEn: 'Emergency Leave' },
+  { value: 4, labelAr: 'إجازة وضع', labelEn: 'Maternity Leave' },
+  { value: 5, labelAr: 'إجازة أبوة', labelEn: 'Paternity Leave' },
+  { value: 6, labelAr: 'إجازة حج', labelEn: 'Hajj Leave' },
+  { value: 7, labelAr: 'إجازة بدون راتب', labelEn: 'Unpaid Leave' },
+  { value: 8, labelAr: 'إجازة تعويضية', labelEn: 'Compensatory Leave' },
+  { value: 9, labelAr: 'إجازة زواج', labelEn: 'Marriage Leave' },
+  { value: 10, labelAr: 'إجازة وفاة', labelEn: 'Bereavement Leave' },
 ] as const;
 
 // ─────────────────────────────────────────────

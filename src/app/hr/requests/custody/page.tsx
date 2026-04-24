@@ -30,10 +30,10 @@ let itemKey = 1;
 export default function CustodyRequestPage() {
   const [form] = Form.useForm();
   const language = useAuthStore((s) => s.language);
-  const userId = useAuthStore((s) => s.userId);
+
   const isAr = language === 'ar';
 
-  const { data: currentEmployee, isLoading: empLoading } = useCurrentHREmployee(userId);
+  const { data: currentEmployee, isLoading: empLoading } = useCurrentHREmployee();
   const { data: custodyTypes = [] } = useHRCustodyTypes();
   const { mutate: createRequest, isPending } = useCreateCustodyRequest();
 

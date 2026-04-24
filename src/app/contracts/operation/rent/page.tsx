@@ -22,6 +22,8 @@ import {
   Form,
   InputNumber,
   Alert,
+  Popconfirm,
+  Space,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -37,26 +39,21 @@ import {
   EyeOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
-  ExclamationCircleOutlined,
   MoreOutlined,
   FileExcelOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
   TeamOutlined,
-  FileProtectOutlined,
-  WarningOutlined,
-  MoneyCollectOutlined,
-  UserDeleteOutlined,
-  UserAddOutlined,
-  CloseCircleOutlined,
-  BarsOutlined,
   ReloadOutlined,
   HomeOutlined,
+  PlayCircleOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 import { useAuthStore } from '@/store/authStore';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
-import { NATIONALITIES } from '@/constants/enums';
+import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import RentOfferSelector from '@/components/contracts/RentOfferSelector';
@@ -64,6 +61,10 @@ import type { EmploymentOperatingContract, EmploymentContractOffer } from '@/typ
 import styles from './RentContracts.module.css';
 
 const { RangePicker } = DatePicker;
+const { TextArea } = Input;
+
+// Contract status enum (matches API: 1=Draft, 2=Signed, 3=Executing, 4=Finished)
+type ContractStatusKey = 'draft' | 'signed' | 'executing' | 'finished';
 
 interface RentContract {
   id: string;
@@ -72,7 +73,10 @@ interface RentContract {
   customerName: string;
   customerNameAr: string;
   customerPhone: string;
-  status: 'active' | 'pending' | 'expired' | 'renewed' | 'cancelled';
+  /** API contractStatus mapped to a display key */
+  status: ContractStatusKey;
+  /** Raw API contractStatus number (1-4) */
+  contractStatus: number;
   startDate: string;
   endDate: string;
   monthlyRent: number;
@@ -82,18 +86,14 @@ interface RentContract {
   workerNameAr: string;
   nationality: string;
   nationalityAr: string;
-  nationalityId: number;
+  nationalityId: string;
   profession: string;
   professionAr: string;
-  agent: string;
-  agentAr: string;
   branch: string;
   branchAr: string;
-  renewalCount: number;
   daysRemaining: number;
   createdAt: string;
   notes: string;
-  notesAr: string;
 }
 
 export default function RentContractsPage() {
@@ -106,56 +106,86 @@ export default function RentContractsPage() {
   const [mounted, setMounted] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [nationalityFilter, setNationalityFilter] = useState<number | 'all'>('all');
+  const [nationalityFilter, setNationalityFilter] = useState<string | 'all'>('all');
   const [dateRange, setDateRange] = useState<[any, any] | null>(null);
   const [selectedContract, setSelectedContract] = useState<RentContract | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // Create Contract Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createSelectedOffer, setCreateSelectedOffer] = useState<EmploymentContractOffer | null>(
-    null
-  );
+  const [createSelectedOffer, setCreateSelectedOffer] = useState<EmploymentContractOffer | null>(null);
   const [createForm] = Form.useForm();
+
+  // Edit Contract Modal state
+  const [editModal, setEditModal] = useState<{ open: boolean; rawContract: EmploymentOperatingContract | null }>({ open: false, rawContract: null });
+  const [editForm] = Form.useForm();
+
+  // Renew Modal state (for Executing contracts)
+  const [renewModal, setRenewModal] = useState<{ open: boolean; contractId: string | null }>({ open: false, contractId: null });
+  const [renewForm] = Form.useForm();
+
+  // Terminate Modal state (for Executing contracts)
+  const [terminateModal, setTerminateModal] = useState<{ open: boolean; contractId: string | null }>({ open: false, contractId: null });
+  const [terminateForm] = Form.useForm();
 
   // Fetch contracts from API
   const {
     contracts: apiContracts,
     isLoading,
     createContract,
+    updateContract,
+    deleteContract,
+    signContract,
+    startExecution,
+    renewContract,
+    terminateContract,
+    printReceiptForm,
     isCreating,
+    isUpdating,
+    isDeleting,
+    isSigning,
+    isStartingExecution,
+    isRenewing,
+    isTerminating,
   } = useEmploymentOperatingContracts();
 
-  // Lookup hooks for resolving null names
+  // Lookup hooks
   const { data: jobs = [] } = useJobs();
+  const { data: nationalities = [] } = useNationalities();
   const { customers = [] } = useCustomers();
 
   // Safely extract data from API response (handles wrapped responses)
   const contractsData = useMemo((): EmploymentOperatingContract[] => {
-    console.log('Rent Page - API Response:', apiContracts);
     if (!apiContracts) return [];
     if (Array.isArray(apiContracts)) return apiContracts;
-    if (
-      typeof apiContracts === 'object' &&
-      'data' in apiContracts &&
-      Array.isArray((apiContracts as any).data)
-    ) {
-      return (apiContracts as any).data;
-    }
+    const r = apiContracts as any;
+    if (Array.isArray(r?.data?.items)) return r.data.items;
+    if (Array.isArray(r?.data)) return r.data;
+    if (Array.isArray(r?.items)) return r.items;
     return [];
   }, [apiContracts]);
 
-  // Helper: resolve nationality name from ID (using NATIONALITIES enum)
+  // Map from contract id → raw API contract (for edit operations)
+  const contractsMap = useMemo(() => {
+    const m = new Map<string, EmploymentOperatingContract>();
+    contractsData.forEach((c) => m.set(String(c.id), c));
+    return m;
+  }, [contractsData]);
+
+  // Helper: resolve nationality name from UUID
   const getNationalityNameById = useMemo(() => {
-    const map = new Map<number, { ar: string; en: string }>();
-    NATIONALITIES.forEach((n) => {
-      map.set(n.value, { ar: n.labelAr, en: n.labelEn });
+    const map = new Map<string, { ar: string; en: string }>();
+    nationalities.forEach((n) => {
+      map.set(String(n.id), {
+        ar: n.nationalityNameAr || n.nationalityNameEn || String(n.id),
+        en: n.nationalityNameEn || n.nationalityNameAr || String(n.id),
+      });
     });
-    return (id: number | null | undefined): { ar: string; en: string } => {
+    return (id: string | null | undefined): { ar: string; en: string } => {
       if (!id) return { ar: 'غير معروف', en: 'Unknown' };
-      return map.get(id) || { ar: 'غير معروف', en: 'Unknown' };
+      return map.get(String(id)) || { ar: 'غير معروف', en: 'Unknown' };
     };
-  }, []);
+  }, [nationalities]);
 
   // Helper: resolve job name from ID
   const getJobNameById = useMemo(() => {
@@ -174,8 +204,7 @@ export default function RentContractsPage() {
 
   // Map API data to internal RentContract format
   const allContracts = useMemo((): RentContract[] => {
-    console.log('Rent Page - Contracts Data Count:', contractsData.length);
-    const mapped = contractsData.map((contract): RentContract => {
+    return contractsData.map((contract): RentContract => {
       const startDate = contract.contractStartDate || new Date().toISOString();
       const endDate = contract.contractEndDate || new Date().toISOString();
       const daysRemaining = Math.max(
@@ -183,15 +212,12 @@ export default function RentContractsPage() {
         Math.floor((new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
       );
 
-      // Determine status based on dates and finish status
-      let status: RentContract['status'] = 'active';
-      if (contract.isFinish) {
-        status = 'cancelled';
-      } else if (daysRemaining <= 0) {
-        status = 'expired';
-      } else if (daysRemaining <= 30) {
-        status = 'pending'; // expiring soon
-      }
+      // Map contractStatus number → display key
+      const cs = contract.contractStatus || 1;
+      let status: ContractStatusKey = 'draft';
+      if (cs === 2) status = 'signed';
+      else if (cs === 3) status = 'executing';
+      else if (cs === 4) status = 'finished';
 
       const monthlyRent = contract.cost || 0;
       const monthsActive = Math.max(
@@ -200,20 +226,20 @@ export default function RentContractsPage() {
       );
       const totalCollected = monthlyRent * monthsActive;
 
-      // Resolve nationality and job names via lookup
       const natName = getNationalityNameById(contract.nationalityId);
       const jobNameResolved = contract.jobName
         ? { ar: contract.jobName, en: contract.jobName }
-        : getJobNameById(contract.jobId);
+        : getJobNameById(contract.jobId as any);
 
       return {
         id: String(contract.id),
-        customerId: contract.customerId || 0,
-        contractNumber: `R${2024000 + contract.id}`,
+        customerId: Number(contract.customerId) || 0,
+        contractNumber: `R${2024000 + Number(contract.id)}`,
         customerName: contract.customerNameAr || 'Unknown',
         customerNameAr: contract.customerNameAr || 'غير معروف',
         customerPhone: contract.mobile || '05xxxxxxxx',
         status,
+        contractStatus: cs,
         startDate,
         endDate,
         monthlyRent,
@@ -226,23 +252,16 @@ export default function RentContractsPage() {
         workerNameAr: jobNameResolved.ar,
         nationality: natName.en,
         nationalityAr: natName.ar,
-        nationalityId: contract.nationalityId || 0,
+        nationalityId: contract.nationalityId || '',
         profession: jobNameResolved.en,
         professionAr: jobNameResolved.ar,
-        agent: 'Unknown',
-        agentAr: 'غير معروف',
         branch: 'Sigma Recruitment Office',
         branchAr: 'سيجما الكفاءات للاستقدام',
-        renewalCount: 0,
         daysRemaining,
         createdAt: contract.createdAt || new Date().toISOString(),
         notes: contract.noteFinish || '',
-        notesAr: contract.noteFinish || '',
       };
     });
-    console.log('Rent Page - Mapped Contracts Count:', mapped.length);
-    console.log('Rent Page - Sample Contract:', mapped[0]);
-    return mapped;
   }, [contractsData, getNationalityNameById, getJobNameById]);
 
   useEffect(() => {
@@ -251,65 +270,56 @@ export default function RentContractsPage() {
 
   // Translations
   const t = {
-    pageTitle: language === 'ar' ? 'عقود التشغيل' : 'Operation Contracts',
-    pageSubtitle:
-      language === 'ar' ? 'إدارة جميع عقود تشغيل العمالة' : 'Manage all operation worker contracts',
-    addContract: language === 'ar' ? 'إضافة عقد' : 'Add Contract',
-    exportExcel: language === 'ar' ? 'تصدير إكسل' : 'Export Excel',
-    print: language === 'ar' ? 'طباعة' : 'Print',
-    search:
-      language === 'ar'
-        ? 'بحث برقم العقد أو اسم العميل...'
-        : 'Search by contract number or customer name...',
-    allStatuses: language === 'ar' ? 'جميع الحالات' : 'All Statuses',
-    active: language === 'ar' ? 'نشط' : 'Active',
-    pending: language === 'ar' ? 'معلق' : 'Pending',
-    expired: language === 'ar' ? 'منتهي' : 'Expired',
-    renewed: language === 'ar' ? 'متجدد' : 'Renewed',
-    cancelled: language === 'ar' ? 'ملغى' : 'Cancelled',
-    allNationalities: language === 'ar' ? 'جميع الجنسيات' : 'All Nationalities',
-    dateRange: language === 'ar' ? 'نطاق التاريخ' : 'Date Range',
-    startDate: language === 'ar' ? 'تاريخ البداية' : 'Start Date',
-    endDate: language === 'ar' ? 'تاريخ النهاية' : 'End Date',
-    totalContracts: language === 'ar' ? 'إجمالي العقود' : 'Total Contracts',
-    activeContracts: language === 'ar' ? 'عقود نشطة' : 'Active Contracts',
-    expiringContracts: language === 'ar' ? 'عقود قرب الانتهاء' : 'Expiring Soon',
-    totalRevenue: language === 'ar' ? 'إجمالي الإيرادات' : 'Total Revenue',
-    contractNumber: language === 'ar' ? 'رقم العقد' : 'Contract Number',
-    customer: language === 'ar' ? 'العميل' : 'Customer',
-    worker: language === 'ar' ? 'العامل' : 'Worker',
-    status: language === 'ar' ? 'الحالة' : 'Status',
-    monthlyRent: language === 'ar' ? 'الإيجار الشهري' : 'Monthly Rent',
-    collected: language === 'ar' ? 'المحصل' : 'Collected',
-    remaining: language === 'ar' ? 'المتبقي' : 'Remaining',
-    nationality: language === 'ar' ? 'الجنسية' : 'Nationality',
-    profession: language === 'ar' ? 'المهنة' : 'Profession',
-    renewals: language === 'ar' ? 'التجديدات' : 'Renewals',
-    daysLeft: language === 'ar' ? 'الأيام المتبقية' : 'Days Left',
-    viewDetails: language === 'ar' ? 'عرض التفاصيل' : 'View Details',
-    edit: language === 'ar' ? 'تعديل' : 'Edit',
-    delete: language === 'ar' ? 'حذف' : 'Delete',
-    noResults: language === 'ar' ? 'لا توجد نتائج' : 'No results found',
-    phone: language === 'ar' ? 'الهاتف' : 'Phone',
-    addNote: language === 'ar' ? 'إضافة ملاحظة' : 'Add Note',
-    addComplaint: language === 'ar' ? 'إضافة شكوى' : 'Add Complaint',
-    addContact: language === 'ar' ? 'إضافة اتصال' : 'Add Contact',
-    collectPayment: language === 'ar' ? 'تحصيل دفعة' : 'Collect Payment',
-    renewContract: language === 'ar' ? 'تجديد العقد' : 'Renew Contract',
-    releaseWorker: language === 'ar' ? 'تحرير العامل' : 'Release Worker',
-    transferWorker: language === 'ar' ? 'نقل العامل' : 'Transfer Worker',
-    cancel: language === 'ar' ? 'إلغاء' : 'Cancel',
-    followUpStatus: language === 'ar' ? 'حالة المتابعة' : 'Follow-up Status',
-    refresh: language === 'ar' ? 'تحديث' : 'Refresh',
+    pageTitle: isRtl ? 'عقود التشغيل' : 'Operation Contracts',
+    pageSubtitle: isRtl ? 'إدارة جميع عقود تشغيل العمالة' : 'Manage all operation worker contracts',
+    addContract: isRtl ? 'إضافة عقد' : 'Add Contract',
+    exportExcel: isRtl ? 'تصدير إكسل' : 'Export Excel',
+    print: isRtl ? 'طباعة' : 'Print',
+    search: isRtl ? 'بحث برقم العقد أو اسم العميل...' : 'Search by contract number or customer name...',
+    allStatuses: isRtl ? 'جميع الحالات' : 'All Statuses',
+    draft: isRtl ? 'مسودة' : 'Draft',
+    signed: isRtl ? 'موقع' : 'Signed',
+    executing: isRtl ? 'منفذ' : 'Executing',
+    finished: isRtl ? 'منتهي' : 'Finished',
+    allNationalities: isRtl ? 'جميع الجنسيات' : 'All Nationalities',
+    startDate: isRtl ? 'تاريخ البداية' : 'Start Date',
+    endDate: isRtl ? 'تاريخ النهاية' : 'End Date',
+    totalContracts: isRtl ? 'إجمالي العقود' : 'Total Contracts',
+    activeContracts: isRtl ? 'عقود منفذة' : 'Executing Contracts',
+    expiringContracts: isRtl ? 'عقود قرب الانتهاء' : 'Expiring Soon',
+    totalRevenue: isRtl ? 'إجمالي الإيرادات' : 'Total Revenue',
+    contractNumber: isRtl ? 'رقم العقد' : 'Contract Number',
+    customer: isRtl ? 'العميل' : 'Customer',
+    worker: isRtl ? 'العامل' : 'Worker',
+    status: isRtl ? 'الحالة' : 'Status',
+    monthlyRent: isRtl ? 'التكلفة' : 'Cost',
+    collected: isRtl ? 'المحصل' : 'Collected',
+    remaining: isRtl ? 'المتبقي' : 'Remaining',
+    nationality: isRtl ? 'الجنسية' : 'Nationality',
+    profession: isRtl ? 'المهنة' : 'Profession',
+    daysLeft: isRtl ? 'الأيام المتبقية' : 'Days Left',
+    viewDetails: isRtl ? 'عرض التفاصيل' : 'View Details',
+    edit: isRtl ? 'تعديل' : 'Edit',
+    delete: isRtl ? 'حذف' : 'Delete',
+    noResults: isRtl ? 'لا توجد نتائج' : 'No results found',
+    phone: isRtl ? 'الهاتف' : 'Phone',
+    signContract: isRtl ? 'توقيع العقد' : 'Sign Contract',
+    startExecution: isRtl ? 'بدء التنفيذ' : 'Start Execution',
+    renewContract: isRtl ? 'تجديد العقد' : 'Renew Contract',
+    terminateContract: isRtl ? 'إنهاء العقد' : 'Terminate Contract',
+    printReceipt: isRtl ? 'طباعة الإيصال' : 'Print Receipt',
+    confirmDelete: isRtl ? 'هل أنت متأكد من حذف هذا العقد؟' : 'Are you sure you want to delete this contract?',
+    yes: isRtl ? 'نعم' : 'Yes',
+    no: isRtl ? 'لا' : 'No',
+    renewDate: isRtl ? 'تاريخ الانتهاء الجديد' : 'New End Date',
+    terminateNote: isRtl ? 'سبب الإنهاء' : 'Termination Note',
+    refresh: isRtl ? 'تحديث' : 'Refresh',
   };
 
-  // Filter contracts (including by customer ID if provided)
+  // Filter contracts
   const filteredContracts = useMemo(() => {
     return allContracts.filter((contract) => {
-      // Filter by customer ID if provided in URL
-      if (customerId && contract.customerId !== Number(customerId)) {
-        return false;
-      }
+      if (customerId && contract.customerId !== Number(customerId)) return false;
       const searchLower = searchText.toLowerCase();
       const matchesSearch =
         !searchText ||
@@ -318,16 +328,13 @@ export default function RentContractsPage() {
         contract.customerNameAr.includes(searchText) ||
         contract.workerName.toLowerCase().includes(searchLower) ||
         contract.workerNameAr.includes(searchText);
-
       const matchesStatus = statusFilter === 'all' || contract.status === statusFilter;
       const matchesNationality =
-        nationalityFilter === 'all' || contract.nationalityId === nationalityFilter;
-
+        nationalityFilter === 'all' || contract.nationalityId === String(nationalityFilter);
       const matchesDate =
         !dateRange ||
         (new Date(contract.startDate) >= dateRange[0].toDate() &&
           new Date(contract.startDate) <= dateRange[1].toDate());
-
       return matchesSearch && matchesStatus && matchesNationality && matchesDate;
     });
   }, [allContracts, searchText, statusFilter, nationalityFilter, dateRange, customerId]);
@@ -336,8 +343,8 @@ export default function RentContractsPage() {
   const stats = useMemo(
     () => ({
       total: allContracts.length,
-      active: allContracts.filter((c) => c.status === 'active').length,
-      expiring: allContracts.filter((c) => c.daysRemaining < 30 && c.status === 'active').length,
+      executing: allContracts.filter((c) => c.status === 'executing').length,
+      expiring: allContracts.filter((c) => c.daysRemaining < 30 && c.status === 'executing').length,
       revenue: allContracts.reduce((sum, c) => sum + c.totalCollected, 0),
     }),
     [allContracts]
@@ -345,7 +352,7 @@ export default function RentContractsPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
+    return date.toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -353,7 +360,7 @@ export default function RentContractsPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
+    return new Intl.NumberFormat(isRtl ? 'ar-SA' : 'en-US', {
       style: 'currency',
       currency: 'SAR',
     }).format(amount);
@@ -361,20 +368,15 @@ export default function RentContractsPage() {
 
   const getStatusConfig = (status: string) => {
     const config: Record<string, { color: string; label: string; icon: React.ReactNode }> = {
-      active: { color: 'success', label: t.active, icon: <CheckCircleOutlined /> },
-      pending: { color: 'warning', label: t.pending, icon: <ClockCircleOutlined /> },
-      expired: { color: 'error', label: t.expired, icon: <ExclamationCircleOutlined /> },
-      renewed: { color: 'processing', label: t.renewed, icon: <ReloadOutlined /> },
-      cancelled: { color: 'default', label: t.cancelled, icon: <CloseCircleOutlined /> },
+      draft: { color: 'default', label: t.draft, icon: <FileTextOutlined /> },
+      signed: { color: 'processing', label: t.signed, icon: <CheckCircleOutlined /> },
+      executing: { color: 'success', label: t.executing, icon: <PlayCircleOutlined /> },
+      finished: { color: 'error', label: t.finished, icon: <StopOutlined /> },
     };
-    return (
-      config[status] || {
-        color: 'default',
-        label: status,
-        icon: <ClockCircleOutlined />,
-      }
-    );
+    return config[status] || { color: 'default', label: status, icon: <ClockCircleOutlined /> };
   };
+
+  // ─── Handlers ──────────────────────────────────────────────────────────────
 
   const handleViewDetails = (contract: RentContract) => {
     setSelectedContract(contract);
@@ -387,7 +389,6 @@ export default function RentContractsPage() {
     setShowCreateModal(true);
   };
 
-  // Handle offer selection in create modal — auto-fill form fields
   const handleCreateOfferSelect = (offer: EmploymentContractOffer) => {
     setCreateSelectedOffer(offer);
     createForm.setFieldsValue({
@@ -401,7 +402,6 @@ export default function RentContractsPage() {
     });
   };
 
-  // Handle create contract form submission
   const handleCreateContractSubmit = async () => {
     try {
       const values = await createForm.validateFields();
@@ -431,111 +431,326 @@ export default function RentContractsPage() {
     }
   };
 
-  const handleExportExcel = () => {
-    console.log('Export to Excel clicked');
-    // TODO: Implement Excel export
+  /** Open edit modal and pre-fill form from raw API contract */
+  const handleEditContract = (contract: RentContract) => {
+    const raw = contractsMap.get(contract.id);
+    setEditModal({ open: true, rawContract: raw || null });
+    editForm.setFieldsValue({
+      customerId: raw?.customerId,
+      nationalityId: raw?.nationalityId,
+      jobId: raw?.jobId,
+      duration: raw?.duration,
+      cost: raw?.cost,
+      insurance: raw?.insurance,
+      offerPrice: raw?.offerPrice,
+      contractStartDate: raw?.contractStartDate ? dayjs(raw.contractStartDate) : undefined,
+      contractEndDate: raw?.contractEndDate ? dayjs(raw.contractEndDate) : undefined,
+      workerNameAr: raw?.workerNameAr,
+      workerNameEn: raw?.workerNameEn,
+      workerPhone: raw?.workerPhone,
+      workersCount: raw?.workersCount,
+      customerAddress: raw?.customerAddress,
+      paymentMethod: raw?.paymentMethod,
+    });
   };
 
-  const handlePrint = () => {
-    console.log('Print clicked');
+  const handleEditContractSubmit = async () => {
+    if (!editModal.rawContract) return;
+    try {
+      const values = await editForm.validateFields();
+      updateContract({
+        id: editModal.rawContract.id,
+        data: {
+          customerId: values.customerId,
+          nationalityId: values.nationalityId,
+          jobId: values.jobId,
+          duration: values.duration,
+          cost: values.cost,
+          insurance: values.insurance,
+          offerPrice: values.offerPrice,
+          contractStartDate: values.contractStartDate?.toISOString(),
+          contractEndDate: values.contractEndDate?.toISOString(),
+          customerAddress: values.customerAddress,
+          workerNameAr: values.workerNameAr,
+          workerNameEn: values.workerNameEn,
+          workerPhone: values.workerPhone,
+          workersCount: values.workersCount,
+          paymentMethod: values.paymentMethod,
+        },
+      });
+      setEditModal({ open: false, rawContract: null });
+      editForm.resetFields();
+    } catch {
+      // validation errors handled by form
+    }
+  };
+
+  /** DELETE contract (Draft only) */
+  const handleDeleteContract = (contract: RentContract) => {
+    deleteContract(contract.id);
+  };
+
+  /** POST /sign — Draft → Signed */
+  const handleSignContract = (contract: RentContract) => {
+    signContract(contract.id);
+  };
+
+  /** POST /start-execution — Signed → Executing */
+  const handleStartExecution = (contract: RentContract) => {
+    startExecution(contract.id);
+  };
+
+  /** Open renew modal (Executing only) */
+  const handleOpenRenew = (contract: RentContract) => {
+    renewForm.resetFields();
+    setRenewModal({ open: true, contractId: contract.id });
+  };
+
+  /** Submit renew — POST /renew with new end date */
+  const handleRenewSubmit = async () => {
+    try {
+      const values = await renewForm.validateFields();
+      if (!renewModal.contractId) return;
+      renewContract({
+        id: renewModal.contractId,
+        newEndDate: values.newEndDate.toISOString(),
+      });
+      setRenewModal({ open: false, contractId: null });
+      renewForm.resetFields();
+    } catch {
+      // validation errors handled by form
+    }
+  };
+
+  /** Open terminate modal (Executing only) */
+  const handleOpenTerminate = (contract: RentContract) => {
+    terminateForm.resetFields();
+    setTerminateModal({ open: true, contractId: contract.id });
+  };
+
+  /** Submit terminate — POST /terminate with note */
+  const handleTerminateSubmit = async () => {
+    try {
+      const values = await terminateForm.validateFields();
+      if (!terminateModal.contractId) return;
+      terminateContract({
+        id: terminateModal.contractId,
+        note: values.note || '',
+      });
+      setTerminateModal({ open: false, contractId: null });
+      terminateForm.resetFields();
+    } catch {
+      // validation errors handled by form
+    }
+  };
+
+  /** GET /print-receipt-form — fetch and print */
+  const handlePrintContract = async (contract: RentContract) => {
+    await printReceiptForm(contract.id);
     window.print();
   };
 
-  const handleEditContract = (contract: RentContract) => {
-    console.log('Edit contract:', contract.id);
-    // TODO: Navigate to edit page or open modal
+  const handleExportExcel = () => {
+    console.log('Export to Excel — TODO');
   };
 
-  const handleDeleteContract = (contract: RentContract) => {
-    console.log('Delete contract:', contract.id);
-    // TODO: Show confirmation modal and delete
-  };
+  // ─── Menu items (status-conditional) ───────────────────────────────────────
 
-  const handlePrintContract = (contract: RentContract) => {
-    console.log('Print contract:', contract.id);
-    // TODO: Open print preview for specific contract
-  };
+  const getMenuItems = (contract: RentContract): MenuProps['items'] => {
+    const items: MenuProps['items'] = [
+      {
+        key: 'view',
+        label: t.viewDetails,
+        icon: <EyeOutlined />,
+        onClick: () => handleViewDetails(contract),
+      },
+    ];
 
-  const handleAddNote = (contract: RentContract) => {
-    console.log('Add note for contract:', contract.id);
-    // TODO: Open add note modal
-  };
+    // Edit — available in Draft and Signed states
+    if (contract.contractStatus === 1 || contract.contractStatus === 2) {
+      items.push({
+        key: 'edit',
+        label: t.edit,
+        icon: <EditOutlined />,
+        onClick: () => handleEditContract(contract),
+      });
+    }
 
-  const handleAddComplaint = (contract: RentContract) => {
-    console.log('Add complaint for contract:', contract.id);
-    // TODO: Open add complaint modal
-  };
-
-  const handleAddContact = (contract: RentContract) => {
-    console.log('Add contact for contract:', contract.id);
-    // TODO: Open add contact modal
-  };
-
-  const handleCollectPayment = (contract: RentContract) => {
-    console.log('Collect payment for contract:', contract.id);
-    // TODO: Open payment collection modal
-  };
-
-  const handleRenewContract = (contract: RentContract) => {
-    console.log('Renew contract:', contract.id);
-    // TODO: Open contract renewal modal
-  };
-
-  const handleReleaseWorker = (contract: RentContract) => {
-    console.log('Release worker from contract:', contract.id);
-    // TODO: Open release worker confirmation
-  };
-
-  const handleTransferWorker = (contract: RentContract) => {
-    console.log('Transfer worker from contract:', contract.id);
-    // TODO: Open transfer worker modal
-  };
-
-  const handleCancelContract = (contract: RentContract) => {
-    console.log('Cancel contract:', contract.id);
-    // TODO: Open cancel contract confirmation
-  };
-
-  const handleFollowUpStatus = (contract: RentContract) => {
-    console.log('View follow-up status for contract:', contract.id);
-    // TODO: Navigate to follow-up page or open modal
-  };
-
-  const getMenuItems = (contract: RentContract): MenuProps['items'] => [
-    {
-      key: 'view',
-      label: t.viewDetails,
-      icon: <EyeOutlined />,
-      onClick: () => handleViewDetails(contract),
-    },
-    {
-      key: 'edit',
-      label: t.edit,
-      icon: <EditOutlined />,
-      onClick: () => handleEditContract(contract),
-    },
-    {
+    // Print receipt — always available
+    items.push({
       key: 'print',
-      label: t.print,
+      label: t.printReceipt,
       icon: <PrinterOutlined />,
       onClick: () => handlePrintContract(contract),
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'delete',
-      label: t.delete,
-      icon: <DeleteOutlined />,
-      danger: true,
-      onClick: () => handleDeleteContract(contract),
-    },
-  ];
+    });
+
+    // Delete — Draft only (with confirmation handled inline)
+    if (contract.contractStatus === 1) {
+      items.push({ type: 'divider' });
+      items.push({
+        key: 'delete',
+        label: (
+          <Popconfirm
+            title={t.confirmDelete}
+            okText={t.yes}
+            cancelText={t.no}
+            onConfirm={() => handleDeleteContract(contract)}
+          >
+            <span style={{ color: '#ff4d4f' }}>
+              <DeleteOutlined style={{ marginInlineEnd: 8 }} />
+              {t.delete}
+            </span>
+          </Popconfirm>
+        ),
+      });
+    }
+
+    return items;
+  };
+
+  // ─── Card bottom buttons — status-conditional ───────────────────────────────
+
+  const renderCardActions = (contract: RentContract) => {
+    const { contractStatus } = contract;
+
+    if (contractStatus === 1) {
+      // Draft: Sign, Edit, Delete
+      return (
+        <Space wrap>
+          <Popconfirm
+            title={isRtl ? 'هل تريد توقيع هذا العقد؟' : 'Sign this contract?'}
+            okText={t.yes}
+            cancelText={t.no}
+            onConfirm={() => handleSignContract(contract)}
+          >
+            <Button
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              loading={isSigning}
+              size="small"
+            >
+              {t.signContract}
+            </Button>
+          </Popconfirm>
+
+          <Button
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => handleEditContract(contract)}
+          >
+            {t.edit}
+          </Button>
+
+          <Popconfirm
+            title={t.confirmDelete}
+            okText={t.yes}
+            cancelText={t.no}
+            onConfirm={() => handleDeleteContract(contract)}
+          >
+            <Button danger icon={<DeleteOutlined />} size="small" loading={isDeleting}>
+              {t.delete}
+            </Button>
+          </Popconfirm>
+        </Space>
+      );
+    }
+
+    if (contractStatus === 2) {
+      // Signed: Start Execution, Print Receipt, Edit
+      return (
+        <Space wrap>
+          <Popconfirm
+            title={isRtl ? 'هل تريد بدء تنفيذ العقد؟' : 'Start contract execution?'}
+            okText={t.yes}
+            cancelText={t.no}
+            onConfirm={() => handleStartExecution(contract)}
+          >
+            <Button
+              type="primary"
+              icon={<PlayCircleOutlined />}
+              loading={isStartingExecution}
+              size="small"
+            >
+              {t.startExecution}
+            </Button>
+          </Popconfirm>
+
+          <Button
+            icon={<PrinterOutlined />}
+            size="small"
+            onClick={() => handlePrintContract(contract)}
+          >
+            {t.printReceipt}
+          </Button>
+
+          <Button
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => handleEditContract(contract)}
+          >
+            {t.edit}
+          </Button>
+        </Space>
+      );
+    }
+
+    if (contractStatus === 3) {
+      // Executing: Renew, Terminate, Print Receipt
+      return (
+        <Space wrap>
+          <Button
+            type="primary"
+            icon={<ReloadOutlined />}
+            size="small"
+            onClick={() => handleOpenRenew(contract)}
+            loading={isRenewing}
+          >
+            {t.renewContract}
+          </Button>
+
+          <Button
+            danger
+            icon={<StopOutlined />}
+            size="small"
+            onClick={() => handleOpenTerminate(contract)}
+            loading={isTerminating}
+          >
+            {t.terminateContract}
+          </Button>
+
+          <Button
+            icon={<PrinterOutlined />}
+            size="small"
+            onClick={() => handlePrintContract(contract)}
+          >
+            {t.printReceipt}
+          </Button>
+        </Space>
+      );
+    }
+
+    if (contractStatus === 4) {
+      // Finished: Print Receipt only
+      return (
+        <Space>
+          <Button
+            icon={<PrinterOutlined />}
+            size="small"
+            onClick={() => handlePrintContract(contract)}
+          >
+            {t.printReceipt}
+          </Button>
+        </Space>
+      );
+    }
+
+    return null;
+  };
 
   const renderContractCard = (contract: RentContract) => {
     const statusConfig = getStatusConfig(contract.status);
-    const collectionProgress =
-      (contract.totalCollected / (contract.totalCollected + contract.remainingAmount)) * 100;
+    const totalAmount = contract.totalCollected + contract.remainingAmount;
+    const collectionProgress = totalAmount > 0 ? (contract.totalCollected / totalAmount) * 100 : 0;
 
     return (
       <Col xs={24} key={contract.id}>
@@ -548,22 +763,16 @@ export default function RentContractsPage() {
                 <div className={styles.contractNumber}>
                   <FileTextOutlined className={styles.contractIcon} />
                   <span>#{contract.contractNumber}</span>
-                  {contract.renewalCount > 0 && (
-                    <Tag color="cyan" className={styles.renewalTag}>
-                      <ReloadOutlined /> {contract.renewalCount}{' '}
-                      {language === 'ar' ? 'تجديد' : 'Renewals'}
-                    </Tag>
-                  )}
                 </div>
                 <Dropdown menu={{ items: getMenuItems(contract) }} trigger={['click']}>
                   <Button type="text" icon={<MoreOutlined />} className={styles.moreBtn} />
                 </Dropdown>
               </div>
 
-              {/* Status & Days Left */}
+              {/* Status */}
               <div className={styles.tagsSection}>
                 <Badge status={statusConfig.color as any} text={statusConfig.label} />
-                {contract.status === 'active' && contract.daysRemaining < 30 && (
+                {contract.contractStatus === 3 && contract.daysRemaining < 30 && (
                   <Tag color="warning" icon={<ClockCircleOutlined />}>
                     {contract.daysRemaining} {t.daysLeft}
                   </Tag>
@@ -575,7 +784,7 @@ export default function RentContractsPage() {
                 <Avatar size={44} icon={<UserOutlined />} className={styles.customerAvatar} />
                 <div className={styles.customerDetails}>
                   <span className={styles.customerName}>
-                    {language === 'ar' ? contract.customerNameAr : contract.customerName}
+                    {isRtl ? contract.customerNameAr : contract.customerName}
                   </span>
                   <div className={styles.customerMeta}>
                     <PhoneOutlined />
@@ -591,7 +800,7 @@ export default function RentContractsPage() {
                   <div className={styles.workerText}>
                     <span className={styles.workerLabel}>{t.worker}</span>
                     <span className={styles.workerValue}>
-                      {language === 'ar' ? contract.workerNameAr : contract.workerName}
+                      {isRtl ? contract.workerNameAr : contract.workerName}
                     </span>
                   </div>
                 </div>
@@ -600,7 +809,7 @@ export default function RentContractsPage() {
                   <div className={styles.workerText}>
                     <span className={styles.workerLabel}>{t.nationality}</span>
                     <span className={styles.workerValue}>
-                      {language === 'ar' ? contract.nationalityAr : contract.nationality}
+                      {isRtl ? contract.nationalityAr : contract.nationality}
                     </span>
                   </div>
                 </div>
@@ -609,7 +818,7 @@ export default function RentContractsPage() {
                   <div className={styles.workerText}>
                     <span className={styles.workerLabel}>{t.profession}</span>
                     <span className={styles.workerValue}>
-                      {language === 'ar' ? contract.professionAr : contract.profession}
+                      {isRtl ? contract.professionAr : contract.profession}
                     </span>
                   </div>
                 </div>
@@ -618,7 +827,7 @@ export default function RentContractsPage() {
 
             {/* Right Section */}
             <div className={styles.cardRight}>
-              {/* Monthly Rent */}
+              {/* Cost */}
               <div className={styles.rentSection}>
                 <div className={styles.rentHeader}>
                   <span className={styles.rentLabel}>{t.monthlyRent}</span>
@@ -627,10 +836,7 @@ export default function RentContractsPage() {
                 <Progress
                   percent={collectionProgress}
                   showInfo={false}
-                  strokeColor={{
-                    '0%': '#003366',
-                    '100%': '#0056b3',
-                  }}
+                  strokeColor={{ '0%': '#003366', '100%': '#0056b3' }}
                 />
                 <div className={styles.rentAmounts}>
                   <div className={styles.amountItem}>
@@ -674,110 +880,165 @@ export default function RentContractsPage() {
             </div>
           </div>
 
-          {/* Bottom Section - Action Buttons */}
+          {/* Bottom Section - Status-conditional action buttons */}
           <div className={styles.cardBottom}>
-            <div className={styles.actionsList}>
-              <Button
-                type="link"
-                icon={<FileProtectOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => handleAddNote(contract)}
-              >
-                {t.addNote}
-              </Button>
-              <Button
-                type="link"
-                icon={<WarningOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => handleAddComplaint(contract)}
-              >
-                {t.addComplaint}
-              </Button>
-              <Button
-                type="link"
-                icon={<PhoneOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => handleAddContact(contract)}
-              >
-                {t.addContact}
-              </Button>
-              <Button
-                type="link"
-                icon={<MoneyCollectOutlined />}
-                className={`${styles.actionBtn} ${styles.successBtn}`}
-                block
-                onClick={() => handleCollectPayment(contract)}
-              >
-                {t.collectPayment}
-              </Button>
-              <Button
-                type="link"
-                icon={<ReloadOutlined />}
-                className={`${styles.actionBtn} ${styles.successBtn}`}
-                block
-                onClick={() => handleRenewContract(contract)}
-              >
-                {t.renewContract}
-              </Button>
-              <Button
-                type="link"
-                icon={<UserDeleteOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => handleReleaseWorker(contract)}
-              >
-                {t.releaseWorker}
-              </Button>
-              <Button
-                type="link"
-                icon={<UserAddOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => handleTransferWorker(contract)}
-              >
-                {t.transferWorker}
-              </Button>
-              <Button
-                type="link"
-                icon={<CloseCircleOutlined />}
-                className={`${styles.actionBtn} ${styles.dangerBtn}`}
-                block
-                onClick={() => handleCancelContract(contract)}
-              >
-                {t.cancel}
-              </Button>
-              <Button
-                type="link"
-                icon={<BarsOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => handleFollowUpStatus(contract)}
-              >
-                {t.followUpStatus}
-              </Button>
-            </div>
+            <div className={styles.actionsList}>{renderCardActions(contract)}</div>
           </div>
         </Card>
       </Col>
     );
   };
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
   if (isLoading) {
     return (
-      <div
-        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}
-      >
-        <Spin size="large" tip={language === 'ar' ? 'جاري التحميل...' : 'Loading...'} />
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <Spin size="large" tip={isRtl ? 'جاري التحميل...' : 'Loading...'} />
       </div>
     );
   }
+
+  // ─── Shared form fields (used in both Create and Edit modals) ──────────────
+
+  const renderContractFormFields = (form: ReturnType<typeof Form.useForm>[0]) => (
+    <>
+      <Form.Item name="offerId" hidden>
+        <Input />
+      </Form.Item>
+
+      <Row gutter={[16, 0]}>
+        <Col xs={24} sm={12}>
+          <Form.Item
+            name="customerId"
+            label={isRtl ? 'العميل' : 'Customer'}
+            rules={[{ required: true, message: isRtl ? 'مطلوب' : 'Required' }]}
+          >
+            <Select
+              showSearch
+              optionFilterProp="label"
+              placeholder={isRtl ? 'اختر العميل' : 'Select Customer'}
+              options={(customers as any[]).map((c: any) => ({
+                value: c.id,
+                label: isRtl ? c.arabicName || c.englishName || `#${c.id}` : c.englishName || c.arabicName || `#${c.id}`,
+              }))}
+            />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Form.Item name="nationalityId" label={isRtl ? 'الجنسية' : 'Nationality'}>
+            <Select
+              showSearch
+              optionFilterProp="label"
+              placeholder={isRtl ? 'اختر الجنسية' : 'Select Nationality'}
+              options={nationalities.map((n) => ({
+                value: String(n.id),
+                label: isRtl ? n.nationalityNameAr : n.nationalityNameEn,
+              }))}
+            />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 0]}>
+        <Col xs={24} sm={12}>
+          <Form.Item name="jobId" label={isRtl ? 'الوظيفة' : 'Job'}>
+            <Select
+              showSearch
+              optionFilterProp="label"
+              placeholder={isRtl ? 'اختر الوظيفة' : 'Select Job'}
+              options={(jobs as any[]).map((j: any) => ({
+                value: j.id,
+                label: isRtl ? j.jobNameAr || j.name : j.jobNameEn || j.name,
+              }))}
+            />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Form.Item name="duration" label={isRtl ? 'المدة (أشهر)' : 'Duration (months)'}>
+            <InputNumber style={{ width: '100%' }} min={1} max={24} />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 0]}>
+        <Col xs={24} sm={8}>
+          <Form.Item name="cost" label={isRtl ? 'التكلفة' : 'Cost'}>
+            <InputNumber style={{ width: '100%' }} min={0} addonAfter={isRtl ? 'ريال' : 'SAR'} />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Form.Item name="insurance" label={isRtl ? 'التأمين' : 'Insurance'}>
+            <InputNumber style={{ width: '100%' }} min={0} addonAfter={isRtl ? 'ريال' : 'SAR'} />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Form.Item name="offerPrice" label={isRtl ? 'الإجمالي مع الضريبة' : 'Total with Tax'}>
+            <InputNumber style={{ width: '100%' }} min={0} addonAfter={isRtl ? 'ريال' : 'SAR'} />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 0]}>
+        <Col xs={24} sm={12}>
+          <Form.Item name="contractStartDate" label={isRtl ? 'تاريخ البداية' : 'Start Date'}>
+            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Form.Item name="contractEndDate" label={isRtl ? 'تاريخ النهاية' : 'End Date'}>
+            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 0]}>
+        <Col xs={24} sm={12}>
+          <Form.Item name="workerNameAr" label={isRtl ? 'اسم العامل (عربي)' : 'Worker Name (Arabic)'}>
+            <Input placeholder={isRtl ? 'اسم العامل بالعربي' : 'Worker name in Arabic'} />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Form.Item name="workerNameEn" label={isRtl ? 'اسم العامل (إنجليزي)' : 'Worker Name (English)'}>
+            <Input placeholder={isRtl ? 'اسم العامل بالإنجليزي' : 'Worker name in English'} />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 0]}>
+        <Col xs={24} sm={12}>
+          <Form.Item name="workerPhone" label={isRtl ? 'هاتف العامل' : 'Worker Phone'}>
+            <Input placeholder="05xxxxxxxx" />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Form.Item name="customerAddress" label={isRtl ? 'عنوان العميل' : 'Customer Address'}>
+            <Input placeholder={isRtl ? 'العنوان' : 'Address'} />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 0]}>
+        <Col xs={24} sm={12}>
+          <Form.Item name="workersCount" label={isRtl ? 'عدد العمال' : 'Workers Count'}>
+            <InputNumber style={{ width: '100%' }} min={1} />
+          </Form.Item>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Form.Item name="paymentMethod" label={isRtl ? 'طريقة الدفع' : 'Payment Method'}>
+            <Select
+              placeholder={isRtl ? 'اختر طريقة الدفع' : 'Select Payment Method'}
+              options={[
+                { value: 1, label: isRtl ? 'نقدي' : 'Cash' },
+                { value: 2, label: isRtl ? 'شبكة' : 'Card/Network' },
+                { value: 3, label: isRtl ? 'تحويل بنكي' : 'Bank Transfer' },
+              ]}
+            />
+          </Form.Item>
+        </Col>
+      </Row>
+    </>
+  );
 
   return (
     <div className={styles.rentContractsPage}>
@@ -792,19 +1053,8 @@ export default function RentContractsPage() {
             </div>
           </div>
           <div className={styles.headerActions}>
-            <Button
-              icon={<FileExcelOutlined />}
-              className={styles.secondaryBtn}
-              onClick={handleExportExcel}
-            >
+            <Button icon={<FileExcelOutlined />} className={styles.secondaryBtn} onClick={handleExportExcel}>
               {t.exportExcel}
-            </Button>
-            <Button
-              icon={<PrinterOutlined />}
-              className={styles.secondaryBtn}
-              onClick={handlePrint}
-            >
-              {t.print}
             </Button>
             <Button
               type="primary"
@@ -834,7 +1084,7 @@ export default function RentContractsPage() {
           <Card className={styles.statCard}>
             <Statistic
               title={t.activeContracts}
-              value={stats.active}
+              value={stats.executing}
               prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
               valueStyle={{ color: '#52c41a' }}
             />
@@ -869,12 +1119,10 @@ export default function RentContractsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <UserOutlined style={{ color: '#1890ff' }} />
             <span>
-              {language === 'ar'
-                ? `عرض عقود العميل رقم: ${customerId}`
-                : `Showing contracts for Customer ID: ${customerId}`}
+              {isRtl ? `عرض عقود العميل رقم: ${customerId}` : `Showing contracts for Customer ID: ${customerId}`}
             </span>
             <Button type="link" size="small" onClick={() => router.push('/operation/rent')}>
-              {language === 'ar' ? 'عرض جميع العقود' : 'Show All Contracts'}
+              {isRtl ? 'عرض جميع العقود' : 'Show All Contracts'}
             </Button>
           </div>
         </Card>
@@ -902,11 +1150,10 @@ export default function RentContractsPage() {
               size="large"
               options={[
                 { value: 'all', label: t.allStatuses },
-                { value: 'active', label: t.active },
-                { value: 'pending', label: t.pending },
-                { value: 'expired', label: t.expired },
-                { value: 'renewed', label: t.renewed },
-                { value: 'cancelled', label: t.cancelled },
+                { value: 'draft', label: t.draft },
+                { value: 'signed', label: t.signed },
+                { value: 'executing', label: t.executing },
+                { value: 'finished', label: t.finished },
               ]}
             />
           </Col>
@@ -918,9 +1165,9 @@ export default function RentContractsPage() {
               size="large"
               options={[
                 { value: 'all', label: t.allNationalities },
-                ...NATIONALITIES.map((n) => ({
-                  value: n.value,
-                  label: language === 'ar' ? n.labelAr : n.labelEn,
+                ...nationalities.map((n) => ({
+                  value: String(n.id),
+                  label: isRtl ? n.nationalityNameAr : n.nationalityNameEn,
                 })),
               ]}
             />
@@ -941,7 +1188,7 @@ export default function RentContractsPage() {
       {/* Results Info */}
       <div className={styles.resultsInfo}>
         <span>
-          {language === 'ar'
+          {isRtl
             ? `عرض ${filteredContracts.length} من ${allContracts.length} عقد`
             : `Showing ${filteredContracts.length} of ${allContracts.length} contracts`}
         </span>
@@ -958,7 +1205,7 @@ export default function RentContractsPage() {
         </Card>
       )}
 
-      {/* Create Contract Modal */}
+      {/* ─── Create Contract Modal ─────────────────────────────────────────── */}
       <Modal
         title={
           <span>
@@ -983,29 +1230,19 @@ export default function RentContractsPage() {
           >
             {isRtl ? 'إلغاء' : 'Cancel'}
           </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            loading={isCreating}
-            onClick={handleCreateContractSubmit}
-          >
+          <Button key="submit" type="primary" loading={isCreating} onClick={handleCreateContractSubmit}>
             {isRtl ? 'إنشاء العقد' : 'Create Contract'}
           </Button>,
         ]}
         width={1000}
         destroyOnClose
       >
-        {/* Step 1: Select Offer */}
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ marginBottom: 8 }}>{isRtl ? '1. اختر العرض' : '1. Select Offer'}</h3>
           <Alert
             type="info"
             showIcon
-            message={
-              isRtl
-                ? 'اختر عرض من الجدول أدناه لملء بيانات العقد تلقائياً'
-                : 'Select an offer from the table below to auto-fill contract data'
-            }
+            message={isRtl ? 'اختر عرض من الجدول أدناه لملء بيانات العقد تلقائياً' : 'Select an offer from the table below to auto-fill contract data'}
             style={{ marginBottom: 16 }}
           />
           <RentOfferSelector
@@ -1016,266 +1253,146 @@ export default function RentContractsPage() {
           />
         </div>
 
-        {/* Step 2: Contract Form */}
         <div>
           <h3 style={{ marginBottom: 16 }}>{isRtl ? '2. بيانات العقد' : '2. Contract Details'}</h3>
-
           {createSelectedOffer && (
             <Alert
               type="success"
               showIcon
-              message={
-                isRtl
-                  ? `تم ملء البيانات تلقائياً من العرض #${createSelectedOffer.id}`
-                  : `Data auto-filled from Offer #${createSelectedOffer.id}`
-              }
+              message={isRtl ? `تم ملء البيانات تلقائياً من العرض #${createSelectedOffer.id}` : `Data auto-filled from Offer #${createSelectedOffer.id}`}
               style={{ marginBottom: 16 }}
             />
           )}
-
-          <Form
-            form={createForm}
-            layout="vertical"
-            requiredMark="optional"
-            dir={isRtl ? 'rtl' : 'ltr'}
-          >
-            <Form.Item name="offerId" hidden>
-              <Input />
-            </Form.Item>
-
-            <Row gutter={[16, 0]}>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="customerId"
-                  label={isRtl ? 'العميل' : 'Customer'}
-                  rules={[{ required: true, message: isRtl ? 'مطلوب' : 'Required' }]}
-                >
-                  <Select
-                    showSearch
-                    optionFilterProp="label"
-                    placeholder={isRtl ? 'اختر العميل' : 'Select Customer'}
-                    options={(customers as any[]).map((c: any) => ({
-                      value: c.id,
-                      label: isRtl
-                        ? c.arabicName || c.englishName || `#${c.id}`
-                        : c.englishName || c.arabicName || `#${c.id}`,
-                    }))}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="nationalityId"
-                  label={
-                    <span>
-                      {isRtl ? 'الجنسية' : 'Nationality'}
-                      {createSelectedOffer && (
-                        <Tag color="green" style={{ marginInlineStart: 8, fontSize: 11 }}>
-                          {isRtl ? 'من العرض' : 'From Offer'}
-                        </Tag>
-                      )}
-                    </span>
-                  }
-                >
-                  <Select
-                    showSearch
-                    optionFilterProp="label"
-                    placeholder={isRtl ? 'اختر الجنسية' : 'Select Nationality'}
-                    options={NATIONALITIES.map((n) => ({
-                      value: n.value,
-                      label: isRtl ? n.labelAr : n.labelEn,
-                    }))}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={[16, 0]}>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="jobId"
-                  label={
-                    <span>
-                      {isRtl ? 'الوظيفة' : 'Job'}
-                      {createSelectedOffer && (
-                        <Tag color="blue" style={{ marginInlineStart: 8, fontSize: 11 }}>
-                          {isRtl ? 'من العرض' : 'From Offer'}
-                        </Tag>
-                      )}
-                    </span>
-                  }
-                >
-                  <Select
-                    showSearch
-                    optionFilterProp="label"
-                    placeholder={isRtl ? 'اختر الوظيفة' : 'Select Job'}
-                    options={(jobs as any[]).map((j: any) => ({
-                      value: j.id,
-                      label: isRtl ? j.jobNameAr || j.name : j.jobNameEn || j.name,
-                    }))}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="duration"
-                  label={
-                    <span>
-                      {isRtl ? 'المدة (أشهر)' : 'Duration (months)'}
-                      {createSelectedOffer && (
-                        <Tag color="orange" style={{ marginInlineStart: 8, fontSize: 11 }}>
-                          {isRtl ? 'من العرض' : 'From Offer'}
-                        </Tag>
-                      )}
-                    </span>
-                  }
-                >
-                  <InputNumber style={{ width: '100%' }} min={1} max={24} />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={[16, 0]}>
-              <Col xs={24} sm={8}>
-                <Form.Item
-                  name="cost"
-                  label={
-                    <span>
-                      {isRtl ? 'التكلفة' : 'Cost'}
-                      {createSelectedOffer && (
-                        <Tag color="green" style={{ marginInlineStart: 8, fontSize: 11 }}>
-                          {isRtl ? 'من العرض' : 'From Offer'}
-                        </Tag>
-                      )}
-                    </span>
-                  }
-                >
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    min={0}
-                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    addonAfter={isRtl ? 'ريال' : 'SAR'}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={8}>
-                <Form.Item
-                  name="insurance"
-                  label={
-                    <span>
-                      {isRtl ? 'التأمين' : 'Insurance'}
-                      {createSelectedOffer && (
-                        <Tag color="purple" style={{ marginInlineStart: 8, fontSize: 11 }}>
-                          {isRtl ? 'من العرض' : 'From Offer'}
-                        </Tag>
-                      )}
-                    </span>
-                  }
-                >
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    min={0}
-                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    addonAfter={isRtl ? 'ريال' : 'SAR'}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={8}>
-                <Form.Item
-                  name="offerPrice"
-                  label={
-                    <span>
-                      {isRtl ? 'الإجمالي مع الضريبة' : 'Total with Tax'}
-                      {createSelectedOffer && (
-                        <Tag color="cyan" style={{ marginInlineStart: 8, fontSize: 11 }}>
-                          {isRtl ? 'من العرض' : 'From Offer'}
-                        </Tag>
-                      )}
-                    </span>
-                  }
-                >
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    min={0}
-                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    addonAfter={isRtl ? 'ريال' : 'SAR'}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={[16, 0]}>
-              <Col xs={24} sm={12}>
-                <Form.Item name="contractStartDate" label={isRtl ? 'تاريخ البداية' : 'Start Date'}>
-                  <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item name="contractEndDate" label={isRtl ? 'تاريخ النهاية' : 'End Date'}>
-                  <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={[16, 0]}>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="workerNameAr"
-                  label={isRtl ? 'اسم العامل (عربي)' : 'Worker Name (Arabic)'}
-                >
-                  <Input placeholder={isRtl ? 'اسم العامل بالعربي' : 'Worker name in Arabic'} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="workerNameEn"
-                  label={isRtl ? 'اسم العامل (إنجليزي)' : 'Worker Name (English)'}
-                >
-                  <Input placeholder={isRtl ? 'اسم العامل بالإنجليزي' : 'Worker name in English'} />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={[16, 0]}>
-              <Col xs={24} sm={12}>
-                <Form.Item name="workerPhone" label={isRtl ? 'هاتف العامل' : 'Worker Phone'}>
-                  <Input placeholder="05xxxxxxxx" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="customerAddress"
-                  label={isRtl ? 'عنوان العميل' : 'Customer Address'}
-                >
-                  <Input placeholder={isRtl ? 'العنوان' : 'Address'} />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={[16, 0]}>
-              <Col xs={24} sm={12}>
-                <Form.Item name="workersCount" label={isRtl ? 'عدد العمال' : 'Workers Count'}>
-                  <InputNumber style={{ width: '100%' }} min={1} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item name="paymentMethod" label={isRtl ? 'طريقة الدفع' : 'Payment Method'}>
-                  <Select
-                    placeholder={isRtl ? 'اختر طريقة الدفع' : 'Select Payment Method'}
-                    options={[
-                      { value: 1, label: isRtl ? 'نقدي' : 'Cash' },
-                      { value: 2, label: isRtl ? 'شبكة' : 'Card/Network' },
-                      { value: 3, label: isRtl ? 'تحويل بنكي' : 'Bank Transfer' },
-                    ]}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
+          <Form form={createForm} layout="vertical" requiredMark="optional" dir={isRtl ? 'rtl' : 'ltr'}>
+            {renderContractFormFields(createForm)}
           </Form>
         </div>
       </Modal>
 
-      {/* Details Modal */}
+      {/* ─── Edit Contract Modal ───────────────────────────────────────────── */}
+      <Modal
+        title={
+          <span>
+            <EditOutlined style={{ marginInlineEnd: 8 }} />
+            {isRtl ? 'تعديل العقد' : 'Edit Contract'}
+          </span>
+        }
+        open={editModal.open}
+        onCancel={() => {
+          setEditModal({ open: false, rawContract: null });
+          editForm.resetFields();
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setEditModal({ open: false, rawContract: null });
+              editForm.resetFields();
+            }}
+          >
+            {isRtl ? 'إلغاء' : 'Cancel'}
+          </Button>,
+          <Button key="submit" type="primary" loading={isUpdating} onClick={handleEditContractSubmit}>
+            {isRtl ? 'حفظ التعديلات' : 'Save Changes'}
+          </Button>,
+        ]}
+        width={900}
+        destroyOnClose
+      >
+        <Form form={editForm} layout="vertical" requiredMark="optional" dir={isRtl ? 'rtl' : 'ltr'}>
+          {renderContractFormFields(editForm)}
+        </Form>
+      </Modal>
+
+      {/* ─── Renew Contract Modal ──────────────────────────────────────────── */}
+      <Modal
+        title={
+          <span>
+            <ReloadOutlined style={{ marginInlineEnd: 8 }} />
+            {t.renewContract}
+          </span>
+        }
+        open={renewModal.open}
+        onCancel={() => {
+          setRenewModal({ open: false, contractId: null });
+          renewForm.resetFields();
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setRenewModal({ open: false, contractId: null });
+              renewForm.resetFields();
+            }}
+          >
+            {isRtl ? 'إلغاء' : 'Cancel'}
+          </Button>,
+          <Button key="submit" type="primary" loading={isRenewing} onClick={handleRenewSubmit}>
+            {isRtl ? 'تجديد' : 'Renew'}
+          </Button>,
+        ]}
+        width={420}
+        destroyOnClose
+      >
+        <Form form={renewForm} layout="vertical" dir={isRtl ? 'rtl' : 'ltr'}>
+          <Form.Item
+            name="newEndDate"
+            label={t.renewDate}
+            rules={[{ required: true, message: isRtl ? 'مطلوب' : 'Required' }]}
+          >
+            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" disabledDate={(d) => d.isBefore(dayjs())} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ─── Terminate Contract Modal ──────────────────────────────────────── */}
+      <Modal
+        title={
+          <span>
+            <StopOutlined style={{ marginInlineEnd: 8, color: '#ff4d4f' }} />
+            {t.terminateContract}
+          </span>
+        }
+        open={terminateModal.open}
+        onCancel={() => {
+          setTerminateModal({ open: false, contractId: null });
+          terminateForm.resetFields();
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setTerminateModal({ open: false, contractId: null });
+              terminateForm.resetFields();
+            }}
+          >
+            {isRtl ? 'إلغاء' : 'Cancel'}
+          </Button>,
+          <Button key="submit" danger loading={isTerminating} onClick={handleTerminateSubmit}>
+            {isRtl ? 'إنهاء العقد' : 'Terminate'}
+          </Button>,
+        ]}
+        width={420}
+        destroyOnClose
+      >
+        <Alert
+          type="warning"
+          showIcon
+          message={isRtl ? 'سيتم إنهاء العقد وإعادة العامل إلى السكن' : 'The contract will be terminated and the worker returned to accommodation'}
+          style={{ marginBottom: 16 }}
+        />
+        <Form form={terminateForm} layout="vertical" dir={isRtl ? 'rtl' : 'ltr'}>
+          <Form.Item
+            name="note"
+            label={t.terminateNote}
+            rules={[{ required: true, message: isRtl ? 'مطلوب' : 'Required' }]}
+          >
+            <TextArea rows={4} placeholder={isRtl ? 'أدخل سبب الإنهاء...' : 'Enter termination reason...'} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ─── Details Modal ─────────────────────────────────────────────────── */}
       <Modal
         title={`${t.contractNumber}: #${selectedContract?.contractNumber}`}
         open={showDetailsModal}
@@ -1285,7 +1402,7 @@ export default function RentContractsPage() {
         }}
         footer={
           <Button type="primary" onClick={() => setShowDetailsModal(false)}>
-            {language === 'ar' ? 'إغلاق' : 'Close'}
+            {isRtl ? 'إغلاق' : 'Close'}
           </Button>
         }
         width={650}
@@ -1297,9 +1414,7 @@ export default function RentContractsPage() {
                 <div className={styles.modalSection}>
                   <h4>{t.customer}</h4>
                   <p className={styles.modalValue}>
-                    {language === 'ar'
-                      ? selectedContract.customerNameAr
-                      : selectedContract.customerName}
+                    {isRtl ? selectedContract.customerNameAr : selectedContract.customerName}
                   </p>
                 </div>
               </Col>
@@ -1307,9 +1422,7 @@ export default function RentContractsPage() {
                 <div className={styles.modalSection}>
                   <h4>{t.worker}</h4>
                   <p className={styles.modalValue}>
-                    {language === 'ar'
-                      ? selectedContract.workerNameAr
-                      : selectedContract.workerName}
+                    {isRtl ? selectedContract.workerNameAr : selectedContract.workerName}
                   </p>
                 </div>
               </Col>
@@ -1324,27 +1437,9 @@ export default function RentContractsPage() {
               </Col>
               <Col span={12}>
                 <div className={styles.modalSection}>
-                  <h4>{t.renewals}</h4>
-                  <p className={styles.modalValue}>{selectedContract.renewalCount}</p>
-                </div>
-              </Col>
-              <Col span={12}>
-                <div className={styles.modalSection}>
                   <h4>{t.nationality}</h4>
                   <p className={styles.modalValue}>
-                    {language === 'ar'
-                      ? selectedContract.nationalityAr
-                      : selectedContract.nationality}
-                  </p>
-                </div>
-              </Col>
-              <Col span={12}>
-                <div className={styles.modalSection}>
-                  <h4>{t.profession}</h4>
-                  <p className={styles.modalValue}>
-                    {language === 'ar'
-                      ? selectedContract.professionAr
-                      : selectedContract.profession}
+                    {isRtl ? selectedContract.nationalityAr : selectedContract.nationality}
                   </p>
                 </div>
               </Col>
@@ -1363,9 +1458,7 @@ export default function RentContractsPage() {
               <Col span={8}>
                 <div className={styles.modalSection}>
                   <h4>{t.monthlyRent}</h4>
-                  <p className={styles.modalValue}>
-                    {formatCurrency(selectedContract.monthlyRent)}
-                  </p>
+                  <p className={styles.modalValue}>{formatCurrency(selectedContract.monthlyRent)}</p>
                 </div>
               </Col>
               <Col span={8}>

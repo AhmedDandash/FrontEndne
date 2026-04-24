@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Form,
   Input,
@@ -17,7 +17,7 @@ import {
 } from 'antd';
 import { UploadOutlined, SendOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
-import { useCurrentHREmployee, useCreateVacationRequest } from '@/hooks/api/useHR';
+import { useCurrentHREmployee, useCreateVacationRequest, useHREmployeeSearch } from '@/hooks/api/useHR';
 import { HR_VACATION_TYPE } from '@/constants/hr.enums';
 import { toSelectOptions } from '@/constants/enums';
 import EmployeeInfoCard from '@/features/hr/components/EmployeeInfoCard';
@@ -30,20 +30,29 @@ const { TextArea } = Input;
 export default function VacationRequestPage() {
   const [form] = Form.useForm();
   const language = useAuthStore((s) => s.language);
-  const userId = useAuthStore((s) => s.userId);
+
   const isAr = language === 'ar';
 
-  const { data: currentEmployee, isLoading: empLoading } = useCurrentHREmployee(userId);
+  const [substituteSearch, setSubstituteSearch] = useState('');
+
+  const { data: currentEmployee, isLoading: empLoading } = useCurrentHREmployee();
   const { mutate: createRequest, isPending } = useCreateVacationRequest();
 
-  // Auto-fill employee ID into hidden field when employee loads
+  // Substitute employee search — deferred until user types at least 2 chars
+  const { data: substituteResults = [], isLoading: searchingSubstitute } =
+    useHREmployeeSearch(substituteSearch);
+
+  const substituteOptions = substituteResults.map((e) => ({
+    value: e.id,
+    label: `${isAr ? e.nameAr : e.nameEn} — ${e.employeeNumber}`,
+  }));
+
   useEffect(() => {
     if (currentEmployee) {
       form.setFieldValue('createdTo', currentEmployee.id);
     }
   }, [currentEmployee, form]);
 
-  // Calculate come-back date when vacation days or start date changes
   const handleDateChange = () => {
     const startDate = form.getFieldValue('vacationDate');
     const days = form.getFieldValue('vacationDays');
@@ -55,15 +64,19 @@ export default function VacationRequestPage() {
   };
 
   const handleFinish = (values: any) => {
+    const attachmentFile: File | null =
+      values.attachment?.fileList?.[0]?.originFileObj ?? null;
+
     const dto: CreateVacationRequestDto = {
       createdTo: currentEmployee!.id,
       vacationType: values.vacationType,
       vacationDays: values.vacationDays,
-      vacationDate: values.vacationDate?.format('YYYY-MM-DD'),
-      finalizeDate: values.finalizeDate?.format('YYYY-MM-DD'),
-      substituteId: values.substituteId,
-      mobileNumber: values.mobileNumber,
+      vacationDate: values.vacationDate?.format('YYYY-MM-DDTHH:mm:ss'),
+      finalizeDate: values.finalizeDate?.format('YYYY-MM-DDTHH:mm:ss'),
+      substituteId: values.substituteId ?? null,
+      mobileNumber: values.mobileNumber ?? null,
       reasons: values.reasons,
+      attachmentFile,
     };
     createRequest(dto, {
       onSuccess: () => form.resetFields(),
@@ -74,7 +87,7 @@ export default function VacationRequestPage() {
     <div style={{ padding: 24 }}>
       <HRPageHeader title={isAr ? 'طلب إجازة' : 'Vacation Request'} icon={<CalendarOutlined />} />
 
-      {/* Employee Info – read-only, auto-filled */}
+      {/* Employee Info — populated from session first, API fallback */}
       <EmployeeInfoCard employee={currentEmployee} loading={empLoading} />
 
       <Card>
@@ -85,7 +98,6 @@ export default function VacationRequestPage() {
             onFinish={handleFinish}
             disabled={empLoading || !currentEmployee}
           >
-            {/* Hidden field – auto-populated */}
             <Form.Item name="createdTo" hidden>
               <Input />
             </Form.Item>
@@ -110,20 +122,10 @@ export default function VacationRequestPage() {
                   label={isAr ? 'عدد أيام الإجازة' : 'Vacation Days'}
                   rules={[
                     { required: true, message: isAr ? 'مطلوب' : 'Required' },
-                    {
-                      type: 'number',
-                      min: 1,
-                      max: 365,
-                      message: isAr ? 'من 1 إلى 365 يوم' : '1 to 365 days',
-                    },
+                    { type: 'number', min: 1, max: 365, message: isAr ? 'من 1 إلى 365 يوم' : '1–365 days' },
                   ]}
                 >
-                  <InputNumber
-                    min={1}
-                    max={365}
-                    style={{ width: '100%' }}
-                    onChange={handleDateChange}
-                  />
+                  <InputNumber min={1} max={365} style={{ width: '100%' }} onChange={handleDateChange} />
                 </Form.Item>
               </Col>
 
@@ -159,6 +161,29 @@ export default function VacationRequestPage() {
               <Col xs={24} sm={12} md={8}>
                 <Form.Item name="mobileNumber" label={isAr ? 'رقم الجوال' : 'Mobile Number'}>
                   <Input maxLength={24} />
+                </Form.Item>
+              </Col>
+
+              {/* Substitute Employee — searchable dropdown via API */}
+              <Col xs={24} sm={12} md={8}>
+                <Form.Item
+                  name="substituteId"
+                  label={isAr ? 'الموظف البديل (اختياري)' : 'Substitute Employee (optional)'}
+                >
+                  <Select
+                    showSearch
+                    allowClear
+                    filterOption={false}
+                    loading={searchingSubstitute}
+                    onSearch={(val) => setSubstituteSearch(val)}
+                    options={substituteOptions}
+                    placeholder={isAr ? 'ابحث عن موظف...' : 'Search for employee...'}
+                    notFoundContent={
+                      substituteSearch.length < 2
+                        ? (isAr ? 'اكتب حرفين للبحث' : 'Type 2+ chars to search')
+                        : (isAr ? 'لا توجد نتائج' : 'No results')
+                    }
+                  />
                 </Form.Item>
               </Col>
             </Row>

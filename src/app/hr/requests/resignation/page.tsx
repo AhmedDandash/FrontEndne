@@ -25,10 +25,10 @@ const { TextArea } = Input;
 export default function ResignationRequestPage() {
   const [form] = Form.useForm();
   const language = useAuthStore((s) => s.language);
-  const userId = useAuthStore((s) => s.userId);
+
   const isAr = language === 'ar';
 
-  const { data: currentEmployee, isLoading: empLoading } = useCurrentHREmployee(userId);
+  const { data: currentEmployee, isLoading: empLoading } = useCurrentHREmployee();
   const { mutate: createRequest, isPending } = useCreateResignationRequest();
 
   useEffect(() => {

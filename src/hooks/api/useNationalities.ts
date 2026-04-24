@@ -6,7 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { NationalityService } from '@/services/nationality.service';
 import type {
-  NationalityExtended,
+  Nationality,
   CreateNationalityDto,
   UpdateNationalityDto,
 } from '@/types/api.types';
@@ -18,7 +18,7 @@ const QUERY_KEY = 'nationalities';
  * Fetch all nationalities
  */
 export const useNationalities = () => {
-  return useQuery<NationalityExtended[], Error>({
+  return useQuery<Nationality[], Error>({
     queryKey: [QUERY_KEY],
     queryFn: NationalityService.getAll,
   });
@@ -27,8 +27,8 @@ export const useNationalities = () => {
 /**
  * Fetch nationality by ID
  */
-export const useNationality = (id: number) => {
-  return useQuery<NationalityExtended, Error>({
+export const useNationality = (id: number | string) => {
+  return useQuery<Nationality, Error>({
     queryKey: [QUERY_KEY, id],
     queryFn: () => NationalityService.getById(id),
     enabled: !!id,
@@ -41,7 +41,7 @@ export const useNationality = (id: number) => {
 export const useCreateNationality = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<NationalityExtended, Error, CreateNationalityDto>({
+  return useMutation<Nationality, Error, CreateNationalityDto>({
     mutationFn: NationalityService.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
@@ -61,7 +61,7 @@ export const useCreateNationality = () => {
 export const useUpdateNationality = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<NationalityExtended, Error, { id: number; data: UpdateNationalityDto }>({
+  return useMutation<Nationality, Error, { id: number | string; data: UpdateNationalityDto }>({
     mutationFn: ({ id, data }) => NationalityService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });

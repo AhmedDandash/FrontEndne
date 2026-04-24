@@ -6,9 +6,10 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
-import { AuthService } from '@/services/auth.service';
+import { useAuthStore } from '@/store/authStore';
 import {
   HREmployeeService,
+  HRDepartmentService,
   HRLookupService,
   HRVacationService,
   HRPermissionService,
@@ -26,7 +27,11 @@ import {
   HRComplaintService,
 } from '@/services/hr.service';
 import type {
+  Employee,
   EmployeesFilterDto,
+  CreateEmployeeDto,
+  CreateDepartmentDto,
+  RejectRequestDto,
   CreateVacationRequestDto,
   CreatePermissionRequestDto,
   CreateCustodyRequestDto,
@@ -41,7 +46,6 @@ import type {
   LeaveBalanceFilterDto,
   CreateHRComplaintDto,
   ReplyHRComplaintDto,
-  // EmployeeCommission,
 } from '@/types/hr.types';
 
 // ─────────────────────────────────────────────
@@ -61,14 +65,14 @@ export const useHREmployee = (id: string) =>
     enabled: !!id,
   });
 
-export const useCurrentHREmployee = (userId: number | null) =>
-  useQuery({
-    queryKey: ['hr-current-employee', userId],
-    queryFn: () => HREmployeeService.getCurrent(userId),
-    // Keep HR forms functional even if zustand userId is not hydrated yet,
-    // as long as an auth token exists in storage.
-    enabled: userId !== null || !!AuthService.getToken(),
+export const useCurrentHREmployee = () => {
+  const username = useAuthStore((s) => s.username);
+  return useQuery({
+    queryKey: ['hr-current-employee', username],
+    queryFn: () => HREmployeeService.getCurrent(username),
+    enabled: !!username,
   });
+};
 
 export const useHREmployeeSearch = (query: string) =>
   useQuery({
@@ -76,6 +80,65 @@ export const useHREmployeeSearch = (query: string) =>
     queryFn: () => HREmployeeService.search(query),
     enabled: query.length >= 2,
   });
+
+export const useCreateEmployee = () => {
+  const qc = useQueryClient();
+  return useMutation<Employee, Error, CreateEmployeeDto>({
+    mutationFn: HREmployeeService.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-employees'] });
+      qc.invalidateQueries({ queryKey: ['employees'] });
+      message.success('تم إضافة الموظف بنجاح / Employee created successfully');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الإضافة / Create failed'),
+  });
+};
+
+export const useUpdateEmployee = () => {
+  const qc = useQueryClient();
+  return useMutation<Employee, Error, { id: string; data: CreateEmployeeDto }>({
+    mutationFn: ({ id, data }) => HREmployeeService.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-employees'] });
+      qc.invalidateQueries({ queryKey: ['employees'] });
+      message.success('تم تعديل الموظف بنجاح / Employee updated successfully');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل التعديل / Update failed'),
+  });
+};
+
+export const useDeleteEmployee = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: HREmployeeService.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-employees'] });
+      qc.invalidateQueries({ queryKey: ['employees'] });
+      message.success('تم حذف الموظف / Employee deleted');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الحذف / Delete failed'),
+  });
+};
+
+// ─────────────────────────────────────────────
+// Department
+// ─────────────────────────────────────────────
+
+export const useCreateDepartment = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, CreateDepartmentDto>({
+    mutationFn: HRDepartmentService.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-departments'] });
+      message.success('تم إضافة القسم / Department created');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الإضافة / Create failed'),
+  });
+};
 
 // ─────────────────────────────────────────────
 // Lookups
@@ -94,8 +157,12 @@ export const useHRCustodyTypes = () =>
 // Vacation Request
 // ─────────────────────────────────────────────
 
-export const useVacationRequests = () =>
-  useQuery({ queryKey: ['hr-vacation-requests'], queryFn: HRVacationService.getAll });
+export const useVacationRequest = (id: string) =>
+  useQuery({
+    queryKey: ['hr-vacation-request', id],
+    queryFn: () => HRVacationService.getById(id),
+    enabled: !!id,
+  });
 
 export const useCreateVacationRequest = () => {
   const qc = useQueryClient();
@@ -108,6 +175,34 @@ export const useCreateVacationRequest = () => {
     },
     onError: (err: any) =>
       message.error(err?.response?.data?.message || 'فشل إرسال الطلب / Failed to submit request'),
+  });
+};
+
+export const useApproveVacationRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: HRVacationService.approve,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-vacation-requests'] });
+      qc.invalidateQueries({ queryKey: ['hr-inbox'] });
+      message.success('تمت الموافقة / Approved');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الموافقة / Approve failed'),
+  });
+};
+
+export const useRejectVacationRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; data: RejectRequestDto }>({
+    mutationFn: ({ id, data }) => HRVacationService.reject(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-vacation-requests'] });
+      qc.invalidateQueries({ queryKey: ['hr-inbox'] });
+      message.success('تم الرفض / Rejected');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الرفض / Reject failed'),
   });
 };
 
@@ -131,6 +226,32 @@ export const useCreatePermissionRequest = () => {
   });
 };
 
+export const useApprovePermissionRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: HRPermissionService.approve,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-permission-requests'] });
+      message.success('تمت الموافقة / Approved');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الموافقة / Approve failed'),
+  });
+};
+
+export const useRejectPermissionRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; data: RejectRequestDto }>({
+    mutationFn: ({ id, data }) => HRPermissionService.reject(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-permission-requests'] });
+      message.success('تم الرفض / Rejected');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الرفض / Reject failed'),
+  });
+};
+
 // ─────────────────────────────────────────────
 // Custody Request
 // ─────────────────────────────────────────────
@@ -145,6 +266,32 @@ export const useCreateCustodyRequest = () => {
     },
     onError: (err: any) =>
       message.error(err?.response?.data?.message || 'فشل إرسال الطلب / Failed to submit request'),
+  });
+};
+
+export const useApproveCustodyRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: HRCustodyService.approve,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-custody-requests'] });
+      message.success('تمت الموافقة / Approved');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الموافقة / Approve failed'),
+  });
+};
+
+export const useRejectCustodyRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; data: RejectRequestDto }>({
+    mutationFn: ({ id, data }) => HRCustodyService.reject(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-custody-requests'] });
+      message.success('تم الرفض / Rejected');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الرفض / Reject failed'),
   });
 };
 
@@ -165,6 +312,32 @@ export const useCreateJobModificationRequest = () => {
   });
 };
 
+export const useApproveJobModificationRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: HRJobModificationService.approve,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-job-modification-requests'] });
+      message.success('تمت الموافقة / Approved');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الموافقة / Approve failed'),
+  });
+};
+
+export const useRejectJobModificationRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; data: RejectRequestDto }>({
+    mutationFn: ({ id, data }) => HRJobModificationService.reject(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-job-modification-requests'] });
+      message.success('تم الرفض / Rejected');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الرفض / Reject failed'),
+  });
+};
+
 // ─────────────────────────────────────────────
 // Resignation Request
 // ─────────────────────────────────────────────
@@ -179,6 +352,32 @@ export const useCreateResignationRequest = () => {
     },
     onError: (err: any) =>
       message.error(err?.response?.data?.message || 'فشل إرسال الطلب / Failed to submit request'),
+  });
+};
+
+export const useApproveResignationRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: HRResignationService.approve,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-resignation-requests'] });
+      message.success('تمت الموافقة / Approved');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الموافقة / Approve failed'),
+  });
+};
+
+export const useRejectResignationRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; data: RejectRequestDto }>({
+    mutationFn: ({ id, data }) => HRResignationService.reject(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-resignation-requests'] });
+      message.success('تم الرفض / Rejected');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الرفض / Reject failed'),
   });
 };
 
@@ -199,6 +398,32 @@ export const useCreateEntitlementsRequest = () => {
   });
 };
 
+export const useApproveEntitlementsRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: HREntitlementsService.approve,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-entitlements-requests'] });
+      message.success('تمت الموافقة / Approved');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الموافقة / Approve failed'),
+  });
+};
+
+export const useRejectEntitlementsRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; data: RejectRequestDto }>({
+    mutationFn: ({ id, data }) => HREntitlementsService.reject(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-entitlements-requests'] });
+      message.success('تم الرفض / Rejected');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الرفض / Reject failed'),
+  });
+};
+
 // ─────────────────────────────────────────────
 // Loans Request
 // ─────────────────────────────────────────────
@@ -213,6 +438,32 @@ export const useCreateLoanRequest = () => {
     },
     onError: (err: any) =>
       message.error(err?.response?.data?.message || 'فشل إرسال الطلب / Failed to submit request'),
+  });
+};
+
+export const useApproveLoanRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: HRLoansService.approve,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-loan-requests'] });
+      message.success('تمت الموافقة / Approved');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الموافقة / Approve failed'),
+  });
+};
+
+export const useRejectLoanRequest = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; data: RejectRequestDto }>({
+    mutationFn: ({ id, data }) => HRLoansService.reject(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-loan-requests'] });
+      message.success('تم الرفض / Rejected');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الرفض / Reject failed'),
   });
 };
 
@@ -322,8 +573,9 @@ export const useHRLeaveBalance = (filter?: LeaveBalanceFilterDto) =>
 // HR Complaints
 // ─────────────────────────────────────────────
 
+// Complaints list endpoint not defined in swagger-Hr-Api.json — returns empty until added.
 export const useHRComplaints = () =>
-  useQuery({ queryKey: ['hr-complaints'], queryFn: HRComplaintService.getAll });
+  useQuery<any[]>({ queryKey: ['hr-complaints'], queryFn: async () => [] });
 
 export const useCreateHRComplaint = () => {
   const qc = useQueryClient();
@@ -353,7 +605,7 @@ export const useReplyHRComplaint = () => {
 
 export const useCloseHRComplaint = () => {
   const qc = useQueryClient();
-  return useMutation<void, Error, number>({
+  return useMutation<void, Error, string>({
     mutationFn: HRComplaintService.close,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['hr-complaints'] });
@@ -361,5 +613,18 @@ export const useCloseHRComplaint = () => {
     },
     onError: (err: any) =>
       message.error(err?.response?.data?.message || 'فشل الإغلاق / Close failed'),
+  });
+};
+
+export const useDeleteHRComplaint = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: HRComplaintService.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hr-complaints'] });
+      message.success('تم حذف الشكوى / Complaint deleted');
+    },
+    onError: (err: any) =>
+      message.error(err?.response?.data?.message || 'فشل الحذف / Delete failed'),
   });
 };

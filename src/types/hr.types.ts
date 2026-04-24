@@ -1,15 +1,46 @@
 /**
  * HR Module - TypeScript Type Definitions
- * Aligned with backend API contract.
- * All IDs use number. Dates are ISO-8601 strings.
+ * Aligned with backend API contract (swagger-Hr-Api.json).
+ * Employee IDs are UUID strings. Commission IDs are integers.
  */
+
+// ─────────────────────────────────────────────
+// Enums — numeric mirrors of Swagger schemas
+// ─────────────────────────────────────────────
+
+export type Gender = 1 | 2;
+// 1 = Male, 2 = Female
+
+export type HRVacationType = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+// 1=Annual, 2=Sick, 3=Emergency, 4=Maternity, 5=Paternity, 6=Hajj,
+// 7=Unpaid, 8=Compensatory, 9=Marriage, 10=Death
+
+export type HRPermissionType = 1 | 2 | 3;
+// 1=ComeLate, 2=PartTime, 3=OutEarly
+
+export type HRPermissionNature = 1 | 2;
+// 1=In, 2=Out
+
+export type HREntitlementType = 1 | 2 | 3 | 4 | 5;
+
+export type HRProcessState = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+// Swagger enum values [1-8]
+
+export type HRRequestResult = 0 | 1 | 2 | 3;
+// 0=Unspecified, 1=Approved, 2=Rejected, 3=Pending
+
+export type AttendanceStatus = 0 | 1 | 2 | 3;
+// 0=Unknown, 1=Present, 2=Absent, 3=Late
+
+export type HRComplaintStatus = 1 | 2 | 3;
+// 1=Open, 2=Resolved, 3=Closed
 
 // ─────────────────────────────────────────────
 // Shared / Lookup
 // ─────────────────────────────────────────────
 
 export interface HREmployee {
-  id: string; // GUID
+  id: string; // UUID
   employeeNumber: string;
   nameAr: string;
   nameEn: string;
@@ -31,6 +62,45 @@ export interface HRLookupItem {
   id: number;
   nameAr: string;
   nameEn: string;
+}
+
+// ─────────────────────────────────────────────
+// Employee CRUD DTOs (Swagger: /api/HR/Employee)
+// ─────────────────────────────────────────────
+
+export interface CreateEmployeeDto {
+  nameAr: string;
+  nameEn: string;
+  email?: string | null;
+  loginName?: string | null;
+  jobId: number;
+  departmentId: number;
+  nationalityId: number;
+  idNumber: string;
+  mobileNumber?: string | null;
+  hiringDate?: string | null;
+  gender: Gender;
+  basicSalary?: number | null;
+  housingAllowance?: number | null;
+  mobilityAllowance?: number | null;
+  otherAllowances?: number | null;
+}
+
+// ─────────────────────────────────────────────
+// Department DTO (Swagger: POST /api/HR/Department)
+// ─────────────────────────────────────────────
+
+export interface CreateDepartmentDto {
+  nameAr: string;
+  nameEn: string;
+}
+
+// ─────────────────────────────────────────────
+// Shared Reject DTO — used by all Reject/{id} endpoints
+// ─────────────────────────────────────────────
+
+export interface RejectRequestDto {
+  reason?: string | null;
 }
 
 // ─────────────────────────────────────────────
@@ -77,14 +147,14 @@ export interface VacationRequest extends HRRequestBase {
 
 export interface CreateVacationRequestDto {
   createdTo: string;
-  vacationType: number;
+  vacationType: HRVacationType;
   vacationDays: number;
   vacationDate: string;
   finalizeDate: string;
-  substituteId?: string;
-  mobileNumber?: string;
+  substituteId?: string | null;
+  mobileNumber?: string | null;
   reasons: string;
-  attachmentFile?: File;
+  attachmentFile?: File | null;
 }
 
 // ─────────────────────────────────────────────
@@ -105,11 +175,11 @@ export interface CreatePermissionRequestDto {
   createdTo: string;
   permissionDate: string;
   permissionType: HRPermissionType;
-  permissionNature: number;
-  comeLateTime?: string;
-  partTimeStart?: string;
-  partTimeFinish?: string;
-  outEarlyTime?: string;
+  permissionNature: HRPermissionNature;
+  comeLateTime?: string | null;
+  partTimeStart?: string | null;
+  partTimeFinish?: string | null;
+  outEarlyTime?: string | null;
   reasons: string;
 }
 
@@ -218,7 +288,7 @@ export interface CreateLoanRequestDto {
 // ─────────────────────────────────────────────
 
 export interface HRRequestSummary {
-  id: number;
+  id: string; // UUID per swagger-Hr-Api.json
   screenId: string;
   processState: HRProcessState;
   processGroup: number;
@@ -369,7 +439,7 @@ export interface LeaveBalanceFilterDto {
 // ─────────────────────────────────────────────
 
 export interface HRComplaint {
-  id: number;
+  id: string; // UUID per swagger-Hr-Api.json
   employeeId: string;
   employeeName: string;
   employeeNumber: string;
@@ -390,26 +460,8 @@ export interface CreateHRComplaintDto {
 }
 
 export interface ReplyHRComplaintDto {
-  id: number;
+  id: string; // UUID per swagger-Hr-Api.json
   replyNotes: string;
   sendReplyTo?: string;
 }
 
-// ─────────────────────────────────────────────
-// Enums (numeric mirrors of hr.enums.ts constants)
-// ─────────────────────────────────────────────
-
-export type HRRequestResult = 0 | 1 | 2 | 3;
-// 0 = Unspecified, 1 = Approved, 2 = Rejected, 3 = Pending
-
-export type HRProcessState = 1 | 2 | 4 | 5 | 6 | 7 | 8 | 9;
-// 1=Vacation, 2=Permission, 4=Custody, 5=JobModification, 6=Resignation, 7=Entitlements, 8=Loans, 9=Other
-
-export type HRPermissionType = 1 | 2 | 3;
-// 1=ComeLate, 2=PartTime, 3=OutEarly
-
-export type AttendanceStatus = 0 | 1 | 2 | 3;
-// 0=Unknown, 1=Present, 2=Absent, 3=Late
-
-export type HRComplaintStatus = 1 | 2 | 3;
-// 1=Open, 2=Resolved, 3=Closed

@@ -81,11 +81,11 @@ export function useEmploymentContractOffers(params?: Record<string, any>) {
   });
 
   return {
-    /** @deprecated SUMMARY endpoint removed in new API — always empty */
+    /** No dedicated summary endpoint — consumers should use `offers` directly */
     summary: [] as any[],
-    isSummaryLoading: false,
-    summaryError: null,
-    refetchSummary: () => {},
+    isSummaryLoading: isLoading,
+    summaryError: error,
+    refetchSummary: refetch,
     offers,
     isLoading,
     error,

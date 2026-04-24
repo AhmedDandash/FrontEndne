@@ -22,12 +22,25 @@ export class OperatingContractOfferService {
    * GET /api/OperatingContractOffer
    */
   static async getAll(params?: Record<string, any>): Promise<OperatingContractOffer[]> {
-    const response = await api.get<any>(API_ENDPOINTS.OPERATING_CONTRACT_OFFER.GET_ALL, { params });
+    // Always fetch all items — API defaults to pageSize=1 which would hide data
+    const mergedParams = { PageSize: 9999, PageNumber: 1, ...params };
+    const response = await api.get<any>(API_ENDPOINTS.OPERATING_CONTRACT_OFFER.GET_ALL, {
+      params: mergedParams,
+    });
+    const d = response.data;
 
-    if (Array.isArray(response.data)) return response.data;
-    if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;
-    if (response.data?.result && Array.isArray(response.data.result)) return response.data.result;
-    if (response.data?.items && Array.isArray(response.data.items)) return response.data.items;
+    // flat array
+    if (Array.isArray(d)) return d;
+    // { data: { items: [...] } }  ← actual API shape confirmed from network tab
+    if (Array.isArray(d?.data?.items)) return d.data.items;
+    // { data: [...] }
+    if (Array.isArray(d?.data)) return d.data;
+    // { items: [...] }
+    if (Array.isArray(d?.items)) return d.items;
+    // { result: [...] }
+    if (Array.isArray(d?.result)) return d.result;
+
+    console.warn('[OperatingContractOfferService] Unexpected response shape:', d);
     return [];
   }
 

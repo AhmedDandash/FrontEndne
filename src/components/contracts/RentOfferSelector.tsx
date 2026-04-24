@@ -25,8 +25,9 @@ import type { ColumnsType } from 'antd/es/table';
 import { useEmploymentContractOffers } from '@/hooks/api/useEmploymentContractOffers';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useBranches } from '@/hooks/api/useBranches';
+import { useNationalities } from '@/hooks/api/useNationalities';
 import type { EmploymentContractOffer } from '@/types/api.types';
-import { OFFER_TYPE, NATIONALITIES, getEnumLabel } from '@/constants/enums';
+import { OFFER_TYPE, getEnumLabel } from '@/constants/enums';
 
 interface RentOfferSelectorProps {
   /** Currently selected offer ID (controlled) */
@@ -84,10 +85,11 @@ export default function RentOfferSelector({
   // Lookup data for display
   const { data: jobs = [] } = useJobs();
   const { branches } = useBranches();
+  const { data: nationalitiesData = [] } = useNationalities();
 
   // Filter state
-  const [nationalityFilter, setNationalityFilter] = useState<number | null>(null);
-  const [jobFilter, setJobFilter] = useState<number | null>(null);
+  const [nationalityFilter, setNationalityFilter] = useState<string | null>(null);
+  const [jobFilter, setJobFilter] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Translations
@@ -119,19 +121,31 @@ export default function RentOfferSelector({
     numberOfDays: isArabic ? 'عدد الأيام' : 'Number of Days',
   };
 
+  // Build nationality lookup map from API data (UUID-keyed)
+  const nationalityMap = useMemo(() => {
+    const m = new Map<string, { ar: string; en: string }>();
+    nationalitiesData.forEach((n) => {
+      m.set(String(n.id), {
+        ar: n.nationalityNameAr || n.nationalityNameEn || String(n.id),
+        en: n.nationalityNameEn || n.nationalityNameAr || String(n.id),
+      });
+    });
+    return m;
+  }, [nationalitiesData]);
+
   // Helper: resolve nationality name
   const getNationalityName = useCallback(
     (offer: EmploymentContractOffer): string => {
-      // 1. Use joined name from API
+      // 1. Use joined name returned directly by API
       if (offer.nationalityName) return offer.nationalityName;
-      // 2. Lookup from NATIONALITIES enum
+      // 2. Lookup from API nationality map by UUID
       if (offer.nationalityId) {
-        const nat = NATIONALITIES.find((n) => n.value === offer.nationalityId);
-        if (nat) return isArabic ? nat.labelAr : nat.labelEn;
+        const nat = nationalityMap.get(String(offer.nationalityId));
+        if (nat) return isArabic ? nat.ar : nat.en;
       }
       return t.notDefined;
     },
-    [isArabic, t.notDefined]
+    [nationalityMap, isArabic, t.notDefined]
   );
 
   // Helper: resolve job name
@@ -167,22 +181,26 @@ export default function RentOfferSelector({
     return `${val.toLocaleString(isArabic ? 'ar-SA' : 'en-US')} ${t.sar}`;
   };
 
-  // Nationality options for filter dropdown
+  // Nationality options for filter dropdown — built from API data, limited to IDs used by offers
   const nationalityOptions = useMemo(() => {
-    const usedIds = new Set(offers.map((o) => o.nationalityId).filter(Boolean));
-    return NATIONALITIES.filter((n) => usedIds.has(n.value)).map((n) => ({
-      value: n.value,
-      label: isArabic ? n.labelAr : n.labelEn,
-    }));
-  }, [offers, isArabic]);
+    const usedIds = new Set(offers.map((o) => String(o.nationalityId)).filter(Boolean));
+    return nationalitiesData
+      .filter((n) => usedIds.has(String(n.id)))
+      .map((n) => ({
+        value: String(n.id),
+        label: isArabic
+          ? n.nationalityNameAr || n.nationalityNameEn || String(n.id)
+          : n.nationalityNameEn || n.nationalityNameAr || String(n.id),
+      }));
+  }, [offers, nationalitiesData, isArabic]);
 
-  // Job options for filter dropdown
+  // Job options for filter dropdown — limited to IDs used by offers
   const jobOptions = useMemo(() => {
-    const usedIds = new Set(offers.map((o) => o.jobId).filter(Boolean));
+    const usedIds = new Set(offers.map((o) => String(o.jobId)).filter(Boolean));
     return (jobs as any[])
-      .filter((j: any) => usedIds.has(j.id))
+      .filter((j: any) => usedIds.has(String(j.id)))
       .map((j: any) => ({
-        value: j.id,
+        value: String(j.id),
         label: isArabic
           ? j.jobNameAr || j.name
           : j.jobNameEn || j.jobNameAr || j.name || `#${j.id}`,
@@ -192,8 +210,8 @@ export default function RentOfferSelector({
   // Filtered offers
   const filteredOffers = useMemo(() => {
     return offers.filter((offer) => {
-      if (nationalityFilter && offer.nationalityId !== nationalityFilter) return false;
-      if (jobFilter && offer.jobId !== jobFilter) return false;
+      if (nationalityFilter && String(offer.nationalityId) !== nationalityFilter) return false;
+      if (jobFilter && String(offer.jobId) !== jobFilter) return false;
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         const natName = getNationalityName(offer).toLowerCase();

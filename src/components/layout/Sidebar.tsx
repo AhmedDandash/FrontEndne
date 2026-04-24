@@ -130,8 +130,8 @@ export default function Sidebar({
       label: language === 'ar' ? 'العملاء' : 'Customers',
       children: [
         { key: '/customers', label: language === 'ar' ? 'جميع العملاء' : 'All Customers' },
-        { key: '/customers/contacts', label: language === 'ar' ? 'جهات الاتصال' : 'Contacts' },
-        { key: '/customers/phones', label: language === 'ar' ? 'أرقام العملاء' : 'Phone Numbers' },
+        // { key: '/customers/contacts', label: language === 'ar' ? 'جهات الاتصال' : 'Contacts' },
+        // { key: '/customers/phones', label: language === 'ar' ? 'أرقام العملاء' : 'Phone Numbers' },
       ],
     },
     {

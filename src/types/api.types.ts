@@ -664,8 +664,11 @@ export interface EmploymentOperatingContract {
   offerType?: number | null;
   operationType?: number | null;
   paymentMethod?: number | null;
-  nationalityId?: number | string | null;
-  jobId?: number | string | null;
+  /** UUID string per swagger */
+  nationalityId?: string | null;
+  nationalityName?: string | null;
+  /** UUID string per swagger */
+  jobId?: string | null;
   jobName?: string | null;
   duration?: number | null;
   contractStartDate?: string | null;
@@ -698,8 +701,10 @@ export interface CreateEmploymentOperatingContractDto {
   offerId?: number | null;
   operationType?: number | null;
   paymentMethod?: number | null;
-  nationalityId?: number | null;
-  jobId?: number | null;
+  /** UUID string per swagger */
+  nationalityId?: string | null;
+  /** UUID string per swagger */
+  jobId?: string | null;
   duration?: number | null;
   contractStartDate?: string | null;
   contractEndDate?: string | null;
@@ -722,8 +727,10 @@ export interface UpdateEmploymentOperatingContractDto {
   offerId?: number | null;
   operationType?: number | null;
   paymentMethod?: number | null;
-  nationalityId?: number | null;
-  jobId?: number | null;
+  /** UUID string per swagger */
+  nationalityId?: string | null;
+  /** UUID string per swagger */
+  jobId?: string | null;
   duration?: number | null;
   contractStartDate?: string | null;
   contractEndDate?: string | null;

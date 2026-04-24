@@ -31,10 +31,10 @@ const { TextArea } = Input;
 export default function JobModificationRequestPage() {
   const [form] = Form.useForm();
   const language = useAuthStore((s) => s.language);
-  const userId = useAuthStore((s) => s.userId);
+
   const isAr = language === 'ar';
 
-  const { data: currentEmployee, isLoading: empLoading } = useCurrentHREmployee(userId);
+  const { data: currentEmployee, isLoading: empLoading } = useCurrentHREmployee();
   const { data: departments = [] } = useHRDepartments();
   const { data: salaryScales = [] } = useHRSalaryScales();
   const { mutate: createRequest, isPending } = useCreateJobModificationRequest();
