@@ -349,18 +349,18 @@ export default function WorkersFollowupPage() {
   };
 
   // Handlers for medical examination
-  const handleOpenUpdateExamModal = (worker: Worker) => {
-    const exam = medicalExaminations.find((e) => e.workerId === worker.id);
-    if (!exam) return;
+  // const handleOpenUpdateExamModal = (worker: Worker) => {
+  //   const exam = medicalExaminations.find((e) => e.workerId === worker.id);
+  //   if (!exam) return;
 
-    setEditingExamId(exam.id);
-    setExamFormData({
-      examDate: exam.examDate ? dayjs(exam.examDate) : dayjs(),
-      medicalStatus: exam.medicalStatus,
-      notes: exam.notes || '',
-    });
-    setIsExamModalOpen(true);
-  };
+  //   setEditingExamId(exam.id);
+  //   setExamFormData({
+  //     examDate: exam.examDate ? dayjs(exam.examDate) : dayjs(),
+  //     medicalStatus: exam.medicalStatus,
+  //     notes: exam.notes || '',
+  //   });
+  //   setIsExamModalOpen(true);
+  // };
 
   const handleDeleteExam = (worker: Worker) => {
     const exam = medicalExaminations.find((e) => e.workerId === worker.id);
@@ -422,12 +422,12 @@ export default function WorkersFollowupPage() {
 
     return {
       items: [
-        {
-          key: 'update',
-          label: t('updateMedicalExam'),
-          icon: <EditOutlined />,
-          onClick: () => handleOpenUpdateExamModal(worker),
-        },
+        // {
+        //   key: 'update',
+        //   label: t('updateMedicalExam'),
+        //   icon: <EditOutlined />,
+        //   onClick: () => handleOpenUpdateExamModal(worker),
+        // },
         {
           key: 'delete',
           label: t('deleteMedicalExam'),
