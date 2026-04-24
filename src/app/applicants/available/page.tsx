@@ -12,7 +12,7 @@ import {
   Tag,
   Empty,
   Spin,
-  Tooltip,
+  // Tooltip,
   Avatar,
   Dropdown,
   Modal,
@@ -227,16 +227,16 @@ export default function AvailableWorkersPage() {
         worker.fullNameEn?.toLowerCase().includes(searchLower) ||
         worker.passportNo?.toLowerCase().includes(searchLower);
 
-      const matchesNationality =
-        !filters.nationality || worker.nationalityId === Number(filters.nationality);
-      const matchesJob = !filters.job || worker.jobname === filters.job;
-      const matchesReligion = !filters.religion || worker.religion === Number(filters.religion);
-      const matchesExperience =
-        !filters.experience ||
-        (filters.experience === '1' && worker.hasExperience) ||
-        (filters.experience === '2' && !worker.hasExperience);
-      const matchesAgent = !filters.agent || worker.agentId === Number(filters.agent);
-      const matchesGender = !filters.gender || worker.gender === Number(filters.gender);
+      // const matchesNationality =
+      //   !filters.nationality || worker.nationalityId === Number(filters.nationality);
+      // const matchesJob = !filters.job || worker.jobname === filters.job;
+      // const matchesReligion = !filters.religion || worker.religion === Number(filters.religion);
+      // const matchesExperience =
+      //   !filters.experience ||
+      //   (filters.experience === '1' && worker.hasExperience) ||
+      //   (filters.experience === '2' && !worker.hasExperience);
+      // const matchesAgent = !filters.agent || worker.agentId === Number(filters.agent);
+      // const matchesGender = !filters.gender || worker.gender === Number(filters.gender);
 
       // Only include active workers
       const matchesActive = worker.isActive === true;
@@ -251,12 +251,12 @@ export default function AvailableWorkersPage() {
       return (
         matchesActive &&
         matchesSearch &&
-        matchesNationality &&
-        matchesJob &&
-        matchesReligion &&
-        matchesExperience &&
-        matchesAgent &&
-        matchesGender &&
+        // matchesNationality &&
+        // matchesJob &&
+        // matchesReligion &&
+        // matchesExperience &&
+        // matchesAgent &&
+        // matchesGender &&
         matchesTab
       );
     });
@@ -633,7 +633,7 @@ export default function AvailableWorkersPage() {
                   </div>
 
                   {/* Footer */}
-                  <div className={styles.cardFooter}>
+                  {/* <div className={styles.cardFooter}>
                     <div className={styles.cardFooterLeft}>
                       {worker.skills && worker.skills.length > 0 && (
                         <>
@@ -658,7 +658,7 @@ export default function AvailableWorkersPage() {
                         </Button>
                       </Tooltip>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </Card>
