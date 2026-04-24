@@ -119,8 +119,8 @@ export default function CollectionRenewalPage() {
 
       return {
         id: String(contract.id),
-        contractId: contract.id,
-        contractNumber: 760 + contract.id,
+        contractId:1,
+        contractNumber: 760,
         branchName: 'Sigma Competences Recruitment Office',
         branchNameAr: 'سيقما الكفاءات للإستقدام',
         customerName: contract.customerNameAr || 'Unknown',

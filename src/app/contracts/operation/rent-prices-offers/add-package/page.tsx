@@ -200,8 +200,8 @@ export default function AddPackageOfferPage() {
         showForReception: values.showForReception || false,
         isActive: values.isActive || false,
         previousExperience: values.experienceIndicator || 0,
-        offersCount: values.offersCount || 1,
-        isPremium: true, // Package/Premium offer flag
+        // offersCount: values.offersCount || 1,
+        // isPremium: true, // Package/Premium offer flag
       });
       message.success(t('createSuccess'));
       router.push('/contracts/operation/rent-prices-offers');

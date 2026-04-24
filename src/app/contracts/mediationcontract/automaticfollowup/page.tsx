@@ -722,20 +722,20 @@ export default function AutomaticFollowupPage() {
               size="large"
               showSearch
               optionFilterProp="label"
-              options={[
-                { value: 'all', label: t.allNationalities },
-                ...(Array.isArray(nationalities)
-                  ? nationalities
-                      .filter((n) => n.nationalityId != null)
-                      .map((n) => ({
-                        value: n.nationalityId as number,
-                        label:
-                          getEnumLabel(NATIONALITIES, n.nationalityId, isAr ? 'ar' : 'en') ||
-                          n.nationalityName ||
-                          String(n.nationalityId),
-                      }))
-                  : []),
-              ]}
+              // options={[
+              //   { value: 'all', label: t.allNationalities },
+              //   ...(Array.isArray(nationalities)
+              //     ? nationalities
+              //         .filter((n) => n.nationalityId != null)
+              //         .map((n) => ({
+              //           value: n.nationalityId as number,
+              //           label:
+              //             getEnumLabel(NATIONALITIES, n.nationalityId, isAr ? 'ar' : 'en') ||
+              //             n.nationalityName ||
+              //             String(n.nationalityId),
+              //         }))
+              //     : []),
+              // ]}
             />
           </Col>
           <Col xs={12} sm={6} md={4}>

@@ -29,7 +29,6 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  FilterOutlined,
   FileTextOutlined,
   ShopOutlined,
   GlobalOutlined,

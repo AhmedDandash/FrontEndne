@@ -37,7 +37,7 @@ import {
   useUpdateMediationOffer,
   useDeleteMediationOffer,
 } from '@/hooks/api/useMediationOffers';
-import { useNationalities } from '@/hooks/api/useNationalities';
+// import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useBranches } from '@/hooks/api/useBranches';
 import { useAgents } from '@/hooks/api/useAgents';
@@ -68,7 +68,7 @@ export default function MediationOffersPage() {
   const deleteMutation = useDeleteMediationOffer();
 
   // Lookup data
-  const { data: nationalities = [] } = useNationalities();
+  // const { data: nationalities = [] } = useNationalities();
   const { data: jobs = [] } = useJobs();
   const { branches: branchList } = useBranches();
   const branches = useMemo(() => branchList || [], [branchList]);
@@ -209,24 +209,24 @@ export default function MediationOffersPage() {
 
   // Nationality select options — value is nationalityId (enum value, e.g. 359)
   // Names come from NATIONALITIES enum since API joined fields are null
-  const nationalityOptions = useMemo(() => {
-    return nationalities
-      .filter((n) => n.nationalityId != null)
-      .map((n) => {
-        const enumEntry = (
-          NATIONALITIES as ReadonlyArray<{ value: number; labelAr: string; labelEn: string }>
-        ).find((e) => e.value === n.nationalityId);
-        return {
-          value: n.nationalityId as number,
-          label: isArabic
-            ? n.nationalityNameAr || enumEntry?.labelAr || `#${n.nationalityId}`
-            : n.nationalityNameEn ||
-              enumEntry?.labelEn ||
-              enumEntry?.labelAr ||
-              `#${n.nationalityId}`,
-        };
-      });
-  }, [nationalities, isArabic]);
+  // const nationalityOptions = useMemo(() => {
+  //   return nationalities
+  //     .filter((n) => n.nationalityId != null)
+  //     .map((n) => {
+  //       const enumEntry = (
+  //         NATIONALITIES as ReadonlyArray<{ value: number; labelAr: string; labelEn: string }>
+  //       ).find((e) => e.value === n.nationalityId);
+  //       return {
+  //         value: n.nationalityId as number,
+  //         label: isArabic
+  //           ? n.nationalityNameAr || enumEntry?.labelAr || `#${n.nationalityId}`
+  //           : n.nationalityNameEn ||
+  //             enumEntry?.labelEn ||
+  //             enumEntry?.labelAr ||
+  //             `#${n.nationalityId}`,
+  //       };
+  //     });
+  // }, [nationalities, isArabic]);
 
   // Job select options from API
   const jobOptions = useMemo(() => {
@@ -558,7 +558,7 @@ export default function MediationOffersPage() {
               filterOption={(input, option) =>
                 ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
               }
-              options={nationalityOptions}
+              // options={nationalityOptions}
             />
           </Col>
           <Col xs={24} md={6}>
@@ -637,7 +637,7 @@ export default function MediationOffersPage() {
                   filterOption={(input, option) =>
                     ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
                   }
-                  options={nationalityOptions}
+                  // options={nationalityOptions}
                 />
               </Form.Item>
             </Col>
