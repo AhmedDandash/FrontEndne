@@ -345,12 +345,12 @@ export default function AddMediationContractPage() {
               {isRtl
                 ? getSelectedCustomer()?.arabicName
                 : getSelectedCustomer()?.englishName || getSelectedCustomer()?.arabicName}
-              {getSelectedCustomer()?.mobile && (
+              {/* {getSelectedCustomer()?.mobile && (
                 <span style={{ marginInlineStart: 16 }}>
                   {isRtl ? '| الجوال: ' : '| Mobile: '}
                   {getSelectedCustomer()?.mobile}
                 </span>
-              )}
+              )} */}
             </span>
           }
           style={{ marginTop: 8 }}
