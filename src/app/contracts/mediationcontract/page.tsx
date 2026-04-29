@@ -76,7 +76,7 @@ import {
   getEnumLabel,
   toSelectOptions,
 } from '@/constants/enums';
-import OfferSelector from '@/components/contracts/OfferSelector';
+  import OfferSelector from '@/components/contracts/OfferSelector';
 import FollowUpTimeline from '@/components/contracts/FollowUpTimeline';
 import MessageThread from '@/components/contracts/MessageThread';
 import styles from './MediationContracts.module.css';
