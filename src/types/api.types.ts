@@ -371,13 +371,17 @@ export interface WorkerDto {
   arabicLanguageLevel?: number | null;
   englishLanguageLevel?: number | null;
   workerType?: number | null;
-  /** renamed from uploadimage */
-  uploadImage?: string | null;
+  /** renamed from uploadimage; create/update sends File via multipart/form-data */
+  uploadImage?: string | File | null;
+  /** Additional document/image uploads for create/update */
+  attachments?: (string | File)[] | null;
   isActive?: boolean | null;
 }
 
 export interface Worker extends WorkerDto {
   id: number | string;
+  uploadImage?: string | null;
+  attachments?: string[] | null;
   // Read-only fields from GET response
   agentName?: string | null;
   userName?: string | null;
@@ -888,37 +892,53 @@ export interface UpdateNationalityDto {
 
 // ==================== Mediation Contract Offer Types ====================
 export interface MediationContractOffer {
-  id: number;
-  nationalityId?: number | null;
-  jobId?: number | null;
-  branchId?: number | null;
+  id: number | string;
+  offerNumber?: number | null;
+  nationalityId?: number | string | null;
+  jobId?: number | string | null;
+  branchId?: number | string | null;
   workerType?: number | null;
+  workerTypeName?: string | null;
   age?: number | null;
   religion?: number | null;
   previousExperience?: number | null;
-  agentId?: number | null;
+  previousExperienceName?: string | null;
+  agentId?: number | string | null;
   salary?: number | null;
   localCost?: number | null;
   taxLocalCost?: number | null;
   agentCostSAR?: number | null;
+  totalOfferCost?: number | null;
+  showForExternalCustomers?: boolean | null;
+  showForReception?: boolean | null;
+  isActive?: boolean | null;
   // Read-only joined fields
   nationalityName?: string | null;
   jobName?: string | null;
   branchName?: string | null;
   agentName?: string | null;
   createdAt?: string | null;
+  createdDate?: string | null;
   updatedAt?: string | null;
 }
 
-export interface CreateMediationContractOfferDto {
+/** POST /api/Mediation/MediationContractOffer/auto-fill */
+export interface MediationOfferAutoFillDto {
   nationalityId?: number | null;
   jobId?: number | null;
-  branchId?: number | null;
+  workerType?: number | null;
+  previousExperience?: number | null;
+}
+
+export interface CreateMediationContractOfferDto {
+  nationalityId?: number | string | null;
+  jobId?: number | string | null;
+  branchId?: number | string | null;
   workerType?: number | null;
   age?: number | null;
   religion?: number | null;
   previousExperience?: number | null;
-  agentId?: number | null;
+  agentId?: number | string | null;
   salary?: number | null;
   localCost?: number | null;
   taxLocalCost?: number | null;
@@ -926,14 +946,14 @@ export interface CreateMediationContractOfferDto {
 }
 
 export interface UpdateMediationContractOfferDto {
-  nationalityId?: number | null;
-  jobId?: number | null;
-  branchId?: number | null;
+  nationalityId?: number | string | null;
+  jobId?: number | string | null;
+  branchId?: number | string | null;
   workerType?: number | null;
   age?: number | null;
   religion?: number | null;
   previousExperience?: number | null;
-  agentId?: number | null;
+  agentId?: number | string | null;
   salary?: number | null;
   localCost?: number | null;
   taxLocalCost?: number | null;
@@ -941,11 +961,11 @@ export interface UpdateMediationContractOfferDto {
 }
 
 export interface MediationContractOfferSummary {
-  nationalityId?: number | null;
+  nationalityId?: number | string | null;
   nationalityName?: string | null;
-  jobId?: number | null;
+  jobId?: number | string | null;
   jobName?: string | null;
-  branchId?: number | null;
+  branchId?: number | string | null;
   branchName?: string | null;
   offersCount?: number | null;
 }
@@ -999,6 +1019,10 @@ export interface CreateMediationContractDto {
   contractType?: number | null;
   statusId?: number | null;
   customerId?: number | null;
+  /** Required per PDF spec — worker being placed in this contract */
+  workerId?: number | null;
+  /** Required per PDF spec — used for identity verification on create */
+  workerPassportNumber?: string | null;
   musanedContractNumber?: string | null;
   musanedDocumentationNumber?: string | null;
   marketerId?: number | null;
@@ -1021,59 +1045,6 @@ export interface CreateMediationContractDto {
   costDescription?: string | null;
   hasContractInsurance?: boolean | null;
   domesticWorkerInsurance?: number | null;
-}
-
-export interface UpdateMediationContractDto {
-  contractType?: number | null;
-  statusId?: number | null;
-  customerId?: number | null;
-  musanedContractNumber?: string | null;
-  musanedDocumentationNumber?: string | null;
-  marketerId?: number | null;
-  contractCategory?: number | null;
-  offerId?: number | null;
-  visaType?: number | null;
-  visaNumber?: string | null;
-  visaDateHijri?: string | null;
-  visaDate?: string | null;
-  isComprehensiveQualificationVisa?: boolean | null;
-  arrivalDestinationId?: number | null;
-  localCost?: number | null;
-  agentCostSAR?: number | null;
-  salary?: number | null;
-  otherCosts?: number | null;
-  totalTaxValue?: number | null;
-  managerDiscount?: number | null;
-  costDiscount?: number | null;
-  totalCost?: number | null;
-  costDescription?: string | null;
-  hasContractInsurance?: boolean | null;
-  domesticWorkerInsurance?: number | null;
-}
-
-export interface MediationContractNoteDto {
-  mediationId: number;
-  dateNote?: string | null;
-  note?: string | null;
-}
-
-export interface MediationContractNote {
-  id: number;
-  mediationId?: number | null;
-  dateNote?: string | null;
-  note?: string | null;
-  createdAt?: string | null;
-}
-
-export interface AddDomesticWorkerDto {
-  hasContractInsurance?: boolean | null;
-  cost?: number | null;
-  contractId: number;
-}
-
-export interface ContractTypeChangeDto {
-  type: number;
-  contractId: number;
 }
 
 export interface ContractCancelDto {
@@ -1082,18 +1053,56 @@ export interface ContractCancelDto {
   cancelNote?: string | null;
 }
 
-export interface MediationContractInvoice {
-  id: number;
-  paymentDate?: string | null;
-  musanedContractNumber?: string | null;
-  mediationContractId?: number | null;
-  createdAt?: string | null;
+// ==================== Mediation Contract Lifecycle DTOs ====================
+
+/** POST /api/Mediation/MediationContract/sign */
+export interface SignMediationContractDto {
+  contractId: number;
+  musanedContractNumber: string;
+  musanedDocumentationNumber?: string | null;
 }
 
-export interface CreateInvoiceDto {
-  paymentDate?: string | null;
-  musanedContractNumber?: string | null;
-  mediationContractId: number;
+/** POST /api/Mediation/MediationContract/delivery-form */
+export interface DeliveryFormDto {
+  contractId: number;
+  deliveryDate?: string | null;
+  notes?: string | null;
+}
+
+/** POST /api/Mediation/MediationContract/delivery-form/sign — customer receives worker */
+export interface DeliveryFormSignDto {
+  contractId: number;
+  customerSignedAt?: string | null;
+}
+
+/** POST /api/Mediation/MediationContract/warranty-return */
+export interface WarrantyReturnDto {
+  contractId: number;
+  returnDate: string;
+  /** Enum — required */
+  returnReason: number;
+  /** Days worker was with customer — required (> 0) */
+  daysWithCustomer: number;
+  newWorkerLocation?: string | null;
+  notes?: string | null;
+}
+
+/** PUT /api/Mediation/MediationContract/update-status */
+export interface UpdateContractStatusDto {
+  contractId: number;
+  newStatus: number;
+  notes?: string | null;
+}
+
+/** GET /api/Mediation/MediationContract/status-history/{contractId} */
+export interface ContractStatusHistory {
+  id?: number | null;
+  contractId?: number | null;
+  oldStatusName?: string | null;
+  newStatusName?: string | null;
+  notes?: string | null;
+  createdAt?: string | null;
+  createdByName?: string | null;
 }
 
 // ==================== Mediation Follow-Up Status (Parent) ====================
@@ -1273,6 +1282,76 @@ export interface UpdateNationalityFollowUpStatusDto {
   fileNameAr?: string | null;
   whatsAppStatusName?: string | null;
   maxDays?: number | null;
+}
+
+// ==================== Follow-Up Status (Master Data) ====================
+export interface FollowUpStatus {
+  id: number;
+  nameAr?: string | null;
+  nameEn?: string | null;
+  defaultSortOrder?: number | null;
+}
+
+export interface CreateFollowUpStatusDto {
+  nameAr: string;
+  nameEn: string;
+  defaultSortOrder?: number | null;
+}
+
+export interface UpdateFollowUpStatusDto {
+  id: number;
+  nameAr?: string | null;
+  nameEn?: string | null;
+  defaultSortOrder?: number | null;
+}
+
+// ==================== Contract Nationality ====================
+export interface ContractNationality {
+  id: number;
+  nationalityId?: string | null;
+  nameAr?: string | null;
+  nameEn?: string | null;
+  configuredStatusCount?: number | null;
+  isActive?: boolean | null;
+}
+
+export interface CreateContractNationalityDto {
+  nationalityId: string;
+}
+
+export interface UpdateContractNationalityDto {
+  id: number;
+  isActive: boolean;
+}
+
+// ==================== Nationality Follow-Up Config ====================
+export interface NationalityFollowUpConfig {
+  id: number;
+  contractNationalityId?: number | null;
+  followUpStatusId?: number | null;
+  statusNameAr?: string | null;
+  statusNameEn?: string | null;
+  sortOrder?: number | null;
+  dependsOnStatusId?: number | null;
+  fileNameAr?: string | null;
+  fileNameEn?: string | null;
+  whatsAppStatusName?: string | null;
+  maxDays?: number | null;
+  isActive?: boolean | null;
+}
+
+export interface UpdateNationalityFollowUpConfigDto {
+  id: number;
+  sortOrder?: number | null;
+  dependsOnStatusId?: number | null;
+  fileNameAr?: string | null;
+  maxDays?: number | null;
+  isActive?: boolean | null;
+}
+
+export interface BulkUpdateNationalityFollowUpConfigDto {
+  nationalityId: number;
+  configs: UpdateNationalityFollowUpConfigDto[];
 }
 
 // ==================== Marketer Types ====================

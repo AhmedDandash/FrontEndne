@@ -39,28 +39,32 @@ import {
   PhoneOutlined,
   EnvironmentOutlined,
   FileProtectOutlined,
-  MoneyCollectOutlined,
-  SafetyOutlined,
-  SwapOutlined,
   CloseCircleOutlined,
-  BarsOutlined,
   ReloadOutlined,
   EyeOutlined,
+  EditOutlined,
+  SendOutlined,
+  CarOutlined,
+  RollbackOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import {
   useMediationContracts,
-  useMediationContractNotes,
-  useMediationContractInvoices,
+  useContractStatusHistory,
 } from '@/hooks/api/useMediationContracts';
 import type {
   MediationContract,
   MediationContractOffer,
   CreateMediationContractDto,
-  UpdateMediationContractDto,
-  MediationContractNote,
+  ContractCancelDto,
+  SignMediationContractDto,
+  DeliveryFormDto,
+  DeliveryFormSignDto,
+  WarrantyReturnDto,
+  UpdateContractStatusDto,
 } from '@/types/api.types';
 import {
   MEDIATION_CONTRACT_STATUS,
@@ -88,38 +92,35 @@ export default function MediationContractsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
   // Modal states
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showNoteModal, setShowNoteModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showTypeChangeModal, setShowTypeChangeModal] = useState(false);
-  const [showInsuranceModal, setShowInsuranceModal] = useState(false);
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showNotesListModal, setShowNotesListModal] = useState(false);
   const [selectedContract, setSelectedContract] = useState<MediationContract | null>(null);
 
   // Customer selection modal (for add contract when no customer prefilled)
   const [showCustomerSelectModal, setShowCustomerSelectModal] = useState(false);
   const [customerSelectId, setCustomerSelectId] = useState<number | null>(null);
 
-  // Edit modal
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingContract, setEditingContract] = useState<MediationContract | null>(null);
+  // Lifecycle modals
+  const [showSignModal, setShowSignModal] = useState(false);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [showDeliverySignModal, setShowDeliverySignModal] = useState(false);
+  const [showWarrantyReturnModal, setShowWarrantyReturnModal] = useState(false);
+  const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
+  const [showStatusHistoryModal, setShowStatusHistoryModal] = useState(false);
 
-  // Offer selection state for create/edit modals
+  // Offer selection state for create modal
   const [createSelectedOffer, setCreateSelectedOffer] = useState<MediationContractOffer | null>(
     null
   );
-  const [editSelectedOffer, setEditSelectedOffer] = useState<MediationContractOffer | null>(null);
 
   // Forms
   const [createForm] = Form.useForm();
-  const [editForm] = Form.useForm();
-  const [noteForm] = Form.useForm();
   const [cancelForm] = Form.useForm();
-  const [typeChangeForm] = Form.useForm();
-  const [insuranceForm] = Form.useForm();
-  const [invoiceForm] = Form.useForm();
+  const [signForm] = Form.useForm();
+  const [deliveryForm] = Form.useForm();
+  const [deliverySignForm] = Form.useForm();
+  const [warrantyReturnForm] = Form.useForm();
+  const [updateStatusForm] = Form.useForm();
 
   // API hooks
   const {
@@ -127,28 +128,26 @@ export default function MediationContractsPage() {
     isLoading,
     refetch,
     createContract,
-    updateContract,
-    deleteContract,
     cancelContract,
-    changeContractType,
-    addDomesticWorker,
+    signContract,
+    generateDeliveryForm,
+    signDelivery,
+    warrantyReturn,
+    updateContractStatus,
     isCreating,
-    isUpdating,
     isCancelling,
-    isChangingType,
-    isAddingWorker,
+    isSigning,
+    isGeneratingDelivery,
+    isSigningDelivery,
+    isReturning,
+    isUpdatingStatus,
   } = useMediationContracts();
 
+  const { data: statusHistory = [], isLoading: isLoadingHistory } = useContractStatusHistory(
+    showStatusHistoryModal ? selectedContract?.id : undefined
+  );
+
   const { customers: allCustomers, isLoading: isLoadingCustomers } = useCustomers();
-
-  const {
-    notes,
-    isLoading: isLoadingNotes,
-    addNote,
-    isAddingNote,
-  } = useMediationContractNotes(selectedContract?.id);
-
-  const { createInvoice, isCreatingInvoice } = useMediationContractInvoices();
 
   // Translations
   const t = {
@@ -177,43 +176,21 @@ export default function MediationContractsPage() {
     localCost: language === 'ar' ? 'التكلفة المحلية' : 'Local Cost',
     agentCost: language === 'ar' ? 'تكلفة الوكيل' : 'Agent Cost',
     salary: language === 'ar' ? 'الراتب' : 'Salary',
-    nationality: language === 'ar' ? 'الجنسية' : 'Nationality',
-    profession: language === 'ar' ? 'المهنة' : 'Profession',
     musanedNumber: language === 'ar' ? 'رقم مساند' : 'Musaned #',
     visaNumber: language === 'ar' ? 'رقم التأشيرة' : 'Visa Number',
     arrivalCity: language === 'ar' ? 'مدينة الوصول' : 'Arrival City',
-    addNote: language === 'ar' ? 'إضافة ملاحظة' : 'Add Note',
-    viewNotes: language === 'ar' ? 'عرض الملاحظات' : 'View Notes',
-    payBill: language === 'ar' ? 'دفع الفاتورة' : 'Pay Bill',
-    createInvoice: language === 'ar' ? 'إنشاء فاتورة' : 'Create Invoice',
-    addInsurance: language === 'ar' ? 'إضافة تأمين عامل' : 'Domestic Worker Insurance',
-    changeType: language === 'ar' ? 'تغيير النوع' : 'Change Type',
-    cancelContract: language === 'ar' ? 'إلغاء العقد' : 'Cancel Contract',
     noResults: language === 'ar' ? 'لا توجد نتائج' : 'No results found',
     save: language === 'ar' ? 'حفظ' : 'Save',
     cancel: language === 'ar' ? 'إلغاء' : 'Cancel',
     close: language === 'ar' ? 'إغلاق' : 'Close',
     submit: language === 'ar' ? 'إرسال' : 'Submit',
     selectCustomer: language === 'ar' ? 'اختر العميل' : 'Select Customer',
-    selectOffer: language === 'ar' ? 'اختر العرض' : 'Select Offer',
     contractDetails: language === 'ar' ? 'تفاصيل العقد' : 'Contract Details',
     financialInfo: language === 'ar' ? 'المعلومات المالية' : 'Financial Information',
     visaInfo: language === 'ar' ? 'معلومات التأشيرة' : 'Visa Information',
-    notes: language === 'ar' ? 'الملاحظات' : 'Notes',
-    note: language === 'ar' ? 'الملاحظة' : 'Note',
-    date: language === 'ar' ? 'التاريخ' : 'Date',
-    noNotes: language === 'ar' ? 'لا توجد ملاحظات' : 'No notes found',
     cancelBy: language === 'ar' ? 'إلغاء بواسطة' : 'Cancel By',
     cancelNote: language === 'ar' ? 'سبب الإلغاء' : 'Cancel Reason',
-    newType: language === 'ar' ? 'النوع الجديد' : 'New Type',
-    insuranceCost: language === 'ar' ? 'تكلفة التأمين' : 'Insurance Cost',
-    hasInsurance: language === 'ar' ? 'يوجد تأمين' : 'Has Insurance',
-    paymentDate: language === 'ar' ? 'تاريخ الدفع' : 'Payment Date',
-    delete: language === 'ar' ? 'حذف' : 'Delete',
-    confirmDelete:
-      language === 'ar'
-        ? 'هل أنت متأكد من حذف هذا العقد؟'
-        : 'Are you sure you want to delete this contract?',
+    cancelContract: language === 'ar' ? 'إلغاء العقد' : 'Cancel Contract',
     otherCosts: language === 'ar' ? 'تكاليف أخرى' : 'Other Costs',
     taxValue: language === 'ar' ? 'قيمة الضريبة' : 'Tax Value',
     managerDiscount: language === 'ar' ? 'خصم المدير' : 'Manager Discount',
@@ -221,9 +198,34 @@ export default function MediationContractsPage() {
     costDescription: language === 'ar' ? 'وصف التكلفة' : 'Cost Description',
     comprehensiveVisa: language === 'ar' ? 'تأشيرة تأهيل شامل' : 'Comprehensive Qualification Visa',
     contractCategory: language === 'ar' ? 'تصنيف العقد' : 'Contract Category',
-    marketerSource: language === 'ar' ? 'مصدر التسويق' : 'Marketer Source',
     documentationNumber: language === 'ar' ? 'رقم التوثيق' : 'Documentation #',
     visaDateHijri: language === 'ar' ? 'تاريخ التأشيرة هجري' : 'Visa Date (Hijri)',
+    hasInsurance: language === 'ar' ? 'يوجد تأمين' : 'Has Insurance',
+    insuranceCost: language === 'ar' ? 'تكلفة التأمين' : 'Insurance Cost',
+    // Lifecycle
+    signContract: language === 'ar' ? 'توقيع العقد (Draft → موقّع)' : 'Sign Contract (Draft → Signed)',
+    generateDelivery: language === 'ar' ? 'نموذج الاستلام والتسليم' : 'Generate Delivery Form',
+    confirmDelivery: language === 'ar' ? 'تأكيد استلام العميل (→ مُسلَّم)' : 'Confirm Customer Receipt (→ Delivered)',
+    warrantyReturn: language === 'ar' ? 'إرجاع ضمن فترة الضمان' : 'Warranty Return',
+    updateStatus: language === 'ar' ? 'تحديث الحالة يدوياً' : 'Update Status Manually',
+    statusHistory: language === 'ar' ? 'سجل الحالات' : 'Status History',
+    musanedDocNumber: language === 'ar' ? 'رقم توثيق مساند' : 'Musaned Documentation #',
+    deliveryDate: language === 'ar' ? 'تاريخ التسليم' : 'Delivery Date',
+    deliveryNotes: language === 'ar' ? 'ملاحظات التسليم' : 'Delivery Notes',
+    customerSignedAt: language === 'ar' ? 'تاريخ توقيع العميل' : 'Customer Signed At',
+    returnDate: language === 'ar' ? 'تاريخ الإرجاع' : 'Return Date',
+    returnReason: language === 'ar' ? 'سبب الإرجاع' : 'Return Reason',
+    daysWithCustomer: language === 'ar' ? 'أيام العامل عند العميل' : 'Days with Customer',
+    refundAmount: language === 'ar' ? 'المبلغ المسترد (تقديري)' : 'Estimated Refund Amount',
+    newWorkerLocation: language === 'ar' ? 'موقع العامل الجديد' : 'New Worker Location',
+    warrantyNote:
+      language === 'ar'
+        ? 'الضمان 90 يوماً — المبلغ المسترد = التكلفة الكلية − (التكلفة الكلية ÷ 90 × الأيام). بعد 90 يوماً المبلغ المسترد = صفر.'
+        : '90-day warranty — Refund = TotalCost − (TotalCost ÷ 90 × days). After 90 days refund = 0.',
+    newStatus: language === 'ar' ? 'الحالة الجديدة' : 'New Status',
+    oldStatus: language === 'ar' ? 'الحالة السابقة' : 'Old Status',
+    changedBy: language === 'ar' ? 'بواسطة' : 'Changed By',
+    note: language === 'ar' ? 'ملاحظة' : 'Note',
   };
 
   // Helper functions
@@ -251,39 +253,13 @@ export default function MediationContractsPage() {
 
   const getStatusConfig = (statusId: number | null | undefined) => {
     const configs: Record<number, { color: string; label: string; icon: React.ReactNode }> = {
-      1: {
-        color: 'processing',
-        label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 1, language),
-        icon: <ClockCircleOutlined />,
-      },
-      2: {
-        color: 'warning',
-        label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 2, language),
-        icon: <ClockCircleOutlined />,
-      },
-      3: {
-        color: 'success',
-        label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 3, language),
-        icon: <CheckCircleOutlined />,
-      },
-      4: {
-        color: 'error',
-        label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 4, language),
-        icon: <ExclamationCircleOutlined />,
-      },
-      5: {
-        color: 'default',
-        label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 5, language),
-        icon: <ClockCircleOutlined />,
-      },
+      1: { color: 'processing', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 1, language), icon: <ClockCircleOutlined /> },
+      2: { color: 'warning', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 2, language), icon: <ClockCircleOutlined /> },
+      3: { color: 'success', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 3, language), icon: <CheckCircleOutlined /> },
+      4: { color: 'error', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 4, language), icon: <ExclamationCircleOutlined /> },
+      5: { color: 'default', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 5, language), icon: <ClockCircleOutlined /> },
     };
-    return (
-      configs[statusId ?? 0] || {
-        color: 'default',
-        label: language === 'ar' ? 'غير محدد' : 'Unknown',
-        icon: <ClockCircleOutlined />,
-      }
-    );
+    return configs[statusId ?? 0] || { color: 'default', label: language === 'ar' ? 'غير محدد' : 'Unknown', icon: <ClockCircleOutlined /> };
   };
 
   const getTypeTag = (contractType: number | null | undefined) => {
@@ -291,12 +267,7 @@ export default function MediationContractsPage() {
       1: { color: 'blue', label: getEnumLabel([...MEDIATION_CONTRACT_TYPE], 1, language) },
       2: { color: 'green', label: getEnumLabel([...MEDIATION_CONTRACT_TYPE], 2, language) },
     };
-    return (
-      configs[contractType ?? 0] || {
-        color: 'default',
-        label: language === 'ar' ? 'غير محدد' : 'Unknown',
-      }
-    );
+    return configs[contractType ?? 0] || { color: 'default', label: language === 'ar' ? 'غير محدد' : 'Unknown' };
   };
 
   // Filter contracts
@@ -327,11 +298,12 @@ export default function MediationContractsPage() {
     };
   }, [contracts]);
 
-  // Calculate total cost from form values
+  // TotalCost = (LocalCost + TotalTaxValue + AgentCostSAR + OtherCosts + DomesticWorkerInsurance)
+  //             - (ManagerDiscount + CostDiscount)
+  // Salary is informational only — NOT included per PDF spec.
   const computeTotalCost = (values: Record<string, unknown>) => {
     const localCost = Number(values.localCost) || 0;
     const agentCostSAR = Number(values.agentCostSAR) || 0;
-    const salary = Number(values.salary) || 0;
     const otherCosts = Number(values.otherCosts) || 0;
     const totalTaxValue = Number(values.totalTaxValue) || 0;
     const managerDiscount = Number(values.managerDiscount) || 0;
@@ -339,21 +311,7 @@ export default function MediationContractsPage() {
     const domesticWorkerInsurance = values.hasContractInsurance
       ? Number(values.domesticWorkerInsurance) || 0
       : 0;
-    return (
-      localCost +
-      agentCostSAR +
-      salary +
-      otherCosts +
-      totalTaxValue -
-      managerDiscount -
-      costDiscount +
-      domesticWorkerInsurance
-    );
-  };
-
-  const handleCostFieldChange = () => {
-    const values = createForm.getFieldsValue();
-    createForm.setFieldValue('totalCost', computeTotalCost(values));
+    return localCost + agentCostSAR + otherCosts + totalTaxValue - managerDiscount - costDiscount + domesticWorkerInsurance;
   };
 
   // Handle offer selection in CREATE modal → auto-fill fields
@@ -368,21 +326,6 @@ export default function MediationContractsPage() {
     setTimeout(() => {
       const values = createForm.getFieldsValue();
       createForm.setFieldValue('totalCost', computeTotalCost(values));
-    }, 50);
-  };
-
-  // Handle offer selection in EDIT modal → auto-fill fields
-  const handleEditOfferSelect = (offer: MediationContractOffer) => {
-    setEditSelectedOffer(offer);
-    editForm.setFieldsValue({
-      offerId: offer.id,
-      salary: offer.salary ?? 0,
-      localCost: offer.localCost ?? 0,
-      agentCostSAR: offer.agentCostSAR ?? 0,
-    });
-    setTimeout(() => {
-      const values = editForm.getFieldsValue();
-      editForm.setFieldValue('totalCost', computeTotalCost(values));
     }, 50);
   };
 
@@ -413,15 +356,13 @@ export default function MediationContractsPage() {
         totalTaxValue: values.totalTaxValue || 0,
         managerDiscount: values.managerDiscount || 0,
         costDiscount: values.costDiscount || 0,
-        totalCost: totalCost,
+        totalCost,
         costDescription: values.costDescription || null,
         hasContractInsurance: values.hasContractInsurance || false,
-        domesticWorkerInsurance: values.hasContractInsurance
-          ? values.domesticWorkerInsurance || 0
-          : 0,
+        domesticWorkerInsurance: values.hasContractInsurance ? values.domesticWorkerInsurance || 0 : 0,
       };
       await createContract(data);
-      setShowCreateModal(false);
+      setShowCustomerSelectModal(false);
       setCreateSelectedOffer(null);
       createForm.resetFields();
     } catch (error) {
@@ -429,31 +370,16 @@ export default function MediationContractsPage() {
     }
   };
 
-  // Handle add note
-  const handleAddNote = async () => {
-    try {
-      const values = await noteForm.validateFields();
-      await addNote({
-        mediationId: selectedContract!.id,
-        dateNote: new Date().toISOString(),
-        note: values.note,
-      });
-      setShowNoteModal(false);
-      noteForm.resetFields();
-    } catch (error) {
-      console.error('Note form validation failed:', error);
-    }
-  };
-
   // Handle cancel contract
   const handleCancelContract = async () => {
     try {
       const values = await cancelForm.validateFields();
-      await cancelContract({
+      const data: ContractCancelDto = {
         contractId: selectedContract!.id,
         cancelBy: values.cancelBy,
         cancelNote: values.cancelNote,
-      });
+      };
+      await cancelContract(data);
       setShowCancelModal(false);
       cancelForm.resetFields();
       setSelectedContract(null);
@@ -462,147 +388,98 @@ export default function MediationContractsPage() {
     }
   };
 
-  // Handle type change
-  const handleTypeChange = async () => {
+  // Handle sign contract (Draft → Signed)
+  const handleSignContract = async () => {
     try {
-      const values = await typeChangeForm.validateFields();
-      await changeContractType({
+      const values = await signForm.validateFields();
+      const data: SignMediationContractDto = {
         contractId: selectedContract!.id,
-        type: values.type,
-      });
-      setShowTypeChangeModal(false);
-      typeChangeForm.resetFields();
-      setSelectedContract(null);
-    } catch (error) {
-      console.error('Type change form validation failed:', error);
-    }
-  };
-
-  // Handle add insurance / domestic worker
-  const handleAddInsurance = async () => {
-    try {
-      const values = await insuranceForm.validateFields();
-      await addDomesticWorker({
-        contractId: selectedContract!.id,
-        hasContractInsurance: values.hasContractInsurance,
-        cost: values.cost,
-      });
-      setShowInsuranceModal(false);
-      insuranceForm.resetFields();
-      setSelectedContract(null);
-    } catch (error) {
-      console.error('Insurance form validation failed:', error);
-    }
-  };
-
-  // Handle create invoice
-  const handleCreateInvoice = async () => {
-    try {
-      const values = await invoiceForm.validateFields();
-      await createInvoice({
-        mediationContractId: selectedContract!.id,
-        paymentDate: values.paymentDate
-          ? new Date(values.paymentDate).toISOString()
-          : new Date().toISOString(),
-        musanedContractNumber:
-          values.musanedContractNumber || selectedContract!.musanedContractNumber || '',
-      });
-      setShowInvoiceModal(false);
-      invoiceForm.resetFields();
-      setSelectedContract(null);
-    } catch (error) {
-      console.error('Invoice form validation failed:', error);
-    }
-  };
-
-  // Handle delete contract
-  const handleDeleteContract = (contract: MediationContract) => {
-    Modal.confirm({
-      title: t.delete,
-      content: t.confirmDelete,
-      okText: t.delete,
-      cancelText: t.cancel,
-      okButtonProps: { danger: true },
-      onOk: () => deleteContract(contract.id),
-    });
-  };
-
-  // Open edit modal
-  const openEditModal = (contract: MediationContract) => {
-    setEditingContract(contract);
-    editForm.setFieldsValue({
-      contractType: contract.contractType,
-      statusId: contract.statusId,
-      customerId: contract.customerId,
-      musanedContractNumber: contract.musanedContractNumber,
-      musanedDocumentationNumber: contract.musanedDocumentationNumber,
-      contractCategory: contract.contractCategory,
-      offerId: contract.offerId,
-      visaType: contract.visaType,
-      visaNumber: contract.visaNumber,
-      visaDateHijri: contract.visaDateHijri,
-      isComprehensiveQualificationVisa: contract.isComprehensiveQualificationVisa ?? false,
-      arrivalDestinationId: contract.arrivalDestinationId,
-      localCost: contract.localCost,
-      agentCostSAR: contract.agentCostSAR,
-      salary: contract.salary,
-      otherCosts: contract.otherCosts,
-      totalTaxValue: contract.totalTaxValue,
-      managerDiscount: contract.managerDiscount,
-      costDiscount: contract.costDiscount,
-      totalCost: contract.totalCost,
-      costDescription: contract.costDescription,
-      hasContractInsurance: contract.hasContractInsurance ?? false,
-      domesticWorkerInsurance: contract.domesticWorkerInsurance,
-    });
-    setShowEditModal(true);
-  };
-
-  // Handle contract update
-  const handleUpdateContract = async () => {
-    try {
-      const values = await editForm.validateFields();
-      const totalCost = computeTotalCost(values);
-      const data: UpdateMediationContractDto = {
-        contractType: values.contractType,
-        statusId: values.statusId,
-        customerId: values.customerId,
-        musanedContractNumber: values.musanedContractNumber || null,
+        musanedContractNumber: values.musanedContractNumber,
         musanedDocumentationNumber: values.musanedDocumentationNumber || null,
-        marketerId: values.marketerId || null,
-        contractCategory: values.contractCategory || null,
-        offerId: values.offerId || null,
-        visaType: values.visaType || null,
-        visaNumber: values.visaNumber || null,
-        visaDateHijri: values.visaDateHijri || null,
-        visaDate: values.visaDate ? new Date(values.visaDate).toISOString() : null,
-        isComprehensiveQualificationVisa: values.isComprehensiveQualificationVisa || false,
-        arrivalDestinationId: values.arrivalDestinationId || null,
-        localCost: values.localCost || 0,
-        agentCostSAR: values.agentCostSAR || 0,
-        salary: values.salary || 0,
-        otherCosts: values.otherCosts || 0,
-        totalTaxValue: values.totalTaxValue || 0,
-        managerDiscount: values.managerDiscount || 0,
-        costDiscount: values.costDiscount || 0,
-        totalCost: totalCost,
-        costDescription: values.costDescription || null,
-        hasContractInsurance: values.hasContractInsurance || false,
-        domesticWorkerInsurance: values.hasContractInsurance
-          ? values.domesticWorkerInsurance || 0
-          : 0,
       };
-      await updateContract({ id: editingContract!.id, data });
-      setShowEditModal(false);
-      editForm.resetFields();
-      setEditingContract(null);
-      setEditSelectedOffer(null);
+      await signContract(data);
+      setShowSignModal(false);
+      signForm.resetFields();
+      setSelectedContract(null);
     } catch (error) {
-      console.error('Edit form validation failed:', error);
+      console.error('Sign form validation failed:', error);
     }
   };
 
-  // Open create modal can be re-added if needed; currently Add Contract navigates to /add page
+  // Handle generate delivery form
+  const handleGenerateDelivery = async () => {
+    try {
+      const values = await deliveryForm.validateFields();
+      const data: DeliveryFormDto = {
+        contractId: selectedContract!.id,
+        deliveryDate: values.deliveryDate ? new Date(values.deliveryDate).toISOString() : null,
+        notes: values.notes || null,
+      };
+      await generateDeliveryForm(data);
+      setShowDeliveryModal(false);
+      deliveryForm.resetFields();
+    } catch (error) {
+      console.error('Delivery form validation failed:', error);
+    }
+  };
+
+  // Handle confirm customer signed delivery (Signed → Delivered)
+  const handleSignDelivery = async () => {
+    try {
+      const values = await deliverySignForm.validateFields();
+      const data: DeliveryFormSignDto = {
+        contractId: selectedContract!.id,
+        customerSignedAt: values.customerSignedAt
+          ? new Date(values.customerSignedAt).toISOString()
+          : new Date().toISOString(),
+      };
+      await signDelivery(data);
+      setShowDeliverySignModal(false);
+      deliverySignForm.resetFields();
+      setSelectedContract(null);
+    } catch (error) {
+      console.error('Delivery sign form validation failed:', error);
+    }
+  };
+
+  // Handle warranty return (Delivered → Returned)
+  const handleWarrantyReturn = async () => {
+    try {
+      const values = await warrantyReturnForm.validateFields();
+      const data: WarrantyReturnDto = {
+        contractId: selectedContract!.id,
+        returnDate: values.returnDate ? new Date(values.returnDate).toISOString() : new Date().toISOString(),
+        returnReason: Number(values.returnReason),
+        daysWithCustomer: Number(values.daysWithCustomer),
+        newWorkerLocation: values.newWorkerLocation || null,
+        notes: values.notes || null,
+      };
+      await warrantyReturn(data);
+      setShowWarrantyReturnModal(false);
+      warrantyReturnForm.resetFields();
+      setSelectedContract(null);
+    } catch (error) {
+      console.error('Warranty return form validation failed:', error);
+    }
+  };
+
+  // Handle manual status update
+  const handleUpdateStatus = async () => {
+    try {
+      const values = await updateStatusForm.validateFields();
+      const data: UpdateContractStatusDto = {
+        contractId: selectedContract!.id,
+        newStatus: Number(values.newStatus),
+        notes: values.notes || null,
+      };
+      await updateContractStatus(data);
+      setShowUpdateStatusModal(false);
+      updateStatusForm.resetFields();
+      setSelectedContract(null);
+    } catch (error) {
+      console.error('Update status form validation failed:', error);
+    }
+  };
 
   // Render a contract card
   const renderContractCard = (contract: MediationContract) => {
@@ -610,12 +487,8 @@ export default function MediationContractsPage() {
     const typeTag = getTypeTag(contract.contractType);
     const customerDisplay =
       language === 'ar'
-        ? contract.customerNameAr ||
-          contract.customerName ||
-          `${t.customer} #${contract.customerId}`
-        : contract.customerName ||
-          contract.customerNameAr ||
-          `${t.customer} #${contract.customerId}`;
+        ? contract.customerNameAr || contract.customerName || `${t.customer} #${contract.customerId}`
+        : contract.customerName || contract.customerNameAr || `${t.customer} #${contract.customerId}`;
 
     return (
       <Col xs={24} key={contract.id}>
@@ -640,9 +513,7 @@ export default function MediationContractsPage() {
                   {typeTag.label}
                 </Tag>
                 <Badge
-                  status={
-                    statusConfig.color as 'processing' | 'warning' | 'success' | 'error' | 'default'
-                  }
+                  status={statusConfig.color as 'processing' | 'warning' | 'success' | 'error' | 'default'}
                   text={statusConfig.label}
                 />
               </div>
@@ -676,11 +547,7 @@ export default function MediationContractsPage() {
                     <div className={styles.detailText}>
                       <span className={styles.detailLabel}>{t.arrivalCity}</span>
                       <span className={styles.detailValue}>
-                        {getEnumLabel(
-                          [...ARRIVAL_DESTINATIONS],
-                          contract.arrivalDestinationId,
-                          language
-                        )}
+                        {getEnumLabel([...ARRIVAL_DESTINATIONS], contract.arrivalDestinationId, language)}
                       </span>
                     </div>
                   </div>
@@ -693,27 +560,17 @@ export default function MediationContractsPage() {
               <div className={styles.paymentSection}>
                 <div className={styles.paymentHeader}>
                   <span className={styles.paymentLabel}>{t.totalCost}</span>
-                  <span className={styles.paymentPercentage}>
-                    {formatCurrency(contract.totalCost)}
-                  </span>
+                  <span className={styles.paymentPercentage}>{formatCurrency(contract.totalCost)}</span>
                 </div>
-                <Progress
-                  percent={0}
-                  showInfo={false}
-                  strokeColor={{ '0%': '#003366', '100%': '#0056b3' }}
-                />
+                <Progress percent={0} showInfo={false} strokeColor={{ '0%': '#003366', '100%': '#0056b3' }} />
                 <div className={styles.paymentAmounts}>
                   <div className={styles.amountItem}>
                     <span className={styles.amountLabel}>{t.localCost}</span>
-                    <span className={styles.amountValue} style={{ color: '#52c41a' }}>
-                      {formatCurrency(contract.localCost)}
-                    </span>
+                    <span className={styles.amountValue} style={{ color: '#52c41a' }}>{formatCurrency(contract.localCost)}</span>
                   </div>
                   <div className={styles.amountItem}>
                     <span className={styles.amountLabel}>{t.agentCost}</span>
-                    <span className={styles.amountValue} style={{ color: '#faad14' }}>
-                      {formatCurrency(contract.agentCostSAR)}
-                    </span>
+                    <span className={styles.amountValue} style={{ color: '#faad14' }}>{formatCurrency(contract.agentCostSAR)}</span>
                   </div>
                 </div>
               </div>
@@ -725,7 +582,7 @@ export default function MediationContractsPage() {
                 </div>
                 {contract.visaDate && (
                   <>
-                    <span className={styles.dateSeparator}>{'\u2192'}</span>
+                    <span className={styles.dateSeparator}>{'→'}</span>
                     <div className={styles.dateItem}>
                       <CalendarOutlined />
                       <span>{formatDate(contract.visaDate)}</span>
@@ -736,80 +593,20 @@ export default function MediationContractsPage() {
             </div>
           </div>
 
-          {/* Bottom Action Buttons */}
+          {/* Action Buttons — PDF-defined actions only */}
           <div className={styles.cardBottom}>
             <div className={styles.actionsList}>
               <Button
                 type="link"
-                icon={<FileProtectOutlined />}
+                icon={<EyeOutlined />}
                 className={styles.actionBtn}
                 block
                 onClick={() => {
                   setSelectedContract(contract);
-                  noteForm.resetFields();
-                  setShowNoteModal(true);
+                  setShowDetailsModal(true);
                 }}
               >
-                {t.addNote}
-              </Button>
-              <Button
-                type="link"
-                icon={<BarsOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  setShowNotesListModal(true);
-                }}
-              >
-                {t.viewNotes}
-              </Button>
-              <Button
-                type="link"
-                icon={<MoneyCollectOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  invoiceForm.resetFields();
-                  invoiceForm.setFieldValue(
-                    'musanedContractNumber',
-                    contract.musanedContractNumber
-                  );
-                  setShowInvoiceModal(true);
-                }}
-              >
-                {t.createInvoice}
-              </Button>
-              <Button
-                type="link"
-                icon={<SafetyOutlined />}
-                className={[styles.actionBtn, styles.successBtn].join(' ')}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  insuranceForm.resetFields();
-                  insuranceForm.setFieldValue(
-                    'hasContractInsurance',
-                    contract.hasContractInsurance || false
-                  );
-                  setShowInsuranceModal(true);
-                }}
-              >
-                {t.addInsurance}
-              </Button>
-              <Button
-                type="link"
-                icon={<SwapOutlined />}
-                className={[styles.actionBtn, styles.dangerBtn].join(' ')}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  typeChangeForm.resetFields();
-                  setShowTypeChangeModal(true);
-                }}
-              >
-                {t.changeType}
+                {t.contractDetails}
               </Button>
               <Button
                 type="link"
@@ -826,24 +623,81 @@ export default function MediationContractsPage() {
               </Button>
               <Button
                 type="link"
-                icon={<EyeOutlined />}
+                icon={<EditOutlined />}
+                className={[styles.actionBtn, styles.successBtn].join(' ')}
+                block
+                onClick={() => {
+                  setSelectedContract(contract);
+                  signForm.resetFields();
+                  signForm.setFieldValue('musanedContractNumber', contract.musanedContractNumber);
+                  setShowSignModal(true);
+                }}
+              >
+                {t.signContract}
+              </Button>
+              <Button
+                type="link"
+                icon={<SendOutlined />}
                 className={styles.actionBtn}
                 block
                 onClick={() => {
                   setSelectedContract(contract);
-                  setShowDetailsModal(true);
+                  deliveryForm.resetFields();
+                  setShowDeliveryModal(true);
                 }}
               >
-                {t.contractDetails}
+                {t.generateDelivery}
               </Button>
               <Button
                 type="link"
-                icon={<FileTextOutlined />}
+                icon={<CarOutlined />}
+                className={[styles.actionBtn, styles.successBtn].join(' ')}
+                block
+                onClick={() => {
+                  setSelectedContract(contract);
+                  deliverySignForm.resetFields();
+                  setShowDeliverySignModal(true);
+                }}
+              >
+                {t.confirmDelivery}
+              </Button>
+              <Button
+                type="link"
+                icon={<RollbackOutlined />}
+                className={[styles.actionBtn, styles.dangerBtn].join(' ')}
+                block
+                onClick={() => {
+                  setSelectedContract(contract);
+                  warrantyReturnForm.resetFields();
+                  setShowWarrantyReturnModal(true);
+                }}
+              >
+                {t.warrantyReturn}
+              </Button>
+              <Button
+                type="link"
+                icon={<FileProtectOutlined />}
                 className={styles.actionBtn}
                 block
-                onClick={() => openEditModal(contract)}
+                onClick={() => {
+                  setSelectedContract(contract);
+                  updateStatusForm.resetFields();
+                  setShowUpdateStatusModal(true);
+                }}
               >
-                {language === 'ar' ? 'تعديل العقد' : 'Edit Contract'}
+                {t.updateStatus}
+              </Button>
+              <Button
+                type="link"
+                icon={<HistoryOutlined />}
+                className={styles.actionBtn}
+                block
+                onClick={() => {
+                  setSelectedContract(contract);
+                  setShowStatusHistoryModal(true);
+                }}
+              >
+                {t.statusHistory}
               </Button>
             </div>
           </div>
@@ -854,14 +708,7 @@ export default function MediationContractsPage() {
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '60vh',
-        }}
-      >
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <Spin size="large" />
       </div>
     );
@@ -880,11 +727,7 @@ export default function MediationContractsPage() {
             </div>
           </div>
           <div className={styles.headerActions}>
-            <Button
-              icon={<ReloadOutlined />}
-              className={styles.secondaryBtn}
-              onClick={() => refetch()}
-            >
+            <Button icon={<ReloadOutlined />} className={styles.secondaryBtn} onClick={() => refetch()}>
               {t.refresh}
             </Button>
             <Button icon={<FileExcelOutlined />} className={styles.secondaryBtn}>
@@ -916,32 +759,17 @@ export default function MediationContractsPage() {
       <Row gutter={[16, 16]} className={styles.statisticsRow}>
         <Col xs={12} sm={6}>
           <Card className={styles.statCard}>
-            <Statistic
-              title={t.totalContracts}
-              value={stats.total}
-              prefix={<FileTextOutlined style={{ color: '#003366' }} />}
-              valueStyle={{ color: '#003366' }}
-            />
+            <Statistic title={t.totalContracts} value={stats.total} prefix={<FileTextOutlined style={{ color: '#003366' }} />} valueStyle={{ color: '#003366' }} />
           </Card>
         </Col>
         <Col xs={12} sm={6}>
           <Card className={styles.statCard}>
-            <Statistic
-              title={t.activeContracts}
-              value={stats.active}
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a' }}
-            />
+            <Statistic title={t.activeContracts} value={stats.active} prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />} valueStyle={{ color: '#52c41a' }} />
           </Card>
         </Col>
         <Col xs={12} sm={6}>
           <Card className={styles.statCard}>
-            <Statistic
-              title={t.pendingContracts}
-              value={stats.pending}
-              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14' }}
-            />
+            <Statistic title={t.pendingContracts} value={stats.pending} prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />} valueStyle={{ color: '#faad14' }} />
           </Card>
         </Col>
         <Col xs={12} sm={6}>
@@ -979,10 +807,7 @@ export default function MediationContractsPage() {
               size="large"
               options={[
                 { value: 'all', label: t.allTypes },
-                ...toSelectOptions([...MEDIATION_CONTRACT_TYPE], language).map((o) => ({
-                  ...o,
-                  value: String(o.value),
-                })),
+                ...toSelectOptions([...MEDIATION_CONTRACT_TYPE], language).map((o) => ({ ...o, value: String(o.value) })),
               ]}
             />
           </Col>
@@ -994,10 +819,7 @@ export default function MediationContractsPage() {
               size="large"
               options={[
                 { value: 'all', label: t.allStatuses },
-                ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({
-                  ...o,
-                  value: String(o.value),
-                })),
+                ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
               ]}
             />
           </Col>
@@ -1008,16 +830,8 @@ export default function MediationContractsPage() {
       <div className={styles.resultsInfo}>
         <span>
           {language === 'ar'
-            ? '\u0639\u0631\u0636 ' +
-              filteredContracts.length +
-              ' \u0645\u0646 ' +
-              (contracts || []).length +
-              ' \u0639\u0642\u062f'
-            : 'Showing ' +
-              filteredContracts.length +
-              ' of ' +
-              (contracts || []).length +
-              ' contracts'}
+            ? 'عرض ' + filteredContracts.length + ' من ' + (contracts || []).length + ' عقد'
+            : 'Showing ' + filteredContracts.length + ' of ' + (contracts || []).length + ' contracts'}
         </span>
       </div>
 
@@ -1032,265 +846,129 @@ export default function MediationContractsPage() {
         </Card>
       )}
 
-      {/* ========== CREATE CONTRACT MODAL ========== */}
+      {/* ========== CUSTOMER SELECT → navigates to /add ========== */}
       <Modal
-        title={t.addContract}
-        open={showCreateModal}
-        onCancel={() => {
-          setShowCreateModal(false);
-          setCreateSelectedOffer(null);
+        title={language === 'ar' ? 'اختر العميل لإنشاء عقد وساطة' : 'Select Customer to Create Mediation Contract'}
+        open={showCustomerSelectModal}
+        onCancel={() => { setShowCustomerSelectModal(false); setCustomerSelectId(null); }}
+        onOk={() => {
+          if (customerSelectId) {
+            setShowCustomerSelectModal(false);
+            router.push(`/contracts/mediationcontract/add?customerId=${customerSelectId}`);
+          }
         }}
-        onOk={handleCreateContract}
-        okText={t.save}
-        cancelText={t.cancel}
-        confirmLoading={isCreating}
-        width={800}
-        destroyOnClose
+        okText={language === 'ar' ? 'متابعة' : 'Continue'}
+        cancelText={language === 'ar' ? 'إلغاء' : 'Cancel'}
+        okButtonProps={{ disabled: !customerSelectId }}
       >
-        <Form form={createForm} layout="vertical" onValuesChange={handleCostFieldChange}>
-          <Divider>{t.contractDetails}</Divider>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="customerId"
-                label={t.selectCustomer}
-                rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
-              >
-                <Select
-                  showSearch
-                  placeholder={t.selectCustomer}
-                  optionFilterProp="label"
-                  options={[]}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="contractType"
-                label={t.type}
-                rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
-              >
-                <Select
-                  placeholder={t.type}
-                  options={toSelectOptions([...MEDIATION_CONTRACT_TYPE], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="offerId" hidden>
-                <InputNumber />
-              </Form.Item>
-              <Form.Item name="contractCategory" label={t.contractCategory}>
-                <Select
-                  allowClear
-                  placeholder={t.contractCategory}
-                  options={toSelectOptions([...WORKER_NOMINATION], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="statusId" label={t.status}>
-                <Select
-                  placeholder={t.status}
-                  options={toSelectOptions([...MEDIATION_CONTRACT_STATUS], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="musanedContractNumber" label={t.musanedNumber}>
-                <Input placeholder={t.musanedNumber} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="musanedDocumentationNumber" label={t.documentationNumber}>
-                <Input placeholder={t.documentationNumber} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider>{language === 'ar' ? 'اختيار العرض' : 'Select Offer'}</Divider>
-          <OfferSelector
-            language={language}
-            selectedOfferId={createSelectedOffer?.id ?? createForm.getFieldValue('offerId') ?? null}
-            onSelect={handleCreateOfferSelect}
-            compact
-          />
-
-          <Divider>{t.visaInfo}</Divider>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item name="visaType" label={language === 'ar' ? 'نوع التأشيرة' : 'Visa Type'}>
-                <Select
-                  allowClear
-                  placeholder={language === 'ar' ? 'نوع التأشيرة' : 'Visa Type'}
-                  options={toSelectOptions([...VISA_TYPE], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="visaNumber" label={t.visaNumber}>
-                <Input placeholder={t.visaNumber} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="visaDateHijri" label={t.visaDateHijri}>
-                <Input placeholder="1446/06/15" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="arrivalDestinationId" label={t.arrivalCity}>
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder={t.arrivalCity}
-                  optionFilterProp="label"
-                  options={toSelectOptions([...ARRIVAL_DESTINATIONS], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="isComprehensiveQualificationVisa"
-                valuePropName="checked"
-                label={t.comprehensiveVisa}
-              >
-                <Switch />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider>{t.financialInfo}</Divider>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item name="localCost" label={t.localCost}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="agentCostSAR" label={t.agentCost}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="salary" label={t.salary}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="otherCosts" label={t.otherCosts}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="totalTaxValue" label={t.taxValue}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="managerDiscount" label={t.managerDiscount}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="costDiscount" label={t.costDiscount}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="totalCost" label={t.totalCost}>
-                <InputNumber style={{ width: '100%' }} disabled />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="costDescription" label={t.costDescription}>
-                <Input placeholder={t.costDescription} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="hasContractInsurance" valuePropName="checked" label={t.hasInsurance}>
-                <Switch />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                noStyle
-                shouldUpdate={(prev: Record<string, unknown>, curr: Record<string, unknown>) =>
-                  prev.hasContractInsurance !== curr.hasContractInsurance
-                }
-              >
-                {({ getFieldValue }: { getFieldValue: (name: string) => unknown }) =>
-                  getFieldValue('hasContractInsurance') ? (
-                    <Form.Item name="domesticWorkerInsurance" label={t.insuranceCost}>
-                      <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-                    </Form.Item>
-                  ) : null
-                }
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </Modal>
-
-      {/* ========== ADD NOTE MODAL ========== */}
-      <Modal
-        title={t.addNote}
-        open={showNoteModal}
-        onCancel={() => setShowNoteModal(false)}
-        onOk={handleAddNote}
-        okText={t.save}
-        cancelText={t.cancel}
-        confirmLoading={isAddingNote}
-        destroyOnClose
-      >
-        <Form form={noteForm} layout="vertical">
-          <Form.Item
-            name="note"
-            label={t.note}
-            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
-          >
-            <Input.TextArea
-              rows={4}
-              placeholder={language === 'ar' ? 'أدخل الملاحظة...' : 'Enter note...'}
+        <Form layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item label={language === 'ar' ? 'العميل' : 'Customer'} required>
+            <Select
+              showSearch
+              placeholder={language === 'ar' ? 'ابحث واختر العميل...' : 'Search and select customer...'}
+              loading={isLoadingCustomers}
+              value={customerSelectId}
+              onChange={(val) => setCustomerSelectId(val)}
+              filterOption={(input, option) =>
+                String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={(Array.isArray(allCustomers) ? allCustomers : []).map((c: any) => ({
+                value: c.id,
+                label: language === 'ar' ? c.arabicName || c.name || `#${c.id}` : c.name || c.arabicName || `#${c.id}`,
+              }))}
+              style={{ width: '100%' }}
             />
           </Form.Item>
         </Form>
       </Modal>
 
-      {/* ========== VIEW NOTES MODAL ========== */}
+      {/* ========== CONTRACT DETAILS MODAL ========== */}
       <Modal
-        title={t.notes + ' - #' + (selectedContract?.id || '')}
-        open={showNotesListModal}
-        onCancel={() => {
-          setShowNotesListModal(false);
-          setSelectedContract(null);
-        }}
-        footer={
-          <Button type="primary" onClick={() => setShowNotesListModal(false)}>
-            {t.close}
-          </Button>
-        }
-        width={600}
+        title={t.contractDetails + ': #' + (selectedContract?.id || '')}
+        open={showDetailsModal}
+        onCancel={() => { setShowDetailsModal(false); setSelectedContract(null); }}
+        footer={<Button type="primary" onClick={() => setShowDetailsModal(false)}>{t.close}</Button>}
+        width={900}
         destroyOnClose
       >
-        {isLoadingNotes ? (
-          <div style={{ textAlign: 'center', padding: 24 }}>
-            <Spin />
-          </div>
-        ) : notes && notes.length > 0 ? (
-          <List
-            dataSource={notes}
-            renderItem={(item: MediationContractNote) => (
-              <List.Item>
-                <List.Item.Meta
-                  title={formatDate(item.dateNote || item.createdAt)}
-                  description={item.note}
-                />
-              </List.Item>
-            )}
-          />
-        ) : (
-          <Empty description={t.noNotes} />
-        )}
+        {selectedContract && (() => {
+          const detailCustomerDisplay =
+            language === 'ar'
+              ? selectedContract.customerNameAr || selectedContract.customerName || '#' + selectedContract.customerId
+              : selectedContract.customerName || selectedContract.customerNameAr || '#' + selectedContract.customerId;
+          return (
+            <div className={styles.detailsModal}>
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <div className={styles.modalSection}><h4>{t.customer}</h4><p className={styles.modalValue}>{detailCustomerDisplay}</p></div>
+                </Col>
+                <Col span={12}>
+                  <div className={styles.modalSection}>
+                    <h4>{t.type}</h4>
+                    <Tag color={getTypeTag(selectedContract.contractType).color}>{getTypeTag(selectedContract.contractType).label}</Tag>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div className={styles.modalSection}>
+                    <h4>{t.status}</h4>
+                    <Badge
+                      status={getStatusConfig(selectedContract.statusId).color as 'processing' | 'warning' | 'success' | 'error' | 'default'}
+                      text={getStatusConfig(selectedContract.statusId).label}
+                    />
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div className={styles.modalSection}><h4>{t.musanedNumber}</h4><p className={styles.modalValue}>{selectedContract.musanedContractNumber || '-'}</p></div>
+                </Col>
+                <Col span={12}>
+                  <div className={styles.modalSection}><h4>{t.visaNumber}</h4><p className={styles.modalValue}>{selectedContract.visaNumber || '-'}</p></div>
+                </Col>
+                <Col span={12}>
+                  <div className={styles.modalSection}>
+                    <h4>{t.arrivalCity}</h4>
+                    <p className={styles.modalValue}>
+                      {selectedContract.arrivalDestinationId
+                        ? getEnumLabel([...ARRIVAL_DESTINATIONS], selectedContract.arrivalDestinationId, language)
+                        : '-'}
+                    </p>
+                  </div>
+                </Col>
+
+                <Col span={24}><Divider>{t.financialInfo}</Divider></Col>
+
+                <Col span={8}><div className={styles.modalSection}><h4>{t.localCost}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.localCost)}</p></div></Col>
+                <Col span={8}><div className={styles.modalSection}><h4>{t.agentCost}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.agentCostSAR)}</p></div></Col>
+                <Col span={8}><div className={styles.modalSection}><h4>{t.salary}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.salary)}</p></div></Col>
+                <Col span={8}><div className={styles.modalSection}><h4>{t.otherCosts}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.otherCosts)}</p></div></Col>
+                <Col span={8}><div className={styles.modalSection}><h4>{t.taxValue}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.totalTaxValue)}</p></div></Col>
+                <Col span={8}><div className={styles.modalSection}><h4>{t.managerDiscount}</h4><p className={styles.modalValue} style={{ color: '#ff4d4f' }}>-{formatCurrency(selectedContract.managerDiscount)}</p></div></Col>
+                <Col span={8}><div className={styles.modalSection}><h4>{t.costDiscount}</h4><p className={styles.modalValue} style={{ color: '#ff4d4f' }}>-{formatCurrency(selectedContract.costDiscount)}</p></div></Col>
+                <Col span={8}><div className={styles.modalSection}><h4>{t.totalCost}</h4><p className={styles.modalValue} style={{ color: '#003366', fontSize: 18 }}>{formatCurrency(selectedContract.totalCost)}</p></div></Col>
+                {selectedContract.hasContractInsurance && (
+                  <Col span={8}><div className={styles.modalSection}><h4>{t.insuranceCost}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.domesticWorkerInsurance)}</p></div></Col>
+                )}
+
+                <Col span={24}>
+                  <Divider>{language === 'ar' ? 'متابعة العقد' : 'Contract Follow-Up'}</Divider>
+                  <FollowUpTimeline contractId={selectedContract.id} language={language} />
+                </Col>
+
+                <Col span={24}>
+                  <Divider>{language === 'ar' ? 'الرسائل' : 'Messages'}</Divider>
+                  <MessageThread contractId={selectedContract.id} language={language} />
+                </Col>
+
+                {selectedContract.cancelNote && (
+                  <>
+                    <Col span={24}><Divider>{t.cancelContract}</Divider></Col>
+                    <Col span={12}><div className={styles.modalSection}><h4>{t.cancelBy}</h4><p className={styles.modalValue}>{getEnumLabel([...CANCEL_BY], selectedContract.cancelBy, language)}</p></div></Col>
+                    <Col span={12}><div className={styles.modalSection}><h4>{t.cancelNote}</h4><p className={styles.modalValue}>{selectedContract.cancelNote}</p></div></Col>
+                  </>
+                )}
+              </Row>
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* ========== CANCEL CONTRACT MODAL ========== */}
@@ -1318,548 +996,226 @@ export default function MediationContractsPage() {
             label={t.cancelNote}
             rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
           >
-            <Input.TextArea
-              rows={3}
-              placeholder={language === 'ar' ? 'سبب الإلغاء...' : 'Cancellation reason...'}
-            />
+            <Input.TextArea rows={3} placeholder={language === 'ar' ? 'سبب الإلغاء...' : 'Cancellation reason...'} />
           </Form.Item>
         </Form>
       </Modal>
 
-      {/* ========== CHANGE TYPE MODAL ========== */}
+      {/* ========== SIGN CONTRACT MODAL (Draft → Signed) ========== */}
       <Modal
-        title={t.changeType}
-        open={showTypeChangeModal}
-        onCancel={() => setShowTypeChangeModal(false)}
-        onOk={handleTypeChange}
+        title={t.signContract}
+        open={showSignModal}
+        onCancel={() => { setShowSignModal(false); signForm.resetFields(); }}
+        onOk={handleSignContract}
         okText={t.save}
         cancelText={t.cancel}
-        confirmLoading={isChangingType}
+        confirmLoading={isSigning}
         destroyOnClose
       >
-        <Form form={typeChangeForm} layout="vertical">
+        <Form form={signForm} layout="vertical">
           <Form.Item
-            name="type"
-            label={t.newType}
+            name="musanedContractNumber"
+            label={t.musanedNumber}
             rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
           >
-            <Select
-              placeholder={t.newType}
-              options={toSelectOptions([...MEDIATION_CONTRACT_TYPE], language)}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* ========== ADD INSURANCE MODAL ========== */}
-      <Modal
-        title={t.addInsurance}
-        open={showInsuranceModal}
-        onCancel={() => setShowInsuranceModal(false)}
-        onOk={handleAddInsurance}
-        okText={t.save}
-        cancelText={t.cancel}
-        confirmLoading={isAddingWorker}
-        destroyOnClose
-      >
-        <Form form={insuranceForm} layout="vertical">
-          <Form.Item name="hasContractInsurance" valuePropName="checked" label={t.hasInsurance}>
-            <Switch />
-          </Form.Item>
-          <Form.Item
-            name="cost"
-            label={t.insuranceCost}
-            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
-          >
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* ========== CREATE INVOICE MODAL ========== */}
-      <Modal
-        title={t.createInvoice}
-        open={showInvoiceModal}
-        onCancel={() => setShowInvoiceModal(false)}
-        onOk={handleCreateInvoice}
-        okText={t.save}
-        cancelText={t.cancel}
-        confirmLoading={isCreatingInvoice}
-        destroyOnClose
-      >
-        <Form form={invoiceForm} layout="vertical">
-          <Form.Item name="musanedContractNumber" label={t.musanedNumber}>
             <Input placeholder={t.musanedNumber} />
           </Form.Item>
+          <Form.Item name="musanedDocumentationNumber" label={t.musanedDocNumber}>
+            <Input placeholder={t.musanedDocNumber} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ========== GENERATE DELIVERY FORM MODAL ========== */}
+      <Modal
+        title={t.generateDelivery}
+        open={showDeliveryModal}
+        onCancel={() => { setShowDeliveryModal(false); deliveryForm.resetFields(); }}
+        onOk={handleGenerateDelivery}
+        okText={t.submit}
+        cancelText={t.cancel}
+        confirmLoading={isGeneratingDelivery}
+        destroyOnClose
+      >
+        <Form form={deliveryForm} layout="vertical">
+          <Form.Item name="deliveryDate" label={t.deliveryDate}>
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="notes" label={t.deliveryNotes}>
+            <Input.TextArea rows={3} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ========== CONFIRM DELIVERY SIGN MODAL (Signed → Delivered) ========== */}
+      <Modal
+        title={t.confirmDelivery}
+        open={showDeliverySignModal}
+        onCancel={() => { setShowDeliverySignModal(false); deliverySignForm.resetFields(); }}
+        onOk={handleSignDelivery}
+        okText={t.save}
+        cancelText={t.cancel}
+        confirmLoading={isSigningDelivery}
+        destroyOnClose
+      >
+        <Form form={deliverySignForm} layout="vertical">
+          <Form.Item name="customerSignedAt" label={t.customerSignedAt}>
+            <DatePicker showTime style={{ width: '100%' }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ========== WARRANTY RETURN MODAL (Delivered → Returned) ========== */}
+      <Modal
+        title={t.warrantyReturn}
+        open={showWarrantyReturnModal}
+        onCancel={() => { setShowWarrantyReturnModal(false); warrantyReturnForm.resetFields(); }}
+        onOk={handleWarrantyReturn}
+        okText={t.submit}
+        cancelText={t.cancel}
+        confirmLoading={isReturning}
+        okButtonProps={{ danger: true }}
+        destroyOnClose
+      >
+        <Form form={warrantyReturnForm} layout="vertical">
           <Form.Item
-            name="paymentDate"
-            label={t.paymentDate}
+            name="returnDate"
+            label={t.returnDate}
             rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
           >
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
+          <Form.Item
+            name="returnReason"
+            label={t.returnReason}
+            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
+          >
+            <Select placeholder={t.returnReason}>
+              <Select.Option value={1}>{language === 'ar' ? 'لا تناسب' : 'Incompatibility'}</Select.Option>
+              <Select.Option value={2}>{language === 'ar' ? 'مرض' : 'Illness'}</Select.Option>
+              <Select.Option value={3}>{language === 'ar' ? 'سوء سلوك' : 'Misconduct'}</Select.Option>
+              <Select.Option value={4}>{language === 'ar' ? 'أخرى' : 'Other'}</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="daysWithCustomer"
+            label={t.daysWithCustomer}
+            rules={[
+              { required: true, message: language === 'ar' ? 'مطلوب' : 'Required' },
+              { type: 'number', min: 1, message: language === 'ar' ? 'يجب أن يكون أكبر من صفر' : 'Must be greater than 0' },
+            ]}
+            extra={t.warrantyNote}
+          >
+            <InputNumber style={{ width: '100%' }} min={1} />
+          </Form.Item>
+
+          {/* Live refund preview per PDF formula */}
+          <Form.Item
+            noStyle
+            shouldUpdate={(prev, curr) => prev.daysWithCustomer !== curr.daysWithCustomer}
+          >
+            {({ getFieldValue }) => {
+              const days = Number(getFieldValue('daysWithCustomer')) || 0;
+              const totalCost = selectedContract?.totalCost || 0;
+              const refund = days > 0 && days < 90 ? totalCost - (totalCost / 90) * days : 0;
+              return (
+                <div
+                  style={{
+                    background: refund > 0 ? '#fff7e6' : '#f6ffed',
+                    border: `1px solid ${refund > 0 ? '#ffd591' : '#b7eb8f'}`,
+                    borderRadius: 6,
+                    padding: '10px 16px',
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>{t.refundAmount}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: refund > 0 ? '#fa8c16' : '#52c41a' }}>
+                    {formatCurrency(refund)}
+                  </div>
+                  {days >= 90 && (
+                    <div style={{ fontSize: 12, color: '#52c41a', marginTop: 4 }}>
+                      {language === 'ar' ? '✓ انتهت فترة الضمان — لا يوجد مبلغ مسترد' : '✓ Warranty period expired — no refund'}
+                    </div>
+                  )}
+                </div>
+              );
+            }}
+          </Form.Item>
+
+          <Form.Item name="newWorkerLocation" label={t.newWorkerLocation}>
+            <Input placeholder={language === 'ar' ? 'اختياري — مكان إعادة توجيه العامل' : 'Optional — where the worker is being redirected'} />
+          </Form.Item>
+          <Form.Item name="notes" label={t.note}>
+            <Input.TextArea rows={2} />
+          </Form.Item>
         </Form>
       </Modal>
 
-      {/* ========== CONTRACT DETAILS MODAL ========== */}
+      {/* ========== UPDATE STATUS MODAL ========== */}
       <Modal
-        title={t.contractDetails + ': #' + (selectedContract?.id || '')}
-        open={showDetailsModal}
-        onCancel={() => {
-          setShowDetailsModal(false);
-          setSelectedContract(null);
-        }}
-        footer={
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Button
-              danger
-              onClick={() => selectedContract && handleDeleteContract(selectedContract)}
-            >
-              {t.delete}
-            </Button>
-            <Button type="primary" onClick={() => setShowDetailsModal(false)}>
-              {t.close}
-            </Button>
-          </div>
-        }
-        width={900}
-        destroyOnClose
-      >
-        {selectedContract &&
-          (() => {
-            const detailCustomerDisplay =
-              language === 'ar'
-                ? selectedContract.customerNameAr ||
-                  selectedContract.customerName ||
-                  '#' + selectedContract.customerId
-                : selectedContract.customerName ||
-                  selectedContract.customerNameAr ||
-                  '#' + selectedContract.customerId;
-            return (
-              <div className={styles.detailsModal}>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.customer}</h4>
-                      <p className={styles.modalValue}>{detailCustomerDisplay}</p>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.type}</h4>
-                      <Tag color={getTypeTag(selectedContract.contractType).color}>
-                        {getTypeTag(selectedContract.contractType).label}
-                      </Tag>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.status}</h4>
-                      <Badge
-                        status={
-                          getStatusConfig(selectedContract.statusId).color as
-                            | 'processing'
-                            | 'warning'
-                            | 'success'
-                            | 'error'
-                            | 'default'
-                        }
-                        text={getStatusConfig(selectedContract.statusId).label}
-                      />
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.musanedNumber}</h4>
-                      <p className={styles.modalValue}>
-                        {selectedContract.musanedContractNumber || '-'}
-                      </p>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.visaNumber}</h4>
-                      <p className={styles.modalValue}>{selectedContract.visaNumber || '-'}</p>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.arrivalCity}</h4>
-                      <p className={styles.modalValue}>
-                        {selectedContract.arrivalDestinationId
-                          ? getEnumLabel(
-                              [...ARRIVAL_DESTINATIONS],
-                              selectedContract.arrivalDestinationId,
-                              language
-                            )
-                          : '-'}
-                      </p>
-                    </div>
-                  </Col>
-
-                  <Col span={24}>
-                    <Divider>{t.financialInfo}</Divider>
-                  </Col>
-
-                  <Col span={8}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.localCost}</h4>
-                      <p className={styles.modalValue}>
-                        {formatCurrency(selectedContract.localCost)}
-                      </p>
-                    </div>
-                  </Col>
-                  <Col span={8}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.agentCost}</h4>
-                      <p className={styles.modalValue}>
-                        {formatCurrency(selectedContract.agentCostSAR)}
-                      </p>
-                    </div>
-                  </Col>
-                  <Col span={8}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.salary}</h4>
-                      <p className={styles.modalValue}>{formatCurrency(selectedContract.salary)}</p>
-                    </div>
-                  </Col>
-                  <Col span={8}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.otherCosts}</h4>
-                      <p className={styles.modalValue}>
-                        {formatCurrency(selectedContract.otherCosts)}
-                      </p>
-                    </div>
-                  </Col>
-                  <Col span={8}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.taxValue}</h4>
-                      <p className={styles.modalValue}>
-                        {formatCurrency(selectedContract.totalTaxValue)}
-                      </p>
-                    </div>
-                  </Col>
-                  <Col span={8}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.managerDiscount}</h4>
-                      <p className={styles.modalValue} style={{ color: '#ff4d4f' }}>
-                        -{formatCurrency(selectedContract.managerDiscount)}
-                      </p>
-                    </div>
-                  </Col>
-                  <Col span={8}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.costDiscount}</h4>
-                      <p className={styles.modalValue} style={{ color: '#ff4d4f' }}>
-                        -{formatCurrency(selectedContract.costDiscount)}
-                      </p>
-                    </div>
-                  </Col>
-                  <Col span={8}>
-                    <div className={styles.modalSection}>
-                      <h4>{t.totalCost}</h4>
-                      <p className={styles.modalValue} style={{ color: '#003366', fontSize: 18 }}>
-                        {formatCurrency(selectedContract.totalCost)}
-                      </p>
-                    </div>
-                  </Col>
-                  {selectedContract.hasContractInsurance && (
-                    <Col span={8}>
-                      <div className={styles.modalSection}>
-                        <h4>{t.insuranceCost}</h4>
-                        <p className={styles.modalValue}>
-                          {formatCurrency(selectedContract.domesticWorkerInsurance)}
-                        </p>
-                      </div>
-                    </Col>
-                  )}
-
-                  {/* Follow-Up Timeline */}
-                  <Col span={24}>
-                    <Divider>{language === 'ar' ? 'متابعة العقد' : 'Contract Follow-Up'}</Divider>
-                    <FollowUpTimeline contractId={selectedContract.id} language={language} />
-                  </Col>
-
-                  {/* Messages Chat */}
-                  <Col span={24}>
-                    <Divider>{language === 'ar' ? 'الرسائل' : 'Messages'}</Divider>
-                    <MessageThread contractId={selectedContract.id} language={language} />
-                  </Col>
-
-                  {selectedContract.cancelNote && (
-                    <>
-                      <Col span={24}>
-                        <Divider>{t.cancelContract}</Divider>
-                      </Col>
-                      <Col span={12}>
-                        <div className={styles.modalSection}>
-                          <h4>{t.cancelBy}</h4>
-                          <p className={styles.modalValue}>
-                            {getEnumLabel([...CANCEL_BY], selectedContract.cancelBy, language)}
-                          </p>
-                        </div>
-                      </Col>
-                      <Col span={12}>
-                        <div className={styles.modalSection}>
-                          <h4>{t.cancelNote}</h4>
-                          <p className={styles.modalValue}>{selectedContract.cancelNote}</p>
-                        </div>
-                      </Col>
-                    </>
-                  )}
-                </Row>
-              </div>
-            );
-          })()}
-      </Modal>
-
-      {/* ========== EDIT CONTRACT MODAL ========== */}
-      <Modal
-        title={`${language === 'ar' ? 'تعديل العقد' : 'Edit Contract'} #${editingContract?.id || ''}`}
-        open={showEditModal}
-        onCancel={() => {
-          setShowEditModal(false);
-          editForm.resetFields();
-          setEditingContract(null);
-          setEditSelectedOffer(null);
-        }}
-        onOk={handleUpdateContract}
+        title={t.updateStatus}
+        open={showUpdateStatusModal}
+        onCancel={() => { setShowUpdateStatusModal(false); updateStatusForm.resetFields(); }}
+        onOk={handleUpdateStatus}
         okText={t.save}
         cancelText={t.cancel}
-        confirmLoading={isUpdating}
-        width={800}
+        confirmLoading={isUpdatingStatus}
         destroyOnClose
       >
-        <Form
-          form={editForm}
-          layout="vertical"
-          onValuesChange={() => {
-            const values = editForm.getFieldsValue();
-            editForm.setFieldValue('totalCost', computeTotalCost(values));
-          }}
-        >
-          <Divider>{t.contractDetails}</Divider>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="contractType"
-                label={t.type}
-                rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
-              >
-                <Select
-                  placeholder={t.type}
-                  options={toSelectOptions([...MEDIATION_CONTRACT_TYPE], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="statusId" label={t.status}>
-                <Select
-                  placeholder={t.status}
-                  options={toSelectOptions([...MEDIATION_CONTRACT_STATUS], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="contractCategory" label={t.contractCategory}>
-                <Select
-                  allowClear
-                  placeholder={t.contractCategory}
-                  options={toSelectOptions([...WORKER_NOMINATION], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="musanedContractNumber" label={t.musanedNumber}>
-                <Input placeholder={t.musanedNumber} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="musanedDocumentationNumber" label={t.documentationNumber}>
-                <Input placeholder={t.documentationNumber} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider>{language === 'ar' ? 'اختيار العرض' : 'Select Offer'}</Divider>
-          <Form.Item name="offerId" hidden>
-            <InputNumber />
+        <Form form={updateStatusForm} layout="vertical">
+          <Form.Item
+            name="newStatus"
+            label={t.newStatus}
+            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
+          >
+            <Select placeholder={t.newStatus} options={toSelectOptions([...MEDIATION_CONTRACT_STATUS], language)} />
           </Form.Item>
-          <OfferSelector
-            language={language}
-            selectedOfferId={
-              editSelectedOffer?.id ??
-              editForm.getFieldValue('offerId') ??
-              editingContract?.offerId ??
-              null
-            }
-            onSelect={handleEditOfferSelect}
-            compact
-          />
-
-          <Divider>{t.visaInfo}</Divider>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item name="visaType" label={language === 'ar' ? 'نوع التأشيرة' : 'Visa Type'}>
-                <Select
-                  allowClear
-                  placeholder={language === 'ar' ? 'نوع التأشيرة' : 'Visa Type'}
-                  options={toSelectOptions([...VISA_TYPE], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="visaNumber" label={t.visaNumber}>
-                <Input placeholder={t.visaNumber} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="visaDateHijri" label={t.visaDateHijri}>
-                <Input placeholder="1446/06/15" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="arrivalDestinationId" label={t.arrivalCity}>
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder={t.arrivalCity}
-                  optionFilterProp="label"
-                  options={toSelectOptions([...ARRIVAL_DESTINATIONS], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="isComprehensiveQualificationVisa"
-                valuePropName="checked"
-                label={t.comprehensiveVisa}
-              >
-                <Switch />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider>{t.financialInfo}</Divider>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item name="localCost" label={t.localCost}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="agentCostSAR" label={t.agentCost}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="salary" label={t.salary}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="otherCosts" label={t.otherCosts}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="totalTaxValue" label={t.taxValue}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="managerDiscount" label={t.managerDiscount}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="costDiscount" label={t.costDiscount}>
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="totalCost" label={t.totalCost}>
-                <InputNumber style={{ width: '100%' }} disabled />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="costDescription" label={t.costDescription}>
-                <Input placeholder={t.costDescription} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="hasContractInsurance" valuePropName="checked" label={t.hasInsurance}>
-                <Switch />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                noStyle
-                shouldUpdate={(prev: Record<string, unknown>, curr: Record<string, unknown>) =>
-                  prev.hasContractInsurance !== curr.hasContractInsurance
-                }
-              >
-                {({ getFieldValue }: { getFieldValue: (name: string) => unknown }) =>
-                  getFieldValue('hasContractInsurance') ? (
-                    <Form.Item name="domesticWorkerInsurance" label={t.insuranceCost}>
-                      <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-                    </Form.Item>
-                  ) : null
-                }
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item name="notes" label={t.note}>
+            <Input.TextArea rows={2} />
+          </Form.Item>
         </Form>
       </Modal>
 
-      {/* Customer Selection Modal - shown when adding a contract without a pre-selected customer */}
+      {/* ========== STATUS HISTORY MODAL ========== */}
       <Modal
-        title={
-          language === 'ar'
-            ? 'اختر العميل لإنشاء عقد وساطة'
-            : 'Select Customer to Create Mediation Contract'
-        }
-        open={showCustomerSelectModal}
-        onCancel={() => {
-          setShowCustomerSelectModal(false);
-          setCustomerSelectId(null);
-        }}
-        onOk={() => {
-          if (customerSelectId) {
-            setShowCustomerSelectModal(false);
-            router.push(`/contracts/mediationcontract/add?customerId=${customerSelectId}`);
-          }
-        }}
-        okText={language === 'ar' ? 'متابعة' : 'Continue'}
-        cancelText={language === 'ar' ? 'إلغاء' : 'Cancel'}
-        okButtonProps={{ disabled: !customerSelectId }}
+        title={`${t.statusHistory} — #${selectedContract?.id || ''}`}
+        open={showStatusHistoryModal}
+        onCancel={() => { setShowStatusHistoryModal(false); setSelectedContract(null); }}
+        footer={<Button type="primary" onClick={() => setShowStatusHistoryModal(false)}>{t.close}</Button>}
+        width={700}
+        destroyOnClose
       >
-        <Form layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item label={language === 'ar' ? 'العميل' : 'Customer'} required>
-            <Select
-              showSearch
-              placeholder={
-                language === 'ar' ? 'ابحث واختر العميل...' : 'Search and select customer...'
-              }
-              loading={isLoadingCustomers}
-              value={customerSelectId}
-              onChange={(val) => setCustomerSelectId(val)}
-              filterOption={(input, option) =>
-                String(option?.label ?? '')
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-              options={(Array.isArray(allCustomers) ? allCustomers : []).map((c: any) => ({
-                value: c.id,
-                label:
-                  language === 'ar'
-                    ? c.arabicName || c.name || `#${c.id}`
-                    : c.name || c.arabicName || `#${c.id}`,
-              }))}
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-        </Form>
+        {isLoadingHistory ? (
+          <div style={{ textAlign: 'center', padding: 24 }}><Spin /></div>
+        ) : statusHistory.length > 0 ? (
+          <List
+            dataSource={statusHistory}
+            renderItem={(item) => (
+              <List.Item>
+                <List.Item.Meta
+                  title={
+                    <span>
+                      <Tag color="default">{item.oldStatusName || '—'}</Tag>
+                      {' → '}
+                      <Tag color="blue">{item.newStatusName || '—'}</Tag>
+                    </span>
+                  }
+                  description={
+                    <div>
+                      {item.notes && <div>{item.notes}</div>}
+                      <div style={{ color: '#888', fontSize: 12 }}>
+                        {item.createdByName && <span>{t.changedBy}: {item.createdByName} · </span>}
+                        {formatDate(item.createdAt)}
+                      </div>
+                    </div>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        ) : (
+          <Empty description={language === 'ar' ? 'لا يوجد سجل حالات' : 'No status history'} />
+        )}
       </Modal>
     </div>
   );

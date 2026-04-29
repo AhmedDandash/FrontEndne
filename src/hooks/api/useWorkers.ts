@@ -22,6 +22,41 @@ import { api } from '@/lib/api/client';
 const WORKERS_KEY = ['workers'];
 const MEDICAL_EXAMINATIONS_KEY = ['medical-examinations'];
 
+const isFile = (value: unknown): value is File => typeof File !== 'undefined' && value instanceof File;
+
+const appendFormValue = (formData: FormData, key: string, value: unknown) => {
+  if (value === undefined || value === null) return;
+
+  if (value instanceof Date) {
+    formData.append(key, value.toISOString());
+    return;
+  }
+
+  if (isFile(value)) {
+    formData.append(key, value);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => {
+      if (item !== undefined && item !== null) appendFormValue(formData, key, item);
+    });
+    return;
+  }
+
+  formData.append(key, String(value));
+};
+
+const workerDtoToFormData = (data: WorkerDto): FormData => {
+  const formData = new FormData();
+
+  Object.entries(data).forEach(([key, value]) => {
+    appendFormValue(formData, key, value);
+  });
+
+  return formData;
+};
+
 const extractWorkerArray = (payload: any): Worker[] => {
   const candidates = [
     payload,
@@ -80,7 +115,11 @@ export function useCreateWorker() {
 
   return useMutation({
     mutationFn: async (data: WorkerDto) => {
-      const response = await api.post<Worker>(API_ENDPOINTS.WORKERS.CREATE, data);
+      const response = await api.post<Worker>(
+        API_ENDPOINTS.WORKERS.CREATE,
+        workerDtoToFormData(data),
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
       return response.data;
     },
     onSuccess: () => {
@@ -99,7 +138,11 @@ export function useUpdateWorker() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number | string; data: WorkerDto }) => {
-      const response = await api.put<Worker>(API_ENDPOINTS.WORKERS.UPDATE(id), data);
+      const response = await api.put<Worker>(
+        API_ENDPOINTS.WORKERS.UPDATE(id),
+        workerDtoToFormData(data),
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
       return response.data;
     },
     onSuccess: () => {
@@ -140,7 +183,7 @@ export function useSetWorkerRefusal() {
 
   return useMutation({
     mutationFn: async (id: number | string) => {
-      await api.post(API_ENDPOINTS.WORKERS.SET_REFUSAL(id), null);
+      await api.post(API_ENDPOINTS.WORKERS.SET_REFUSAL(id), {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: WORKERS_KEY });
@@ -165,7 +208,7 @@ export function useActivateWorker() {
 
   return useMutation({
     mutationFn: async (id: number | string) => {
-      await api.post(API_ENDPOINTS.WORKERS.ACTIVATE(id), null);
+      await api.post(API_ENDPOINTS.WORKERS.ACTIVATE(id), {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: WORKERS_KEY });
@@ -190,7 +233,7 @@ export function useMoveWorkerToAccommodation() {
 
   return useMutation({
     mutationFn: async (id: number | string) => {
-      await api.post(API_ENDPOINTS.WORKERS.MOVE_TO_ACCOMMODATION(id), null);
+      await api.post(API_ENDPOINTS.WORKERS.MOVE_TO_ACCOMMODATION(id), {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: WORKERS_KEY });

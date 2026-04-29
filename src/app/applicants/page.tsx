@@ -46,6 +46,7 @@ import {
   ClockCircleOutlined,
   ExclamationCircleOutlined,
   PrinterOutlined,
+  FilePdfOutlined,
   UploadOutlined,
   FileExcelOutlined,
   FileTextOutlined,
@@ -56,6 +57,7 @@ import {
   MedicineBoxOutlined,
   CloseCircleOutlined,
   LogoutOutlined,
+  FileImageOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -111,10 +113,10 @@ const translations = {
     experiencedWorkers: 'Experienced',
     // Tabs
     tabAll: 'All',
-    tabTrial: 'Trial Workers',
     tabAvailable: 'Available',
+    tabTrial: 'Trial Workers',
     tabUnderProcedure: 'Under Procedure',
-    tabBackOut: 'Back Out',
+    tabBackOut: 'Backout',
     tabInsideKingdom: 'Inside Kingdom',
     tabDeported: 'Deported',
     // Filters
@@ -131,9 +133,7 @@ const translations = {
     deletionStatus: 'Deletion Status',
     notDeleted: 'Not Deleted',
     deleted: 'Deleted Workers',
-    vip: 'VIP',
-    vipOnly: 'VIP Only',
-    notVip: 'Not VIP',
+
     gender: 'Gender',
     male: 'Male',
     female: 'Female',
@@ -256,6 +256,18 @@ const translations = {
     medicalStatusFailed: 'Failed',
     medicalStatusPending: 'Pending',
     createMedicalExam: 'Create Medical Examination',
+    viewExamRecord: 'View Exam Record',
+    editExamRecord: 'Edit Exam Record',
+    viewDocument: 'View Document',
+    noDocument: 'No document uploaded',
+    ageRange: 'Age Range',
+    ageMin: 'Min Age',
+    ageMax: 'Max Age',
+    passportFilter: 'Passport No.',
+    printCV: 'Print CV',
+    documents: 'Documents',
+    passportScan: 'Passport Scan',
+    noDocuments: 'No documents uploaded',
   },
   ar: {
     pageTitle: 'ادارة العمالة',
@@ -277,8 +289,8 @@ const translations = {
     experiencedWorkers: 'ذوو خبرة',
     // Tabs
     tabAll: 'الكل',
-    tabTrial: 'عمالة في التجربة',
     tabAvailable: 'عمالة للاختيار',
+    tabTrial: 'عمالة في التجربة',
     tabUnderProcedure: 'تحت الاجراء',
     tabBackOut: 'Back out',
     tabInsideKingdom: 'داخل المملكة',
@@ -297,9 +309,7 @@ const translations = {
     deletionStatus: 'حالة الحذف',
     notDeleted: 'غير محذوف',
     deleted: 'عمالة تم حذفها',
-    vip: 'VIP',
-    vipOnly: 'VIP فقط',
-    notVip: 'ليس VIP',
+
     gender: 'جنس العامل/ه',
     male: 'ذكر',
     female: 'أنثى',
@@ -422,17 +432,38 @@ const translations = {
     medicalStatusFailed: 'راسب',
     medicalStatusPending: 'قيد الانتظار',
     createMedicalExam: 'إنشاء فحص طبي',
+    viewExamRecord: 'عرض سجل الفحص',
+    editExamRecord: 'تعديل سجل الفحص',
+    viewDocument: 'عرض المستند',
+    noDocument: 'لا يوجد مستند محمل',
+    ageRange: 'نطاق العمر',
+    ageMin: 'العمر الأدنى',
+    ageMax: 'العمر الأقصى',
+    passportFilter: 'رقم الجواز',
+    printCV: 'طباعة السيرة الذاتية',
+    documents: 'المستندات',
+    passportScan: 'صورة الجواز',
+    noDocuments: 'لا توجد مستندات محملة',
   },
+};
+
+type WorkerAttachmentItem = {
+  url: string;
+  file?: File;
 };
 
 export default function WorkersPage() {
   const language = useAuthStore((state) => state.language);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [editingWorkerId, setEditingWorkerId] = useState<number | null>(null);
-  const [viewingWorkerId, setViewingWorkerId] = useState<number | null>(null);
+  const [editingWorkerId, setEditingWorkerId] = useState<string | null>(null);
+  const [viewingWorkerId, setViewingWorkerId] = useState<string | null>(null);
   const [medicalExamWorkerId, setMedicalExamWorkerId] = useState<number | string | null>(null);
   const [medicalExamId, setMedicalExamId] = useState<number | string | null>(null);
+  /** true = view-only mode for existing record; false = edit/create mode */
+  const [medicalExamViewOnly, setMedicalExamViewOnly] = useState(false);
+  /** worker id whose uploaded document (passport scan) is being previewed */
+  const [docViewerWorkerId, setDocViewerWorkerId] = useState<number | string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [filters, setFilters] = useState<{
     search?: string;
@@ -444,15 +475,19 @@ export default function WorkersPage() {
     hasExperience?: boolean;
     status?: string;
     workerType?: string;
-    vip?: string;
     deletionStatus?: string;
+    ageMin?: number;
+    ageMax?: number;
+    passportFilter?: string;
   }>({});
   const [form] = Form.useForm();
   const [medicalExamForm] = Form.useForm();
-  /** Base64 string of the worker's uploaded image */
-  const [workerImageBase64, setWorkerImageBase64] = useState<string | null>(null);
-  /** Preview URL for the image (same as base64, used for display) */
+  /** New worker image file selected in the form */
+  const [workerImageFile, setWorkerImageFile] = useState<File | null>(null);
+  /** Preview URL for the image */
   const [workerImagePreview, setWorkerImagePreview] = useState<string | null>(null);
+  /** Additional attachments: existing URLs plus new local files */
+  const [workerExtraImages, setWorkerExtraImages] = useState<WorkerAttachmentItem[]>([]);
 
   const t = (key: keyof typeof translations.en) => {
     const lang = translations[language];
@@ -503,18 +538,16 @@ export default function WorkersPage() {
     useDeleteMedicalExamination();
 
   // Fetch editing worker details when opening edit modal
-  const { data: editingWorker } = useWorker(editingWorkerId ? String(editingWorkerId) : undefined);
+  const { data: editingWorker } = useWorker(editingWorkerId ?? undefined);
 
   // Fetch single worker details when viewing
-  const { data: viewingWorker, isLoading: isViewingLoading } = useWorker(
-    viewingWorkerId ? String(viewingWorkerId) : undefined
-  );
+  const { data: viewingWorker, isLoading: isViewingLoading } = useWorker(viewingWorkerId ?? undefined);
 
-  // Tab items matching the legacy HTML
+  // Tab items — keys match workerStatus values (1=Available, 2=Trial, 3-6 unchanged)
   const tabs = [
     { key: 0, label: t('tabAll'), icon: <FileTextOutlined /> },
-    { key: 1, label: t('tabTrial'), icon: <ClockCircleOutlined /> },
-    { key: 2, label: t('tabAvailable'), icon: <CheckCircleOutlined /> },
+    { key: 1, label: t('tabAvailable'), icon: <CheckCircleOutlined /> },
+    { key: 2, label: t('tabTrial'), icon: <ClockCircleOutlined /> },
     { key: 3, label: t('tabUnderProcedure'), icon: <FileTextOutlined /> },
     { key: 4, label: t('tabBackOut'), icon: <ExclamationCircleOutlined /> },
     { key: 5, label: t('tabInsideKingdom'), icon: <EnvironmentOutlined /> },
@@ -541,6 +574,13 @@ export default function WorkersPage() {
       const matchesExperience =
         filters.hasExperience === undefined || worker.hasExperience === filters.hasExperience;
       const matchesStatus = !filters.status || worker.workerStatus === Number(filters.status);
+      const matchesAgeMin =
+        filters.ageMin === undefined || (worker.age != null && worker.age >= filters.ageMin);
+      const matchesAgeMax =
+        filters.ageMax === undefined || (worker.age != null && worker.age <= filters.ageMax);
+      const matchesPassport =
+        !filters.passportFilter ||
+        worker.passportNo?.toLowerCase().includes(filters.passportFilter.toLowerCase());
 
       // Tab-based workerSatus filtering: 0=All, 1=Trial, 2=Available, 3=Under Procedure, 4=Back Out, 5=Inside Kingdom, 6=Deported
       const matchesTab = activeTab === 0 || worker.workerStatus === activeTab;
@@ -554,7 +594,10 @@ export default function WorkersPage() {
         matchesAgent &&
         matchesExperience &&
         matchesStatus &&
-        matchesTab
+        matchesTab &&
+        matchesAgeMin &&
+        matchesAgeMax &&
+        matchesPassport
       );
     });
   }, [workers, filters, activeTab]);
@@ -583,8 +626,11 @@ export default function WorkersPage() {
 
   // Modal handlers
   const handleOpenModal = (worker?: Worker) => {
+    setWorkerImageFile(null);
+    setWorkerImagePreview(null);
+    setWorkerExtraImages([]);
     if (worker?.id) {
-      setEditingWorkerId(Number(worker.id));
+      setEditingWorkerId(String(worker.id));
     } else {
       setEditingWorkerId(null);
       form.resetFields();
@@ -596,8 +642,9 @@ export default function WorkersPage() {
     setIsModalOpen(false);
     setEditingWorkerId(null);
     form.resetFields();
-    setWorkerImageBase64(null);
+    setWorkerImageFile(null);
     setWorkerImagePreview(null);
+    setWorkerExtraImages([]);
   };
 
   // Populate form when editing worker details are loaded
@@ -605,8 +652,16 @@ export default function WorkersPage() {
     if (editingWorker) {
       // Pre-load existing image for editing
       if (editingWorker.uploadImage) {
-        setWorkerImageBase64(editingWorker.uploadImage);
+        setWorkerImageFile(null);
         setWorkerImagePreview(editingWorker.uploadImage);
+      } else {
+        setWorkerImageFile(null);
+        setWorkerImagePreview(null);
+      }
+      if (editingWorker.attachments) {
+        setWorkerExtraImages(editingWorker.attachments.map((url) => ({ url })));
+      } else {
+        setWorkerExtraImages([]);
       }
       form.setFieldsValue({
         ...editingWorker,
@@ -639,7 +694,8 @@ export default function WorkersPage() {
       agentId: restValues.agentId ? String(restValues.agentId) : undefined,
       workerType: restValues.workerType ? Number(restValues.workerType) : undefined,
       workerStatus: restValues.workerStatus ? Number(restValues.workerStatus) : undefined,
-      uploadImage: workerImageBase64 || undefined,
+      uploadImage: workerImageFile || undefined,
+      attachments: workerExtraImages.map((item) => item.file).filter((file): file is File => !!file),
     };
 
     if (editingWorkerId !== null) {
@@ -653,17 +709,23 @@ export default function WorkersPage() {
   const handleMedicalExamSubmit = async (values: any) => {
     if (medicalExamWorkerId === null) return;
 
+    const medicalStatus = Number(values.medicalStatus);
     const payload = {
       workerId: String(medicalExamWorkerId),
       examDate: values.examDate?.toISOString() ?? null,
-      medicalStatus: Number(values.medicalStatus),
+      medicalStatus,
       notes: values.notes || '',
     };
 
     const onSuccess = () => {
+      // Auto-set WorkerStatus to 4 (Backout) when medical exam result is Failed (3)
+      if (medicalStatus === 3) {
+        updateWorker({ id: medicalExamWorkerId, data: { workerStatus: 4 } });
+      }
       medicalExamForm.resetFields();
       setMedicalExamWorkerId(null);
       setMedicalExamId(null);
+      setMedicalExamViewOnly(false);
     };
 
     if (medicalExamId !== null) {
@@ -713,6 +775,11 @@ export default function WorkersPage() {
     setFilters({});
   };
 
+  const handlePrintCV = async (worker: Worker) => {
+    const { printWorkerCVPDF } = await import('@/utils/pdf');
+    await printWorkerCVPDF(worker);
+  };
+
   const handleWorkerStatusAction = (worker: Worker, action: string) => {
     switch (action) {
       case 'escape':
@@ -738,12 +805,6 @@ export default function WorkersPage() {
       case 'suspended':
         updateWorker({ id: worker.id, data: { workerStatus: 6 } });
         break;
-      case 'finalExit':
-        updateWorker({ id: worker.id, data: { workerStatus: 7 } });
-        break;
-      case 'returnWork':
-        updateWorker({ id: worker.id, data: { workerStatus: 8 } });
-        break;
     }
   };
 
@@ -766,8 +827,8 @@ export default function WorkersPage() {
   // Status tag
   const getStatusTag = (status?: number | null) => {
     const statusConfig: Record<number, { color: string; icon: React.ReactNode; label: string }> = {
-      1: { color: 'processing', icon: <ClockCircleOutlined />, label: t('tabTrial') },
-      2: { color: 'success', icon: <CheckCircleOutlined />, label: t('tabAvailable') },
+      1: { color: 'success', icon: <CheckCircleOutlined />, label: t('tabAvailable') },
+      2: { color: 'processing', icon: <ClockCircleOutlined />, label: t('tabTrial') },
       3: { color: 'warning', icon: <FileTextOutlined />, label: t('tabUnderProcedure') },
       4: { color: 'error', icon: <ExclamationCircleOutlined />, label: t('tabBackOut') },
       5: { color: 'cyan', icon: <EnvironmentOutlined />, label: t('tabInsideKingdom') },
@@ -836,16 +897,10 @@ export default function WorkersPage() {
             onClick: () => confirmWorkerStatusAction(worker, 'suspended'),
           },
           {
-            key: 'finalExit',
-            label: t('statusActionFinalExit'),
+            key: 'deactivate',
+            label: t('deactivate'),
             icon: <StopOutlined />,
-            onClick: () => confirmWorkerStatusAction(worker, 'finalExit'),
-          },
-          {
-            key: 'returnWork',
-            label: t('statusActionReturnWork'),
-            icon: <CheckCircleOutlined />,
-            onClick: () => confirmWorkerStatusAction(worker, 'returnWork'),
+            onClick: () => confirmWorkerStatusAction(worker, 'deactivate'),
           },
         ],
       },
@@ -1168,19 +1223,49 @@ export default function WorkersPage() {
                 </Select>
               </Col>
 
+
+
               <Col xs={24} md={6}>
-                <label className={styles.filterLabel}>{t('vip')}</label>
-                <Select
+                <label className={styles.filterLabel}>{t('passportFilter')}</label>
+                <Input
                   size="large"
-                  placeholder={t('vip')}
-                  value={filters.vip}
-                  onChange={(value) => setFilters({ ...filters, vip: value })}
-                  style={{ width: '100%' }}
+                  placeholder={t('passportFilter')}
+                  value={filters.passportFilter || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, passportFilter: e.target.value || undefined })
+                  }
                   allowClear
-                >
-                  <Select.Option value="1">{t('vipOnly')}</Select.Option>
-                  <Select.Option value="2">{t('notVip')}</Select.Option>
-                </Select>
+                />
+              </Col>
+
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('ageMin')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  max={100}
+                  placeholder={t('ageMin')}
+                  value={filters.ageMin}
+                  onChange={(value) =>
+                    setFilters({ ...filters, ageMin: value ?? undefined })
+                  }
+                  style={{ width: '100%' }}
+                />
+              </Col>
+
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('ageMax')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  max={100}
+                  placeholder={t('ageMax')}
+                  value={filters.ageMax}
+                  onChange={(value) =>
+                    setFilters({ ...filters, ageMax: value ?? undefined })
+                  }
+                  style={{ width: '100%' }}
+                />
               </Col>
             </Row>
             <div className={styles.filterActions}>
@@ -1409,7 +1494,23 @@ export default function WorkersPage() {
                     type="text"
                     icon={<EyeOutlined />}
                     className={styles.actionButton}
-                    onClick={() => setViewingWorkerId(Number(worker.id))}
+                    onClick={() => setViewingWorkerId(String(worker.id))}
+                  />
+                </Tooltip>
+                <Tooltip title={t('markRefused')}>
+                  <Button
+                    type="text"
+                    icon={<CloseCircleOutlined />}
+                    className={styles.actionButton}
+                    onClick={() => confirmWorkerStatusAction(worker, 'refused')}
+                  />
+                </Tooltip>
+                <Tooltip title={language === 'ar' ? 'نقل للسكن' : 'Move to Accommodation'}>
+                  <Button
+                    type="text"
+                    icon={<LogoutOutlined />}
+                    className={styles.actionButton}
+                    onClick={() => confirmWorkerStatusAction(worker, 'out')}
                   />
                 </Tooltip>
                 <Tooltip title={t('edit')}>
@@ -1418,6 +1519,14 @@ export default function WorkersPage() {
                     icon={<EditOutlined />}
                     className={styles.actionButton}
                     onClick={() => handleOpenModal(worker)}
+                  />
+                </Tooltip>
+                <Tooltip title={t('printCV')}>
+                  <Button
+                    type="text"
+                    icon={<FilePdfOutlined />}
+                    className={styles.actionButton}
+                    onClick={() => handlePrintCV(worker)}
                   />
                 </Tooltip>
                 <Tooltip title={t('medicalExamination')}>
@@ -1431,14 +1540,18 @@ export default function WorkersPage() {
                       );
                       setMedicalExamWorkerId(worker.id);
                       if (existingExam) {
+                        // Record exists → open in view-only mode first
                         setMedicalExamId(existingExam.id);
+                        setMedicalExamViewOnly(true);
                         medicalExamForm.setFieldsValue({
                           examDate: existingExam.examDate ? dayjs(existingExam.examDate) : undefined,
                           medicalStatus: existingExam.medicalStatus,
                           notes: existingExam.notes,
                         });
                       } else {
+                        // No record → open directly in create mode
                         setMedicalExamId(null);
+                        setMedicalExamViewOnly(false);
                         medicalExamForm.resetFields();
                       }
                     }}
@@ -1684,6 +1797,52 @@ export default function WorkersPage() {
                 </Space>
               </div>
             )}
+
+            {/* Documents / Attachments */}
+            <Divider />
+            <div style={{ marginTop: 8 }}>
+              <h4 style={{ color: '#003366', marginBottom: 12 }}>{t('documents')}</h4>
+              {(() => {
+                const allDocs = [
+                  ...(viewingWorker?.uploadImage ? [viewingWorker.uploadImage] : []),
+                  ...(viewingWorker?.attachments ?? []),
+                ];
+                return allDocs.length > 0 ? (
+                  <Image.PreviewGroup>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                      {allDocs.map((src, idx) => {
+                        const isPdf = src.startsWith('data:application/pdf') || src.endsWith('.pdf');
+                        return isPdf ? (
+                          <div
+                            key={idx}
+                            style={{
+                              width: 120, height: 120, borderRadius: 8, border: '1px solid #e2e8f0',
+                              background: '#fff0f0', display: 'flex', flexDirection: 'column',
+                              alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}
+                            onClick={() => window.open(src, '_blank')}
+                          >
+                            <FilePdfOutlined style={{ fontSize: 36, color: '#e53e3e' }} />
+                            <span style={{ fontSize: 11, color: '#718096', marginTop: 6 }}>PDF</span>
+                          </div>
+                        ) : (
+                          <Image
+                            key={idx}
+                            src={src}
+                            width={120}
+                            height={120}
+                            style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }}
+                            preview={{ mask: <EyeOutlined /> }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </Image.PreviewGroup>
+                ) : (
+                  <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>{t('noDocuments')}</p>
+                );
+              })()}
+            </div>
           </div>
         )}
       </Modal>
@@ -1748,14 +1907,8 @@ export default function WorkersPage() {
                     );
                     return false;
                   }
-                  // Convert to Base64 and store
-                  const reader = new FileReader();
-                  reader.onload = (e) => {
-                    const base64 = e.target?.result as string;
-                    setWorkerImageBase64(base64);
-                    setWorkerImagePreview(base64);
-                  };
-                  reader.readAsDataURL(file);
+                  setWorkerImageFile(file);
+                  setWorkerImagePreview(URL.createObjectURL(file));
                   return false; // Prevent auto-upload
                 }}
               >
@@ -1770,7 +1923,7 @@ export default function WorkersPage() {
                   size="small"
                   style={{ marginTop: 4, display: 'block', margin: '4px auto 0' }}
                   onClick={() => {
-                    setWorkerImageBase64(null);
+                    setWorkerImageFile(null);
                     setWorkerImagePreview(null);
                   }}
                 >
@@ -1778,6 +1931,89 @@ export default function WorkersPage() {
                 </Button>
               )}
             </div>
+          </div>
+
+          {/* ── Additional Attachments (images + PDFs) ── */}
+          <div style={{ marginBottom: 24, padding: '12px 16px', background: '#f8faff', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontWeight: 600, color: '#003366', fontSize: 13 }}>
+                {language === 'ar' ? 'صور ووثائق إضافية' : 'Additional Documents / Images'}
+              </span>
+              <Upload
+                accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                showUploadList={false}
+                multiple
+                beforeUpload={(file) => {
+                  const allowed = file.type.startsWith('image/') || file.type === 'application/pdf';
+                  if (!allowed) {
+                    message.error(language === 'ar' ? 'الرجاء اختيار صورة أو ملف PDF' : 'Please select an image or PDF file');
+                    return false;
+                  }
+                  if (file.size / 1024 / 1024 > 10) {
+                    message.error(language === 'ar' ? 'يجب أن يكون حجم الملف أقل من 10 ميجابايت' : 'File must be less than 10 MB');
+                    return false;
+                  }
+                  setWorkerExtraImages((prev) => [
+                    ...prev,
+                    { url: URL.createObjectURL(file), file },
+                  ]);
+                  return false;
+                }}
+              >
+                <Button icon={<UploadOutlined />} size="small">
+                  {language === 'ar' ? 'إضافة ملف' : 'Add File'}
+                </Button>
+              </Upload>
+            </div>
+            {workerExtraImages.length === 0 ? (
+              <p style={{ color: '#9ca3af', fontSize: 12, margin: 0 }}>
+                {language === 'ar' ? 'لا توجد وثائق مرفقة' : 'No documents attached'}
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <Image.PreviewGroup>
+                  {workerExtraImages.map((attachment, idx) => {
+                    const isPdf =
+                      attachment.file?.type === 'application/pdf' ||
+                      attachment.url.toLowerCase().includes('.pdf');
+                    return (
+                      <div key={idx} style={{ position: 'relative', display: 'inline-block' }}>
+                        {isPdf ? (
+                          <div
+                            style={{
+                              width: 72, height: 72, borderRadius: 6, border: '1px solid #e2e8f0',
+                              background: '#fff0f0', display: 'flex', flexDirection: 'column',
+                              alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}
+                            onClick={() => window.open(attachment.url, '_blank')}
+                          >
+                            <FilePdfOutlined style={{ fontSize: 28, color: '#e53e3e' }} />
+                            <span style={{ fontSize: 10, color: '#718096', marginTop: 4 }}>PDF</span>
+                          </div>
+                        ) : (
+                          <Image
+                            src={attachment.url}
+                            alt={language === 'ar' ? 'مرفق العامل' : 'Worker attachment'}
+                            width={72}
+                            height={72}
+                            style={{ objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }}
+                            preview={{ mask: <EyeOutlined style={{ fontSize: 12 }} /> }}
+                          />
+                        )}
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<CloseCircleOutlined />}
+                          style={{ position: 'absolute', top: -6, right: -6, padding: 0, minWidth: 20, height: 20, fontSize: 14 }}
+                          onClick={() => setWorkerExtraImages((prev) => prev.filter((_, i) => i !== idx))}
+                        />
+                      </div>
+                    );
+                  })}
+                </Image.PreviewGroup>
+              </div>
+            )}
           </div>
 
           <Row gutter={16}>
@@ -2027,7 +2263,11 @@ export default function WorkersPage() {
           <Space>
             <MedicineBoxOutlined />
             <span>
-              {medicalExamId !== null ? t('medicalExamination') : t('createMedicalExam')}
+              {medicalExamViewOnly
+                ? t('viewExamRecord')
+                : medicalExamId !== null
+                  ? t('editExamRecord')
+                  : t('createMedicalExam')}
             </span>
           </Space>
         }
@@ -2035,74 +2275,203 @@ export default function WorkersPage() {
         onCancel={() => {
           setMedicalExamWorkerId(null);
           setMedicalExamId(null);
+          setMedicalExamViewOnly(false);
           medicalExamForm.resetFields();
         }}
         footer={null}
         width={600}
         className={styles.modal}
       >
-        <Form
-          form={medicalExamForm}
-          layout="vertical"
-          onFinish={handleMedicalExamSubmit}
-          className={styles.modalForm}
-        >
-          <Form.Item
-            label={t('examDate')}
-            name="examDate"
-            rules={[{ required: true, message: 'Please select examination date' }]}
+        {/* ── View-only mode: show existing record as read-only Descriptions ── */}
+        {medicalExamViewOnly && medicalExamId !== null ? (
+          (() => {
+            const exam = medicalExaminations.find((e) => String(e.id) === String(medicalExamId));
+            return (
+              <div>
+                <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
+                  <Descriptions.Item label={t('examDate')}>
+                    {exam?.examDate ? dayjs(exam.examDate).format('YYYY-MM-DD') : '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('medicalStatus')}>
+                    {exam
+                      ? getEnumLabel(MEDICAL_STATUS, exam.medicalStatus, language)
+                      : '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('notes')}>
+                    {exam?.notes || '-'}
+                  </Descriptions.Item>
+                </Descriptions>
+                <div className={styles.modalActions}>
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    loading={isDeletingMedicalExam}
+                    onClick={handleMedicalExamDelete}
+                  >
+                    {t('delete')}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setMedicalExamWorkerId(null);
+                      setMedicalExamId(null);
+                      setMedicalExamViewOnly(false);
+                      medicalExamForm.resetFields();
+                    }}
+                  >
+                    {t('cancel')}
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<EditOutlined />}
+                    onClick={() => setMedicalExamViewOnly(false)}
+                  >
+                    {t('edit')}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()
+        ) : (
+          /* ── Edit / Create mode ── */
+          <Form
+            form={medicalExamForm}
+            layout="vertical"
+            onFinish={handleMedicalExamSubmit}
+            className={styles.modalForm}
           >
-            <DatePicker size="large" style={{ width: '100%' }} showTime={false} />
-          </Form.Item>
+            <Form.Item
+              label={t('examDate')}
+              name="examDate"
+              rules={[{ required: true, message: 'Please select examination date' }]}
+            >
+              <DatePicker size="large" style={{ width: '100%' }} showTime={false} />
+            </Form.Item>
 
-          <Form.Item
-            label={t('medicalStatus')}
-            name="medicalStatus"
-            rules={[{ required: true, message: 'Please select medical status' }]}
-          >
-            <Select size="large" placeholder={t('medicalStatus')}>
-              {toSelectOptions([...MEDICAL_STATUS], language).map((o) => (
-                <Select.Option key={o.value} value={o.value}>
-                  {o.label}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
+            <Form.Item
+              label={t('medicalStatus')}
+              name="medicalStatus"
+              rules={[{ required: true, message: 'Please select medical status' }]}
+            >
+              <Select size="large" placeholder={t('medicalStatus')}>
+                {toSelectOptions([...MEDICAL_STATUS], language).map((o) => (
+                  <Select.Option key={o.value} value={o.value}>
+                    {o.label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-          <Form.Item label={t('notes')} name="notes">
-            <Input.TextArea rows={4} placeholder={t('notes')} />
-          </Form.Item>
+            <Form.Item label={t('notes')} name="notes">
+              <Input.TextArea rows={4} placeholder={t('notes')} />
+            </Form.Item>
 
-          <div className={styles.modalActions}>
-            {medicalExamId !== null && (
+            <div className={styles.modalActions}>
+              {medicalExamId !== null && (
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  loading={isDeletingMedicalExam}
+                  onClick={handleMedicalExamDelete}
+                >
+                  {t('delete')}
+                </Button>
+              )}
               <Button
-                danger
-                icon={<DeleteOutlined />}
-                loading={isDeletingMedicalExam}
-                onClick={handleMedicalExamDelete}
+                onClick={() => {
+                  if (medicalExamId !== null) {
+                    // Go back to view mode instead of closing
+                    setMedicalExamViewOnly(true);
+                  } else {
+                    setMedicalExamWorkerId(null);
+                    setMedicalExamId(null);
+                    setMedicalExamViewOnly(false);
+                    medicalExamForm.resetFields();
+                  }
+                }}
               >
-                {t('delete')}
+                {t('cancel')}
               </Button>
-            )}
-            <Button
-              onClick={() => {
-                setMedicalExamWorkerId(null);
-                setMedicalExamId(null);
-                medicalExamForm.resetFields();
-              }}
-            >
-              {t('cancel')}
-            </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isCreatingMedicalExam || isUpdatingMedicalExam}
-              icon={<MedicineBoxOutlined />}
-            >
-              {t('save')}
-            </Button>
-          </div>
-        </Form>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={isCreatingMedicalExam || isUpdatingMedicalExam}
+                icon={<MedicineBoxOutlined />}
+              >
+                {t('save')}
+              </Button>
+            </div>
+          </Form>
+        )}
+      </Modal>
+
+      {/* Document / Passport Viewer Modal */}
+      <Modal
+        title={
+          <Space>
+            <FileImageOutlined />
+            <span>{t('viewDocument')}</span>
+          </Space>
+        }
+        open={docViewerWorkerId !== null}
+        onCancel={() => setDocViewerWorkerId(null)}
+        footer={
+          <Button type="primary" onClick={() => setDocViewerWorkerId(null)}>
+            {t('close')}
+          </Button>
+        }
+        width={600}
+        centered
+      >
+        {(() => {
+          const docWorker = workers.find((w) => String(w.id) === String(docViewerWorkerId));
+          if (!docWorker) return null;
+          const allDocs = [
+            ...(docWorker.uploadImage ? [docWorker.uploadImage] : []),
+            ...(docWorker.attachments ?? []),
+          ];
+          return allDocs.length > 0 ? (
+            <div>
+              <p style={{ color: '#64748b', fontSize: 12, marginBottom: 12 }}>
+                {docWorker.fullNameEn || docWorker.fullNameAr} — {allDocs.length} {language === 'ar' ? 'صورة / وثيقة' : allDocs.length === 1 ? 'document' : 'documents'}
+              </p>
+              <Image.PreviewGroup>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  {allDocs.map((src, idx) => {
+                    const isPdf = src.startsWith('data:application/pdf') || src.endsWith('.pdf');
+                    return isPdf ? (
+                      <div
+                        key={idx}
+                        style={{
+                          width: 150, height: 150, borderRadius: 8, border: '1px solid #e2e8f0',
+                          background: '#fff0f0', display: 'flex', flexDirection: 'column',
+                          alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        }}
+                        onClick={() => window.open(src, '_blank')}
+                      >
+                        <FilePdfOutlined style={{ fontSize: 40, color: '#e53e3e' }} />
+                        <span style={{ fontSize: 12, color: '#718096', marginTop: 8 }}>PDF</span>
+                      </div>
+                    ) : (
+                      <Image
+                        key={idx}
+                        src={src}
+                        width={150}
+                        height={150}
+                        style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }}
+                        preview={{ mask: <EyeOutlined /> }}
+                      />
+                    );
+                  })}
+                </div>
+              </Image.PreviewGroup>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: '#94a3b8' }}>
+              <FileImageOutlined style={{ fontSize: 48, marginBottom: 12 }} />
+              <p>{t('noDocument')}</p>
+            </div>
+          );
+        })()}
       </Modal>
     </div>
   );

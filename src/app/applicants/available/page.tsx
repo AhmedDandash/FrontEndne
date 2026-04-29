@@ -7,12 +7,12 @@ import {
   Col,
   Button,
   Input,
+  InputNumber,
   Select,
   Space,
   Tag,
   Empty,
   Spin,
-  // Tooltip,
   Avatar,
   Dropdown,
   Modal,
@@ -34,6 +34,7 @@ import {
   WomanOutlined,
   FlagOutlined,
   FileTextOutlined,
+  FilePdfOutlined,
   DownOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
@@ -119,6 +120,13 @@ const translations = {
     passportIssuePlaceEn: 'Issue Place (English)',
     educationLevelAr: 'Education (Arabic)',
     educationLevelEn: 'Education (English)',
+    ageMin: 'Min Age',
+    ageMax: 'Max Age',
+    passportFilter: 'Passport No.',
+    printAll: 'Print All',
+    printCV: 'Print CV',
+    documents: 'Documents',
+    noDocuments: 'No documents uploaded',
   },
   ar: {
     pageTitle: 'العمالة المتاحة للاختيار',
@@ -186,6 +194,13 @@ const translations = {
     passportIssuePlaceEn: 'مكان الإصدار (إنجليزي)',
     educationLevelAr: 'التعليم (عربي)',
     educationLevelEn: 'التعليم (إنجليزي)',
+    ageMin: 'العمر الأدنى',
+    ageMax: 'العمر الأقصى',
+    passportFilter: 'رقم الجواز',
+    printAll: 'طباعة الكل',
+    printCV: 'طباعة السيرة الذاتية',
+    documents: 'المستندات',
+    noDocuments: 'لا توجد مستندات محملة',
   },
 };
 
@@ -193,7 +208,7 @@ export default function AvailableWorkersPage() {
   const language = useAuthStore((state) => state.language);
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
-  const [viewingWorkerId, setViewingWorkerId] = useState<number | null>(null);
+  const [viewingWorkerId, setViewingWorkerId] = useState<string | null>(null);
   const [filters, setFilters] = useState<{
     search?: string;
     nationality?: string;
@@ -203,6 +218,9 @@ export default function AvailableWorkersPage() {
     gender?: string;
     vip?: string;
     agent?: string;
+    ageMin?: number;
+    ageMax?: number;
+    passportFilter?: string;
   }>({});
 
   const t = (key: keyof typeof translations.en) => {
@@ -210,9 +228,7 @@ export default function AvailableWorkersPage() {
   };
 
   const { data: workers = [], isLoading } = useWorkers();
-  const { data: viewingWorker, isLoading: isViewingLoading } = useWorker(
-    viewingWorkerId ? String(viewingWorkerId) : undefined
-  );
+  const { data: viewingWorker, isLoading: isViewingLoading } = useWorker(viewingWorkerId ?? undefined);
 
   const getGenderLabel = (g?: number | null) => getEnumLabel(GENDER, g, language);
   const getMaritalLabel = (m?: number | null) => getEnumLabel(MARITAL_STATUS, m, language);
@@ -238,8 +254,16 @@ export default function AvailableWorkersPage() {
       // const matchesAgent = !filters.agent || worker.agentId === Number(filters.agent);
       // const matchesGender = !filters.gender || worker.gender === Number(filters.gender);
 
-      // Only include active workers
-      const matchesActive = worker.isActive === true;
+      // Only show Available workers (workerStatus === 1)
+      const matchesAvailable = worker.workerStatus === 1;
+
+      const matchesAgeMin =
+        filters.ageMin === undefined || (worker.age != null && worker.age >= filters.ageMin);
+      const matchesAgeMax =
+        filters.ageMax === undefined || (worker.age != null && worker.age <= filters.ageMax);
+      const matchesPassport =
+        !filters.passportFilter ||
+        worker.passportNo?.toLowerCase().includes(filters.passportFilter.toLowerCase());
 
       // Tab filtering based on workerType
       const matchesTab =
@@ -249,14 +273,11 @@ export default function AvailableWorkersPage() {
         (activeTab === 'sponsorship' && worker.workerType === WORKER_CONTRACT_TYPE[2].value);
 
       return (
-        matchesActive &&
+        matchesAvailable &&
         matchesSearch &&
-        // matchesNationality &&
-        // matchesJob &&
-        // matchesReligion &&
-        // matchesExperience &&
-        // matchesAgent &&
-        // matchesGender &&
+        matchesAgeMin &&
+        matchesAgeMax &&
+        matchesPassport &&
         matchesTab
       );
     });
@@ -274,18 +295,23 @@ export default function AvailableWorkersPage() {
     };
   }, [filteredWorkers]);
 
-  // Print menu
-  const printMenu: MenuProps = {
-    items: [
-      {
-        key: 'report',
-        label: language === 'ar' ? 'تقرير العمالة' : 'Workers Report',
-        icon: <FileTextOutlined />,
-      },
-    ],
-    onClick: ({ key }) => {
-      console.log('Print report:', key);
-    },
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const handlePrintAll = async () => {
+    setIsPrinting(true);
+    try {
+      const { printAllWorkersPDF } = await import('@/utils/pdf');
+      await printAllWorkersPDF(filteredWorkers);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const handlePrintCV = async (workerId: number | string) => {
+    const worker = filteredWorkers.find((w) => w.id === workerId);
+    if (!worker) return;
+    const { printWorkerCVPDF } = await import('@/utils/pdf');
+    await printWorkerCVPDF(worker);
   };
 
   // Tab items
@@ -325,11 +351,14 @@ export default function AvailableWorkersPage() {
             </div>
           </div>
           <div className={styles.headerButtons}>
-            <Dropdown menu={printMenu}>
-              <Button className={styles.printButton} icon={<PrinterOutlined />}>
-                {t('print')} <DownOutlined />
-              </Button>
-            </Dropdown>
+            <Button
+              className={styles.printButton}
+              icon={<FilePdfOutlined />}
+              loading={isPrinting}
+              onClick={handlePrintAll}
+            >
+              {t('printAll')}
+            </Button>
           </div>
         </div>
       </div>
@@ -518,6 +547,49 @@ export default function AvailableWorkersPage() {
                   ))}
                 </Select>
               </Col>
+
+              <Col xs={24} md={6}>
+                <label className={styles.filterLabel}>{t('passportFilter')}</label>
+                <Input
+                  size="large"
+                  placeholder={t('passportFilter')}
+                  value={filters.passportFilter || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, passportFilter: e.target.value || undefined })
+                  }
+                  allowClear
+                />
+              </Col>
+
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('ageMin')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  max={100}
+                  placeholder={t('ageMin')}
+                  value={filters.ageMin}
+                  onChange={(value) =>
+                    setFilters({ ...filters, ageMin: value ?? undefined })
+                  }
+                  style={{ width: '100%' }}
+                />
+              </Col>
+
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('ageMax')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  max={100}
+                  placeholder={t('ageMax')}
+                  value={filters.ageMax}
+                  onChange={(value) =>
+                    setFilters({ ...filters, ageMax: value ?? undefined })
+                  }
+                  style={{ width: '100%' }}
+                />
+              </Col>
             </Row>
           </div>
         )}
@@ -632,33 +704,23 @@ export default function AvailableWorkersPage() {
                     </div>
                   </div>
 
-                  {/* Footer */}
-                  {/* <div className={styles.cardFooter}>
-                    <div className={styles.cardFooterLeft}>
-                      {worker.skills && worker.skills.length > 0 && (
-                        <>
-                          {worker.skills.slice(0, 3).map((skill, i) => (
-                            <Tag key={i} color="cyan">
-                              {skill}
-                            </Tag>
-                          ))}
-                          {worker.skills.length > 3 && <Tag>+{worker.skills.length - 3}</Tag>}
-                        </>
-                      )}
-                    </div>
-                    <div className={styles.cardFooterRight}>
-                      <Tooltip title={t('view')}>
-                        <Button
-                          type="default"
-                          icon={<EyeOutlined />}
-                          className={`${styles.actionBtn} ${styles.viewBtn}`}
-                          onClick={() => setViewingWorkerId(worker.id)}
-                        >
-                          {t('view')}
-                        </Button>
-                      </Tooltip>
-                    </div>
-                  </div> */}
+                  {/* Card Actions */}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+                    <Button
+                      size="small"
+                      icon={<EyeOutlined />}
+                      onClick={() => setViewingWorkerId(String(worker.id))}
+                    >
+                      {t('view')}
+                    </Button>
+                    <Button
+                      size="small"
+                      icon={<FilePdfOutlined />}
+                      onClick={() => handlePrintCV(worker.id)}
+                    >
+                      {t('printCV')}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -847,6 +909,28 @@ export default function AvailableWorkersPage() {
                 {viewingWorker?.addressEn || '-'}
               </Descriptions.Item>
             </Descriptions>
+
+            {/* Documents / Attachments */}
+            <Divider />
+            <div style={{ marginTop: 8 }}>
+              <h4 style={{ color: '#003366', marginBottom: 12 }}>{t('documents')}</h4>
+              {viewingWorker?.uploadImage ? (
+                <div>
+                  <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+                    {t('passportScan')} / {language === 'ar' ? 'صورة العامل' : 'Worker Photo'}
+                  </p>
+                  <Image
+                    src={viewingWorker.uploadImage}
+                    alt={t('passportScan')}
+                    width={200}
+                    style={{ border: '1px solid #e2e8f0', borderRadius: 8 }}
+                    preview={{ mask: <EyeOutlined /> }}
+                  />
+                </div>
+              ) : (
+                <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>{t('noDocuments')}</p>
+              )}
+            </div>
           </div>
         )}
       </Modal>

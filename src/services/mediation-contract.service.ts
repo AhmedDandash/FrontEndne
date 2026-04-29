@@ -1,6 +1,6 @@
 /**
  * Mediation Contract Service
- * Handles all mediation contract-related API calls
+ * Handles all mediation contract-related API calls — endpoints per PDF spec only
  */
 
 import { api } from '@/lib/api/client';
@@ -8,48 +8,78 @@ import { API_ENDPOINTS } from '@/config/api.config';
 import type {
   MediationContract,
   CreateMediationContractDto,
-  UpdateMediationContractDto,
-  MediationContractNoteDto,
-  MediationContractNote,
-  AddDomesticWorkerDto,
-  ContractTypeChangeDto,
   ContractCancelDto,
-  MediationContractInvoice,
-  CreateInvoiceDto,
+  SignMediationContractDto,
+  DeliveryFormDto,
+  DeliveryFormSignDto,
+  WarrantyReturnDto,
+  UpdateContractStatusDto,
+  ContractStatusHistory,
 } from '@/types/api.types';
 
 export class MediationContractService {
-  /**
-   * Get all mediation contracts
-   */
-  static async getAll(): Promise<MediationContract[]> {
-    const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT.GET_ALL);
+  private static normalizeKeys<T extends Record<string, any>>(item: T): T {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
 
-    let items: MediationContract[] = [];
-    if (Array.isArray(response.data)) {
-      items = response.data;
-    } else if (response.data && typeof response.data === 'object') {
-      const data = response.data as any;
-      if (Array.isArray(data.data)) items = data.data;
-      else if (Array.isArray(data.result)) items = data.result;
-      else if (Array.isArray(data.items)) items = data.items;
+    return Object.entries(item).reduce<Record<string, any>>((acc, [key, value]) => {
+      acc[key] = value;
+      acc[key.charAt(0).toLowerCase() + key.slice(1)] = value;
+      return acc;
+    }, {}) as T;
+  }
+
+  private static normalizeContract(item: any): MediationContract {
+    const contract = this.normalizeKeys(item);
+    return {
+      ...contract,
+      id: contract.id ?? contract.ID,
+      agentCostSAR: contract.agentCostSAR ?? contract.agentCostSar,
+    } as MediationContract;
+  }
+
+  private static unwrap<T>(payload: any): T {
+    return this.normalizeKeys(payload?.data?.value ?? payload?.value ?? payload?.data ?? payload) as T;
+  }
+
+  private static unwrapList<T>(payload: any): T[] {
+    const candidates = [
+      payload,
+      payload?.data,
+      payload?.data?.value,
+      payload?.value,
+      payload?.result,
+      payload?.data?.result,
+      payload?.items,
+      payload?.data?.items,
+      payload?.value?.items,
+      payload?.data?.value?.items,
+      payload?.records,
+      payload?.data?.records,
+    ];
+
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) return candidate.map((item) => this.normalizeContract(item)) as T[];
+      if (Array.isArray(candidate?.$values)) {
+        return candidate.$values.map((item: any) => this.normalizeContract(item)) as T[];
+      }
     }
-    return items;
+
+    console.warn('[MediationContractService] Unexpected response shape:', payload);
+    return [];
   }
 
-  /**
-   * Get a mediation contract by ID
-   */
+  static async getAll(): Promise<MediationContract[]> {
+    const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT.GET_ALL, {
+      params: { PageSize: 9999, PageNumber: 1 },
+    });
+    return this.unwrapList<MediationContract>(response.data);
+  }
+
   static async getById(id: number): Promise<MediationContract> {
-    const response = await api.get<MediationContract>(
-      API_ENDPOINTS.MEDIATION_CONTRACT.GET_BY_ID(id)
-    );
-    return response.data;
+    const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT.GET_BY_ID(id));
+    return this.unwrap<MediationContract>(response.data);
   }
 
-  /**
-   * Create a new mediation contract
-   */
   static async create(data: CreateMediationContractDto): Promise<MediationContract> {
     const payload = {
       ...data,
@@ -73,154 +103,72 @@ export class MediationContractService {
       domesticWorkerInsurance:
         data.domesticWorkerInsurance != null ? Number(data.domesticWorkerInsurance) : null,
     };
-    const response = await api.post<MediationContract>(
-      API_ENDPOINTS.MEDIATION_CONTRACT.CREATE,
-      payload
-    );
-    return response.data;
+    const response = await api.post<any>(API_ENDPOINTS.MEDIATION_CONTRACT.CREATE, payload);
+    return this.unwrap<MediationContract>(response.data);
   }
 
-  /**
-   * Update a mediation contract
-   */
-  static async update(id: number, data: UpdateMediationContractDto): Promise<MediationContract> {
-    const payload = {
-      ...data,
-      contractType: data.contractType != null ? Number(data.contractType) : null,
-      statusId: data.statusId != null ? Number(data.statusId) : null,
-      customerId: data.customerId != null ? Number(data.customerId) : null,
-      marketerId: data.marketerId != null ? Number(data.marketerId) : null,
-      contractCategory: data.contractCategory != null ? Number(data.contractCategory) : null,
-      offerId: data.offerId != null ? Number(data.offerId) : null,
-      visaType: data.visaType != null ? Number(data.visaType) : null,
-      arrivalDestinationId:
-        data.arrivalDestinationId != null ? Number(data.arrivalDestinationId) : null,
-      localCost: data.localCost != null ? Number(data.localCost) : null,
-      agentCostSAR: data.agentCostSAR != null ? Number(data.agentCostSAR) : null,
-      salary: data.salary != null ? Number(data.salary) : null,
-      otherCosts: data.otherCosts != null ? Number(data.otherCosts) : null,
-      totalTaxValue: data.totalTaxValue != null ? Number(data.totalTaxValue) : null,
-      managerDiscount: data.managerDiscount != null ? Number(data.managerDiscount) : null,
-      costDiscount: data.costDiscount != null ? Number(data.costDiscount) : null,
-      totalCost: data.totalCost != null ? Number(data.totalCost) : null,
-      domesticWorkerInsurance:
-        data.domesticWorkerInsurance != null ? Number(data.domesticWorkerInsurance) : null,
-    };
-    const response = await api.put<MediationContract>(
-      API_ENDPOINTS.MEDIATION_CONTRACT.UPDATE(id),
-      payload
-    );
-    return response.data;
-  }
-
-  /**
-   * Delete a mediation contract
-   */
-  static async delete(id: number): Promise<void> {
-    await api.delete(API_ENDPOINTS.MEDIATION_CONTRACT.DELETE(id));
-  }
-
-  // ==================== Notes ====================
-
-  /**
-   * Add a note to a mediation contract
-   */
-  static async addNote(data: MediationContractNoteDto): Promise<MediationContractNote> {
-    const response = await api.post<MediationContractNote>(
-      API_ENDPOINTS.MEDIATION_CONTRACT.ADD_NOTE,
-      {
-        ...data,
-        mediationId: Number(data.mediationId),
-        dateNote: data.dateNote || new Date().toISOString(),
-      }
-    );
-    return response.data;
-  }
-
-  /**
-   * Get all notes (optionally filter by contract ID via query param)
-   */
-  static async getAllNotes(mediationId?: number): Promise<MediationContractNote[]> {
-    const params = mediationId ? { mediationId } : {};
-    const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT.ALL_NOTES, { params });
-
-    let items: MediationContractNote[] = [];
-    if (Array.isArray(response.data)) {
-      items = response.data;
-    } else if (response.data && typeof response.data === 'object') {
-      const data = response.data as any;
-      if (Array.isArray(data.data)) items = data.data;
-      else if (Array.isArray(data.result)) items = data.result;
-      else if (Array.isArray(data.items)) items = data.items;
-    }
-    return items;
-  }
-
-  // ==================== Domestic Worker ====================
-
-  /**
-   * Add domestic worker insurance to a contract
-   */
-  static async addDomesticWorker(data: AddDomesticWorkerDto): Promise<any> {
-    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.ADD_DOMESTIC_WORKER, {
-      ...data,
-      contractId: Number(data.contractId),
-      cost: data.cost != null ? Number(data.cost) : 0,
-    });
-    return response.data;
-  }
-
-  // ==================== Contract Type Change ====================
-
-  /**
-   * Change the type of a mediation contract
-   */
-  static async changeContractType(data: ContractTypeChangeDto): Promise<any> {
-    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.CONTRACT_TYPE_CHANGE, {
-      type: Number(data.type),
-      contractId: Number(data.contractId),
-    });
-    return response.data;
-  }
-
-  // ==================== Contract Cancel ====================
-
-  /**
-   * Cancel a mediation contract
-   */
   static async cancelContract(data: ContractCancelDto): Promise<any> {
     const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.CONTRACT_CANCEL, {
       contractId: Number(data.contractId),
       cancelBy: data.cancelBy != null ? Number(data.cancelBy) : null,
       cancelNote: data.cancelNote || null,
     });
-    return response.data;
+    return this.unwrap<any>(response.data);
   }
 
-  // ==================== Invoices ====================
+  // ==================== Lifecycle Transitions ====================
 
-  /**
-   * Get invoice by ID
-   */
-  static async getInvoiceById(id: number): Promise<MediationContractInvoice> {
-    const response = await api.get<MediationContractInvoice>(
-      API_ENDPOINTS.MEDIATION_CONTRACT.GET_INVOICE_BY_ID(id)
-    );
-    return response.data;
+  static async sign(data: SignMediationContractDto): Promise<any> {
+    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.SIGN, {
+      contractId: Number(data.contractId),
+      musanedContractNumber: data.musanedContractNumber,
+      musanedDocumentationNumber: data.musanedDocumentationNumber || null,
+    });
+    return this.unwrap<any>(response.data);
   }
 
-  /**
-   * Create invoice for a mediation contract
-   */
-  static async createInvoice(data: CreateInvoiceDto): Promise<MediationContractInvoice> {
-    const response = await api.post<MediationContractInvoice>(
-      API_ENDPOINTS.MEDIATION_CONTRACT.CREATE_INVOICE,
-      {
-        ...data,
-        mediationContractId: Number(data.mediationContractId),
-        paymentDate: data.paymentDate || new Date().toISOString(),
-      }
+  static async generateDeliveryForm(data: DeliveryFormDto): Promise<any> {
+    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.DELIVERY_FORM, {
+      contractId: Number(data.contractId),
+      deliveryDate: data.deliveryDate || null,
+      notes: data.notes || null,
+    });
+    return this.unwrap<any>(response.data);
+  }
+
+  static async signDelivery(data: DeliveryFormSignDto): Promise<any> {
+    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.DELIVERY_FORM_SIGN, {
+      contractId: Number(data.contractId),
+      customerSignedAt: data.customerSignedAt || new Date().toISOString(),
+    });
+    return this.unwrap<any>(response.data);
+  }
+
+  static async warrantyReturn(data: WarrantyReturnDto): Promise<any> {
+    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.WARRANTY_RETURN, {
+      contractId: Number(data.contractId),
+      returnDate: data.returnDate,
+      returnReason: Number(data.returnReason),
+      daysWithCustomer: Number(data.daysWithCustomer),
+      newWorkerLocation: data.newWorkerLocation || null,
+      notes: data.notes || null,
+    });
+    return this.unwrap<any>(response.data);
+  }
+
+  static async updateStatus(data: UpdateContractStatusDto): Promise<any> {
+    const response = await api.put(API_ENDPOINTS.MEDIATION_CONTRACT.UPDATE_STATUS, {
+      contractId: Number(data.contractId),
+      newStatus: Number(data.newStatus),
+      notes: data.notes || null,
+    });
+    return this.unwrap<any>(response.data);
+  }
+
+  static async getStatusHistory(contractId: number): Promise<ContractStatusHistory[]> {
+    const response = await api.get<any>(
+      API_ENDPOINTS.MEDIATION_CONTRACT.STATUS_HISTORY(contractId)
     );
-    return response.data;
+    return this.unwrapList<ContractStatusHistory>(response.data);
   }
 }

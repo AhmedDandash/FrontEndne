@@ -21,7 +21,7 @@ const QUERY_KEY = 'mediationContractOffers';
 export const useMediationOfferSummary = () => {
   return useQuery<MediationContractOfferSummary[], Error>({
     queryKey: [QUERY_KEY, 'summary'],
-    queryFn: MediationContractOfferService.getSummary,
+    queryFn: () => MediationContractOfferService.getSummary(),
   });
 };
 
@@ -31,14 +31,14 @@ export const useMediationOfferSummary = () => {
 export const useMediationOffers = () => {
   return useQuery<MediationContractOffer[], Error>({
     queryKey: [QUERY_KEY],
-    queryFn: MediationContractOfferService.getAll,
+    queryFn: () => MediationContractOfferService.getAll(),
   });
 };
 
 /**
  * Fetch offer by ID
  */
-export const useMediationOffer = (id: number) => {
+export const useMediationOffer = (id: number | string) => {
   return useQuery<MediationContractOffer, Error>({
     queryKey: [QUERY_KEY, id],
     queryFn: () => MediationContractOfferService.getById(id),
@@ -53,7 +53,7 @@ export const useCreateMediationOffer = () => {
   const queryClient = useQueryClient();
 
   return useMutation<MediationContractOffer, Error, CreateMediationContractOfferDto>({
-    mutationFn: MediationContractOfferService.create,
+    mutationFn: (data) => MediationContractOfferService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       message.success('تمت إضافة العرض بنجاح / Offer created successfully');
@@ -73,7 +73,7 @@ export const useUpdateMediationOffer = () => {
   return useMutation<
     MediationContractOffer,
     Error,
-    { id: number; data: UpdateMediationContractOfferDto }
+    { id: number | string; data: UpdateMediationContractOfferDto }
   >({
     mutationFn: ({ id, data }) => MediationContractOfferService.update(id, data),
     onSuccess: () => {
@@ -92,14 +92,33 @@ export const useUpdateMediationOffer = () => {
 export const useDeleteMediationOffer = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, number>({
-    mutationFn: MediationContractOfferService.delete,
+  return useMutation<void, Error, number | string>({
+    mutationFn: (id) => MediationContractOfferService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       message.success('تم حذف العرض بنجاح / Offer deleted successfully');
     },
     onError: (error: any) => {
       message.error(error?.response?.data?.message || 'فشل حذف العرض / Failed to delete offer');
+    },
+  });
+};
+
+/**
+ * Toggle active status of an offer
+ */
+export const useToggleMediationOffer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<MediationContractOffer, Error, number | string>({
+    mutationFn: (id) => MediationContractOfferService.toggleActive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+    },
+    onError: (error: any) => {
+      message.error(
+        error?.response?.data?.message || 'فشل تغيير حالة العرض / Failed to toggle offer status'
+      );
     },
   });
 };

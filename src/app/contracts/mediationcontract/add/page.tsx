@@ -31,6 +31,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useMediationContracts } from '@/hooks/api/useMediationContracts';
 import { useCustomers } from '@/hooks/api/useCustomers';
+import { useWorkers } from '@/hooks/api/useWorkers';
 import type { CreateMediationContractDto, MediationContractOffer } from '@/types/api.types';
 import {
   MEDIATION_CONTRACT_TYPE,
@@ -63,6 +64,7 @@ export default function AddMediationContractPage() {
 
   const { createContract, isCreating } = useMediationContracts();
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
+  const { data: workers, isLoading: isLoadingWorkers } = useWorkers();
 
   // Handle offer selection → auto-fill fields
   const handleOfferSelect = (offer: MediationContractOffer) => {
@@ -115,6 +117,12 @@ export default function AddMediationContractPage() {
     musanedNumber: isRtl ? 'رقم مساند' : 'Musaned Contract #',
     documentationNumber: isRtl ? 'رقم التوثيق' : 'Documentation #',
     // Worker step
+    selectWorker: isRtl ? 'اختر العامل' : 'Select Worker',
+    worker: isRtl ? 'العامل' : 'Worker',
+    workerPassportNumber: isRtl ? 'رقم الجواز (للتحقق)' : 'Passport Number (Verification)',
+    workerPassportNote: isRtl
+      ? 'مطلوب للتحقق من هوية العامل عند إنشاء العقد'
+      : 'Required to verify worker identity on contract creation',
     workerNomination: isRtl ? 'نوع الترشيح' : 'Worker Nomination',
     offerSelection: isRtl ? 'اختر العرض' : 'Select Offer',
     offer: isRtl ? 'العرض' : 'Offer',
@@ -173,7 +181,7 @@ export default function AddMediationContractPage() {
           'marketerId',
           'contractCategory',
         ],
-        ['workerNomination', 'offerId'],
+        ['workerId', 'workerPassportNumber', 'workerNomination', 'offerId'],
         ['visaType', 'visaNumber', 'visaDateHijri', 'visaDate', 'arrivalDestinationId'],
         [
           'localCost',
@@ -207,6 +215,8 @@ export default function AddMediationContractPage() {
         contractType: vals.contractType ?? null,
         statusId: vals.statusId ?? null,
         customerId: vals.customerId ? Number(vals.customerId) : null,
+        workerId: vals.workerId ? Number(vals.workerId) : null,
+        workerPassportNumber: vals.workerPassportNumber ?? null,
         musanedContractNumber: vals.musanedContractNumber ?? null,
         musanedDocumentationNumber: vals.musanedDocumentationNumber ?? null,
         marketerId: vals.marketerId ? Number(vals.marketerId) : null,
@@ -363,6 +373,42 @@ export default function AddMediationContractPage() {
   const renderStep2 = () => (
     <>
       <Row gutter={[24, 0]}>
+        {/* Worker selection — required per PDF spec */}
+        <Col xs={24} md={12}>
+          <Form.Item
+            name="workerId"
+            label={t.worker}
+            rules={[{ required: true, message: t.required }]}
+          >
+            <Select
+              showSearch
+              loading={isLoadingWorkers}
+              placeholder={t.selectWorker}
+              size="large"
+              filterOption={(input, option) =>
+                String(option?.children || '')
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+            >
+              {(workers || []).map((w) => (
+                <Option key={w.id} value={w.id}>
+                  {isRtl ? w.fullNameAr : w.fullNameEn || w.fullNameAr}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={12}>
+          <Form.Item
+            name="workerPassportNumber"
+            label={t.workerPassportNumber}
+            rules={[{ required: true, message: t.required }]}
+            extra={t.workerPassportNote}
+          >
+            <Input size="large" placeholder={isRtl ? 'رقم جواز السفر' : 'Passport number'} />
+          </Form.Item>
+        </Col>
         <Col xs={24} md={12}>
           <Form.Item name="workerNomination" label={t.workerNomination}>
             <Select
@@ -398,8 +444,8 @@ export default function AddMediationContractPage() {
       {selectedOffer && (
         <div style={{ marginTop: 16 }}>
           <RequirementCard
-            nationalityId={selectedOffer.nationalityId ?? null}
-            jobId={selectedOffer.jobId ?? null}
+            nationalityId={selectedOffer.nationalityId ? Number(selectedOffer.nationalityId) : null}
+            jobId={selectedOffer.jobId ? Number(selectedOffer.jobId) : null}
             nationalityName={selectedOffer.nationalityName ?? undefined}
             jobName={selectedOffer.jobName ?? undefined}
           />

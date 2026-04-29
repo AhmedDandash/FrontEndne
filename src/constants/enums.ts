@@ -55,7 +55,7 @@ export const RELIGION = [
 // سبق له العمل
 export const PREVIOUS_EXPERIENCE = [
   { value: 0, labelAr: 'غير محدد', labelEn: 'Not Specified' },
-  { value: 1, labelAr: 'سبق له العمل', labelEn: 'Has Previous Experience' },
+  { value: 3, labelAr: 'سبق له العمل', labelEn: 'Has Previous Experience' },
   { value: 2, labelAr: 'لم يسبق له العمل', labelEn: 'No Previous Experience' },
 ] as const;
 
@@ -271,14 +271,12 @@ export const MEDICAL_STATUS = [
 // حالة العامل (حالة سير العمل)
 // Note: API field renamed from 'workerSatus' (typo) to 'workerStatus' in new API
 export const WORKER_SATUS = [
-  { value: 1, labelAr: 'مرحلة التجربة', labelEn: 'Trial' },
-  { value: 2, labelAr: 'متاح', labelEn: 'Available' },
+  { value: 1, labelAr: 'متاح', labelEn: 'Available' },
+  { value: 2, labelAr: 'مرحلة التجربة', labelEn: 'Trial Worker' },
   { value: 3, labelAr: 'تحت الإجراء', labelEn: 'Under Procedure' },
-  { value: 4, labelAr: 'انسحاب', labelEn: 'Back Out' },
+  { value: 4, labelAr: 'انسحاب', labelEn: 'Backout' },
   { value: 5, labelAr: 'داخل المملكة', labelEn: 'Inside Kingdom' },
   { value: 6, labelAr: 'مرحّل', labelEn: 'Deported' },
-  { value: 7, labelAr: 'خروج نهائي', labelEn: 'Final Exit' },
-  { value: 8, labelAr: 'عودة للعمل', labelEn: 'Return to Work' },
 ] as const;
 
 // ==================== Worker Contract Type ====================

@@ -127,10 +127,12 @@ export const API_ENDPOINTS = {
     DELETE: (id: number | string) => `/api/EmploymentOperatingContract/${id}`,
     // Lifecycle transitions (replaces old EndContract)
     SIGN: (id: number | string) => `/api/EmploymentOperatingContract/${id}/sign`,
-    START_EXECUTION: (id: number | string) => `/api/EmploymentOperatingContract/${id}/start-execution`,
+    START_EXECUTION: (id: number | string) =>
+      `/api/EmploymentOperatingContract/${id}/start-execution`,
     RENEW: (id: number | string) => `/api/EmploymentOperatingContract/${id}/renew`,
     TERMINATE: (id: number | string) => `/api/EmploymentOperatingContract/${id}/terminate`,
-    PRINT_RECEIPT_FORM: (id: number | string) => `/api/EmploymentOperatingContract/${id}/print-receipt-form`,
+    PRINT_RECEIPT_FORM: (id: number | string) =>
+      `/api/EmploymentOperatingContract/${id}/print-receipt-form`,
   },
 
   // Complaint
@@ -163,28 +165,29 @@ export const API_ENDPOINTS = {
 
   // Mediation Contract Offer
   MEDIATION_CONTRACT_OFFER: {
-    GET_SUMMARY: '/api/MediationContractOffer/GetSummeryOffer',
-    GET_ALL: '/api/MediationContractOffer/GetAllOffer',
-    GET_BY_ID: (id: number) => `/api/MediationContractOffer/GetOfferById/${id}`,
-    CREATE: '/api/MediationContractOffer/CreateOffer',
-    UPDATE: (id: number) => `/api/MediationContractOffer/UpdateOffer/${id}`,
-    DELETE: (id: number) => `/api/MediationContractOffer/DeleteOffer/${id}`,
+    GET_SUMMARY: '/api/Mediation/MediationContractOffer',
+    GET_ALL: '/api/Mediation/MediationContractOffer',
+    GET_BY_ID: (id: number) => `/api/Mediation/MediationContractOffer/${id}`,
+    CREATE: '/api/Mediation/MediationContractOffer',
+    UPDATE: '/api/Mediation/MediationContractOffer',
+    DELETE: (id: number) => `/api/Mediation/MediationContractOffer/${id}`,
+    TOGGLE_ACTIVE: (id: number) => `/api/Mediation/MediationContractOffer/${id}/toggle-active`,
+    AUTO_FILL: '/api/Mediation/MediationContractOffer/auto-fill',
   },
 
-  // Mediation Contract
+  // Mediation Contract — endpoints per PDF spec only
   MEDIATION_CONTRACT: {
-    GET_ALL: '/api/MediationContract',
-    CREATE: '/api/MediationContract',
-    GET_BY_ID: (id: number) => `/api/MediationContract/${id}`,
-    UPDATE: (id: number) => `/api/MediationContract/${id}`,
-    DELETE: (id: number) => `/api/MediationContract/${id}`,
-    ADD_NOTE: '/api/MediationContract/AddNote',
-    ALL_NOTES: '/api/MediationContract/AllNotes',
-    ADD_DOMESTIC_WORKER: '/api/MediationContract/Addingdomesticworker',
-    CONTRACT_TYPE_CHANGE: '/api/MediationContract/ContractTypeChange',
-    CONTRACT_CANCEL: '/api/MediationContract/ContractCancel',
-    GET_INVOICE_BY_ID: (id: number) => `/api/MediationContract/GetInvoiceById/${id}`,
-    CREATE_INVOICE: '/api/MediationContract/CreateInvoice',
+    GET_ALL: '/api/Mediation/MediationContract',
+    GET_BY_ID: (id: number) => `/api/Mediation/MediationContract/${id}`,
+    CREATE: '/api/Mediation/MediationContract',
+    CONTRACT_CANCEL: '/api/Mediation/MediationContract/cancel',
+    SIGN: '/api/Mediation/MediationContract/sign',
+    UPDATE_STATUS: '/api/Mediation/MediationContract/update-status',
+    DELIVERY_FORM: '/api/Mediation/MediationContract/delivery-form',
+    DELIVERY_FORM_SIGN: '/api/Mediation/MediationContract/delivery-form/sign',
+    WARRANTY_RETURN: '/api/Mediation/MediationContract/warranty-return',
+    STATUS_HISTORY: (contractId: number) =>
+      `/api/Mediation/MediationContract/status-history/${contractId}`,
   },
 
   // Contract Creation Requirements
@@ -273,6 +276,34 @@ export const API_ENDPOINTS = {
     UPDATE: (id: number | string) => `/api/V1/MedicalExamination/${id}`,
     DELETE: (id: number | string) => `/api/V1/MedicalExamination/${id}`,
     REPORT: (id: number | string) => `/api/V1/MedicalExamination/report/${id}`,
+  },
+
+  // ─── Follow-Up Module (new /api/FollowUp/* routes) ───────────────────────
+
+  // Follow-Up Status — master data (settings screen)
+  FOLLOWUP_STATUS: {
+    GET_ALL: '/api/FollowUp/FollowUpStatus/GetAll',
+    GET_BY_ID: (id: number) => `/api/FollowUp/FollowUpStatus/GetById/${id}`,
+    CREATE: '/api/FollowUp/FollowUpStatus/Create',
+    UPDATE: '/api/FollowUp/FollowUpStatus/Update',
+    DELETE: (id: number) => `/api/FollowUp/FollowUpStatus/Delete/${id}`,
+  },
+
+  // Contract Nationality — which nationalities are enrolled in the module
+  CONTRACT_NATIONALITY: {
+    GET_ALL: '/api/FollowUp/ContractNationality/GetAll',
+    CREATE: '/api/FollowUp/ContractNationality/Create',
+    UPDATE: '/api/FollowUp/ContractNationality/Update',
+    DELETE: (id: number) => `/api/FollowUp/ContractNationality/Delete/${id}`,
+  },
+
+  // Nationality Follow-Up Config — per-nationality config grid
+  NATIONALITY_FOLLOWUP_CONFIG: {
+    GET_BY_NATIONALITY: (contractNationalityId: number) =>
+      `/api/FollowUp/NationalityFollowUpConfig/GetByNationality/${contractNationalityId}`,
+    TOGGLE_ACTIVE: (id: number) => `/api/FollowUp/NationalityFollowUpConfig/ToggleActive/${id}`,
+    UPDATE: '/api/FollowUp/NationalityFollowUpConfig/Update',
+    BULK_UPDATE: '/api/FollowUp/NationalityFollowUpConfig/BulkUpdate',
   },
 
   // ─── HR Module ───────────────────────────────────────────────────────────

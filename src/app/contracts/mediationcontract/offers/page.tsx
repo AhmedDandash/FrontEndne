@@ -12,6 +12,7 @@ import {
   Form,
   InputNumber,
   Spin,
+  Switch,
   Tag,
   Statistic,
   Space,
@@ -26,7 +27,6 @@ import {
   EditOutlined,
   DeleteOutlined,
   SearchOutlined,
-  DollarOutlined,
   GlobalOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
@@ -36,10 +36,11 @@ import {
   useCreateMediationOffer,
   useUpdateMediationOffer,
   useDeleteMediationOffer,
+  useToggleMediationOffer,
 } from '@/hooks/api/useMediationOffers';
 // import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
-import { useBranches } from '@/hooks/api/useBranches';
+// import { useBranches } from '@/hooks/api/useBranches';
 import { useAgents } from '@/hooks/api/useAgents';
 import {
   WORKER_TYPE,
@@ -66,12 +67,12 @@ export default function MediationOffersPage() {
   const createMutation = useCreateMediationOffer();
   const updateMutation = useUpdateMediationOffer();
   const deleteMutation = useDeleteMediationOffer();
+  const toggleMutation = useToggleMediationOffer();
 
   // Lookup data
   // const { data: nationalities = [] } = useNationalities();
   const { data: jobs = [] } = useJobs();
-  const { branches: branchList } = useBranches();
-  const branches = useMemo(() => branchList || [], [branchList]);
+  // const { branches: branchList } = useBranches();
   const { data: agents = [] } = useAgents();
 
   // State
@@ -121,6 +122,9 @@ export default function MediationOffersPage() {
         branchName: 'اسم الفرع',
         offersCount: 'عدد العروض',
         sar: 'ريال',
+        active: 'مفعّل',
+        inactive: 'معطّل',
+        toggleActive: 'تفعيل/تعطيل',
       },
       en: {
         mediationOffers: 'Mediation Offers & Prices',
@@ -155,44 +159,134 @@ export default function MediationOffersPage() {
         branchName: 'Branch Name',
         offersCount: 'Offers Count',
         sar: 'SAR',
+        active: 'Active',
+        inactive: 'Inactive',
+        toggleActive: 'Toggle Active',
       },
     };
     return translations[language]?.[key] || key;
   };
 
-  // Helper: resolve branch name from branches list (API joined branchName is null)
-  const getBranchDisplayName = useCallback(
-    (offer: { branchId?: number | null; branchName?: string | null }): string => {
-      if (offer.branchName) return offer.branchName;
-      if (offer.branchId) {
-        const branch = branches.find((b: any) => Number(b.id) === Number(offer.branchId));
-        if (branch)
-          return isArabic
-            ? branch.nameAr || branch.nameEn || ''
-            : branch.nameEn || branch.nameAr || '';
+  const sameId = (a: unknown, b: unknown) =>
+    a !== null && a !== undefined && b !== null && b !== undefined && String(a) === String(b);
+
+  const getLocalizedName = useCallback(
+    (item: any, englishKeys: string[], arabicKeys: string[]): string => {
+      const primaryKeys = isArabic ? arabicKeys : englishKeys;
+      const fallbackKeys = isArabic ? englishKeys : arabicKeys;
+      for (const key of [...primaryKeys, ...fallbackKeys]) {
+        if (item?.[key]) return String(item[key]);
       }
       return '';
     },
-    [branches, isArabic]
+    [isArabic]
   );
+
+  const getNationalityDisplayName = useCallback(
+    (offer: any): string => {
+      const apiName = getLocalizedName(
+        offer,
+        ['nationalityNameEn', 'nationalityName', 'nameEn', 'name'],
+        ['nationalityNameAr', 'nationalityName', 'nameAr', 'arabicName']
+      );
+      if (apiName) return apiName;
+
+      const enumEntry = NATIONALITIES.find((e) => sameId(e.value, offer.nationalityId));
+      if (enumEntry) return isArabic ? enumEntry.labelAr : enumEntry.labelEn;
+
+      return offer.nationalityId ? `#${offer.nationalityId}` : '';
+    },
+    [getLocalizedName, isArabic]
+  );
+
+  const getJobDisplayName = useCallback(
+    (offer: any): string => {
+      const apiName = getLocalizedName(
+        offer,
+        ['jobNameEn', 'jobName', 'nameEn', 'name'],
+        ['jobNameAr', 'jobName', 'nameAr', 'arabicName']
+      );
+      if (apiName) return apiName;
+
+      const job = (jobs as any[]).find((j) => sameId(j.id, offer.jobId));
+      if (job) {
+        return (
+          getLocalizedName(job, ['jobNameEn', 'nameEn', 'name'], ['jobNameAr', 'nameAr']) ||
+          `#${offer.jobId}`
+        );
+      }
+
+      return offer.jobId ? `#${offer.jobId}` : '';
+    },
+    [getLocalizedName, jobs]
+  );
+
+  // const getBranchDisplayName = useCallback(
+  //   (offer: any): string => {
+  //     const apiName = getLocalizedName(
+  //       offer,
+  //       ['branchNameEn', 'branchName', 'nameEn', 'name'],
+  //       ['branchNameAr', 'branchName', 'nameAr', 'arabicName']
+  //     );
+  //     if (apiName) return apiName;
+
+  //     const branch = branches.find((b: any) => sameId(b.id, offer.branchId));
+  //     if (branch) return getLocalizedName(branch, ['nameEn', 'name'], ['nameAr', 'arabicName']);
+
+  //     return offer.branchId ? `#${offer.branchId}` : '';
+  //   },
+  //   [branches, getLocalizedName]
+  // );
+
+  // const getAgentDisplayName = useCallback(
+  //   (offer: any): string => {
+  //     const apiName = getLocalizedName(
+  //       offer,
+  //       ['agentNameEn', 'agentName', 'nameEn', 'name'],
+  //       ['agentNameAr', 'agentName', 'nameAr', 'arabicName']
+  //     );
+  //     if (apiName) return apiName;
+
+  //     const agent = (agents as any[]).find((a) => sameId(a.id, offer.agentId));
+  //     if (agent) {
+  //       return (
+  //         getLocalizedName(agent, ['agentNameEn', 'nameEn', 'name'], ['agentNameAr', 'nameAr']) ||
+  //         `#${offer.agentId}`
+  //       );
+  //     }
+
+  //     return offer.agentId ? `#${offer.agentId}` : '';
+  //   },
+  //   [agents, getLocalizedName]
+  // );
 
   // Filtered data
   const filteredOffers = useMemo(() => {
     return offers.filter((offer) => {
       const matchesNationality =
-        nationalityFilter === null || offer.nationalityId === nationalityFilter;
-      const matchesJob = jobFilter === null || offer.jobId === jobFilter;
-      const matchesWorkerType = workerTypeFilter === null || offer.workerType === workerTypeFilter;
+        nationalityFilter === null || sameId(offer.nationalityId, nationalityFilter);
+      const matchesJob = jobFilter === null || sameId(offer.jobId, jobFilter);
+      const matchesWorkerType =
+        workerTypeFilter === null || sameId(offer.workerType, workerTypeFilter);
       const matchesSearch =
         !searchTerm ||
-        (offer.nationalityName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (offer.jobName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getBranchDisplayName(offer).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (offer.agentName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        getNationalityDisplayName(offer).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getJobDisplayName(offer).toLowerCase().includes(searchTerm.toLowerCase()) ;
+        // getBranchDisplayName(offer).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        // getAgentDisplayName(offer).toLowerCase().includes(searchTerm.toLowerCase());
 
       return matchesNationality && matchesJob && matchesWorkerType && matchesSearch;
     });
-  }, [offers, nationalityFilter, jobFilter, workerTypeFilter, searchTerm, getBranchDisplayName]);
+  }, [
+    offers,
+    nationalityFilter,
+    jobFilter,
+    workerTypeFilter,
+    searchTerm,
+    // getAgentDisplayName,
+    getJobDisplayName,
+    getNationalityDisplayName,
+  ]);
 
   // Summary statistics
   const stats = useMemo(() => {
@@ -228,23 +322,47 @@ export default function MediationOffersPage() {
   //     });
   // }, [nationalities, isArabic]);
 
+  const nationalityOptions = useMemo(() => {
+    const optionMap = new Map<string, { value: any; label: string }>();
+    NATIONALITIES.forEach((n) => {
+      optionMap.set(String(n.value), {
+        value: n.value,
+        label: isArabic ? n.labelAr : n.labelEn,
+      });
+    });
+    offers.forEach((offer: any) => {
+      if (offer.nationalityId === null || offer.nationalityId === undefined) return;
+      optionMap.set(String(offer.nationalityId), {
+        value: offer.nationalityId,
+        label: getNationalityDisplayName(offer) || `#${offer.nationalityId}`,
+      });
+    });
+    return Array.from(optionMap.values());
+  }, [getNationalityDisplayName, isArabic, offers]);
+
   // Job select options from API
   const jobOptions = useMemo(() => {
-    return (jobs as any[])
-      .filter((j: any) => j.isActive) // Ensure only active jobs are included
-      .map((j: any) => ({
+    const optionMap = new Map<string, { value: any; label: string }>();
+    (jobs as any[]).forEach((j: any) => {
+      optionMap.set(String(j.id), {
         value: j.id,
-        label: isArabic ? j.jobNameAr : j.jobNameEn || j.jobNameAr || `#${j.id}`,
-      }));
-  }, [jobs, isArabic]);
-
-  // Branch select options from API
-  const branchOptions = useMemo(() => {
-    return branches.map((b: any) => ({
-      value: b.id,
-      label: isArabic ? b.nameAr : b.nameEn || b.nameAr || `#${b.id}`,
-    }));
-  }, [branches, isArabic]);
+        label:
+          getLocalizedName(j, ['jobNameEn', 'nameEn', 'name'], ['jobNameAr', 'nameAr']) ||
+          `#${j.id}`,
+      });
+    });
+    offers.forEach((offer: any) => {
+      if (offer.jobId === null || offer.jobId === undefined) return;
+      const key = String(offer.jobId);
+      if (!optionMap.has(key)) {
+        optionMap.set(key, {
+          value: offer.jobId,
+          label: getJobDisplayName(offer) || `#${offer.jobId}`,
+        });
+      }
+    });
+    return Array.from(optionMap.values());
+  }, [getJobDisplayName, getLocalizedName, jobs, offers]);
 
   // Agent select options from API
   const agentOptions = useMemo(() => {
@@ -324,40 +442,23 @@ export default function MediationOffersPage() {
   // Table columns
   const columns: ColumnsType<MediationContractOffer> = [
     {
-      title: t('branchName'),
-      dataIndex: 'branchName',
-      key: 'branchName',
-      render: (text: string, record: MediationContractOffer) => {
-        if (text) return text;
-        if (record.branchId) {
-          const branch = branches.find((b: any) => Number(b.id) === Number(record.branchId));
-          if (branch)
-            return isArabic ? branch.nameAr || branch.nameEn : branch.nameEn || branch.nameAr;
-        }
-        return isArabic ? 'غير محدد' : 'N/A';
-      },
-      sorter: (a, b) => (a.branchName || '').localeCompare(b.branchName || ''),
-    },
-    {
       title: t('nationality'),
       dataIndex: 'nationalityName',
       key: 'nationalityName',
       render: (text: string, record: MediationContractOffer) => {
-        if (text) return text;
-        if (record.nationalityId) {
-          const enumEntry = NATIONALITIES.find((e) => e.value === record.nationalityId);
-          if (enumEntry) return isArabic ? enumEntry.labelAr : enumEntry.labelEn;
-        }
+        const name = text || getNationalityDisplayName(record);
+        if (name) return name;
         return isArabic ? 'غير محدد' : 'N/A';
       },
-      sorter: (a, b) => (a.nationalityName || '').localeCompare(b.nationalityName || ''),
+      sorter: (a, b) => getNationalityDisplayName(a).localeCompare(getNationalityDisplayName(b)),
     },
     {
       title: t('job'),
       dataIndex: 'jobName',
       key: 'jobName',
-      render: (text: string) => text || (isArabic ? 'غير محدد' : 'N/A'),
-      sorter: (a, b) => (a.jobName || '').localeCompare(b.jobName || ''),
+      render: (text: string, record: MediationContractOffer) =>
+        text || getJobDisplayName(record) || (isArabic ? 'غير محدد' : 'N/A'),
+      sorter: (a, b) => getJobDisplayName(a).localeCompare(getJobDisplayName(b)),
     },
     {
       title: t('workerType'),
@@ -379,7 +480,7 @@ export default function MediationOffersPage() {
       dataIndex: 'previousExperience',
       key: 'previousExperience',
       render: (val: number | null | undefined) => (
-        <Tag color={val === 1 ? 'green' : val === 2 ? 'orange' : 'default'}>
+        <Tag color={val === 3 ? 'green' : val === 2 ? 'orange' : 'default'}>
           {getEnumLabel([...PREVIOUS_EXPERIENCE], val, language)}
         </Tag>
       ),
@@ -421,6 +522,21 @@ export default function MediationOffersPage() {
       sorter: (a, b) => (a.localCost || 0) - (b.localCost || 0),
     },
     {
+      title: t('toggleActive'),
+      key: 'isActive',
+      width: 100,
+      render: (_: any, record: MediationContractOffer) => (
+        <Switch
+          size="small"
+          checked={record.isActive !== false}
+          loading={toggleMutation.isPending && (toggleMutation.variables as number) === record.id}
+          onChange={() => toggleMutation.mutate(record.id)}
+          checkedChildren={t('active')}
+          unCheckedChildren={t('inactive')}
+        />
+      ),
+    },
+    {
       title: t('actions'),
       key: 'actions',
       width: 100,
@@ -436,7 +552,7 @@ export default function MediationOffersPage() {
           />
           <Popconfirm
             title={t('confirmDelete')}
-            onConfirm={() => handleDelete(record.id)}
+            onConfirm={() => handleDelete(Number(record.id))}
             okText={t('delete')}
             cancelText={t('cancel')}
             okButtonProps={{ danger: true }}
@@ -521,7 +637,7 @@ export default function MediationOffersPage() {
             />
           </div>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        {/* <Col xs={24} sm={12} md={6}>
           <div className={styles.summaryCard}>
             <Statistic
               title={t('branches')}
@@ -530,7 +646,7 @@ export default function MediationOffersPage() {
               valueStyle={{ color: '#faad14' }}
             />
           </div>
-        </Col>
+        </Col> */}
       </Row>
 
       {/* Filters */}
@@ -558,7 +674,7 @@ export default function MediationOffersPage() {
               filterOption={(input, option) =>
                 ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
               }
-              // options={nationalityOptions}
+              options={nationalityOptions}
             />
           </Col>
           <Col xs={24} md={6}>
@@ -637,7 +753,7 @@ export default function MediationOffersPage() {
                   filterOption={(input, option) =>
                     ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
                   }
-                  // options={nationalityOptions}
+                  options={nationalityOptions}
                 />
               </Form.Item>
             </Col>
@@ -657,7 +773,7 @@ export default function MediationOffersPage() {
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
+            {/* <Col xs={24} md={8}>
               <Form.Item name="branchId" label={t('branch')}>
                 <Select
                   placeholder={t('branch')}
@@ -669,7 +785,7 @@ export default function MediationOffersPage() {
                   options={branchOptions}
                 />
               </Form.Item>
-            </Col>
+            </Col> */}
             <Col xs={24} md={8}>
               <Form.Item name="agentId" label={t('agent')}>
                 <Select
