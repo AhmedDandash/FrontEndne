@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Button,
   InputNumber,
@@ -17,7 +17,6 @@ import {
   useToggleNationalityFollowUpConfig,
   useBulkUpdateNationalityFollowUpConfig,
 } from '@/hooks/api/useNationalityFollowUpConfig';
-import { useFollowUpStatuses } from '@/hooks/api/useFollowUpStatuses';
 import type { NationalityFollowUpConfig, UpdateNationalityFollowUpConfigDto } from '@/types/api.types';
 import styles from './MediationSettings.module.css';
 
@@ -28,7 +27,6 @@ interface Props {
 
 export function NationalityConfigGrid({ contractNationalityId, isRTL }: Props) {
   const { data: configs = [], isLoading } = useNationalityFollowUpConfig(contractNationalityId);
-  const { data: followUpStatuses = [] } = useFollowUpStatuses();
   const toggleMutation = useToggleNationalityFollowUpConfig();
   const bulkUpdateMutation = useBulkUpdateNationalityFollowUpConfig();
 
@@ -52,12 +50,6 @@ export function NationalityConfigGrid({ contractNationalityId, isRTL }: Props) {
     if (draft && field in draft) return (draft as any)[field];
     return config[field];
   };
-
-  // For DependsOnStatusId dropdown: only OTHER active configs in the same nationality
-  const activeConfigIds = useMemo(
-    () => new Set(configs.filter((c) => c.isActive).map((c) => c.id)),
-    [configs]
-  );
 
   const dependsOnOptions = (currentId: number) =>
     configs
