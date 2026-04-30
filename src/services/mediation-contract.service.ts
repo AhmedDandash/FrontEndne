@@ -84,7 +84,6 @@ export class MediationContractService {
     const payload = {
       ...data,
       contractType: data.contractType != null ? Number(data.contractType) : null,
-      statusId: data.statusId != null ? Number(data.statusId) : null,
       customerId: data.customerId != null ? Number(data.customerId) : null,
       marketerId: data.marketerId != null ? Number(data.marketerId) : null,
       contractCategory: data.contractCategory != null ? Number(data.contractCategory) : null,
@@ -92,14 +91,9 @@ export class MediationContractService {
       visaType: data.visaType != null ? Number(data.visaType) : null,
       arrivalDestinationId:
         data.arrivalDestinationId != null ? Number(data.arrivalDestinationId) : null,
-      localCost: data.localCost != null ? Number(data.localCost) : null,
-      agentCostSAR: data.agentCostSAR != null ? Number(data.agentCostSAR) : null,
-      salary: data.salary != null ? Number(data.salary) : null,
       otherCosts: data.otherCosts != null ? Number(data.otherCosts) : null,
-      totalTaxValue: data.totalTaxValue != null ? Number(data.totalTaxValue) : null,
       managerDiscount: data.managerDiscount != null ? Number(data.managerDiscount) : null,
       costDiscount: data.costDiscount != null ? Number(data.costDiscount) : null,
-      totalCost: data.totalCost != null ? Number(data.totalCost) : null,
       domesticWorkerInsurance:
         data.domesticWorkerInsurance != null ? Number(data.domesticWorkerInsurance) : null,
     };
@@ -158,14 +152,14 @@ export class MediationContractService {
 
   static async updateStatus(data: UpdateContractStatusDto): Promise<any> {
     const response = await api.put(API_ENDPOINTS.MEDIATION_CONTRACT.UPDATE_STATUS, {
-      contractId: Number(data.contractId),
+      contractId: data.contractId,
       newStatus: Number(data.newStatus),
       notes: data.notes || null,
     });
     return this.unwrap<any>(response.data);
   }
 
-  static async getStatusHistory(contractId: number): Promise<ContractStatusHistory[]> {
+  static async getStatusHistory(contractId: string): Promise<ContractStatusHistory[]> {
     const response = await api.get<any>(
       API_ENDPOINTS.MEDIATION_CONTRACT.STATUS_HISTORY(contractId)
     );

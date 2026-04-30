@@ -150,7 +150,7 @@ export function useMediationContract(id: number) {
   });
 }
 
-export function useContractStatusHistory(contractId?: number) {
+export function useContractStatusHistory(contractId?: string) {
   return useQuery({
     queryKey: ['mediation-contract-status-history', contractId],
     queryFn: () => MediationContractService.getStatusHistory(contractId!),

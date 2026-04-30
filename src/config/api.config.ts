@@ -165,12 +165,10 @@ export const API_ENDPOINTS = {
 
   // Mediation Contract Offer
   MEDIATION_CONTRACT_OFFER: {
-    GET_SUMMARY: '/api/Mediation/MediationContractOffer',
     GET_ALL: '/api/Mediation/MediationContractOffer',
     GET_BY_ID: (id: number | string) => `/api/Mediation/MediationContractOffer/${id}`,
     CREATE: '/api/Mediation/MediationContractOffer',
     UPDATE: '/api/Mediation/MediationContractOffer',
-    DELETE: (id: number | string) => `/api/Mediation/MediationContractOffer/${id}`,
     TOGGLE_ACTIVE: (id: number | string) => `/api/Mediation/MediationContractOffer/${id}/toggle-active`,
     AUTO_FILL: '/api/Mediation/MediationContractOffer/auto-fill',
   },
@@ -186,7 +184,7 @@ export const API_ENDPOINTS = {
     DELIVERY_FORM: '/api/Mediation/MediationContract/delivery-form',
     DELIVERY_FORM_SIGN: '/api/Mediation/MediationContract/delivery-form/sign',
     WARRANTY_RETURN: '/api/Mediation/MediationContract/warranty-return',
-    STATUS_HISTORY: (contractId: number) =>
+    STATUS_HISTORY: (contractId: string) =>
       `/api/Mediation/MediationContract/status-history/${contractId}`,
   },
 
@@ -198,33 +196,6 @@ export const API_ENDPOINTS = {
     UPDATE: (id: number) => `/api/ContractCreationRequirements/${id}`,
     DELETE: (id: number) => `/api/ContractCreationRequirements/${id}`,
     GET_REQUIREMENT: '/api/ContractCreationRequirements/GetRequirement',
-  },
-
-  // Mediation Follow-Up Statuses
-  MEDIATION_FOLLOWUP_STATUSES: {
-    GET_ALL_PARENTS: '/api/MediationFollowUpStatuses/GetAllFollowUpStatuses',
-    CREATE_PARENT: '/api/MediationFollowUpStatuses/CreateFollowUpStatuses',
-    GET_SUB_STATUSES: (parentId: number) =>
-      `/api/MediationFollowUpStatuses/GetAllSubFollowUpStatus/${parentId}`,
-    CREATE_SUB: '/api/MediationFollowUpStatuses/CreateSubFollowUpStatus',
-    UPDATE_SUB: (id: number) => `/api/MediationFollowUpStatuses/UpdateSubFollowUpStatus/${id}`,
-    TOGGLE_ACTIVE: '/api/MediationFollowUpStatuses/SubFollowUpStatusIsActive',
-    TOGGLE_FINISH: '/api/MediationFollowUpStatuses/SubFollowUpStatusIsActionFinish',
-    UPDATE_CASE_ORDER: '/api/MediationFollowUpStatuses/SubFollowUpStatusCaseOrder',
-  },
-
-  // Mediation Contract Follow-Up
-  MEDIATION_CONTRACT_FOLLOWUP: {
-    GET_BY_CONTRACT: '/api/MediationContractFollowUp/GetByContract',
-    CREATE: '/api/MediationContractFollowUp/Create',
-  },
-
-  // Mediation Contract Messages
-  MEDIATION_CONTRACT_MESSAGES: {
-    GET_BY_CONTRACT: (contractId: number) =>
-      `/api/MediationContractMessages/ByContract/${contractId}`,
-    CREATE: '/api/MediationContractMessages',
-    DELETE: (id: number) => `/api/MediationContractMessages/${id}`,
   },
 
   // Nationality Follow-Up Status

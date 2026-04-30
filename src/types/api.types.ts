@@ -895,8 +895,8 @@ export interface UpdateNationalityDto {
 export interface MediationContractOffer {
   id: number | string;
   offerNumber?: number | null;
-  nationalityId?: number | string | null;
-  jobId?: number | string | null;
+  nationalityId?: string | null;
+  jobId?: string | null;
   branchId?: number | string | null;
   workerType?: number | null;
   workerTypeName?: string | null;
@@ -915,7 +915,10 @@ export interface MediationContractOffer {
   isActive?: boolean | null;
   // Read-only joined fields
   nationalityName?: string | null;
+  nationalityNameAr?: string | null;
+  nationalityNameEn?: string | null;
   jobName?: string | null;
+  jobNameAr?: string | null;
   branchName?: string | null;
   agentName?: string | null;
   createdAt?: string | null;
@@ -968,28 +971,19 @@ export interface UpdateMediationContractOfferDto {
   isActive?: boolean | null;
 }
 
-export interface MediationContractOfferSummary {
-  nationalityId?: number | string | null;
-  nationalityName?: string | null;
-  jobId?: number | string | null;
-  jobName?: string | null;
-  branchId?: number | string | null;
-  branchName?: string | null;
-  offersCount?: number | null;
-}
-
 // ==================== Mediation Contract Types ====================
 export interface MediationContract {
-  id: number;
+  id: string;
   statusId?: number | null;
   contractType?: number | null;
-  customerId?: number | null;
+  customerId?: string | null;
+  workerId?: string | null;
   nationalityId?: number | null;
   musanedContractNumber?: string | null;
   musanedDocumentationNumber?: string | null;
-  marketerId?: number | null;
+  marketerId?: string | null;
   contractCategory?: number | null;
-  offerId?: number | null;
+  offerId?: string | null;
   visaType?: number | null;
   visaNumber?: string | null;
   visaDateHijri?: string | null;
@@ -1025,38 +1019,31 @@ export interface MediationContract {
 
 export interface CreateMediationContractDto {
   contractType?: number | null;
-  statusId?: number | null;
-  customerId?: number | null;
+  customerId?: string | null;
   /** Required per PDF spec — worker being placed in this contract */
-  workerId?: number | null;
+  workerId?: string | null;
   /** Required per PDF spec — used for identity verification on create */
   workerPassportNumber?: string | null;
   musanedContractNumber?: string | null;
-  musanedDocumentationNumber?: string | null;
-  marketerId?: number | null;
+  marketerId?: string | null;
   contractCategory?: number | null;
-  offerId?: number | null;
+  offerId?: string | null;
   visaType?: number | null;
   visaNumber?: string | null;
   visaDateHijri?: string | null;
   visaDate?: string | null;
   isComprehensiveQualificationVisa?: boolean | null;
   arrivalDestinationId?: number | null;
-  localCost?: number | null;
-  agentCostSAR?: number | null;
-  salary?: number | null;
   otherCosts?: number | null;
-  totalTaxValue?: number | null;
   managerDiscount?: number | null;
   costDiscount?: number | null;
-  totalCost?: number | null;
   costDescription?: string | null;
   hasContractInsurance?: boolean | null;
   domesticWorkerInsurance?: number | null;
 }
 
 export interface ContractCancelDto {
-  contractId: number;
+  contractId: string;
   cancelBy?: number | null;
   cancelNote?: string | null;
 }
@@ -1065,27 +1052,27 @@ export interface ContractCancelDto {
 
 /** POST /api/Mediation/MediationContract/sign */
 export interface SignMediationContractDto {
-  contractId: number;
+  contractId: string;
   musanedContractNumber: string;
   musanedDocumentationNumber?: string | null;
 }
 
 /** POST /api/Mediation/MediationContract/delivery-form */
 export interface DeliveryFormDto {
-  contractId: number;
+  contractId: string;
   deliveryDate?: string | null;
   notes?: string | null;
 }
 
 /** POST /api/Mediation/MediationContract/delivery-form/sign — customer receives worker */
 export interface DeliveryFormSignDto {
-  contractId: number;
+  contractId: string;
   customerSignedAt?: string | null;
 }
 
 /** POST /api/Mediation/MediationContract/warranty-return */
 export interface WarrantyReturnDto {
-  contractId: number;
+  contractId: string;
   returnDate: string;
   /** Enum — required */
   returnReason: number;
@@ -1097,7 +1084,7 @@ export interface WarrantyReturnDto {
 
 /** PUT /api/Mediation/MediationContract/update-status */
 export interface UpdateContractStatusDto {
-  contractId: number;
+  contractId: string;
   newStatus: number;
   notes?: string | null;
 }
@@ -1111,59 +1098,6 @@ export interface ContractStatusHistory {
   notes?: string | null;
   createdAt?: string | null;
   createdByName?: string | null;
-}
-
-// ==================== Mediation Follow-Up Status (Parent) ====================
-export interface MediationFollowUpStatus {
-  id: number;
-  nameAr?: string | null;
-  nameEn?: string | null;
-  isActive?: boolean | null;
-  createdAt?: string | null;
-  createdBy?: number | null;
-  updatedAt?: string | null;
-  updatedBy?: number | null;
-}
-
-export interface CreateMediationFollowUpStatusDto {
-  nameAr: string;
-  nameEn: string;
-}
-
-// ==================== Mediation Status (Sub-Status) ====================
-export interface MediationStatus {
-  id: number;
-  nameStatusAr?: string | null;
-  nameStatusEn?: string | null;
-  nameStatusWhatsAppEn?: string | null;
-  caseOrder?: number | null;
-  isActionFinish?: boolean | null;
-  isActive?: boolean | null;
-  mediationFollowUpStatusesId?: number | null;
-  createdAt?: string | null;
-  createdBy?: number | null;
-  updatedAt?: string | null;
-  updatedBy?: number | null;
-}
-
-export interface CreateMediationStatusDto {
-  nameStatusAr: string;
-  nameStatusEn: string;
-  nameStatusWhatsAppEn?: string | null;
-  caseOrder?: number | null;
-  isActionFinish?: boolean | null;
-  isActive?: boolean | null;
-  mediationFollowUpStatusesId: number;
-}
-
-export interface UpdateMediationStatusDto {
-  nameStatusAr?: string | null;
-  nameStatusEn?: string | null;
-  nameStatusWhatsAppEn?: string | null;
-  caseOrder?: number | null;
-  isActionFinish?: boolean | null;
-  isActive?: boolean | null;
-  mediationFollowUpStatusesId?: number | null;
 }
 
 // ==================== Contract Creation Requirement ====================
@@ -1197,56 +1131,10 @@ export interface UpdateContractCreationRequirementDto {
 }
 
 export interface GetRequirementFilterDto {
-  nationalityId?: number | null;
-  jobId?: number | null;
+  nationalityId?: string | null;
+  jobId?: string | null;
 }
 
-// ==================== Mediation Contract Follow-Up ====================
-export interface MediationContractFollowUp {
-  id: number;
-  contractId?: number | null;
-  examinationDate?: string | null;
-  mediationFollowUpStatusesId?: number | null;
-  mediationStatusesId?: number | null;
-  notes?: string | null;
-  createdAt?: string | null;
-  createdBy?: number | null;
-  updatedAt?: string | null;
-  updatedBy?: number | null;
-  // Joined fields
-  followUpStatusNameAr?: string | null;
-  followUpStatusNameEn?: string | null;
-  subStatusNameAr?: string | null;
-  subStatusNameEn?: string | null;
-  createdByName?: string | null;
-}
-
-export interface CreateMediationContractFollowUpDto {
-  contractId: number;
-  examinationDate: string;
-  mediationFollowUpStatusesId: number;
-  mediationStatusesId: number;
-  notes?: string | null;
-}
-
-export interface GetByContractDto {
-  contractId: number;
-  mediationFollowUpStatusesId?: number | null;
-}
-
-// ==================== Mediation Contract Messages ====================
-export interface MediationContractMessage {
-  id: number;
-  contractId?: number | null;
-  message?: string | null;
-  nameWorker?: string | null;
-  createdAt?: string | null;
-}
-
-export interface CreateMediationContractMessageDto {
-  contractId: number;
-  message: string;
-}
 
 // ==================== Nationality Follow-Up Status ====================
 export interface NationalityFollowUpStatus {

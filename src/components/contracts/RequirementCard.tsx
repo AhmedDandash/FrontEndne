@@ -12,8 +12,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useFilterRequirements } from '@/hooks/api/useContractCreationRequirements';
 
 interface RequirementCardProps {
-  nationalityId: number | null;
-  jobId: number | null;
+  nationalityId: string | null;
+  jobId: string | null;
   nationalityName?: string;
   jobName?: string;
 }

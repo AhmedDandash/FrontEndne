@@ -37,8 +37,6 @@ import {
   MEDIATION_CONTRACT_TYPE,
   VISA_TYPE,
   ARRIVAL_DESTINATIONS,
-  WORKER_NOMINATION,
-  MEDIATION_CONTRACT_STATUS,
   toSelectOptions,
 } from '@/constants/enums';
 import OfferSelector from '@/components/contracts/OfferSelector';
@@ -70,7 +68,7 @@ export default function AddMediationContractPage() {
   const handleOfferSelect = (offer: MediationContractOffer) => {
     setSelectedOffer(offer);
     const localCost = offer.localCost ?? 0;
-    const taxValue = Math.round(localCost * 0.15 * 100) / 100;
+    const taxValue = offer.taxLocalCost ?? Math.round(localCost * 0.15 * 100) / 100;
     form.setFieldsValue({
       offerId: offer.id,
       salary: offer.salary ?? 0,
@@ -88,7 +86,7 @@ export default function AddMediationContractPage() {
   // Pre-fill customer from URL param
   useEffect(() => {
     if (prefilledCustomerId) {
-      form.setFieldsValue({ customerId: Number(prefilledCustomerId) });
+      form.setFieldsValue({ customerId: prefilledCustomerId });
     }
   }, [prefilledCustomerId, form]);
 
@@ -172,16 +170,8 @@ export default function AddMediationContractPage() {
   const handleNext = async () => {
     try {
       const fieldGroups: string[][] = [
-        [
-          'customerId',
-          'contractType',
-          'statusId',
-          'musanedContractNumber',
-          'musanedDocumentationNumber',
-          'marketerId',
-          'contractCategory',
-        ],
-        ['workerId', 'workerPassportNumber', 'workerNomination', 'offerId'],
+        ['customerId', 'contractType', 'musanedContractNumber', 'marketerId', 'contractCategory'],
+        ['workerId', 'workerPassportNumber', 'offerId'],
         ['visaType', 'visaNumber', 'visaDateHijri', 'visaDate', 'arrivalDestinationId'],
         [
           'localCost',
@@ -210,32 +200,24 @@ export default function AddMediationContractPage() {
     try {
       await form.validateFields();
       const vals = form.getFieldsValue(true);
-      const total = computedTotalCost();
       const payload: CreateMediationContractDto = {
         contractType: vals.contractType ?? null,
-        statusId: vals.statusId ?? null,
-        customerId: vals.customerId ? Number(vals.customerId) : null,
-        workerId: vals.workerId ? Number(vals.workerId) : null,
+        customerId: vals.customerId ? String(vals.customerId) : null,
+        workerId: vals.workerId ? String(vals.workerId) : null,
         workerPassportNumber: vals.workerPassportNumber ?? null,
         musanedContractNumber: vals.musanedContractNumber ?? null,
-        musanedDocumentationNumber: vals.musanedDocumentationNumber ?? null,
-        marketerId: vals.marketerId ? Number(vals.marketerId) : null,
+        marketerId: vals.marketerId ? String(vals.marketerId) : null,
         contractCategory: vals.contractCategory ? Number(vals.contractCategory) : null,
-        offerId: vals.offerId ? Number(vals.offerId) : null,
+        offerId: vals.offerId ? String(vals.offerId) : null,
         visaType: vals.visaType ?? null,
         visaNumber: vals.visaNumber ?? null,
         visaDateHijri: vals.visaDateHijri ?? null,
         visaDate: vals.visaDate ?? null,
         isComprehensiveQualificationVisa: isComprehensiveVisa,
         arrivalDestinationId: vals.arrivalDestinationId ? Number(vals.arrivalDestinationId) : null,
-        localCost: vals.localCost ? Number(vals.localCost) : null,
-        agentCostSAR: vals.agentCostSAR ? Number(vals.agentCostSAR) : null,
-        salary: vals.salary ? Number(vals.salary) : null,
         otherCosts: vals.otherCosts ? Number(vals.otherCosts) : null,
-        totalTaxValue: vals.totalTaxValue ? Number(vals.totalTaxValue) : null,
         managerDiscount: vals.managerDiscount ? Number(vals.managerDiscount) : null,
         costDiscount: vals.costDiscount ? Number(vals.costDiscount) : null,
-        totalCost: total,
         costDescription: vals.costDescription ?? null,
         hasContractInsurance: hasInsurance,
         domesticWorkerInsurance:
@@ -254,7 +236,7 @@ export default function AddMediationContractPage() {
   const getSelectedCustomer = () => {
     const customerId = form.getFieldValue('customerId');
     if (!customerId || !customers) return null;
-    return customers.find((c) => c.id === Number(customerId));
+    return customers.find((c) => String(c.id) === String(customerId));
   };
 
   // ─── Step 1: Customer Data ─────────────────────────────────────────────────
@@ -302,17 +284,6 @@ export default function AddMediationContractPage() {
           </Form.Item>
         </Col>
         <Col xs={24} md={12}>
-          <Form.Item name="statusId" label={t.status}>
-            <Select size="large" placeholder={isRtl ? 'اختر الحالة' : 'Select status'} allowClear>
-              {toSelectOptions(MEDIATION_CONTRACT_STATUS, language).map((opt) => (
-                <Option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
           <Form.Item name="contractCategory" label={t.contractCategory}>
             <InputNumber
               size="large"
@@ -325,11 +296,6 @@ export default function AddMediationContractPage() {
         <Col xs={24} md={12}>
           <Form.Item name="musanedContractNumber" label={t.musanedNumber}>
             <Input size="large" placeholder={isRtl ? 'رقم مساند' : 'Musaned contract number'} />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
-          <Form.Item name="musanedDocumentationNumber" label={t.documentationNumber}>
-            <Input size="large" placeholder={isRtl ? 'رقم التوثيق' : 'Documentation number'} />
           </Form.Item>
         </Col>
         <Col xs={24} md={12}>
@@ -410,23 +376,8 @@ export default function AddMediationContractPage() {
           </Form.Item>
         </Col>
         <Col xs={24} md={12}>
-          <Form.Item name="workerNomination" label={t.workerNomination}>
-            <Select
-              size="large"
-              placeholder={isRtl ? 'اختر نوع الترشيح' : 'Select nomination type'}
-              allowClear
-            >
-              {toSelectOptions(WORKER_NOMINATION, language).map((opt) => (
-                <Option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
           <Form.Item name="offerId" label={t.offer} hidden>
-            <InputNumber />
+            <Input />
           </Form.Item>
         </Col>
       </Row>
@@ -444,9 +395,9 @@ export default function AddMediationContractPage() {
       {selectedOffer && (
         <div style={{ marginTop: 16 }}>
           <RequirementCard
-            nationalityId={selectedOffer.nationalityId ? Number(selectedOffer.nationalityId) : null}
-            jobId={selectedOffer.jobId ? Number(selectedOffer.jobId) : null}
-            nationalityName={selectedOffer.nationalityName ?? undefined}
+            nationalityId={selectedOffer.nationalityId ?? null}
+            jobId={selectedOffer.jobId ?? null}
+            nationalityName={selectedOffer.nationalityNameAr ?? selectedOffer.nationalityName ?? undefined}
             jobName={selectedOffer.jobName ?? undefined}
           />
         </div>

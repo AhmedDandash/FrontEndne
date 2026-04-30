@@ -5,12 +5,8 @@ import { Table, Input, Select, Tag, Empty, Spin, Card, Row, Col, Alert } from 'a
 import { SearchOutlined, CheckCircleFilled, DollarOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useMediationOffers } from '@/hooks/api/useMediationOffers';
-import { useNationalities } from '@/hooks/api/useNationalities';
-import { useJobs } from '@/hooks/api/useJobs';
-import { useBranches } from '@/hooks/api/useBranches';
 import type { MediationContractOffer } from '@/types/api.types';
 import {
-  NATIONALITIES,
   WORKER_TYPE,
   RELIGION,
   PREVIOUS_EXPERIENCE,
@@ -19,7 +15,7 @@ import {
 
 interface OfferSelectorProps {
   /** Currently selected offer ID (controlled) */
-  selectedOfferId?: number | null;
+  selectedOfferId?: string | number | null;
   /** Callback when an offer row is selected */
   onSelect: (offer: MediationContractOffer) => void;
   /** Language: 'ar' | 'en' */
@@ -49,15 +45,9 @@ export default function OfferSelector({
   const { data: apiOffers, isLoading: isLoadingOffers } = useMediationOffers();
   const offers = useMemo(() => externalOffers ?? apiOffers ?? [], [externalOffers, apiOffers]);
 
-  // Lookup data for display (nationalities, jobs & branches from API)
-  const { data: nationalities = [] } = useNationalities();
-  const { data: jobs = [] } = useJobs();
-  const { branches: branchesList } = useBranches();
-  const branches = useMemo(() => branchesList || [], [branchesList]);
-
   // Filter state
-  const [nationalityFilter, setNationalityFilter] = useState<number | null>(null);
-  const [jobFilter, setJobFilter] = useState<number | null>(null);
+  const [nationalityFilter, setNationalityFilter] = useState<string | null>(null);
+  const [jobFilter, setJobFilter] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Translations
@@ -87,68 +77,29 @@ export default function OfferSelector({
     taxLocalCost: isArabic ? 'ضريبة التكلفة' : 'Tax on Cost',
   };
 
-  // Helper: resolve nationality name
+  // Helper: resolve nationality name — uses joined fields from API response
   const getNationalityName = useCallback(
     (offer: MediationContractOffer): string => {
-      // 1. Use joined name from API (if not null)
-      if (offer.nationalityName) return offer.nationalityName;
-      // 2. Lookup from NATIONALITIES enum (preferred — joined names from API are null)
-      if (offer.nationalityId) {
-        const enumNat = (
-          NATIONALITIES as ReadonlyArray<{ value: number; labelAr: string; labelEn: string }>
-        ).find((n) => n.value === offer.nationalityId);
-        if (enumNat) return isArabic ? enumNat.labelAr : enumNat.labelEn;
-      }
-      // 3. Fallback: nationalities API lookup by nationalityId field
-      if (offer.nationalityId) {
-        const nat = (nationalities as any[]).find(
-          (n: any) => n.nationalityId === offer.nationalityId
-        );
-        if (nat) {
-          const name = isArabic
-            ? nat.nationalityNameAr || nat.nationalityNameEn
-            : nat.nationalityNameEn || nat.nationalityNameAr;
-          if (name) return name;
-        }
-      }
-      return isArabic ? 'غير محدد' : 'N/A';
+      if (isArabic) return offer.nationalityNameAr || offer.nationalityName || (isArabic ? 'غير محدد' : 'N/A');
+      return offer.nationalityNameEn || offer.nationalityName || 'N/A';
     },
-    [nationalities, isArabic]
+    [isArabic]
   );
 
   // Helper: resolve branch name
   const getBranchName = useCallback(
     (offer: MediationContractOffer): string => {
-      if (offer.branchName) return offer.branchName;
-      if (offer.branchId) {
-        console.log('🏢 getBranchName: branchId=', offer.branchId, 'branches=', branches);
-        const branch = (branches as any[]).find(
-          (b: any) => Number(b.id) === Number(offer.branchId)
-        );
-        if (branch)
-          return isArabic
-            ? branch.nameAr || branch.nameEn || `#${offer.branchId}`
-            : branch.nameEn || branch.nameAr || `#${offer.branchId}`;
-        // Lookup failed — show raw ID so we can debug
-        return `#${offer.branchId}`;
-      }
-      return isArabic ? 'غير محدد' : 'N/A';
+      return offer.branchName || (isArabic ? 'غير محدد' : 'N/A');
     },
-    [branches, isArabic]
+    [isArabic]
   );
 
   // Helper: resolve job name
   const getJobName = useCallback(
     (offer: MediationContractOffer): string => {
-      if (offer.jobName) return offer.jobName;
-      if (offer.jobId) {
-        const job = (jobs as any[]).find((j: any) => j.id === offer.jobId);
-        if (job)
-          return isArabic ? job.jobNameAr || job.name : job.jobNameEn || job.jobNameAr || job.name;
-      }
-      return isArabic ? 'غير محدد' : 'N/A';
+      return offer.jobName || (isArabic ? 'غير محدد' : 'N/A');
     },
-    [jobs, isArabic]
+    [isArabic]
   );
 
   // Format currency
@@ -157,63 +108,47 @@ export default function OfferSelector({
     return `${val.toLocaleString(isArabic ? 'ar-SA' : 'en-US')} ${t.sar}`;
   };
 
-  // Nationality options for filter dropdown
-  // value = nationalityId (the enum value, e.g. 359) — matches offer.nationalityId for correct filtering
+  // Nationality options for filter dropdown — built from offers directly (UUID-based)
   const nationalityOptions = useMemo(() => {
-    const usedIds = new Set(offers.map((o) => o.nationalityId).filter(Boolean));
-    const opts: { value: number; label: string }[] = [];
-    const seen = new Set<number>();
-
-    // From API nationalities (match by nationalityId field)
-    (nationalities as any[]).forEach((n: any) => {
-      const natId = n.nationalityId as number | undefined;
-      if (natId && usedIds.has(natId) && !seen.has(natId)) {
-        seen.add(natId);
-        const enumEntry = (
-          NATIONALITIES as ReadonlyArray<{ value: number; labelAr: string; labelEn: string }>
-        ).find((e) => e.value === natId);
-        opts.push({
-          value: natId,
-          label: isArabic
-            ? n.nationalityName || enumEntry?.labelAr || `#${natId}`
-            : n.nationalityName || enumEntry?.labelEn || enumEntry?.labelAr || `#${natId}`,
-        });
-      }
+    const seen = new Set<string>();
+    const opts: { value: string; label: string }[] = [];
+    offers.forEach((o) => {
+      if (!o.nationalityId) return;
+      const key = String(o.nationalityId);
+      if (seen.has(key)) return;
+      seen.add(key);
+      const label = isArabic
+        ? o.nationalityNameAr || o.nationalityNameEn || o.nationalityName || key
+        : o.nationalityNameEn || o.nationalityNameAr || o.nationalityName || key;
+      opts.push({ value: key, label });
     });
-
-    // From enum (fill any gaps not covered by API)
-    (NATIONALITIES as ReadonlyArray<{ value: number; labelAr: string; labelEn: string }>).forEach(
-      (n) => {
-        if (usedIds.has(n.value) && !seen.has(n.value)) {
-          seen.add(n.value);
-          opts.push({ value: n.value, label: isArabic ? n.labelAr : n.labelEn });
-        }
-      }
-    );
-
     return opts;
-  }, [nationalities, offers, isArabic]);
+  }, [offers, isArabic]);
 
-  // Job options for filter dropdown
+  // Job options for filter dropdown — built from offers directly (UUID-based)
   const jobOptions = useMemo(() => {
-    const usedIds = new Set(offers.map((o) => o.jobId).filter(Boolean));
-    return (jobs as any[])
-      .filter((j: any) => usedIds.has(j.id))
-      .map((j: any) => ({
-        value: j.id,
-        label: isArabic
-          ? j.jobNameAr || j.name
-          : j.jobNameEn || j.jobNameAr || j.name || `#${j.id}`,
-      }));
-  }, [jobs, offers, isArabic]);
+    const seen = new Set<string>();
+    const opts: { value: string; label: string }[] = [];
+    offers.forEach((o) => {
+      if (!o.jobId) return;
+      const key = String(o.jobId);
+      if (seen.has(key)) return;
+      seen.add(key);
+      const label = isArabic
+        ? o.jobName || key
+        : o.jobName || key;
+      opts.push({ value: key, label });
+    });
+    return opts;
+  }, [offers, isArabic]);
 
   // Filtered offers
   const filteredOffers = useMemo(() => {
     return offers.filter((offer) => {
       // Nationality filter
-      if (nationalityFilter && offer.nationalityId !== nationalityFilter) return false;
+      if (nationalityFilter && String(offer.nationalityId) !== nationalityFilter) return false;
       // Job filter
-      if (jobFilter && offer.jobId !== jobFilter) return false;
+      if (jobFilter && String(offer.jobId) !== jobFilter) return false;
       // Search term (search across nationality name, job name)
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
@@ -242,23 +177,28 @@ export default function OfferSelector({
   ]);
 
   // Find currently selected offer for the highlight badge
-  const selectedOffer = selectedOfferId ? offers.find((o) => o.id === selectedOfferId) : null;
+  const selectedOffer = selectedOfferId
+    ? offers.find((o) => String(o.id) === String(selectedOfferId))
+    : null;
 
   // Table columns
   const columns: ColumnsType<MediationContractOffer> = [
     {
       title: '#',
-      dataIndex: 'id',
-      key: 'id',
+      dataIndex: 'offerNumber',
+      key: 'offerNumber',
       width: 60,
-      render: (id: number) => (
-        <span style={{ fontWeight: selectedOfferId === id ? 700 : 400 }}>
-          {id}
-          {selectedOfferId === id && (
-            <CheckCircleFilled style={{ color: '#52c41a', marginInlineStart: 4 }} />
-          )}
-        </span>
-      ),
+      render: (offerNumber: number | null, record) => {
+        const isSelected = String(record.id) === String(selectedOfferId);
+        return (
+          <span style={{ fontWeight: isSelected ? 700 : 400 }}>
+            {offerNumber ?? record.id}
+            {isSelected && (
+              <CheckCircleFilled style={{ color: '#52c41a', marginInlineStart: 4 }} />
+            )}
+          </span>
+        );
+      },
     },
     {
       title: t.nationality,
@@ -317,6 +257,14 @@ export default function OfferSelector({
       width: 140,
       render: (val: number | null | undefined) => <Tag color="orange">{formatSAR(val)}</Tag>,
       sorter: (a, b) => (a.agentCostSAR || 0) - (b.agentCostSAR || 0),
+    },
+    {
+      title: isArabic ? 'الإجمالي' : 'Total Cost',
+      dataIndex: 'totalOfferCost',
+      key: 'totalOfferCost',
+      width: 140,
+      render: (val: number | null | undefined) => <Tag color="purple">{formatSAR(val)}</Tag>,
+      sorter: (a, b) => (a.totalOfferCost || 0) - (b.totalOfferCost || 0),
     },
     {
       title: t.branch,
@@ -406,12 +354,15 @@ export default function OfferSelector({
         pagination={{ pageSize: 8, showSizeChanger: true, pageSizeOptions: ['5', '8', '15', '25'] }}
         scroll={{ x: 900 }}
         locale={{ emptyText: <Empty description={t.noOffers} /> }}
-        rowClassName={(record) => (record.id === selectedOfferId ? 'ant-table-row-selected' : '')}
+        rowClassName={(record) =>
+          String(record.id) === String(selectedOfferId) ? 'ant-table-row-selected' : ''
+        }
         onRow={(record) => ({
           onClick: () => onSelect(record),
           style: {
             cursor: 'pointer',
-            background: record.id === selectedOfferId ? '#e6f7ff' : undefined,
+            background:
+              String(record.id) === String(selectedOfferId) ? '#e6f7ff' : undefined,
           },
         })}
       />

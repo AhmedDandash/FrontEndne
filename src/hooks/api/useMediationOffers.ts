@@ -7,23 +7,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MediationContractOfferService } from '@/services/mediation-contract-offer.service';
 import type {
   MediationContractOffer,
-  MediationContractOfferSummary,
   CreateMediationContractOfferDto,
   UpdateMediationContractOfferDto,
 } from '@/types/api.types';
 import { message } from 'antd';
 
 const QUERY_KEY = 'mediationContractOffers';
-
-/**
- * Fetch offer summary
- */
-export const useMediationOfferSummary = () => {
-  return useQuery<MediationContractOfferSummary[], Error>({
-    queryKey: [QUERY_KEY, 'summary'],
-    queryFn: () => MediationContractOfferService.getSummary(),
-  });
-};
 
 /**
  * Fetch all offers
@@ -82,24 +71,6 @@ export const useUpdateMediationOffer = () => {
     },
     onError: (error: any) => {
       message.error(error?.response?.data?.message || 'فشل تحديث العرض / Failed to update offer');
-    },
-  });
-};
-
-/**
- * Delete offer
- */
-export const useDeleteMediationOffer = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, number | string>({
-    mutationFn: (id) => MediationContractOfferService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      message.success('تم حذف العرض بنجاح / Offer deleted successfully');
-    },
-    onError: (error: any) => {
-      message.error(error?.response?.data?.message || 'فشل حذف العرض / Failed to delete offer');
     },
   });
 };

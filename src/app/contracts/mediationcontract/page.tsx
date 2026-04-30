@@ -71,8 +71,6 @@ import {
   getEnumLabel,
   toSelectOptions,
 } from '@/constants/enums';
-import FollowUpTimeline from '@/components/contracts/FollowUpTimeline';
-import MessageThread from '@/components/contracts/MessageThread';
 import styles from './MediationContracts.module.css';
 
 export default function MediationContractsPage() {
@@ -374,7 +372,7 @@ export default function MediationContractsPage() {
     try {
       const values = await updateStatusForm.validateFields();
       const data: UpdateContractStatusDto = {
-        contractId: selectedContract!.id,
+        contractId: String(selectedContract!.id),
         newStatus: Number(values.newStatus),
         notes: values.notes || null,
       };
@@ -854,15 +852,7 @@ export default function MediationContractsPage() {
                   <Col span={8}><div className={styles.modalSection}><h4>{t.insuranceCost}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.domesticWorkerInsurance)}</p></div></Col>
                 )}
 
-                <Col span={24}>
-                  <Divider>{language === 'ar' ? 'متابعة العقد' : 'Contract Follow-Up'}</Divider>
-                  <FollowUpTimeline contractId={selectedContract.id} language={language} />
-                </Col>
 
-                <Col span={24}>
-                  <Divider>{language === 'ar' ? 'الرسائل' : 'Messages'}</Divider>
-                  <MessageThread contractId={selectedContract.id} language={language} />
-                </Col>
 
                 {selectedContract.cancelNote && (
                   <>

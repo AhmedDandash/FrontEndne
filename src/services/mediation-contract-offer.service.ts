@@ -7,7 +7,6 @@ import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type {
   MediationContractOffer,
-  MediationContractOfferSummary,
   CreateMediationContractOfferDto,
   UpdateMediationContractOfferDto,
   MediationOfferAutoFillDto,
@@ -66,16 +65,6 @@ export class MediationContractOfferService {
 
     console.warn('[MediationContractOfferService] Unexpected response shape:', payload);
     return [];
-  }
-
-  /**
-   * Get summary of offers (grouped by nationality/job/branch)
-   */
-  static async getSummary(): Promise<MediationContractOfferSummary[]> {
-    const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.GET_SUMMARY, {
-      params: { PageSize: 9999, PageNumber: 1 },
-    });
-    return this.unwrapList<MediationContractOfferSummary>(response.data);
   }
 
   /**
@@ -159,13 +148,6 @@ export class MediationContractOfferService {
       payload
     );
     return this.unwrap<MediationContractOffer>(response.data);
-  }
-
-  /**
-   * Delete offer
-   */
-  static async delete(id: number | string): Promise<void> {
-    await api.delete(API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.DELETE(id));
   }
 
   /**

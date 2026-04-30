@@ -16,7 +16,6 @@ import {
   Tag,
   Statistic,
   Space,
-  Popconfirm,
   Empty,
   Input,
 } from 'antd';
@@ -25,17 +24,14 @@ import {
   ShopOutlined,
   PlusOutlined,
   EditOutlined,
-  DeleteOutlined,
   SearchOutlined,
   GlobalOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
 import {
   useMediationOffers,
-  useMediationOfferSummary,
   useCreateMediationOffer,
   useUpdateMediationOffer,
-  useDeleteMediationOffer,
   useToggleMediationOffer,
 } from '@/hooks/api/useMediationOffers';
 // import { useNationalities } from '@/hooks/api/useNationalities';
@@ -62,10 +58,8 @@ export default function MediationOffersPage() {
 
   // API hooks
   const { data: offers = [], isLoading } = useMediationOffers();
-  const { data: _summary = [] } = useMediationOfferSummary();
   const createMutation = useCreateMediationOffer();
   const updateMutation = useUpdateMediationOffer();
-  const deleteMutation = useDeleteMediationOffer();
   const toggleMutation = useToggleMediationOffer();
 
   // Lookup data
@@ -394,10 +388,6 @@ export default function MediationOffersPage() {
     setIsModalVisible(true);
   };
 
-  const handleDelete = (id: number) => {
-    deleteMutation.mutate(id);
-  };
-
   const handleModalSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -534,7 +524,7 @@ export default function MediationOffersPage() {
     {
       title: t('actions'),
       key: 'actions',
-      width: 100,
+      width: 60,
       fixed: 'right' as const,
       render: (_: any, record: MediationContractOffer) => (
         <Space size="small">
@@ -545,21 +535,6 @@ export default function MediationOffersPage() {
             onClick={() => handleEdit(record)}
             className={styles.actionBtn}
           />
-          <Popconfirm
-            title={t('confirmDelete')}
-            onConfirm={() => handleDelete(Number(record.id))}
-            okText={t('delete')}
-            cancelText={t('cancel')}
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              type="text"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              className={styles.actionBtn}
-            />
-          </Popconfirm>
         </Space>
       ),
     },

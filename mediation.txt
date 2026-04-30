@@ -1,0 +1,99 @@
+GetOfferForContractDto{
+nationalityId*	string($uuid)
+jobId	string($uuid)
+nullable: true
+workerType	integer($int32)
+nullable: true
+previousExperience	integer($int32)
+nullable: true
+}
+
+CreateMediationContractDto{
+customerId*	string($uuid)
+workerId*	string($uuid)
+workerPassportNumber*	string
+minLength: 1
+offerId*	string($uuid)
+contractType	integer($int32)
+contractCategory	integer($int32)
+nullable: true
+marketerId	string($uuid)
+nullable: true
+visaType	integer($int32)
+nullable: true
+visaNumber	string
+nullable: true
+visaDateHijri	string
+nullable: true
+visaDate	string($date-time)
+nullable: true
+isComprehensiveQualificationVisa	boolean
+nullable: true
+arrivalDestinationId	integer($int32)
+nullable: true
+otherCosts	number($double)
+nullable: true
+managerDiscount	number($double)
+nullable: true
+costDiscount	number($double)
+nullable: true
+costDescription	string
+nullable: true
+hasContractInsurance	boolean
+domesticWorkerInsurance	number($double)
+nullable: true
+musanedContractNumber	string
+nullable: true
+musanedDocumentationNumber	string
+nullable: true
+}
+
+CreateMediationContractOfferDto{
+nationalityId*	string($uuid)
+jobId	string($uuid)
+nullable: true
+workerType	integer($int32)
+nullable: true
+previousExperience	integer($int32)
+nullable: true
+localCost*	number($double)
+agentCostSAR*	number($double)
+salary*	number($double)
+taxLocalCost	number($double)
+nullable: true
+showForExternalCustomers	boolean
+showForReception	boolean
+}
+
+SignMediationContractDto{
+contractId*	string($uuid)
+musanedContractNumber*	string
+minLength: 1
+invoicePaymentDate	string($date-time)
+nullable: true
+}
+
+UpdateMediationContractOfferDto{
+nationalityId*	string($uuid)
+jobId	string($uuid)
+nullable: true
+workerType	integer($int32)
+nullable: true
+previousExperience	integer($int32)
+nullable: true
+localCost*	number($double)
+agentCostSAR*	number($double)
+salary*	number($double)
+taxLocalCost	number($double)
+nullable: true
+showForExternalCustomers	boolean
+showForReception	boolean
+id	string($uuid)
+}
+
+CancelMediationContractDto{
+contractId*	string($uuid)
+cancelNote*	string
+minLength: 1
+cancelBy	integer($int32)
+}

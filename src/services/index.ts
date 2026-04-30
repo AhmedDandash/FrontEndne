@@ -21,9 +21,6 @@ export { NationalityService } from './nationality.service';
 export { MediationContractOfferService } from './mediation-contract-offer.service';
 export { MediationContractService } from './mediation-contract.service';
 export { ContractCreationRequirementService } from './contract-creation-requirement.service';
-export { MediationFollowUpStatusService } from './mediation-followup-status.service';
-export { MediationContractFollowUpService } from './mediation-contract-followup.service';
-export { MediationContractMessageService } from './mediation-contract-message.service';
 export { NationalityFollowUpService } from './nationality-followup.service';
 export {
   HREmployeeService,
