@@ -946,6 +946,9 @@ export interface CreateMediationContractOfferDto {
 }
 
 export interface UpdateMediationContractOfferDto {
+  /** Required in request body per PDF spec (PUT /MediationContractOffer/{id}) */
+  id: string | number;
+  offerNumber?: number | null;
   nationalityId?: number | string | null;
   jobId?: number | string | null;
   branchId?: number | string | null;
@@ -958,6 +961,10 @@ export interface UpdateMediationContractOfferDto {
   localCost?: number | null;
   taxLocalCost?: number | null;
   agentCostSAR?: number | null;
+  totalOfferCost?: number | null;
+  showForExternalCustomers?: boolean | null;
+  showForReception?: boolean | null;
+  isActive?: boolean | null;
 }
 
 export interface MediationContractOfferSummary {

@@ -41,7 +41,6 @@ import {
 // import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
 // import { useBranches } from '@/hooks/api/useBranches';
-import { useAgents } from '@/hooks/api/useAgents';
 import {
   WORKER_TYPE,
   RELIGION,
@@ -73,7 +72,6 @@ export default function MediationOffersPage() {
   // const { data: nationalities = [] } = useNationalities();
   const { data: jobs = [] } = useJobs();
   // const { branches: branchList } = useBranches();
-  const { data: agents = [] } = useAgents();
 
   // State
   const [nationalityFilter, setNationalityFilter] = useState<number | null>(null);
@@ -99,15 +97,17 @@ export default function MediationOffersPage() {
         nationality: 'الجنسية',
         job: 'الوظيفة',
         branch: 'الفرع',
-        agent: 'الوكيل',
         workerType: 'نوع العامل',
-        age: 'العمر',
-        religion: 'الديانة',
         previousExperience: 'سبق له العمل',
+        offerNumber: 'رقم العرض',
         salary: 'الراتب',
-        localCost: 'التكلفة',
+        localCost: 'التكلفة المحلية',
         taxLocalCost: 'ضريبة التكلفة',
         agentCostSAR: 'تكلفة الوكيل (ريال)',
+        totalOfferCost: 'إجمالي تكلفة العرض',
+        showForExternalCustomers: 'يظهر للعملاء الخارجيين',
+        showForReception: 'يظهر للاستقبال',
+        isActive: 'مفعّل',
         all: 'الكل',
         addOffer: 'إضافة عرض',
         editOffer: 'تعديل العرض',
@@ -119,7 +119,6 @@ export default function MediationOffersPage() {
         loading: 'جاري التحميل...',
         noOffers: 'لا توجد عروض',
         actions: 'الإجراءات',
-        branchName: 'اسم الفرع',
         offersCount: 'عدد العروض',
         sar: 'ريال',
         active: 'مفعّل',
@@ -136,15 +135,17 @@ export default function MediationOffersPage() {
         nationality: 'Nationality',
         job: 'Job',
         branch: 'Branch',
-        agent: 'Agent',
         workerType: 'Worker Type',
-        age: 'Age',
-        religion: 'Religion',
         previousExperience: 'Previous Experience',
+        offerNumber: 'Offer Number',
         salary: 'Salary',
         localCost: 'Local Cost',
         taxLocalCost: 'Tax on Local Cost',
         agentCostSAR: 'Agent Cost (SAR)',
+        totalOfferCost: 'Total Offer Cost',
+        showForExternalCustomers: 'Show for External Customers',
+        showForReception: 'Show for Reception',
+        isActive: 'Active',
         all: 'All',
         addOffer: 'Add Offer',
         editOffer: 'Edit Offer',
@@ -156,7 +157,6 @@ export default function MediationOffersPage() {
         loading: 'Loading...',
         noOffers: 'No offers found',
         actions: 'Actions',
-        branchName: 'Branch Name',
         offersCount: 'Offers Count',
         sar: 'SAR',
         active: 'Active',
@@ -364,14 +364,6 @@ export default function MediationOffersPage() {
     return Array.from(optionMap.values());
   }, [getJobDisplayName, getLocalizedName, jobs, offers]);
 
-  // Agent select options from API
-  const agentOptions = useMemo(() => {
-    return agents.map((a: any) => ({
-      value: a.id,
-      label: isArabic ? a.agentNameAr : a.agentNameEn || a.agentNameAr || `#${a.id}`,
-    }));
-  }, [agents, isArabic]);
-
   // Modal handlers
   const handleAdd = () => {
     setEditingOffer(null);
@@ -382,19 +374,22 @@ export default function MediationOffersPage() {
   const handleEdit = (offer: MediationContractOffer) => {
     setEditingOffer(offer);
     const localCost = offer.localCost ?? 0;
+    const taxLocalCost = offer.taxLocalCost ?? Math.round(localCost * 0.15 * 100) / 100;
+    const agentCostSAR = offer.agentCostSAR ?? 0;
     form.setFieldsValue({
+      offerNumber: offer.offerNumber,
       nationalityId: offer.nationalityId,
       jobId: offer.jobId,
-      branchId: offer.branchId,
       workerType: offer.workerType,
-      age: offer.age,
-      religion: offer.religion,
       previousExperience: offer.previousExperience,
-      agentId: offer.agentId,
       salary: offer.salary,
       localCost,
-      taxLocalCost: Math.round(localCost * 0.15 * 100) / 100,
-      agentCostSAR: offer.agentCostSAR,
+      taxLocalCost,
+      agentCostSAR,
+      totalOfferCost: offer.totalOfferCost ?? (localCost + taxLocalCost + agentCostSAR),
+      showForExternalCustomers: offer.showForExternalCustomers ?? false,
+      showForReception: offer.showForReception ?? false,
+      isActive: offer.isActive ?? true,
     });
     setIsModalVisible(true);
   };
@@ -408,7 +403,7 @@ export default function MediationOffersPage() {
       const values = await form.validateFields();
       console.log('📤 Offer form values:', values);
       if (editingOffer) {
-        const dto: UpdateMediationContractOfferDto = values;
+        const dto: UpdateMediationContractOfferDto = { ...values, id: editingOffer.id };
         updateMutation.mutate(
           { id: editingOffer.id, data: dto },
           {
@@ -741,6 +736,12 @@ export default function MediationOffersPage() {
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Row gutter={[16, 0]}>
+            {/* Row 1: Offer Number + Nationality + Job */}
+            <Col xs={24} md={8}>
+              <Form.Item name="offerNumber" label={t('offerNumber')}>
+                <InputNumber style={{ width: '100%' }} min={1} placeholder={t('offerNumber')} />
+              </Form.Item>
+            </Col>
             <Col xs={24} md={8}>
               <Form.Item
                 name="nationalityId"
@@ -773,52 +774,14 @@ export default function MediationOffersPage() {
                 />
               </Form.Item>
             </Col>
-            {/* <Col xs={24} md={8}>
-              <Form.Item name="branchId" label={t('branch')}>
-                <Select
-                  placeholder={t('branch')}
-                  showSearch
-                  allowClear
-                  filterOption={(input, option) =>
-                    ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  options={branchOptions}
-                />
-              </Form.Item>
-            </Col> */}
-            <Col xs={24} md={8}>
-              <Form.Item name="agentId" label={t('agent')}>
-                <Select
-                  placeholder={t('agent')}
-                  showSearch
-                  allowClear
-                  filterOption={(input, option) =>
-                    ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  options={agentOptions}
-                />
-              </Form.Item>
-            </Col>
+
+            {/* Row 2: Worker Type + Previous Experience */}
             <Col xs={24} md={8}>
               <Form.Item name="workerType" label={t('workerType')}>
                 <Select
                   placeholder={t('workerType')}
                   allowClear
                   options={toSelectOptions([...WORKER_TYPE], language)}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item name="age" label={t('age')}>
-                <InputNumber style={{ width: '100%' }} min={0} max={99} placeholder={t('age')} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item name="religion" label={t('religion')}>
-                <Select
-                  placeholder={t('religion')}
-                  allowClear
-                  options={toSelectOptions([...RELIGION], language)}
                 />
               </Form.Item>
             </Col>
@@ -831,6 +794,8 @@ export default function MediationOffersPage() {
                 />
               </Form.Item>
             </Col>
+
+            {/* Row 3: Financial fields */}
             <Col xs={24} md={8}>
               <Form.Item name="salary" label={t('salary')}>
                 <InputNumber
@@ -852,7 +817,12 @@ export default function MediationOffersPage() {
                   parser={(value) => value?.replace(/,/g, '') as any}
                   onChange={(val) => {
                     const localCost = Number(val) || 0;
-                    form.setFieldsValue({ taxLocalCost: Math.round(localCost * 0.15 * 100) / 100 });
+                    const tax = Math.round(localCost * 0.15 * 100) / 100;
+                    const agentCost = Number(form.getFieldValue('agentCostSAR')) || 0;
+                    form.setFieldsValue({
+                      taxLocalCost: tax,
+                      totalOfferCost: localCost + tax + agentCost,
+                    });
                   }}
                 />
               </Form.Item>
@@ -877,6 +847,50 @@ export default function MediationOffersPage() {
                   placeholder={t('agentCostSAR')}
                   formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                   parser={(value) => value?.replace(/,/g, '') as any}
+                  onChange={(val) => {
+                    const agentCost = Number(val) || 0;
+                    const localCost = Number(form.getFieldValue('localCost')) || 0;
+                    const tax = Number(form.getFieldValue('taxLocalCost')) || 0;
+                    form.setFieldsValue({ totalOfferCost: localCost + tax + agentCost });
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="totalOfferCost" label={t('totalOfferCost')}>
+                <InputNumber
+                  style={{ width: '100%', background: '#f0f7ff', fontWeight: 600 }}
+                  min={0}
+                  placeholder={t('totalOfferCost')}
+                  readOnly
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(value) => value?.replace(/,/g, '') as any}
+                />
+              </Form.Item>
+            </Col>
+
+            {/* Row 4: Visibility & Status switches */}
+            <Col xs={24} md={8}>
+              <Form.Item name="showForExternalCustomers" label={t('showForExternalCustomers')} valuePropName="checked">
+                <Switch
+                  checkedChildren={isArabic ? 'نعم' : 'Yes'}
+                  unCheckedChildren={isArabic ? 'لا' : 'No'}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="showForReception" label={t('showForReception')} valuePropName="checked">
+                <Switch
+                  checkedChildren={isArabic ? 'نعم' : 'Yes'}
+                  unCheckedChildren={isArabic ? 'لا' : 'No'}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="isActive" label={t('isActive')} valuePropName="checked">
+                <Switch
+                  checkedChildren={t('active')}
+                  unCheckedChildren={t('inactive')}
                 />
               </Form.Item>
             </Col>

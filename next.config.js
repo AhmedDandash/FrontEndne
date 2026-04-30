@@ -8,7 +8,7 @@ const nextConfig = {
   async rewrites() {
     // Use proxy to bypass CORS
     // Backend URL can be configured via BACKEND_API_URL env variable
-    const backendUrl = process.env.BACKEND_API_URL || 'https://sigma26.runasp.net';
+    const backendUrl = process.env.BACKEND_API_URL || 'https://sigma-api.runasp.net';
 
     return [
       {

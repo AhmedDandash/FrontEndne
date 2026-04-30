@@ -1,0 +1,382 @@
+Pages: 8
+
+=== PAGE 1 ===
+Mediation Module API Guide
+راسم لكل ةبولطملا. ـلا عيمج حرشيو ،ةيلزنملا ةلامعلل طسوتلا دوقع ة رادإ جمانربل لماكلا لمعلا راسم حضوي ليلدلا اذه Endpoints مدختسملا ةهجاو يف اهطبرل ةحاتملا
+(Frontend) ، تلاخدملا ىلإ ةفاضلإاب (Payload/Parameters)
+🔄 ل ماكلا ل معلا ر اسم — The Full Cycle
+1️⃣ رعسلا ضرع: لولأا ءزجلا (Mediation Contract Offer)
+ىلع ء˝ انب راعسلأا ضورع ءاشنإ متي ،دقعلا ع يقوت لبق:
+عونلا| ة ربخلا| ة فيظولا| ة يسنجلا •
+ـلا راسم ربع ليكولا ةفلكتو ، بتارلا ، ةيلحملا ةفلكتلا بلجب ˝ ايئاقلت ماظنلا موقي auto-fill تادادعإ ىلإ ˝ ادانتسا Accounting Rules ˝ اقبسم ةلخدمُلا.
+2️⃣ طسوتلا د قع ءاشنإ: يناثلا ءزجلا (Draft)
+ةلاحب يمسر دقع ىلإ ضرعلا ليوحت متي ،ة/لماعلا رايتخاو رعسلا ضرع ىلع ليمعلا ةقفاوم درجمب Draft. كلذ لمشي:
+راعسلأا تابث نامضل ةيلاملا خسن •
+ةعباتملا ماهم ديلوت (Follow-ups) لماعلا ةيسنج بسحب ˝ ايئاقلت •
+3️⃣ دقعلا عيقوتو دناسم: ثلاثلا ءزجلا (Signed)
+ىلإ ةلاحلا ريغتت. دناسم ة باوب ربع دقعلا قيثوت متيو موسرلا ليمعلا ع فدي Signed.
+4️⃣ نامضلاو ميلستلاو ملاتسلاا: عبارلا ءزجلا (Delivered / Returned)
+ملاتسلاا جذومن ع يقوتو ليمعلل هميلست متي ة / لماعلا لوصو دنع:
+ىلإ لقتني دقعلا Delivered نامضلا نايرس أدبيو •
+˝ ايئاقلت درتسملا غ لبملا بسحُيو عاجرلإا لجَّ سُي ،نامضلا ةرتف للاخ عاجرلإا مت اذإ → Returned •
+-- Table 1 --
+['']
+['Mediation Module API Guide']
+
+=== PAGE 2 ===
+ـلا ليصافت Endpoints تلاخدملاو
+ر اعسلأا ض ورع. أ — Mediation Contract Offers
+Method Endpoint ةفيظولا ةبولطملا تلاخدملا
+NationalityId (Guid?)
+JobId (Guid?)
+WorkerType (short?)
+Status (bool?)
+GET /MediationContractOffer ةمئاقلا ض رع
+Page (int)
+default: 1
+PageSize (int)
+default: 10
+GET /MediationContractOffer/{id} ليصافتلا id (Guid) — ـلا يف URL
+{ "nationalityId": "guid",
+يئاقلتلا باسحلا "jobId": "guid",
+POST /MediationContractOffer/auto-fill
+فيلاكتلل "workerType": 1,
+"previousExperience": 1 }
+{ "nationalityId": "guid",
+"jobId": "guid",
+"workerType": 1,
+"previousExperience": 1,
+POST /MediationContractOffer ضرعلا ءاشنإ
+"localCost": 0.0,
+"taxLocalCost": 0.0,
+"agentCostSAR": 0.0,
+"salary": 0.0 }
+id ـلا يف URL + تلاخدم سفن
+PUT /MediationContractOffer/{id} ضرعلا ل يدعت
+ء اشنلإا + "id": "guid"
+/MediationContractOffer/{id}/toggle- id ـلا يف URL (نودب Body)
+PATCH ليطعت/ ليعفت
+active
+-- Table 1 --
+['Method', 'Endpoint', 'ةفيظولا', 'ةبولطملا تلاخدملا']
+['', '', '', '']
+['', '', 'ةمئاقلا ض رع', 'NationalityId (Guid?)\nJobId (Guid?)\nWorkerType (short?)\nStatus (bool?)\nPage (int)\ndefault: 1\nPageSize (int)\ndefault: 10']
+['', '', None, None]
+['', '', None, None]
+['GET', '/MediationContractOffer', None, None]
+['', '', None, None]
+['GET', '/MediationContractOffer/{id}', 'ليصافتلا', 'id (Guid) — ـلا يف URL']
+['', '', None, None]
+['', '', 'يئاقلتلا باسحلا\nفيلاكتلل', '{ "nationalityId": "guid",\n"jobId": "guid",\n"workerType": 1,\n"previousExperience": 1 }']
+['POST', '/MediationContractOffer/auto-fill', None, None]
+['', '', None, None]
+['', '', 'ضرعلا ءاشنإ', '{ "nationalityId": "guid",\n"jobId": "guid",\n"workerType": 1,\n"previousExperience": 1,\n"localCost": 0.0,\n"taxLocalCost": 0.0,\n"agentCostSAR": 0.0,\n"salary": 0.0 }']
+['', '', None, None]
+['', '', None, None]
+['POST', '/MediationContractOffer', None, None]
+['', '', None, None]
+['PUT', '/MediationContractOffer/{id}', 'ضرعلا ل يدعت', 'id ـلا يف URL + تلاخدم سفن\nء اشنلإا + "id": "guid"']
+['', '', None, None]
+['PATCH', '/MediationContractOffer/{id}/toggle-', 'ليطعت/ ليعفت', 'id ـلا يف URL (نودب Body)']
+[None, 'active', None, None]
+['', None, None, None]
+[None, '', None, None]
+
+=== PAGE 3 ===
+طسوتلا دوقع. ب — Mediation Contracts
+Method Endpoint ةفيظولا ةبولطملا تلاخدملا
+CustomerNationalId (string?)
+WorkerPassportNumber (string?)
+ContractId (Guid?)
+MusanedContractNumber (string?)
+GET /MediationContract ةمئاقلا ض رع StatusId (short?)
+NationalityId (Guid?)
+WorkerType (short?)
+OfferNumber (int)
+ContractNumber (int)
+integer DateFrom / DateTo (Date?)
+Page / PageSize (int)
+خيراتلا ةعباتملا+ ل يصافتلا + id (Guid) — ـلا يف URL
+GET /MediationContract/{id}
+{ "customerId": "guid", //
+يرابجإ
+"workerId": "guid", //
+يرابجإ
+"workerPassportNumber": "...", //
+يرابجإ
+"offerId": "guid", //
+يرابجإ
+"contractType": 1, //
+يرابجإ
+"contractCategory": 1, //
+POST /MediationContract دقعلا ءاشنإ (Draft)
+يرايتخا
+"marketerId": "guid", //
+يرايتخا
+"visaType": 1, "visaNumber":
+"string", "visaDate": "2026-
+01-01",
+"arrivalDestinationId": 1,
+"otherCosts": 0.0,
+"managerDiscount": 0.0,
+"hasContractInsurance": false,
+"musanedContractNumber": "..." }
+{ "contractId": "guid",
+"musanedContractNumber": "...",
+دناسم عيقوت
+POST /MediationContract/sign // يرابجإ
+(Signed)
+"musanedDocumentationNumber":
+"..." }
+˝ايودي ةلاحلا ثيدحت { "contractId": "guid",
+/MediationContract/update- ن يعم دقعل ي ئانثتسا فرظ ثدح) "newStatus": 1, // short
+PUT
+status ةلاحل هلقن يعدتسي "notes": "string" }
+(رورملا نود اروف ىرخأ
+{ "contractId": "guid", "cancelNote":
+"string", // يرابجإ "cancelBy": 1
+POST /MediationContract/cancel دقعلا ءاغلإ
+// short
+}
+ت لااحلا خيرات contractId — ـلا يف URL
+(Timeline)
+عاجرإ يه ه تفيظو
+/MediationContract/status-
+GET ل ودجلاTimeline ( ـ لا
+history/{contractId}
+اهب رم يتلا لحارملا عيمجل) ينمزلا
+ة ظحل ذنم دقعلا
+.ةيلاحلا ةظحللا ى تحو هئاشنإ
+-- Table 1 --
+['Method', 'Endpoint', 'ةفيظولا', 'ةبولطملا تلاخدملا']
+['', '', '', '']
+['', '', 'ةمئاقلا ض رع', 'CustomerNationalId (string?)\nWorkerPassportNumber (string?)\nContractId (Guid?)\nMusanedContractNumber (string?)\nStatusId (short?)\nNationalityId (Guid?)\nWorkerType (short?)\nOfferNumber (int)\nContractNumber (int)\ninteger DateFrom / DateTo (Date?)\nPage / PageSize (int)']
+['', '', None, None]
+['', '', None, None]
+['', '', None, None]
+['GET', '/MediationContract', None, None]
+['', '', None, None]
+['GET', '', 'خيراتلا ةعباتملا+ ل يصافتلا +', 'id (Guid) — ـلا يف URL']
+[None, '/MediationContract/{id}', None, None]
+['', '', None, None]
+['', '', 'دقعلا ءاشنإ (Draft)', '{ "customerId": "guid", //\nيرابجإ\n"workerId": "guid", //\nيرابجإ\n"workerPassportNumber": "...", //\nيرابجإ\n"offerId": "guid", //\nيرابجإ\n"contractType": 1, //\nيرابجإ\n"contractCategory": 1, //\nيرايتخا\n"marketerId": "guid", //\nيرايتخا\n"visaType": 1, "visaNumber":\n"string", "visaDate": "2026-\n01-01",\n"arrivalDestinationId": 1,\n"otherCosts": 0.0,\n"managerDiscount": 0.0,\n"hasContractInsurance": false,\n"musanedContractNumber": "..." }']
+['', '', None, None]
+['', '', None, None]
+['', '', None, None]
+['', '', None, None]
+['', '', None, None]
+[None, '', None, None]
+['', None, None, None]
+[None, '', None, None]
+['', None, None, None]
+[None, '', None, None]
+['', None, None, None]
+[None, '', None, None]
+['POST', '/MediationContract', None, None]
+['', '', None, None]
+['', '', 'دناسم عيقوت\n(Signed)', '{ "contractId": "guid",\n"musanedContractNumber": "...",\n// يرابجإ\n"musanedDocumentationNumber":\n"..." }']
+['', '', None, None]
+['POST', '/MediationContract/sign', None, None]
+['', '', None, None]
+['', '', '˝ايودي ةلاحلا ثيدحت\nن يعم دقعل ي ئانثتسا فرظ ثدح)\nةلاحل هلقن يعدتسي\n(رورملا نود اروف ىرخأ', '{ "contractId": "guid",\n"newStatus": 1, // short\n"notes": "string" }']
+[None, '/MediationContract/update-', None, None]
+['PUT', None, None, None]
+[None, 'status', None, None]
+['', None, None, None]
+[None, '', None, None]
+['', '', 'دقعلا ءاغلإ', '{ "contractId": "guid", "cancelNote":\n"string", // يرابجإ "cancelBy": 1\n// short\n}']
+['POST', '/MediationContract/cancel', None, None]
+['', '', None, None]
+['', '', 'ت لااحلا خيرات\n(Timeline)\nعاجرإ يه ه تفيظو\nل ودجلاTimeline ( ـ لا\nاهب رم يتلا لحارملا عيمجل) ينمزلا\nة ظحل ذنم دقعلا\n.ةيلاحلا ةظحللا ى تحو هئاشنإ', 'contractId — ـلا يف URL']
+['', '', None, None]
+['', None, None, None]
+[None, '/MediationContract/status-', None, None]
+['GET', None, None, None]
+[None, 'history/{contractId}', None, None]
+['', None, None, None]
+[None, '', None, None]
+
+=== PAGE 4 ===
+Method Endpoint ةفيظولا ةبولطملا تلاخدملا
+ملاتسلاا جذومن رادصإ { "contractId": "guid",
+امدنع Endpoint ـلا اذه ىعدتسُي "deliveryDate": "2026-05-
+POST /MediationContract/delivery- بتكملل ةلماعلا لصت 01T00:00:00Z", // يرايتخا
+form "ميلستلاو ملاتسلاا ةقرو" ز يهجت ديرنو "notes": "string" }
+يتأي يكل ليمعلل
+اهملتسيو
+ليمعلا عيقوت ديكأت { "contractId": "guid",
+(Delivered) "customerSignedAt": "2026-
+05-01T12:00:00Z" // يرايتخا }
+،بتكملل ليمعلا ر ضحي امدنع ىعدتسُي
+،ديب ادي ةلماعلا ملتسيو
+عقويو
+.ةقرولا ىلع
+ا هيف " جرخت" يتلا ةظحللا يه هذه
+ي ف لخدتو بتكملا ةدهع نم ةلماعلا
+نمو .ليمعلا ة دهع
+ايلعف أدبي (عيقوتلا خيرات) خيراتلا اذه
+90) نامضلا ةرتف باسح
+POST /MediationContract/delivery- .(موي
+form/sign ، اقحلا ةلماعلا ع اجرإ ليمعلا د ارأ ولف
+ة نراقمب ماظنلا م وقيس
+عيقوتلا اذه خيرات عم مويلا خيرات
+(CustomerSignedAt)
+ةرتف لخاد ليمعلا لاز ام له فرعيل
+بسحيو ،لا م أ نامضلا
+.هيلع ء انب ةدرتسملا غلابملا
+فلم قلغُت ي تلا ةوطخلا ي ه: راصتخاب
+فلم حتفتو "مادقتسلاا"
+"عيبلا دعب امو ن امضلا"
+{ "contractId": "guid",
+نامضلا للاخ عاجرلإا "returnDate": "2026-06-
+لوؤسملا وه راسملا اذه 01T00:00:00Z",
+ةرتف للاخ ةلماعلا عاجرإ" ن ع "returnReason": 1, //
+/MediationContract/warranty- " (Warranty ن امضلا يرابجإ (Enum)
+POST
+return ر رق لاح يف مدختسُيو ،Return) "daysWithCustomer": 45, //
+بتكملل ةلماعلا ةداعإ ليمعلا )0(> يرابجإ
+بسح وأ) اموي 90 لوأ للاخ "newWorkerLocation":
+.(ة ينوناقلا ةرتفلا "string",
+"notes": "string" }
+-- Table 1 --
+['']
+['']
+-- Table 2 --
+['Method', 'Endpoint', 'ةفيظولا', 'ةبولطملا تلاخدملا']
+['', '', '', '']
+['', '', 'ملاتسلاا جذومن رادصإ\nامدنع Endpoint ـلا اذه ىعدتسُي\nبتكملل ةلماعلا لصت\n"ميلستلاو ملاتسلاا ةقرو" ز يهجت ديرنو\nيتأي يكل ليمعلل\nاهملتسيو', '{ "contractId": "guid",\n"deliveryDate": "2026-05-\n01T00:00:00Z", // يرايتخا\n"notes": "string" }']
+['', '', None, None]
+[None, '/MediationContract/delivery-', None, None]
+['POST', None, None, None]
+[None, 'form', None, None]
+['', None, None, None]
+[None, '', None, None]
+['', '', 'ليمعلا عيقوت ديكأت\n(Delivered)\n،بتكملل ليمعلا ر ضحي امدنع ىعدتسُي\n،ديب ادي ةلماعلا ملتسيو\nعقويو\n.ةقرولا ىلع\nا هيف " جرخت" يتلا ةظحللا يه هذه\nي ف لخدتو بتكملا ةدهع نم ةلماعلا\nنمو .ليمعلا ة دهع\nايلعف أدبي (عيقوتلا خيرات) خيراتلا اذه\n90) نامضلا ةرتف باسح\n.(موي\n، اقحلا ةلماعلا ع اجرإ ليمعلا د ارأ ولف\nة نراقمب ماظنلا م وقيس\nعيقوتلا اذه خيرات عم مويلا خيرات\n(CustomerSignedAt)\nةرتف لخاد ليمعلا لاز ام له فرعي\nبسحيو ،لا م أ نامضلا\n.هيلع ء انب ةدرتسملا غلابملا\nفلم قلغُت ي تلا ةوطخلا ي ه: راصتخ\nفلم حتفتو "مادقتسلاا"\n"عيبلا دعب امو ن امضلا"', '{ "contractId": "guid",\n"customerSignedAt": "2026-\n05-01T12:00:00Z" // يرايتخا }\nل\nاب']
+['', '', None, None]
+['', '', None, None]
+['', '', None, None]
+['', '', None, None]
+['', '', None, None]
+[None, '', None, None]
+['', None, None, None]
+[None, '', None, None]
+['', None, None, None]
+[None, '', None, None]
+['', None, None, None]
+[None, '', None, None]
+['', None, None, None]
+[None, '', None, None]
+[None, '/MediationContract/delivery-', None, None]
+['POST', None, None, None]
+[None, 'form/sign', None, None]
+['', None, None, None]
+[None, '', None, None]
+['', '', 'نامضلا للاخ عاجرلإا\nلوؤسملا وه راسملا اذه\nةرتف للاخ ةلماعلا عاجرإ" ن ع\n" (Warranty ن امضلا\nر رق لاح يف مدختسُيو ،Return)\nبتكملل ةلماعلا ةداعإ ليمع\nبسح وأ) اموي 90 لوأ للاخ\n.(ة ينوناقلا ةرتفلا', '{ "contractId": "guid",\n"returnDate": "2026-06-\n01T00:00:00Z",\n"returnReason": 1, //\nيرابجإ (Enum)\n"daysWithCustomer": 45, //\nلا )0(> يرابجإ\n"newWorkerLocation":\n"string",\n"notes": "string" }']
+['', '', None, None]
+['', '', None, None]
+['', '', None, None]
+[None, '/MediationContract/warranty-', None, None]
+['POST', None, None, None]
+[None, 'return', None, None]
+['', None, None, None]
+[None, '', None, None]
+
+=== PAGE 5 ===
+تاهجاولا يسدنهمل تاظحلام (Frontend)
+دقعلا ءاشنإ ةشاش: .1
+زاوجلا مقر لاسرإ بجي ،ةمئاقلا نم لماعلا رايتخا دنع workerPassportNumber ـلا يف Request لماعلا تانايب قباطتل ديكأتو نامأ ةوطخك.
+دقعلا ءاشنإ ةباجتسا: .2
+دقعلا ليصافت ةحفصل هيجوتلا. ءاشنلإا حاجن دنع (/MediationContract) ، ـلا عم حاجن ةلاسر ماظنلا ديعُيس Id ريغتم لخاد دقعلاب صاخلا data ـلا نكمتيل Frontend ةداعإ نم
+ةيئاقلتلا عاجرلإا غلابم: .3
+عاجرلإا ةشاش يف /warranty-return ، ـلا موقي API باسحب Refund Amount ـلا نم يودي باسحل ةجاح لا — عاجرلإا بلط دنع هليجستو ˝ ايئاقلت
+Frontend.
+تلااحلا خيرات ضرع (Status Timeline): .4
+راسم status-history ىلع يوتحت ةمئاق ديعُي:
+oldStatusName •
+newStatusName •
+createdAt •
+createdByName •
+Validation Errors: .5
+مدختسملل. ـلا ديعُي ،) صقان يرابجإ لقح: لاثم( ةلسرمُلا تانايبلا يف أطخ دوجو لاح يف API ـك ءاطخأ ةمئاق Array of strings ريغتم لخاد errors اهضرعل
+# طسوتلا دوقعل ةيلاملاو ةيباسحلا تايلمعلا (Mediation Contracts Financials)
+ةيلزنملا ةلامعلل طسوتلا دوقع ةايح ةرود يف ةمدختسملا ةيلاملاو ةيضايرلا تلاداعملا عيمج .
+---
+## 1. يئدبملا رعسلا ضرع فيلاكت باسح (Offer Auto-Fill)
+ماظنلا: ىلع ء انب ايئاقلت راعسلأا باسحب ماظنلا موقي ،ةربخلاو ةفيظولاو ةيسنجلل مدختسملا رايتخا دنع (ةيلاملا تادادعلإا / Accounting Rules) يف ةلجسملا
+* ** ةيلحملا ةفلكتلا (LocalCost):** ةيسنجلا/ةفيظولا تادادعإ نم اهؤاعدتسا متي.
+* **ليكولا ةفلكت (AgentCostSAR):** طوبرملا ليكولا تادادعإ نم اهؤاعدتسا متي.
+* **ةفاضملا ةبيرضلا (TaxLocalCost):** `( ماظنلا يف ةلجسملا ةبيرضلا ةبسن) × ةيلحملا ةفلكتلا`
+* ** ضرعلل يئدبملا يلامجلإا (TotalOfferCost):** `ةبيرضلا + ليكولا ةفلكت + ةيلحملا ةفلكتلا`
+---
+## 2. يئاهنلا دقعلا يلامجإ باسح (Mediation Contract Total Cost)
+ليمعلاب. يمسرلا دقعلا ءاشنإ دنع (Draft) ةصاخلا تاريغتملا فاضت مث ، لبقتسملا يف راعسلأا ريغتب دقعلا رثأت مدع نامضل (رعسلا ضرع) نم تايساسلأا خسن متي ،
+### ةتباثلا تايطعملا ( رعسلا ضرع نم - Offer):
+1. `LocalCost` ( ةيلحملا ةفلكتلا).
+2. `AgentCostSAR` ( ليكولا ةفلكت).
+3. `TotalTaxValue` (ة فاضملا ة بيرضلا).
+
+=== PAGE 6 ===
+### ةريغتملا تايطعملا (م دختسملا ةهجاو نم - Payload):
+4. `OtherCosts` (ىرخأ ةيفاضإ ف يلاكت).
+5. `DomesticWorkerInsurance` (ةيلزنملا ةلامعلا نيمأت ة ميق).
+6. `ManagerDiscount` (ة رادلإا م صخ).
+7. `CostDiscount` ( يداعلا تاعيبملا مصخ).
+### #o« يلامجلإا باسح ةلداعم (`TotalCost`):
+ماظنلا موقي (Backend) ـلا نم يلامجلإا ريرمتب حمسي لاو ايلآ يلامجلإا باسحب Frontend ةيلاتلا ةلداعملا قفو كلذو ،تاباسحلا ةقد نامضل:
+```text
+TotalCost = (LocalCost + TotalTaxValue + AgentCostSAR + OtherCosts + DomesticWorkerInsurance)
+- (ManagerDiscount + CostDiscount)
+```
+** يقيبطت لاثم:**
+ةفلكت * اير 10,000 = ةيلحملا ةفلكتلا
+* اير 5,000 = ليكولا
+* اير 1,500 = ةبيرضلا
+* اير 500 = ىرخأ ف يلاكت
+* اير 600 = نيمأتلا
+* اير 200 = يداع مصخ
+* اير 300 = ةرادإ مصخ
+**نوكي يلامجلإا:** `(10000 + 1500 + 5000 + 500 + 600) - (200 + 300)` = **17,100 ريال**.
+---
+## 3. نامضلا ةرتف للاخ درتسملا غلبملا باسح (Warranty Refund Calculation)
+هدادرتسا ليمعلل قحي يذلا غ لبملا باسحب ايئاقلت ماظنلا موقي ، (موي 90) ةبرجتلا ةرتف للاخ ةلماعلا عاجرإ ليمعلا بلط لاح يف.
+### تايطعملا:
+* `TotalCost`: ةقباسلا ة وطخلا يف بوسحملا دقعلا ةفلكت يلامجإ.
+* `DaysWithCustomer`: ليمعلا ىدل ةلماعلا اهتضق يتلا ةيلعفلا مايلأا ددع.
+### o#« دادرتسلاا باسح ةلداعم (`RefundAmount`):
+
+=== PAGE 7 ===
+**رثكأف اموي 90 مايلأا ددع ناك اذإ (أ:**
+```text
+RefundAmount = 0.00 ( نامضلا ةرتف تهتنا) اير
+```
+** اموي 90 نم لقأ مايلأا ددع ناك اذإ (ب:**
+```text
+RefundAmount = TotalCost - ( (TotalCost / 90) × DaysWithCustomer )
+```
+** يقيبطت لاثم:**
+ددع * يلامجلإا (TotalCost) = 17,100 اير
+* موي 30 = ليمعلا دنع مايلأا
+** ةبسحلا:**
+1. دحاولا مويلا ةفلكت = `17100 / 90` = **190 مويلل/ريال**.
+2. موي 30 ةفلكت = `190 × 30` = **5,700 ريال**.
+3. درتسملا غلبملا = `17100 - 5700` = **11,400 ريال**.
+---
+> ** ةبساحملل ةظحلام:**
+قيثوتل طقف دقعلا يف ةيداشرتسا. > ـلا ةميق (Salary) هلاعأ ةروكذملا تلاداعملا نم يأ يف هحرط وأ هعمج متي لا ،ةلماعلا بتار وأ (ـلا يف لخدي لا TotalCost) ةمولعمك ظفحُ ي ثيح ،
+ة لماعلل يرهشلا بتارلا
+
+=== PAGE 8 ===
+نيب ق رفلا"يئدبملا يساسلأا رعسلا" و" ليمعلل يلعفلا يئاهنلا رعسلا".
+1. ـلاOfferAmount (يئدبملا ضرعلا رعس)
+ىرخأ تامدخ ةفاضإ. يساسلأا رعسلا وه (Base Price) وأ ضوافتلل ليمعلا سلجي نأ لبق (رعسلا ضرع) ةلحرم يف هباسح متي .ةنهملا ه ذهو ةيسنجلا ه ذه مادقتساب صاخلا
+• ىلع طقف يوتحي: ةبيرضلا + ل يكولا ةفلكت + ةيلحملا ةفلكتلا.
+• لمشي لا: ةيفاضإ فيلاكت وأ ،نيمأت وأ ،تاموصخ يأ.
+2. ـلاTotalCost ( دقعلا ةفلكت يلامجإ)
+(OfferAmount) يئاهنلا رعسلا وه (Final Price) ( دقعلا ء اشنإ) ةلحرم يف هباسح متي .هل صصخملا دقعلا اذه ىلع ء انب ايلعف ليمعلا هعفديس يذلا.
+• ىلع يوتحي: يساسلأا رعسلا
+• هيلإ فاضيُ : نيمأتلا (DomesticWorkerInsurance) ةيفاضإ فيلاكت يأو (OtherCosts).
+• هنم حرطيُ : ةرادلإا مصخ (ManagerDiscount) يداعلا مصخلاو (CostDiscount).
+•9„˙. حيضوتلل لاثم:
+ليكولا ةفلكتو ةبيرضلاو). • يئدبملا رعسلا ضرع هل جرخأ ماظنلا . اكنلايريس نم ةلماع راتخاو بتكملا ليمعلا لخد (OfferAmount) = 16,000 ريال( ةفلكتلا ةلماش
+• مصخ هاطعأ فظوملاو ،اير 600 ـب نيمأت ةفاضإ بلط نكلو ،قفاو ليمعلا200 ا ير.
+• دقعلا ةفلكت يلامجإ حبصي انه (TotalCost) = 16,400 ريا(16,000 مصخ 200 - نيمأت 600 + يساسلأا).

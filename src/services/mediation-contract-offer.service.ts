@@ -133,7 +133,9 @@ export class MediationContractOfferService {
     data: UpdateMediationContractOfferDto
   ): Promise<MediationContractOffer> {
     const payload = {
-      ...data,
+      // id must be present in both URL path and request body per PDF spec
+      id,
+      offerNumber: data.offerNumber ?? null,
       nationalityId: data.nationalityId ?? null,
       jobId: data.jobId ?? null,
       branchId: data.branchId ?? null,
@@ -147,9 +149,13 @@ export class MediationContractOfferService {
       localCost: data.localCost ? Number(data.localCost) : null,
       taxLocalCost: data.taxLocalCost ? Number(data.taxLocalCost) : null,
       agentCostSAR: data.agentCostSAR ? Number(data.agentCostSAR) : null,
+      totalOfferCost: data.totalOfferCost ? Number(data.totalOfferCost) : null,
+      showForExternalCustomers: data.showForExternalCustomers ?? null,
+      showForReception: data.showForReception ?? null,
+      isActive: data.isActive ?? null,
     };
     const response = await api.put<any>(
-      API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.UPDATE(id),
+      API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.UPDATE,
       payload
     );
     return this.unwrap<MediationContractOffer>(response.data);

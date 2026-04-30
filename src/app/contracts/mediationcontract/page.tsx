@@ -20,7 +20,6 @@ import {
   Form,
   DatePicker,
   InputNumber,
-  Switch,
   List,
   Divider,
 } from 'antd';
@@ -57,8 +56,6 @@ import {
 } from '@/hooks/api/useMediationContracts';
 import type {
   MediationContract,
-  MediationContractOffer,
-  CreateMediationContractDto,
   ContractCancelDto,
   SignMediationContractDto,
   DeliveryFormDto,
@@ -69,14 +66,11 @@ import type {
 import {
   MEDIATION_CONTRACT_STATUS,
   MEDIATION_CONTRACT_TYPE,
-  VISA_TYPE,
   ARRIVAL_DESTINATIONS,
   CANCEL_BY,
-  WORKER_NOMINATION,
   getEnumLabel,
   toSelectOptions,
 } from '@/constants/enums';
-  import OfferSelector from '@/components/contracts/OfferSelector';
 import FollowUpTimeline from '@/components/contracts/FollowUpTimeline';
 import MessageThread from '@/components/contracts/MessageThread';
 import styles from './MediationContracts.module.css';
@@ -108,13 +102,7 @@ export default function MediationContractsPage() {
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
   const [showStatusHistoryModal, setShowStatusHistoryModal] = useState(false);
 
-  // Offer selection state for create modal
-  const [createSelectedOffer, setCreateSelectedOffer] = useState<MediationContractOffer | null>(
-    null
-  );
-
   // Forms
-  const [createForm] = Form.useForm();
   const [cancelForm] = Form.useForm();
   const [signForm] = Form.useForm();
   const [deliveryForm] = Form.useForm();
@@ -127,14 +115,12 @@ export default function MediationContractsPage() {
     contracts,
     isLoading,
     refetch,
-    createContract,
     cancelContract,
     signContract,
     generateDeliveryForm,
     signDelivery,
     warrantyReturn,
     updateContractStatus,
-    isCreating,
     isCancelling,
     isSigning,
     isGeneratingDelivery,
@@ -184,10 +170,8 @@ export default function MediationContractsPage() {
     cancel: language === 'ar' ? 'إلغاء' : 'Cancel',
     close: language === 'ar' ? 'إغلاق' : 'Close',
     submit: language === 'ar' ? 'إرسال' : 'Submit',
-    selectCustomer: language === 'ar' ? 'اختر العميل' : 'Select Customer',
     contractDetails: language === 'ar' ? 'تفاصيل العقد' : 'Contract Details',
     financialInfo: language === 'ar' ? 'المعلومات المالية' : 'Financial Information',
-    visaInfo: language === 'ar' ? 'معلومات التأشيرة' : 'Visa Information',
     cancelBy: language === 'ar' ? 'إلغاء بواسطة' : 'Cancel By',
     cancelNote: language === 'ar' ? 'سبب الإلغاء' : 'Cancel Reason',
     cancelContract: language === 'ar' ? 'إلغاء العقد' : 'Cancel Contract',
@@ -195,12 +179,6 @@ export default function MediationContractsPage() {
     taxValue: language === 'ar' ? 'قيمة الضريبة' : 'Tax Value',
     managerDiscount: language === 'ar' ? 'خصم المدير' : 'Manager Discount',
     costDiscount: language === 'ar' ? 'خصم التكلفة' : 'Cost Discount',
-    costDescription: language === 'ar' ? 'وصف التكلفة' : 'Cost Description',
-    comprehensiveVisa: language === 'ar' ? 'تأشيرة تأهيل شامل' : 'Comprehensive Qualification Visa',
-    contractCategory: language === 'ar' ? 'تصنيف العقد' : 'Contract Category',
-    documentationNumber: language === 'ar' ? 'رقم التوثيق' : 'Documentation #',
-    visaDateHijri: language === 'ar' ? 'تاريخ التأشيرة هجري' : 'Visa Date (Hijri)',
-    hasInsurance: language === 'ar' ? 'يوجد تأمين' : 'Has Insurance',
     insuranceCost: language === 'ar' ? 'تكلفة التأمين' : 'Insurance Cost',
     // Lifecycle
     signContract: language === 'ar' ? 'توقيع العقد (Draft → موقّع)' : 'Sign Contract (Draft → Signed)',
@@ -297,78 +275,6 @@ export default function MediationContractsPage() {
       revenue: all.reduce((sum, c) => sum + (c.totalCost || 0), 0),
     };
   }, [contracts]);
-
-  // TotalCost = (LocalCost + TotalTaxValue + AgentCostSAR + OtherCosts + DomesticWorkerInsurance)
-  //             - (ManagerDiscount + CostDiscount)
-  // Salary is informational only — NOT included per PDF spec.
-  const computeTotalCost = (values: Record<string, unknown>) => {
-    const localCost = Number(values.localCost) || 0;
-    const agentCostSAR = Number(values.agentCostSAR) || 0;
-    const otherCosts = Number(values.otherCosts) || 0;
-    const totalTaxValue = Number(values.totalTaxValue) || 0;
-    const managerDiscount = Number(values.managerDiscount) || 0;
-    const costDiscount = Number(values.costDiscount) || 0;
-    const domesticWorkerInsurance = values.hasContractInsurance
-      ? Number(values.domesticWorkerInsurance) || 0
-      : 0;
-    return localCost + agentCostSAR + otherCosts + totalTaxValue - managerDiscount - costDiscount + domesticWorkerInsurance;
-  };
-
-  // Handle offer selection in CREATE modal → auto-fill fields
-  const handleCreateOfferSelect = (offer: MediationContractOffer) => {
-    setCreateSelectedOffer(offer);
-    createForm.setFieldsValue({
-      offerId: offer.id,
-      salary: offer.salary ?? 0,
-      localCost: offer.localCost ?? 0,
-      agentCostSAR: offer.agentCostSAR ?? 0,
-    });
-    setTimeout(() => {
-      const values = createForm.getFieldsValue();
-      createForm.setFieldValue('totalCost', computeTotalCost(values));
-    }, 50);
-  };
-
-  // Handle contract creation
-  const handleCreateContract = async () => {
-    try {
-      const values = await createForm.validateFields();
-      const totalCost = computeTotalCost(values);
-      const data: CreateMediationContractDto = {
-        contractType: values.contractType,
-        statusId: values.statusId || 1,
-        customerId: values.customerId,
-        musanedContractNumber: values.musanedContractNumber || null,
-        musanedDocumentationNumber: values.musanedDocumentationNumber || null,
-        marketerId: values.marketerId || null,
-        contractCategory: values.contractCategory || null,
-        offerId: values.offerId || null,
-        visaType: values.visaType || null,
-        visaNumber: values.visaNumber || null,
-        visaDateHijri: values.visaDateHijri || null,
-        visaDate: values.visaDate ? new Date(values.visaDate).toISOString() : null,
-        isComprehensiveQualificationVisa: values.isComprehensiveQualificationVisa || false,
-        arrivalDestinationId: values.arrivalDestinationId || null,
-        localCost: values.localCost || 0,
-        agentCostSAR: values.agentCostSAR || 0,
-        salary: values.salary || 0,
-        otherCosts: values.otherCosts || 0,
-        totalTaxValue: values.totalTaxValue || 0,
-        managerDiscount: values.managerDiscount || 0,
-        costDiscount: values.costDiscount || 0,
-        totalCost,
-        costDescription: values.costDescription || null,
-        hasContractInsurance: values.hasContractInsurance || false,
-        domesticWorkerInsurance: values.hasContractInsurance ? values.domesticWorkerInsurance || 0 : 0,
-      };
-      await createContract(data);
-      setShowCustomerSelectModal(false);
-      setCreateSelectedOffer(null);
-      createForm.resetFields();
-    } catch (error) {
-      console.error('Form validation failed:', error);
-    }
-  };
 
   // Handle cancel contract
   const handleCancelContract = async () => {

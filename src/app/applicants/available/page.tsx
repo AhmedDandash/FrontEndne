@@ -14,13 +14,11 @@ import {
   Empty,
   Spin,
   Avatar,
-  Dropdown,
   Modal,
   Descriptions,
   Divider,
   Image,
 } from 'antd';
-import type { MenuProps } from 'antd';
 import {
   SearchOutlined,
   FilterOutlined,
@@ -28,14 +26,12 @@ import {
   UserOutlined,
   IdcardOutlined,
   EyeOutlined,
-  PrinterOutlined,
   StarFilled,
   ManOutlined,
   WomanOutlined,
   FlagOutlined,
   FileTextOutlined,
   FilePdfOutlined,
-  DownOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useWorker, useWorkers } from '@/hooks/api/useWorkers';
@@ -127,6 +123,7 @@ const translations = {
     printCV: 'Print CV',
     documents: 'Documents',
     noDocuments: 'No documents uploaded',
+    passportScan: 'Passport Scan / Worker Photo',
   },
   ar: {
     pageTitle: 'العمالة المتاحة للاختيار',
@@ -201,6 +198,7 @@ const translations = {
     printCV: 'طباعة السيرة الذاتية',
     documents: 'المستندات',
     noDocuments: 'لا توجد مستندات محملة',
+    passportScan: 'صورة الجواز / صورة العامل',
   },
 };
 
@@ -917,7 +915,7 @@ export default function AvailableWorkersPage() {
               {viewingWorker?.uploadImage ? (
                 <div>
                   <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
-                    {t('passportScan')} / {language === 'ar' ? 'صورة العامل' : 'Worker Photo'}
+                    {t('passportScan')}
                   </p>
                   <Image
                     src={viewingWorker.uploadImage}
