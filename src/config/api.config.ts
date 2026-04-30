@@ -167,11 +167,11 @@ export const API_ENDPOINTS = {
   MEDIATION_CONTRACT_OFFER: {
     GET_SUMMARY: '/api/Mediation/MediationContractOffer',
     GET_ALL: '/api/Mediation/MediationContractOffer',
-    GET_BY_ID: (id: number) => `/api/Mediation/MediationContractOffer/${id}`,
+    GET_BY_ID: (id: number | string) => `/api/Mediation/MediationContractOffer/${id}`,
     CREATE: '/api/Mediation/MediationContractOffer',
     UPDATE: '/api/Mediation/MediationContractOffer',
-    DELETE: (id: number) => `/api/Mediation/MediationContractOffer/${id}`,
-    TOGGLE_ACTIVE: (id: number) => `/api/Mediation/MediationContractOffer/${id}/toggle-active`,
+    DELETE: (id: number | string) => `/api/Mediation/MediationContractOffer/${id}`,
+    TOGGLE_ACTIVE: (id: number | string) => `/api/Mediation/MediationContractOffer/${id}/toggle-active`,
     AUTO_FILL: '/api/Mediation/MediationContractOffer/auto-fill',
   },
 

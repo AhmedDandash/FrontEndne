@@ -502,6 +502,7 @@ export interface UpdateJobDto {
 export interface Nationality {
   /** UUID string per swagger */
   id: string;
+  nationalityId?: number | null;
   nationalityNameAr?: string | null;
   nationalityNameEn?: string | null;
   isActive?: boolean;

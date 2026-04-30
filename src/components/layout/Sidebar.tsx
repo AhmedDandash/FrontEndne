@@ -162,11 +162,11 @@ export default function Sidebar({
         /* ───── Operation submenu (moved from top-level) ───── */
         {
           key: 'contracts-operation',
-          label: language === 'ar' ? 'عقود التشغيل' : 'Operation',
+          label: language === 'ar' ? 'عقود العاملات المقيمة' : 'Operation Contracts',
           children: [
             {
               key: '/contracts/operation/rent',
-              label: language === 'ar' ? 'عقود التشغيل' : 'Operation Contracts',
+              label: language === 'ar' ? 'عقود العاملات المقيمة' : 'Operation Contracts',
             },
             {
               key: '/contracts/operation/collection-renewal',

@@ -41,7 +41,7 @@ export function useAuth() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: (userData: RegisterDto) => AuthService.register(userData),
+    mutationFn: (userData: RegisterDto) => AuthService.addAdmin(userData),
     onSuccess: () => {
       message.success('تم التسجيل بنجاح / Registration successful');
       router.push('/login');
