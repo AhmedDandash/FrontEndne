@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { Button, Space } from 'antd';
 import type { ReactNode } from 'react';
 import styles from './HRPageHeader.module.css';

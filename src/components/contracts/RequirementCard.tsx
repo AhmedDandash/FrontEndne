@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Tag, Tooltip, Spin, Empty } from 'antd';
 import {
   InfoCircleOutlined,

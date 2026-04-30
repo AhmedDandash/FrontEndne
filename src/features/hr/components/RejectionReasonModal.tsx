@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { Modal, Form, Input } from 'antd';
 import { useAuthStore } from '@/store/authStore';
 

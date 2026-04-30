@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Table, Input, Select, Tag, Empty, Spin, Card, Row, Col, Alert } from 'antd';
 import { SearchOutlined, CheckCircleFilled, DollarOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';

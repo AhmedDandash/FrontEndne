@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Layout, Badge, Dropdown, Avatar, Button } from 'antd';
 import {
   MenuUnfoldOutlined,

@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { Breadcrumb } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
 import { usePathname, useRouter } from 'next/navigation';
