@@ -1367,6 +1367,157 @@ export interface UpdateReceiptVoucherDto {
   employmentOperatingContractId?: string | null;
 }
 
+// ==================== Mediation Follow-Up Module Types ====================
+
+/** Query params for GET /api/Mediation/MediationFollowUp/dashboard */
+export interface MediationFollowUpDashboardParams {
+  ContractNumber?: number | null;
+  CustomerNationalId?: string | null;
+  WorkerPassportNumber?: string | null;
+  ContractId?: string | null;
+  MusanedContractNumber?: string | null;
+  StatusId?: number | null;
+  NationalityId?: string | null;
+  WorkerType?: number | null;
+  DateFrom?: string | null;
+  DateTo?: string | null;
+  Page?: number;
+  PageSize?: number;
+}
+
+/**
+ * Single row returned by GET /dashboard.
+ * Response shape not defined in spec — fields mirror MediationContract + follow-up status.
+ */
+export interface MediationFollowUpDashboardRow {
+  id?: string | null;
+  contractId?: string | null;
+  contractNumber?: number | null;
+  workerName?: string | null;
+  workerPassportNumber?: string | null;
+  customerName?: string | null;
+  customerNationalId?: string | null;
+  nationalityName?: string | null;
+  nationalityNameAr?: string | null;
+  musanedContractNumber?: string | null;
+  statusId?: number | null;
+  statusName?: string | null;
+  workerType?: number | null;
+  workerTypeName?: string | null;
+  createdAt?: string | null;
+  // progress summary — may be returned by the API
+  totalItems?: number | null;
+  completedItems?: number | null;
+}
+
+/**
+ * Paginated wrapper that the dashboard endpoint may return.
+ * Handled generically in the service's unwrapList — typed here for clarity.
+ */
+export interface MediationFollowUpDashboardResponse {
+  data?: MediationFollowUpDashboardRow[];
+  total?: number | null;
+  page?: number | null;
+  pageSize?: number | null;
+  totalPages?: number | null;
+}
+
+/**
+ * Single follow-up item returned by GET /items/{contractId} and GET /item/{itemId}.
+ * canComplete drives the "Complete" button disabled state.
+ */
+export interface MediationFollowUpItem {
+  id?: string | null;
+  mediationContractId?: string | null;
+  followUpStatusId?: string | null;
+  statusNameAr?: string | null;
+  statusNameEn?: string | null;
+  sortOrder?: number | null;
+  dependsOnStatusId?: string | null;
+  dependsOnStatusName?: string | null;
+  fileNameAr?: string | null;
+  fileNameEn?: string | null;
+  whatsAppName?: string | null;
+  maxDays?: number | null;
+  /** 1=Pending, 2=Completed, 3=Failed, 4=Skipped */
+  result?: number | null;
+  resultName?: string | null;
+  completedAt?: string | null;
+  notes?: string | null;
+  inputDescription?: string | null;
+  /** false → predecessor not yet completed → disable the Complete button */
+  canComplete?: boolean | null;
+}
+
+/** POST /api/Mediation/MediationFollowUp/update-description */
+export interface UpdateFollowUpItemDescriptionDto {
+  itemId: string;
+  inputDescription?: string | null;
+}
+
+/** POST /api/FollowUp/ContractFollowUp/CompleteItem */
+export interface CompleteFollowUpItemDto {
+  contractFollowUpItemId: string;
+  completedAt: string;
+  notes?: string | null;
+  /** 2=Completed, 3=Failed, 4=Skipped */
+  result: 2 | 3 | 4;
+}
+
+/** GET /api/FollowUp/ContractFollowUp/CanComplete/{itemId} */
+export interface CanCompleteResponse {
+  canComplete: boolean;
+}
+
+/** GET /api/FollowUp/ContractCreationRequirement/GetByNationalityAndJob */
+export interface ContractCreationRequirementDto {
+  id?: string | number | null;
+  nationalityId?: string | null;
+  jobId?: string | null;
+  requirementsText?: string | null;
+  nationalityNameAr?: string | null;
+  nationalityNameEn?: string | null;
+  jobNameAr?: string | null;
+  jobNameEn?: string | null;
+  createdAt?: string | null;
+}
+
+export interface CreateContractCreationRequirementNewDto {
+  nationalityId: string;
+  jobId: string;
+  requirementsText: string;
+}
+
+// ── New /api/FollowUp/ContractCreationRequirement/* types (UUID-based) ─────────
+
+/** Returned by GetByNationalityAndJob and GetById */
+export interface FollowUpRequirement {
+  id?: string | null;
+  /** UUID — master nationality UUID (ContractNationality.nationalityId) */
+  nationalityId?: string | null;
+  nationalityNameAr?: string | null;
+  nationalityNameEn?: string | null;
+  /** UUID */
+  jobId?: string | null;
+  jobName?: string | null;
+  requirementsText?: string | null;
+}
+
+/** POST /api/FollowUp/ContractCreationRequirement/Create */
+export interface CreateFollowUpRequirementDto {
+  nationalityId: string;
+  jobId: string;
+  requirementsText: string;
+}
+
+/** PUT /api/FollowUp/ContractCreationRequirement/Update — id is in body */
+export interface UpdateFollowUpRequirementDto {
+  id: string;
+  nationalityId?: string | null;
+  jobId?: string | null;
+  requirementsText?: string | null;
+}
+
 // ==================== Transfer Contract Types ====================
 // TransferContractStatus: 1=Draft, 2=Signed, 3=Completed
 export interface TransferContract {

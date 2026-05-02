@@ -41,9 +41,17 @@ import {
   useDeleteContractNationality,
 } from '@/hooks/api/useContractNationalities';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import { useJobs } from '@/hooks/api/useJobs';
+import {
+  useFollowUpRequirement,
+  useCreateFollowUpRequirement,
+  useUpdateFollowUpRequirement,
+  useDeleteFollowUpRequirement,
+} from '@/hooks/api/useFollowUpRequirements';
 import type {
   FollowUpStatus,
   ContractNationality,
+  FollowUpRequirement,
 } from '@/types/api.types';
 import styles from './MediationSettings.module.css';
 import { NationalityConfigGrid } from './NationalityConfigGrid';
@@ -73,6 +81,17 @@ function useT(language: string) {
       noStatuses: { ar: 'لا توجد حالات متابعة', en: 'No follow-up statuses' },
       noNationalities: { ar: 'لا توجد جنسيات مضافة', en: 'No nationalities added' },
       configureSettings: { ar: 'ضبط الإعدادات', en: 'Configure Settings' },
+      requirementsTab: { ar: 'متطلبات إنشاء العقد', en: 'Creation Requirements' },
+      addRequirement: { ar: 'إضافة متطلب', en: 'Add Requirement' },
+      editRequirement: { ar: 'تعديل المتطلب', en: 'Edit Requirement' },
+      nationality: { ar: 'الجنسية', en: 'Nationality' },
+      job: { ar: 'المهنة', en: 'Job' },
+      requirementsText: { ar: 'نص المتطلبات', en: 'Requirements Text' },
+      selectJob: { ar: 'اختر المهنة', en: 'Select Job' },
+      searchRequirement: { ar: 'بحث عن متطلب', en: 'Search Requirement' },
+      noRequirement: { ar: 'لا يوجد متطلب لهذه الجنسية والمهنة', en: 'No requirement for this nationality + job' },
+      requirementFound: { ar: 'المتطلب المحدد', en: 'Found Requirement' },
+      selectBothToSearch: { ar: 'اختر الجنسية والمهنة للبحث أو الإضافة', en: 'Select nationality and job to search or add' },
     };
     return (key: string) => map[key]?.[language] || map[key]?.['en'] || key;
   }, [language]);
@@ -111,6 +130,11 @@ export default function MediationSettingsPage() {
             key: 'nationalities',
             label: t('nationalitiesTab'),
             children: <ContractNationalitiesTab language={language} t={t} isRTL={isRTL} />,
+          },
+          {
+            key: 'requirements',
+            label: t('requirementsTab'),
+            children: <ContractCreationRequirementsTab language={language} t={t} isRTL={isRTL} />,
           },
         ]}
       />
@@ -442,6 +466,264 @@ function ContractNationalitiesTab({ t, isRTL }: TabProps) {
               optionFilterProp="label"
               placeholder={t('selectNationality')}
               options={nationalityOptions}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
+  );
+}
+
+// ==================== Tab 3: Contract Creation Requirements ====================
+function ContractCreationRequirementsTab({ t, isRTL }: TabProps) {
+  const { data: contractNationalities = [] } = useContractNationalities();
+  const { data: jobs = [] } = useJobs();
+  const createMutation = useCreateFollowUpRequirement();
+  const updateMutation = useUpdateFollowUpRequirement();
+  const deleteMutation = useDeleteFollowUpRequirement();
+
+  const [selectedNatId, setSelectedNatId] = useState<string | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [form] = Form.useForm();
+
+  const { data: requirement, isLoading: isSearching } = useFollowUpRequirement(
+    selectedNatId,
+    selectedJobId
+  );
+
+  const nationalityOptions = useMemo(
+    () =>
+      contractNationalities
+        .filter((cn) => cn.isActive !== false && !!cn.nationalityId)
+        .map((cn) => ({
+          value: cn.nationalityId as string,
+          label: isRTL
+            ? cn.nameAr || cn.nameEn || cn.nationalityId
+            : cn.nameEn || cn.nameAr || cn.nationalityId,
+        })),
+    [contractNationalities, isRTL]
+  );
+
+  const jobOptions = useMemo(
+    () =>
+      jobs
+        .filter((j) => j.isActive !== false)
+        .map((j) => ({
+          value: String(j.id),
+          label: isRTL
+            ? j.jobNameAr || j.jobNameEn || String(j.id)
+            : j.jobNameEn || j.jobNameAr || String(j.id),
+        })),
+    [jobs, isRTL]
+  );
+
+  const openCreate = () => {
+    setIsEditing(false);
+    form.resetFields();
+    setModalOpen(true);
+  };
+
+  const openEdit = (req: FollowUpRequirement) => {
+    setIsEditing(true);
+    form.setFieldsValue({ requirementsText: req.requirementsText });
+    setModalOpen(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      const values = await form.validateFields();
+      if (isEditing && requirement?.id) {
+        await updateMutation.mutateAsync({
+          id: requirement.id,
+          requirementsText: values.requirementsText,
+        });
+      } else {
+        await createMutation.mutateAsync({
+          nationalityId: selectedNatId!,
+          jobId: selectedJobId!,
+          requirementsText: values.requirementsText,
+        });
+      }
+      setModalOpen(false);
+      form.resetFields();
+    } catch {
+      // validation errors
+    }
+  };
+
+  const bothSelected = !!selectedNatId && !!selectedJobId;
+
+  return (
+    <>
+      {/* Search selectors */}
+      <div
+        style={{
+          background: '#f8f9fa',
+          border: '1px solid #e9ecef',
+          borderRadius: 8,
+          padding: '16px 20px',
+          marginBottom: 20,
+        }}
+      >
+        <div style={{ fontWeight: 600, marginBottom: 12, color: '#003366' }}>
+          {t('searchRequirement')}
+        </div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 220px' }}>
+            <div style={{ fontSize: 12, color: '#6c757d', marginBottom: 4 }}>{t('nationality')}</div>
+            <Select
+              showSearch
+              allowClear
+              optionFilterProp="label"
+              placeholder={isRTL ? 'اختر الجنسية' : 'Select nationality'}
+              options={nationalityOptions}
+              value={selectedNatId ?? undefined}
+              onChange={(v) => setSelectedNatId(v ?? null)}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ flex: '1 1 220px' }}>
+            <div style={{ fontSize: 12, color: '#6c757d', marginBottom: 4 }}>{t('job')}</div>
+            <Select
+              showSearch
+              allowClear
+              optionFilterProp="label"
+              placeholder={t('selectJob')}
+              options={jobOptions}
+              value={selectedJobId ?? undefined}
+              onChange={(v) => setSelectedJobId(v ?? null)}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Result area */}
+      {!bothSelected ? (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '32px 16px',
+            color: '#8c8c8c',
+            background: '#fafafa',
+            borderRadius: 8,
+            border: '1px dashed #d9d9d9',
+          }}
+        >
+          <GlobalOutlined style={{ fontSize: 32, marginBottom: 8, display: 'block' }} />
+          {t('selectBothToSearch')}
+        </div>
+      ) : isSearching ? (
+        <div style={{ textAlign: 'center', padding: '32px 0' }}>
+          <Spin />
+        </div>
+      ) : requirement ? (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #f0f5ff 0%, #e6f7ff 100%)',
+            border: '1px solid #d6e4ff',
+            borderRadius: 8,
+            padding: '20px 24px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <div style={{ fontWeight: 600, color: '#003366', fontSize: 15 }}>{t('requirementFound')}</div>
+            <Space>
+              <Tooltip title={t('edit')}>
+                <Button
+                  type="default"
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={() => openEdit(requirement)}
+                />
+              </Tooltip>
+              <Popconfirm
+                title={t('confirmDelete')}
+                onConfirm={() => requirement.id && deleteMutation.mutate(requirement.id)}
+                okText={t('delete')}
+                cancelText={t('cancel')}
+              >
+                <Button
+                  type="default"
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  loading={deleteMutation.isPending}
+                />
+              </Popconfirm>
+            </Space>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <Tag color="blue">
+              {isRTL
+                ? requirement.nationalityNameAr || requirement.nationalityNameEn
+                : requirement.nationalityNameEn || requirement.nationalityNameAr}
+            </Tag>
+            <Tag color="green">{requirement.jobName}</Tag>
+          </div>
+          <div
+            style={{
+              background: 'rgba(255,255,255,0.85)',
+              borderRadius: 6,
+              padding: '12px 16px',
+              whiteSpace: 'pre-wrap',
+              lineHeight: 1.7,
+              fontSize: 14,
+              color: '#2c3e50',
+              borderInlineStart: '3px solid #003366',
+            }}
+          >
+            {requirement.requirementsText}
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '32px 16px',
+            background: '#fafafa',
+            borderRadius: 8,
+            border: '1px dashed #d9d9d9',
+          }}
+        >
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={<span style={{ color: '#8c8c8c' }}>{t('noRequirement')}</span>}
+          >
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreate}
+              style={{ background: '#00aa64', borderColor: '#00aa64' }}
+            >
+              {t('addRequirement')}
+            </Button>
+          </Empty>
+        </div>
+      )}
+
+      <Modal
+        open={modalOpen}
+        title={isEditing ? t('editRequirement') : t('addRequirement')}
+        onCancel={() => { setModalOpen(false); form.resetFields(); }}
+        onOk={handleSave}
+        okText={t('save')}
+        cancelText={t('cancel')}
+        confirmLoading={createMutation.isPending || updateMutation.isPending}
+        destroyOnClose
+        width={560}
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="requirementsText"
+            label={t('requirementsText')}
+            rules={[{ required: true, message: t('required') }]}
+          >
+            <Input.TextArea
+              rows={6}
+              placeholder={isRTL ? 'أدخل نص متطلبات هذه الجنسية والمهنة' : 'Enter requirements text for this nationality + job'}
             />
           </Form.Item>
         </Form>

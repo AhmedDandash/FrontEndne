@@ -1,0 +1,132 @@
+#               )Follow-Up Cycle( موديول متابعة عقود التوسط - )API Guide( دليل واجهات برمجة التطبيقا
+تالخاصة بموديول المتابعة وكيفية استخدامها  Endpoints لشرح جميع الـ Frontend تم تصميم هذا الدليل لفريق ال
+ـ .خطوة بخطوة. يعتمد هذا الموديول على إعدادات ديناميكية تتغير بحسب كل جنسية
+ `/api/FollowUp/` :تبدأ بـ )Routes( جميع المسارا
+ت `>Authorization: Bearer <token` :تحتاج جميع المسارات إلى إرسال التوك
+ن
+## Business Logic Summary 
+### Flow: 
+``` 
+1. Admin يضيف حاالت المتابعة األساسية (FollowUpStatus)  ، TESDA ،OWWAمثال: إرسال العقد، عقد السفارة، الفحص الطبي، التدريب،
+  تبصيم الخارجية، التأشير، تصريح السفر، حجز التذكرة، الفحص األمن
+ي
+2. Admin يضيف جنسية لعقود التوسط (ContractNationality)  ...مثال: اليمن، إثيوبيا، مصر، الفلبي
+ن كل جنسية عندها: اسم عربي + اسم إنجليز
+ي
+3. Admin يفتح إعدادات المتابعة اآللية لكل جنسية  اسم الحالة في الملف (إنجليزي)  - اسم الحالة في الملف (عربي) - الحالة اللي الزم تكتمل قبلها  — )DependsOnStatusId( تعتمد على - )SortOrder( ترتيب الحالة - :ويرى كل حاالت المتابعة األساسية ويضبط لكل حال
+ة
+ )IsActive toggle( تفعيل / تعطيل  - )MaxDays( أقصى عدد أيام - WhatsApp اسم الحالة في 
+-
+##     )FollowUpStatus( حاالت المتابعة األساسي
+ة .التي يقرأ منها النظام. هذه الواجهات تُستخدم في شاشة إعدادات النظام الرئيسية )Master Data( هذه هي الحاال
+ت |المخرجات المتوقعة  |الوصف  | )Method( الطريقة | )Endpoint( المسار 
+|
+|-------------------|------------------|-------|-------------------| 
+| `FollowUpStatus/GetAll` | `GET` | جلب جميع حاالت المتابعة األساسية. | `[ { id, nameAr, 
+nameEn, defaultSortOrder } ]` | 
+| `FollowUpStatus/GetById/{id}` | `GET` | جلب تفاصيل حالة متابعة محددة. | `{ id, nameAr, ... }` 
+| 
+| `FollowUpStatus/Create` | `POST` | إضافة حالة متابعة جديدة. | `{ nameAr: "", nameEn: "", 
+defaultSortOrder: 1 }` | 
+| `FollowUpStatus/Update` | `PUT` | تعديل حالة متابعة موجودة. | `{ id, nameAr: "", nameEn: 
+"", defaultSortOrder: 1 }` | 
+| `FollowUpStatus/Delete/{id}`| `DELETE` | حذف حالة متابعة. | `{ isSuccess: true }` | --- 
+##     )ContractNationality( إعدادات جنسيات العقو
+د .تُستخدم هذه الواجهات في شاشة إضافة الدول المُصرح االستقدام منه
+ا
+**        تلقائيا  بتوليد إعدادات  Backend لجنسية جديدة، سيقوم الـ `Create`بمجرد عمل  **:مالحظة هامة جد
+ا !لها  )Configs( افتراضية
+
+ |المخرجات / المدخالت المتوقعة  |الوصف  | )Method( الطريقة | )Endpoint( المسار 
+|
+|-------------------|------------------|-------|-------------------| 
+| `ContractNationality/GetAll` | `GET` | يعيد الحقل   | .عرض كل الجنسيات المضافة
+`configuredStatusCount`  واالسماء`nameAr`, `nameEn` من الجدول األساسي. | 
+| `ContractNationality/Create` | `POST` | المدخالت | .إضافة جنسية موجودة لموديول المتابعة: `{ 
+nationalityId: "GUID" }` | 
+| `ContractNationality/Update` | `PUT` | المدخالت | .تعديل حالة الجنسية: `{ id, isActive: 
+true/false }` | 
+| `ContractNationality/Delete/{id}`| `DELETE` | حذف الجنسية من الموديول. | | --- 
+##    خصص
+ا )NationalityFollowUpConfig( إعدادات المتابعة لكل جنسية
+تُستخدم هذه الواجهات في شاشة "تخصيص اإلعدادات" عند الضغط على جنسية معينة. وهي تمثل الشبكة/الجدول الذ
+ي يتم فيه تفعيل المهام أو إعطاؤها ترتيبا  واسما  م
+
+.  | )Body / Params( المدخالت |الوصف  | )Method( الطريقة | )Endpoint( المسار 
+|
+|-------------------|------------------|-------|--------------------------| 
+| `NationalityFollowUpConfig/GetByNationality/{ ContractNationalityId}` | `GET` |   ,id, statusNameAr, dependsOnStatusId { [`تُرجع مصفوفة  | .جلب كل اإلعدادات الخاصة بجنسية معين
+ة
+maxDays, isActive, ... } ]`  عندما يفتح المستخدم صفحة "إعدادات الجنسية" ويختار مثال  "الفلبين"، تقوم هذه الدالة بجلب كل الخطوات المتاح
+ة (سواء مفعلة أو غير مفعلة
+
+| 
+| `NationalityFollowUpConfig/ToggleActive/{id}` | `POST` | تشغيل / إيقاف (Toggle)   حالة معينة | `} isActive: true/false {`يعيد حالة التفعيل الجديدة  | .بنقرة زر واحدة
+
+| `NationalityFollowUpConfig/Update` | `PUT` | تعديل سطر واحد في إعدادات الجنسية. | `{ id, 
+sortOrder, dependsOnStatusId, fileNameAr, maxDays, isActive }` | 
+ .تحديث تفاصيل مهمة واحدة محددة :وظيفتها 
+•تقوم بتعديل الحقول مثل: (هل هي مفعلة؟ ما هو ترتيبها؟ هل تعتمد على خطوة أخرى؟ كم   :ماذا تفعل بالداخل؟ 
+• أقصى عدد أيام مسموح لها؟
+
+| `NationalityFollowUpConfig/BulkUpdate` | `POST` | حفظ جدول اإلعدادات بالكامل مرة واحدة 
+(Save All). | `{ nationalityId, configs: [ { id, sortOrder, ... } ] }` |  .UI هذه أهم دالة للـ :وظيفتها 
+• .)Save All( "الك
+ل
+**      مهام وتغيير تبعياتها ثم يضغط "حفظ
+   :**`DependsOnStatusId`في  Frontend نصيحة للـ
+
+10عندما يقوم المستخدم بتعديل ترتيب
+  **األخرى**لحقل "تعتمد على"، يجب أن تحتوي القائمة فقط على الحاالت  )Dropdown( عند تقديم قائمة منسدلة
+ --- .المفعّلة، وال ينبغي أن يُسمح باختيار نفس الحالة كاعتماد لنفسها (ال تعتمد الحالة على نفسها
+)
+##     )ContractFollowUp( متابعة العقد الفعلي وإنجاز المها
+م .تُستخدم هذه الواجهات في الشاشة الخاصة بمتابعة عقد التوسط الفعلي ألحد العمال
+ء |المخرجات / المدخالت  |الوصف  | )Method( الطريقة | )Endpoint( المسار 
+|
+|-------------------|------------------|-------|-------------------| 
+| `ContractFollowUp/GetByContract/{contractId}` | `GET` | جلب مراحل المتابعة (Timelines) لكل مرحلة لمعرفة هل يمكن للمستخدم النقر على "إتمام" أم أن  `canComplete`يُرجع حقل  | .الخاصة بعقد محد
+د
+ 
+ل | .`Disabled`الزر يجب أن يكون معطا
+
+| `ContractFollowUp/CanComplete/{itemId}` | `GET` |   التأكد المباشر عما إذا كانت مرحلة المتابعة | `} canComplete: true/false {` | .مؤهلة لإلتمام
+=تم التخط
+ي
+| `ContractFollowUp/CompleteItem` | `POST` | المدخالت | .تسجيل إتمام مرحلة من المتابعة: `{ 
+contractFollowUpItemId, completedAt: "2026-04-25...", notes: "تم االنتهاء", result: 2 }` 
+<br> *(
+4=فشل,
+ 
+3=مكتمل,
+ 
+2مالحظة:
+ 
+)* | 
+--- 
+##     )ContractCreationRequirement( متطلبات اإلنشاء حسب الوظيف
+ة .في حال طلب إضافة متطلبات عند إنشاء العقد (مثل: الهند/سائق يطلب شهادة معينة
+) | )Body / Params( المدخالت |الوصف  | )Method( الطريقة | )Endpoint( المسار 
+|
+|-------------------|------------------|-------|--------------------------| 
+| `ContractCreationRequirement/GetByNationalityAndJob` | `GET` |  تُستخدم عند صفحة | `..=nationalityId=..&jobId?` | )Params ترسل ( .إنشاء عقد التوسط لعرض شروط العامل
+
+| `ContractCreationRequirement/Create` | `POST` | إضافة متطلب لجنسية/وظيفة. | `{ 
+nationalityId, jobId, requirementsText }` | 
+| `ContractCreationRequirement/Update` | `PUT` | تعديل متطلب. | | 
+| `ContractCreationRequirement/Delete/{id}`| `DELETE` | | | --- 
+##       
+Enum Values (للرجوع إليها في الـ Frontend) 
+**Result Status (حالة السجل الفعلي - `FollowUpItemResult`)**: - `1` = `Pending`  `Completed` = `2` -الحالة االفتراضي
+ة(قيد االنتظار)
+ 
+.  `Failed` = `3` -تم إنجاز المهم
+ة(مكتمل)
+ 
+.  `Skipped` = `4` -لم يتم اجتياز الفحص أو المهم
+ة(فشل)
+ المهمة غير مطلوبة وتم التخطي
+(متجاوز)
+ 
+. 
+. 

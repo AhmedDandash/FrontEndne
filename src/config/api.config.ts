@@ -279,6 +279,37 @@ export const API_ENDPOINTS = {
     BULK_UPDATE: '/api/FollowUp/NationalityFollowUpConfig/BulkUpdate',
   },
 
+  // ─── Mediation Follow-Up Module ──────────────────────────────────────────
+  // Endpoints per followup_mediationContract.txt spec
+
+  MEDIATION_FOLLOWUP: {
+    DASHBOARD: '/api/Mediation/MediationFollowUp/dashboard',
+    ITEMS: (contractId: string) => `/api/Mediation/MediationFollowUp/items/${contractId}`,
+    ITEM: (itemId: string) => `/api/Mediation/MediationFollowUp/item/${itemId}`,
+    UPDATE_DESCRIPTION: '/api/Mediation/MediationFollowUp/update-description',
+  },
+
+  // Contract Follow-Up (per mediation_contract_settings.txt spec)
+  CONTRACT_FOLLOWUP: {
+    GET_BY_CONTRACT: (contractId: string) =>
+      `/api/FollowUp/ContractFollowUp/GetByContract/${contractId}`,
+    CAN_COMPLETE: (itemId: string) => `/api/FollowUp/ContractFollowUp/CanComplete/${itemId}`,
+    COMPLETE_ITEM: '/api/FollowUp/ContractFollowUp/CompleteItem',
+  },
+
+  // Contract Creation Requirement (per mediation_contract_settings.txt spec)
+  // All IDs are UUIDs. nationalityId = ContractNationality.nationalityId (master UUID).
+  CONTRACT_CREATION_REQUIREMENT: {
+    GET_BY_NATIONALITY_AND_JOB:
+      '/api/FollowUp/ContractCreationRequirement/GetByNationalityAndJob',
+    GET_BY_ID: (id: string) =>
+      `/api/FollowUp/ContractCreationRequirement/GetById/${id}`,
+    CREATE: '/api/FollowUp/ContractCreationRequirement/Create',
+    UPDATE: '/api/FollowUp/ContractCreationRequirement/Update',
+    DELETE: (id: string) =>
+      `/api/FollowUp/ContractCreationRequirement/Delete/${id}`,
+  },
+
   // ─── HR Module ───────────────────────────────────────────────────────────
   // Paths aligned with swagger-Hr-Api.json (RESTful style)
 

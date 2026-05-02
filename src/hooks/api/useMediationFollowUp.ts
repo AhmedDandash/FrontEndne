@@ -1,0 +1,86 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { message } from 'antd';
+import { MediationFollowUpService } from '@/services/mediation-followup.service';
+import type {
+  MediationFollowUpDashboardParams,
+  MediationFollowUpItem,
+  UpdateFollowUpItemDescriptionDto,
+  CompleteFollowUpItemDto,
+} from '@/types/api.types';
+
+const KEYS = {
+  dashboard: 'mediation-followup-dashboard',
+  items: 'mediation-followup-items',
+  item: 'mediation-followup-item',
+} as const;
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+
+export function useMediationFollowUpDashboard(params?: MediationFollowUpDashboardParams) {
+  return useQuery({
+    queryKey: [KEYS.dashboard, params],
+    queryFn: () => MediationFollowUpService.getDashboard(params),
+  });
+}
+
+// ── Contract items ────────────────────────────────────────────────────────────
+
+export function useMediationFollowUpItems(contractId?: string | null) {
+  return useQuery<MediationFollowUpItem[]>({
+    queryKey: [KEYS.items, contractId],
+    queryFn: () => MediationFollowUpService.getItems(contractId!),
+    enabled: !!contractId,
+  });
+}
+
+// ── Single item detail ────────────────────────────────────────────────────────
+
+export function useMediationFollowUpItem(itemId?: string | null) {
+  return useQuery<MediationFollowUpItem>({
+    queryKey: [KEYS.item, itemId],
+    queryFn: () => MediationFollowUpService.getItem(itemId!),
+    enabled: !!itemId,
+  });
+}
+
+// ── Update description (completes the item automatically on the backend) ──────
+
+export function useUpdateFollowUpDescription(contractId?: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dto: UpdateFollowUpItemDescriptionDto) =>
+      MediationFollowUpService.updateDescription(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [KEYS.items, contractId] });
+      queryClient.invalidateQueries({ queryKey: [KEYS.dashboard] });
+      message.success('تم تحديث المرحلة بنجاح / Stage updated successfully');
+    },
+    onError: (error: any) => {
+      message.error(
+        error.response?.data?.message || 'فشل تحديث المرحلة / Failed to update stage'
+      );
+    },
+  });
+}
+
+// ── Complete item via ContractFollowUp module ─────────────────────────────────
+
+export function useCompleteFollowUpItem(contractId?: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dto: CompleteFollowUpItemDto) =>
+      MediationFollowUpService.completeItem(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [KEYS.items, contractId] });
+      queryClient.invalidateQueries({ queryKey: [KEYS.dashboard] });
+      message.success('تم إتمام المرحلة بنجاح / Stage completed successfully');
+    },
+    onError: (error: any) => {
+      message.error(
+        error.response?.data?.message || 'فشل إتمام المرحلة / Failed to complete stage'
+      );
+    },
+  });
+}
