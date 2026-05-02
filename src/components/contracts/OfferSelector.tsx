@@ -86,10 +86,9 @@ export default function OfferSelector({
     [isArabic]
   );
 
-  // Helper: resolve branch name
   const getBranchName = useCallback(
-    (offer: MediationContractOffer): string => {
-      return offer.branchName || (isArabic ? 'غير محدد' : 'N/A');
+    (_offer: MediationContractOffer): string => {
+      return isArabic ? 'غير محدد' : 'N/A';
     },
     [isArabic]
   );

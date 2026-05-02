@@ -1,8 +1,3 @@
-/**
- * Mediation Contract Offer Service
- * Handles all mediation contract offer-related API calls
- */
-
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type {
@@ -30,8 +25,6 @@ export class MediationContractOfferService {
       id: offer.id ?? offer.ID ?? offer.offerId ?? offer.mediationContractOfferId,
       nationalityId: offer.nationalityId ?? offer.nationalityID,
       jobId: offer.jobId ?? offer.jobID,
-      branchId: offer.branchId ?? offer.branchID,
-      agentId: offer.agentId ?? offer.agentID,
       agentCostSAR: offer.agentCostSAR ?? offer.agentCostSar,
     } as MediationContractOffer;
   }
@@ -67,9 +60,6 @@ export class MediationContractOfferService {
     return [];
   }
 
-  /**
-   * Get all offers
-   */
   static async getAll(): Promise<MediationContractOffer[]> {
     const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.GET_ALL, {
       params: { PageSize: 9999, PageNumber: 1 },
@@ -77,35 +67,25 @@ export class MediationContractOfferService {
     return this.unwrapList<MediationContractOffer>(response.data);
   }
 
-  /**
-   * Get offer by ID
-   */
-  static async getById(id: number | string): Promise<MediationContractOffer> {
+  static async getById(id: string): Promise<MediationContractOffer> {
     const response = await api.get<any>(
       API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.GET_BY_ID(id)
     );
     return this.unwrap<MediationContractOffer>(response.data);
   }
 
-  /**
-   * Create new offer
-   */
   static async create(data: CreateMediationContractOfferDto): Promise<MediationContractOffer> {
     const payload = {
-      ...data,
       nationalityId: data.nationalityId ?? null,
       jobId: data.jobId ?? null,
-      branchId: data.branchId ?? null,
-      agentId: data.agentId ?? null,
-      workerType: data.workerType !== undefined ? Number(data.workerType) : null,
-      age: data.age ? Number(data.age) : null,
-      religion: data.religion !== undefined ? Number(data.religion) : null,
-      previousExperience:
-        data.previousExperience !== undefined ? Number(data.previousExperience) : null,
-      salary: data.salary ? Number(data.salary) : null,
-      localCost: data.localCost ? Number(data.localCost) : null,
-      taxLocalCost: data.taxLocalCost ? Number(data.taxLocalCost) : null,
-      agentCostSAR: data.agentCostSAR ? Number(data.agentCostSAR) : null,
+      workerType: data.workerType != null ? Number(data.workerType) : null,
+      previousExperience: data.previousExperience != null ? Number(data.previousExperience) : null,
+      localCost: data.localCost != null ? Number(data.localCost) : null,
+      agentCostSAR: data.agentCostSAR != null ? Number(data.agentCostSAR) : null,
+      salary: data.salary != null ? Number(data.salary) : null,
+      taxLocalCost: data.taxLocalCost != null ? Number(data.taxLocalCost) : null,
+      showForExternalCustomers: data.showForExternalCustomers ?? false,
+      showForReception: data.showForReception ?? false,
     };
     const response = await api.post<any>(
       API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.CREATE,
@@ -114,34 +94,21 @@ export class MediationContractOfferService {
     return this.unwrap<MediationContractOffer>(response.data);
   }
 
-  /**
-   * Update offer
-   */
   static async update(
-    id: number | string,
     data: UpdateMediationContractOfferDto
   ): Promise<MediationContractOffer> {
     const payload = {
-      // id must be present in both URL path and request body per PDF spec
-      id,
-      offerNumber: data.offerNumber ?? null,
+      id: data.id,
       nationalityId: data.nationalityId ?? null,
       jobId: data.jobId ?? null,
-      branchId: data.branchId ?? null,
-      agentId: data.agentId ?? null,
-      workerType: data.workerType !== undefined ? Number(data.workerType) : null,
-      age: data.age ? Number(data.age) : null,
-      religion: data.religion !== undefined ? Number(data.religion) : null,
-      previousExperience:
-        data.previousExperience !== undefined ? Number(data.previousExperience) : null,
-      salary: data.salary ? Number(data.salary) : null,
-      localCost: data.localCost ? Number(data.localCost) : null,
-      taxLocalCost: data.taxLocalCost ? Number(data.taxLocalCost) : null,
-      agentCostSAR: data.agentCostSAR ? Number(data.agentCostSAR) : null,
-      totalOfferCost: data.totalOfferCost ? Number(data.totalOfferCost) : null,
-      showForExternalCustomers: data.showForExternalCustomers ?? null,
-      showForReception: data.showForReception ?? null,
-      isActive: data.isActive ?? null,
+      workerType: data.workerType != null ? Number(data.workerType) : null,
+      previousExperience: data.previousExperience != null ? Number(data.previousExperience) : null,
+      localCost: data.localCost != null ? Number(data.localCost) : null,
+      agentCostSAR: data.agentCostSAR != null ? Number(data.agentCostSAR) : null,
+      salary: data.salary != null ? Number(data.salary) : null,
+      taxLocalCost: data.taxLocalCost != null ? Number(data.taxLocalCost) : null,
+      showForExternalCustomers: data.showForExternalCustomers ?? false,
+      showForReception: data.showForReception ?? false,
     };
     const response = await api.put<any>(
       API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.UPDATE,
@@ -150,19 +117,17 @@ export class MediationContractOfferService {
     return this.unwrap<MediationContractOffer>(response.data);
   }
 
-  /**
-   * Toggle active status of an offer (PATCH /toggle-active)
-   */
-  static async toggleActive(id: number | string): Promise<MediationContractOffer> {
+  static async delete(id: string): Promise<void> {
+    await api.delete(API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.DELETE(id));
+  }
+
+  static async toggleActive(id: string): Promise<MediationContractOffer> {
     const response = await api.patch<any>(
       API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.TOGGLE_ACTIVE(id)
     );
     return this.unwrap<MediationContractOffer>(response.data);
   }
 
-  /**
-   * Auto-fill offer costs based on nationality/job/workerType/experience
-   */
   static async autoFill(data: MediationOfferAutoFillDto): Promise<Partial<MediationContractOffer>> {
     const response = await api.post<any>(
       API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.AUTO_FILL,

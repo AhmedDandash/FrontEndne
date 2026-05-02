@@ -7,11 +7,18 @@ import type {
 } from '@/types/api.types';
 
 function extractArray<T>(responseData: any): T[] {
-  if (Array.isArray(responseData)) return responseData;
-  if (responseData && typeof responseData === 'object') {
-    for (const key of ['data', 'result', 'items']) {
-      if (Array.isArray(responseData[key])) return responseData[key];
-    }
+  const candidates = [
+    responseData,
+    responseData?.data,
+    responseData?.result,
+    responseData?.items,
+    responseData?.data?.items,
+    responseData?.data?.value,
+    responseData?.value,
+  ];
+  for (const c of candidates) {
+    if (Array.isArray(c)) return c;
+    if (Array.isArray(c?.$values)) return c.$values;
   }
   return [];
 }

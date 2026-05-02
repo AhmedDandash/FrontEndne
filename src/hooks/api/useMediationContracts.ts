@@ -142,7 +142,7 @@ export function useMediationContracts() {
   };
 }
 
-export function useMediationContract(id: number) {
+export function useMediationContract(id: string) {
   return useQuery({
     queryKey: [QUERY_KEY, id],
     queryFn: () => MediationContractService.getById(id),

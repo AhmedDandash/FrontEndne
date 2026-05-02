@@ -893,18 +893,16 @@ export interface UpdateNationalityDto {
 
 // ==================== Mediation Contract Offer Types ====================
 export interface MediationContractOffer {
-  id: number | string;
+  id: string;
   offerNumber?: number | null;
+  /** ContractNationality.id (integer PK from /api/FollowUp/ContractNationality/GetAll) */
   nationalityId?: string | null;
+  /** UUID string */
   jobId?: string | null;
-  branchId?: number | string | null;
   workerType?: number | null;
   workerTypeName?: string | null;
-  age?: number | null;
-  religion?: number | null;
   previousExperience?: number | null;
   previousExperienceName?: string | null;
-  agentId?: number | string | null;
   salary?: number | null;
   localCost?: number | null;
   taxLocalCost?: number | null;
@@ -913,14 +911,12 @@ export interface MediationContractOffer {
   showForExternalCustomers?: boolean | null;
   showForReception?: boolean | null;
   isActive?: boolean | null;
-  // Read-only joined fields
+  // Read-only joined fields from API response
   nationalityName?: string | null;
   nationalityNameAr?: string | null;
   nationalityNameEn?: string | null;
   jobName?: string | null;
   jobNameAr?: string | null;
-  branchName?: string | null;
-  agentName?: string | null;
   createdAt?: string | null;
   createdDate?: string | null;
   updatedAt?: string | null;
@@ -928,47 +924,44 @@ export interface MediationContractOffer {
 
 /** POST /api/Mediation/MediationContractOffer/auto-fill */
 export interface MediationOfferAutoFillDto {
-  nationalityId?: number | null;
-  jobId?: number | null;
+  /** ContractNationality.id (integer PK from /api/FollowUp/ContractNationality/GetAll) */
+  nationalityId?: string | null;
+  /** UUID string */
+  jobId?: string | null;
   workerType?: number | null;
   previousExperience?: number | null;
 }
 
 export interface CreateMediationContractOfferDto {
-  nationalityId?: number | string | null;
-  jobId?: number | string | null;
-  branchId?: number | string | null;
+  /** ContractNationality.id (integer PK from /api/FollowUp/ContractNationality/GetAll), sent as string */
+  nationalityId?: string | null;
+  /** UUID string */
+  jobId?: string | null;
   workerType?: number | null;
-  age?: number | null;
-  religion?: number | null;
   previousExperience?: number | null;
-  agentId?: number | string | null;
-  salary?: number | null;
   localCost?: number | null;
-  taxLocalCost?: number | null;
   agentCostSAR?: number | null;
+  salary?: number | null;
+  taxLocalCost?: number | null;
+  showForExternalCustomers?: boolean;
+  showForReception?: boolean;
 }
 
 export interface UpdateMediationContractOfferDto {
-  /** Required in request body per PDF spec (PUT /MediationContractOffer/{id}) */
-  id: string | number;
-  offerNumber?: number | null;
-  nationalityId?: number | string | null;
-  jobId?: number | string | null;
-  branchId?: number | string | null;
+  /** UUID — required in request body per swagger (PUT /MediationContractOffer) */
+  id: string;
+  /** ContractNationality.id (integer PK from /api/FollowUp/ContractNationality/GetAll), sent as string */
+  nationalityId?: string | null;
+  /** UUID string */
+  jobId?: string | null;
   workerType?: number | null;
-  age?: number | null;
-  religion?: number | null;
   previousExperience?: number | null;
-  agentId?: number | string | null;
-  salary?: number | null;
   localCost?: number | null;
-  taxLocalCost?: number | null;
   agentCostSAR?: number | null;
-  totalOfferCost?: number | null;
-  showForExternalCustomers?: boolean | null;
-  showForReception?: boolean | null;
-  isActive?: boolean | null;
+  salary?: number | null;
+  taxLocalCost?: number | null;
+  showForExternalCustomers?: boolean;
+  showForReception?: boolean;
 }
 
 // ==================== Mediation Contract Types ====================
@@ -1020,14 +1013,14 @@ export interface MediationContract {
 export interface CreateMediationContractDto {
   contractType?: number | null;
   customerId?: string | null;
-  /** Required per PDF spec — worker being placed in this contract */
+  /** Required per swagger — worker UUID */
   workerId?: string | null;
-  /** Required per PDF spec — used for identity verification on create */
+  /** Required per swagger — used for identity verification on create */
   workerPassportNumber?: string | null;
-  musanedContractNumber?: string | null;
+  /** Required per swagger — offer UUID */
+  offerId?: string | null;
   marketerId?: string | null;
   contractCategory?: number | null;
-  offerId?: string | null;
   visaType?: number | null;
   visaNumber?: string | null;
   visaDateHijri?: string | null;
@@ -1040,6 +1033,8 @@ export interface CreateMediationContractDto {
   costDescription?: string | null;
   hasContractInsurance?: boolean | null;
   domesticWorkerInsurance?: number | null;
+  musanedContractNumber?: string | null;
+  musanedDocumentationNumber?: string | null;
 }
 
 export interface ContractCancelDto {
@@ -1054,7 +1049,8 @@ export interface ContractCancelDto {
 export interface SignMediationContractDto {
   contractId: string;
   musanedContractNumber: string;
-  musanedDocumentationNumber?: string | null;
+  /** ISO datetime string — optional per swagger */
+  invoicePaymentDate?: string | null;
 }
 
 /** POST /api/Mediation/MediationContract/delivery-form */

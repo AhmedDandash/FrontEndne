@@ -18,12 +18,14 @@ import {
   Space,
   Empty,
   Input,
+  Popconfirm,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   ShopOutlined,
   PlusOutlined,
   EditOutlined,
+  DeleteOutlined,
   SearchOutlined,
   GlobalOutlined,
   TeamOutlined,
@@ -32,16 +34,14 @@ import {
   useMediationOffers,
   useCreateMediationOffer,
   useUpdateMediationOffer,
+  useDeleteMediationOffer,
   useToggleMediationOffer,
 } from '@/hooks/api/useMediationOffers';
-// import { useNationalities } from '@/hooks/api/useNationalities';
+import { useContractNationalities } from '@/hooks/api/useContractNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
-// import { useBranches } from '@/hooks/api/useBranches';
 import {
   WORKER_TYPE,
-  RELIGION,
   PREVIOUS_EXPERIENCE,
-  NATIONALITIES,
   getEnumLabel,
   toSelectOptions,
 } from '@/constants/enums';
@@ -58,18 +58,16 @@ export default function MediationOffersPage() {
 
   // API hooks
   const { data: offers = [], isLoading } = useMediationOffers();
+  const { data: contractNationalities = [] } = useContractNationalities();
+  const { data: jobs = [] } = useJobs();
   const createMutation = useCreateMediationOffer();
   const updateMutation = useUpdateMediationOffer();
+  const deleteMutation = useDeleteMediationOffer();
   const toggleMutation = useToggleMediationOffer();
 
-  // Lookup data
-  // const { data: nationalities = [] } = useNationalities();
-  const { data: jobs = [] } = useJobs();
-  // const { branches: branchList } = useBranches();
-
-  // State
-  const [nationalityFilter, setNationalityFilter] = useState<number | null>(null);
-  const [jobFilter, setJobFilter] = useState<number | null>(null);
+  // Filter state — nationalityId is UUID string
+  const [nationalityFilter, setNationalityFilter] = useState<string | null>(null);
+  const [jobFilter, setJobFilter] = useState<string | null>(null);
   const [workerTypeFilter, setWorkerTypeFilter] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -78,7 +76,6 @@ export default function MediationOffersPage() {
   const [editingOffer, setEditingOffer] = useState<MediationContractOffer | null>(null);
   const [form] = Form.useForm();
 
-  // Translations
   const t = (key: string): string => {
     const translations: Record<string, Record<string, string>> = {
       ar: {
@@ -86,11 +83,9 @@ export default function MediationOffersPage() {
         totalOffers: 'إجمالي العروض',
         nationalities: 'الجنسيات',
         jobs: 'الوظائف',
-        branches: 'الفروع',
         search: 'بحث...',
         nationality: 'الجنسية',
         job: 'الوظيفة',
-        branch: 'الفرع',
         workerType: 'نوع العامل',
         previousExperience: 'سبق له العمل',
         offerNumber: 'رقم العرض',
@@ -113,7 +108,6 @@ export default function MediationOffersPage() {
         loading: 'جاري التحميل...',
         noOffers: 'لا توجد عروض',
         actions: 'الإجراءات',
-        offersCount: 'عدد العروض',
         sar: 'ريال',
         active: 'مفعّل',
         inactive: 'معطّل',
@@ -124,11 +118,9 @@ export default function MediationOffersPage() {
         totalOffers: 'Total Offers',
         nationalities: 'Nationalities',
         jobs: 'Jobs',
-        branches: 'Branches',
         search: 'Search...',
         nationality: 'Nationality',
         job: 'Job',
-        branch: 'Branch',
         workerType: 'Worker Type',
         previousExperience: 'Previous Experience',
         offerNumber: 'Offer Number',
@@ -151,7 +143,6 @@ export default function MediationOffersPage() {
         loading: 'Loading...',
         noOffers: 'No offers found',
         actions: 'Actions',
-        offersCount: 'Offers Count',
         sar: 'SAR',
         active: 'Active',
         inactive: 'Inactive',
@@ -160,9 +151,6 @@ export default function MediationOffersPage() {
     };
     return translations[language]?.[key] || key;
   };
-
-  const sameId = (a: unknown, b: unknown) =>
-    a !== null && a !== undefined && b !== null && b !== undefined && String(a) === String(b);
 
   const getLocalizedName = useCallback(
     (item: any, englishKeys: string[], arabicKeys: string[]): string => {
@@ -177,97 +165,50 @@ export default function MediationOffersPage() {
   );
 
   const getNationalityDisplayName = useCallback(
-    (offer: any): string => {
+    (offer: MediationContractOffer): string => {
       const apiName = getLocalizedName(
         offer,
-        ['nationalityNameEn', 'nationalityName', 'nameEn', 'name'],
-        ['nationalityNameAr', 'nationalityName', 'nameAr', 'arabicName']
+        ['nationalityNameEn', 'nationalityName'],
+        ['nationalityNameAr', 'nationalityName']
       );
       if (apiName) return apiName;
-
-      const enumEntry = NATIONALITIES.find((e) => sameId(e.value, offer.nationalityId));
-      if (enumEntry) return isArabic ? enumEntry.labelAr : enumEntry.labelEn;
-
       return offer.nationalityId ? `#${offer.nationalityId}` : '';
     },
-    [getLocalizedName, isArabic]
+    [getLocalizedName]
   );
 
   const getJobDisplayName = useCallback(
-    (offer: any): string => {
+    (offer: MediationContractOffer): string => {
       const apiName = getLocalizedName(
         offer,
-        ['jobNameEn', 'jobName', 'nameEn', 'name'],
-        ['jobNameAr', 'jobName', 'nameAr', 'arabicName']
+        ['jobNameEn', 'jobName'],
+        ['jobNameAr', 'jobName']
       );
       if (apiName) return apiName;
-
-      const job = (jobs as any[]).find((j) => sameId(j.id, offer.jobId));
+      const job = (jobs as any[]).find((j) => String(j.id) === String(offer.jobId));
       if (job) {
         return (
-          getLocalizedName(job, ['jobNameEn', 'nameEn', 'name'], ['jobNameAr', 'nameAr']) ||
+          getLocalizedName(job, ['jobNameEn', 'nameEn'], ['jobNameAr', 'nameAr']) ||
           `#${offer.jobId}`
         );
       }
-
       return offer.jobId ? `#${offer.jobId}` : '';
     },
     [getLocalizedName, jobs]
   );
 
-  // const getBranchDisplayName = useCallback(
-  //   (offer: any): string => {
-  //     const apiName = getLocalizedName(
-  //       offer,
-  //       ['branchNameEn', 'branchName', 'nameEn', 'name'],
-  //       ['branchNameAr', 'branchName', 'nameAr', 'arabicName']
-  //     );
-  //     if (apiName) return apiName;
-
-  //     const branch = branches.find((b: any) => sameId(b.id, offer.branchId));
-  //     if (branch) return getLocalizedName(branch, ['nameEn', 'name'], ['nameAr', 'arabicName']);
-
-  //     return offer.branchId ? `#${offer.branchId}` : '';
-  //   },
-  //   [branches, getLocalizedName]
-  // );
-
-  // const getAgentDisplayName = useCallback(
-  //   (offer: any): string => {
-  //     const apiName = getLocalizedName(
-  //       offer,
-  //       ['agentNameEn', 'agentName', 'nameEn', 'name'],
-  //       ['agentNameAr', 'agentName', 'nameAr', 'arabicName']
-  //     );
-  //     if (apiName) return apiName;
-
-  //     const agent = (agents as any[]).find((a) => sameId(a.id, offer.agentId));
-  //     if (agent) {
-  //       return (
-  //         getLocalizedName(agent, ['agentNameEn', 'nameEn', 'name'], ['agentNameAr', 'nameAr']) ||
-  //         `#${offer.agentId}`
-  //       );
-  //     }
-
-  //     return offer.agentId ? `#${offer.agentId}` : '';
-  //   },
-  //   [agents, getLocalizedName]
-  // );
-
-  // Filtered data
   const filteredOffers = useMemo(() => {
     return offers.filter((offer) => {
       const matchesNationality =
-        nationalityFilter === null || sameId(offer.nationalityId, nationalityFilter);
-      const matchesJob = jobFilter === null || sameId(offer.jobId, jobFilter);
+        nationalityFilter === null || String(offer.nationalityId) === nationalityFilter;
+      const matchesJob =
+        jobFilter === null || String(offer.jobId) === jobFilter;
       const matchesWorkerType =
-        workerTypeFilter === null || sameId(offer.workerType, workerTypeFilter);
+        workerTypeFilter === null || offer.workerType === workerTypeFilter;
       const matchesSearch =
         !searchTerm ||
         getNationalityDisplayName(offer).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getJobDisplayName(offer).toLowerCase().includes(searchTerm.toLowerCase()) ;
-        // getBranchDisplayName(offer).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        // getAgentDisplayName(offer).toLowerCase().includes(searchTerm.toLowerCase());
+        getJobDisplayName(offer).toLowerCase().includes(searchTerm.toLowerCase());
 
       return matchesNationality && matchesJob && matchesWorkerType && matchesSearch;
     });
@@ -277,88 +218,42 @@ export default function MediationOffersPage() {
     jobFilter,
     workerTypeFilter,
     searchTerm,
-    // getAgentDisplayName,
     getJobDisplayName,
     getNationalityDisplayName,
   ]);
 
-  // Summary statistics
   const stats = useMemo(() => {
     const uniqueNationalities = new Set(offers.map((o) => o.nationalityId).filter(Boolean));
     const uniqueJobs = new Set(offers.map((o) => o.jobId).filter(Boolean));
-    const uniqueBranches = new Set(offers.map((o) => o.branchId).filter(Boolean));
     return {
       total: offers.length,
       nationalities: uniqueNationalities.size,
       jobs: uniqueJobs.size,
-      branches: uniqueBranches.size,
     };
   }, [offers]);
 
-  // Nationality select options — value is nationalityId (enum value, e.g. 359)
-  // Names come from NATIONALITIES enum since API joined fields are null
-  // const nationalityOptions = useMemo(() => {
-  //   return nationalities
-  //     .filter((n) => n.nationalityId != null)
-  //     .map((n) => {
-  //       const enumEntry = (
-  //         NATIONALITIES as ReadonlyArray<{ value: number; labelAr: string; labelEn: string }>
-  //       ).find((e) => e.value === n.nationalityId);
-  //       return {
-  //         value: n.nationalityId as number,
-  //         label: isArabic
-  //           ? n.nationalityNameAr || enumEntry?.labelAr || `#${n.nationalityId}`
-  //           : n.nationalityNameEn ||
-  //             enumEntry?.labelEn ||
-  //             enumEntry?.labelAr ||
-  //             `#${n.nationalityId}`,
-  //       };
-  //     });
-  // }, [nationalities, isArabic]);
-
+  // Nationality options — use ContractNationality.id (integer PK) as value, NOT the nationalityId UUID
   const nationalityOptions = useMemo(() => {
-    const optionMap = new Map<string, { value: any; label: string }>();
-    NATIONALITIES.forEach((n) => {
-      optionMap.set(String(n.value), {
-        value: n.value,
-        label: isArabic ? n.labelAr : n.labelEn,
-      });
-    });
-    offers.forEach((offer: any) => {
-      if (offer.nationalityId === null || offer.nationalityId === undefined) return;
-      optionMap.set(String(offer.nationalityId), {
-        value: offer.nationalityId,
-        label: getNationalityDisplayName(offer) || `#${offer.nationalityId}`,
-      });
-    });
-    return Array.from(optionMap.values());
-  }, [getNationalityDisplayName, isArabic, offers]);
+    return contractNationalities
+      .filter((cn) => cn.isActive !== false)
+      .map((cn) => ({
+        value: String(cn.id),
+        label: isArabic
+          ? cn.nameAr || cn.nameEn || String(cn.id)
+          : cn.nameEn || cn.nameAr || String(cn.id),
+      }));
+  }, [contractNationalities, isArabic]);
 
-  // Job select options from API
+  // Job options from API
   const jobOptions = useMemo(() => {
-    const optionMap = new Map<string, { value: any; label: string }>();
-    (jobs as any[]).forEach((j: any) => {
-      optionMap.set(String(j.id), {
-        value: j.id,
-        label:
-          getLocalizedName(j, ['jobNameEn', 'nameEn', 'name'], ['jobNameAr', 'nameAr']) ||
-          `#${j.id}`,
-      });
-    });
-    offers.forEach((offer: any) => {
-      if (offer.jobId === null || offer.jobId === undefined) return;
-      const key = String(offer.jobId);
-      if (!optionMap.has(key)) {
-        optionMap.set(key, {
-          value: offer.jobId,
-          label: getJobDisplayName(offer) || `#${offer.jobId}`,
-        });
-      }
-    });
-    return Array.from(optionMap.values());
-  }, [getJobDisplayName, getLocalizedName, jobs, offers]);
+    return (jobs as any[]).map((j) => ({
+      value: String(j.id),
+      label:
+        getLocalizedName(j, ['jobNameEn', 'nameEn'], ['jobNameAr', 'nameAr']) ||
+        `#${j.id}`,
+    }));
+  }, [jobs, getLocalizedName]);
 
-  // Modal handlers
   const handleAdd = () => {
     setEditingOffer(null);
     form.resetFields();
@@ -370,12 +265,18 @@ export default function MediationOffersPage() {
     const localCost = offer.localCost ?? 0;
     const taxLocalCost = offer.taxLocalCost ?? Math.round(localCost * 0.15 * 100) / 100;
     const agentCostSAR = offer.agentCostSAR ?? 0;
+    // Pre-select using the ContractNationality integer id stored in the offer.
+    // Only populate if the id exists in the loaded ContractNationality list.
+    const validNationalityId = offer.nationalityId
+      ? contractNationalities.find((cn) => String(cn.id) === String(offer.nationalityId))
+          ? String(offer.nationalityId)
+          : undefined
+      : undefined;
     form.setFieldsValue({
-      offerNumber: offer.offerNumber,
-      nationalityId: offer.nationalityId,
-      jobId: offer.jobId,
-      workerType: offer.workerType,
-      previousExperience: offer.previousExperience,
+      nationalityId: validNationalityId,
+      jobId: offer.jobId ? String(offer.jobId) : undefined,
+      workerType: offer.workerType ?? undefined,
+      previousExperience: offer.previousExperience ?? undefined,
       salary: offer.salary,
       localCost,
       taxLocalCost,
@@ -383,7 +284,6 @@ export default function MediationOffersPage() {
       totalOfferCost: offer.totalOfferCost ?? (localCost + taxLocalCost + agentCostSAR),
       showForExternalCustomers: offer.showForExternalCustomers ?? false,
       showForReception: offer.showForReception ?? false,
-      isActive: offer.isActive ?? true,
     });
     setIsModalVisible(true);
   };
@@ -391,21 +291,40 @@ export default function MediationOffersPage() {
   const handleModalSubmit = async () => {
     try {
       const values = await form.validateFields();
-      console.log('📤 Offer form values:', values);
       if (editingOffer) {
-        const dto: UpdateMediationContractOfferDto = { ...values, id: editingOffer.id };
-        updateMutation.mutate(
-          { id: editingOffer.id, data: dto },
-          {
-            onSuccess: () => {
-              setIsModalVisible(false);
-              form.resetFields();
-              setEditingOffer(null);
-            },
-          }
-        );
+        const dto: UpdateMediationContractOfferDto = {
+          id: editingOffer.id,
+          nationalityId: values.nationalityId ?? null,
+          jobId: values.jobId ?? null,
+          workerType: values.workerType ?? null,
+          previousExperience: values.previousExperience ?? null,
+          salary: values.salary ?? null,
+          localCost: values.localCost ?? null,
+          taxLocalCost: values.taxLocalCost ?? null,
+          agentCostSAR: values.agentCostSAR ?? null,
+          showForExternalCustomers: values.showForExternalCustomers ?? false,
+          showForReception: values.showForReception ?? false,
+        };
+        updateMutation.mutate(dto, {
+          onSuccess: () => {
+            setIsModalVisible(false);
+            form.resetFields();
+            setEditingOffer(null);
+          },
+        });
       } else {
-        const dto: CreateMediationContractOfferDto = values;
+        const dto: CreateMediationContractOfferDto = {
+          nationalityId: values.nationalityId ?? null,
+          jobId: values.jobId ?? null,
+          workerType: values.workerType ?? null,
+          previousExperience: values.previousExperience ?? null,
+          salary: values.salary ?? null,
+          localCost: values.localCost ?? null,
+          taxLocalCost: values.taxLocalCost ?? null,
+          agentCostSAR: values.agentCostSAR ?? null,
+          showForExternalCustomers: values.showForExternalCustomers ?? false,
+          showForReception: values.showForReception ?? false,
+        };
         createMutation.mutate(dto, {
           onSuccess: () => {
             setIsModalVisible(false);
@@ -424,25 +343,24 @@ export default function MediationOffersPage() {
     setEditingOffer(null);
   };
 
-  // Table columns
   const columns: ColumnsType<MediationContractOffer> = [
     {
       title: t('nationality'),
       dataIndex: 'nationalityName',
       key: 'nationalityName',
-      render: (text: string, record: MediationContractOffer) => {
-        const name = text || getNationalityDisplayName(record);
-        if (name) return name;
-        return isArabic ? 'غير محدد' : 'N/A';
+      render: (_: string, record: MediationContractOffer) => {
+        const name = getNationalityDisplayName(record);
+        return name || (isArabic ? 'غير محدد' : 'N/A');
       },
-      sorter: (a, b) => getNationalityDisplayName(a).localeCompare(getNationalityDisplayName(b)),
+      sorter: (a, b) =>
+        getNationalityDisplayName(a).localeCompare(getNationalityDisplayName(b)),
     },
     {
       title: t('job'),
       dataIndex: 'jobName',
       key: 'jobName',
-      render: (text: string, record: MediationContractOffer) =>
-        text || getJobDisplayName(record) || (isArabic ? 'غير محدد' : 'N/A'),
+      render: (_: string, record: MediationContractOffer) =>
+        getJobDisplayName(record) || (isArabic ? 'غير محدد' : 'N/A'),
       sorter: (a, b) => getJobDisplayName(a).localeCompare(getJobDisplayName(b)),
     },
     {
@@ -471,20 +389,6 @@ export default function MediationOffersPage() {
       ),
     },
     {
-      title: t('age'),
-      dataIndex: 'age',
-      key: 'age',
-      render: (val: number | null | undefined) =>
-        val !== null && val !== undefined ? val : isArabic ? 'غير محدد' : 'N/A',
-      sorter: (a, b) => (a.age || 0) - (b.age || 0),
-    },
-    {
-      title: t('religion'),
-      dataIndex: 'religion',
-      key: 'religion',
-      render: (val: number | null | undefined) => getEnumLabel([...RELIGION], val, language),
-    },
-    {
       title: t('salary'),
       dataIndex: 'salary',
       key: 'salary',
@@ -507,6 +411,33 @@ export default function MediationOffersPage() {
       sorter: (a, b) => (a.localCost || 0) - (b.localCost || 0),
     },
     {
+      title: t('agentCostSAR'),
+      dataIndex: 'agentCostSAR',
+      key: 'agentCostSAR',
+      render: (val: number | null | undefined) => (
+        <span>{val !== null && val !== undefined ? val.toLocaleString() : '0'}</span>
+      ),
+      sorter: (a, b) => (a.agentCostSAR || 0) - (b.agentCostSAR || 0),
+    },
+    {
+      title: t('showForExternalCustomers'),
+      dataIndex: 'showForExternalCustomers',
+      key: 'showForExternalCustomers',
+      width: 80,
+      render: (val: boolean | null | undefined) => (
+        <Tag color={val ? 'green' : 'default'}>{val ? (isArabic ? 'نعم' : 'Yes') : (isArabic ? 'لا' : 'No')}</Tag>
+      ),
+    },
+    {
+      title: t('showForReception'),
+      dataIndex: 'showForReception',
+      key: 'showForReception',
+      width: 80,
+      render: (val: boolean | null | undefined) => (
+        <Tag color={val ? 'green' : 'default'}>{val ? (isArabic ? 'نعم' : 'Yes') : (isArabic ? 'لا' : 'No')}</Tag>
+      ),
+    },
+    {
       title: t('toggleActive'),
       key: 'isActive',
       width: 100,
@@ -514,7 +445,7 @@ export default function MediationOffersPage() {
         <Switch
           size="small"
           checked={record.isActive !== false}
-          loading={toggleMutation.isPending && (toggleMutation.variables as number) === record.id}
+          loading={toggleMutation.isPending && toggleMutation.variables === record.id}
           onChange={() => toggleMutation.mutate(record.id)}
           checkedChildren={t('active')}
           unCheckedChildren={t('inactive')}
@@ -524,7 +455,7 @@ export default function MediationOffersPage() {
     {
       title: t('actions'),
       key: 'actions',
-      width: 60,
+      width: 80,
       fixed: 'right' as const,
       render: (_: any, record: MediationContractOffer) => (
         <Space size="small">
@@ -535,6 +466,22 @@ export default function MediationOffersPage() {
             onClick={() => handleEdit(record)}
             className={styles.actionBtn}
           />
+          <Popconfirm
+            title={t('confirmDelete')}
+            onConfirm={() => deleteMutation.mutate(record.id)}
+            okButtonProps={{ danger: true }}
+            okText={isArabic ? 'حذف' : 'Delete'}
+            cancelText={t('cancel')}
+          >
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              loading={deleteMutation.isPending && deleteMutation.variables === record.id}
+              className={styles.actionBtn}
+            />
+          </Popconfirm>
         </Space>
       ),
     },
@@ -577,7 +524,7 @@ export default function MediationOffersPage() {
 
       {/* Summary Statistics */}
       <Row gutter={[16, 16]} className={styles.summaryRow}>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} md={8}>
           <div className={styles.summaryCard}>
             <Statistic
               title={t('totalOffers')}
@@ -587,7 +534,7 @@ export default function MediationOffersPage() {
             />
           </div>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} md={8}>
           <div className={styles.summaryCard}>
             <Statistic
               title={t('nationalities')}
@@ -597,7 +544,7 @@ export default function MediationOffersPage() {
             />
           </div>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} md={8}>
           <div className={styles.summaryCard}>
             <Statistic
               title={t('jobs')}
@@ -607,16 +554,6 @@ export default function MediationOffersPage() {
             />
           </div>
         </Col>
-        {/* <Col xs={24} sm={12} md={6}>
-          <div className={styles.summaryCard}>
-            <Statistic
-              title={t('branches')}
-              value={stats.branches}
-              prefix={<DollarOutlined />}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </div>
-        </Col> */}
       </Row>
 
       {/* Filters */}
@@ -711,13 +648,8 @@ export default function MediationOffersPage() {
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Row gutter={[16, 0]}>
-            {/* Row 1: Offer Number + Nationality + Job */}
-            <Col xs={24} md={8}>
-              <Form.Item name="offerNumber" label={t('offerNumber')}>
-                <InputNumber style={{ width: '100%' }} min={1} placeholder={t('offerNumber')} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
+            {/* Nationality + Job */}
+            <Col xs={24} md={12}>
               <Form.Item
                 name="nationalityId"
                 label={t('nationality')}
@@ -733,7 +665,7 @@ export default function MediationOffersPage() {
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
+            <Col xs={24} md={12}>
               <Form.Item
                 name="jobId"
                 label={t('job')}
@@ -750,8 +682,8 @@ export default function MediationOffersPage() {
               </Form.Item>
             </Col>
 
-            {/* Row 2: Worker Type + Previous Experience */}
-            <Col xs={24} md={8}>
+            {/* Worker Type + Previous Experience */}
+            <Col xs={24} md={12}>
               <Form.Item name="workerType" label={t('workerType')}>
                 <Select
                   placeholder={t('workerType')}
@@ -760,7 +692,7 @@ export default function MediationOffersPage() {
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
+            <Col xs={24} md={12}>
               <Form.Item name="previousExperience" label={t('previousExperience')}>
                 <Select
                   placeholder={t('previousExperience')}
@@ -770,9 +702,13 @@ export default function MediationOffersPage() {
               </Form.Item>
             </Col>
 
-            {/* Row 3: Financial fields */}
+            {/* Financial fields */}
             <Col xs={24} md={8}>
-              <Form.Item name="salary" label={t('salary')}>
+              <Form.Item
+                name="salary"
+                label={t('salary')}
+                rules={[{ required: true, message: isArabic ? 'مطلوب' : 'Required' }]}
+              >
                 <InputNumber
                   style={{ width: '100%' }}
                   min={0}
@@ -783,7 +719,11 @@ export default function MediationOffersPage() {
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Form.Item name="localCost" label={t('localCost')}>
+              <Form.Item
+                name="localCost"
+                label={t('localCost')}
+                rules={[{ required: true, message: isArabic ? 'مطلوب' : 'Required' }]}
+              >
                 <InputNumber
                   style={{ width: '100%' }}
                   min={0}
@@ -815,7 +755,11 @@ export default function MediationOffersPage() {
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Form.Item name="agentCostSAR" label={t('agentCostSAR')}>
+              <Form.Item
+                name="agentCostSAR"
+                label={t('agentCostSAR')}
+                rules={[{ required: true, message: isArabic ? 'مطلوب' : 'Required' }]}
+              >
                 <InputNumber
                   style={{ width: '100%' }}
                   min={0}
@@ -844,9 +788,13 @@ export default function MediationOffersPage() {
               </Form.Item>
             </Col>
 
-            {/* Row 4: Visibility & Status switches */}
+            {/* Visibility switches */}
             <Col xs={24} md={8}>
-              <Form.Item name="showForExternalCustomers" label={t('showForExternalCustomers')} valuePropName="checked">
+              <Form.Item
+                name="showForExternalCustomers"
+                label={t('showForExternalCustomers')}
+                valuePropName="checked"
+              >
                 <Switch
                   checkedChildren={isArabic ? 'نعم' : 'Yes'}
                   unCheckedChildren={isArabic ? 'لا' : 'No'}
@@ -854,18 +802,14 @@ export default function MediationOffersPage() {
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Form.Item name="showForReception" label={t('showForReception')} valuePropName="checked">
+              <Form.Item
+                name="showForReception"
+                label={t('showForReception')}
+                valuePropName="checked"
+              >
                 <Switch
                   checkedChildren={isArabic ? 'نعم' : 'Yes'}
                   unCheckedChildren={isArabic ? 'لا' : 'No'}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item name="isActive" label={t('isActive')} valuePropName="checked">
-                <Switch
-                  checkedChildren={t('active')}
-                  unCheckedChildren={t('inactive')}
                 />
               </Form.Item>
             </Col>

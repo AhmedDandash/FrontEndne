@@ -166,17 +166,18 @@ export const API_ENDPOINTS = {
   // Mediation Contract Offer
   MEDIATION_CONTRACT_OFFER: {
     GET_ALL: '/api/Mediation/MediationContractOffer',
-    GET_BY_ID: (id: number | string) => `/api/Mediation/MediationContractOffer/${id}`,
+    GET_BY_ID: (id: string) => `/api/Mediation/MediationContractOffer/${id}`,
     CREATE: '/api/Mediation/MediationContractOffer',
     UPDATE: '/api/Mediation/MediationContractOffer',
-    TOGGLE_ACTIVE: (id: number | string) => `/api/Mediation/MediationContractOffer/${id}/toggle-active`,
+    DELETE: (id: string) => `/api/Mediation/MediationContractOffer/${id}`,
+    TOGGLE_ACTIVE: (id: string) => `/api/Mediation/MediationContractOffer/${id}/toggle-active`,
     AUTO_FILL: '/api/Mediation/MediationContractOffer/auto-fill',
   },
 
   // Mediation Contract — endpoints per PDF spec only
   MEDIATION_CONTRACT: {
     GET_ALL: '/api/Mediation/MediationContract',
-    GET_BY_ID: (id: number) => `/api/Mediation/MediationContract/${id}`,
+    GET_BY_ID: (id: string) => `/api/Mediation/MediationContract/${id}`,
     CREATE: '/api/Mediation/MediationContract',
     CONTRACT_CANCEL: '/api/Mediation/MediationContract/cancel',
     SIGN: '/api/Mediation/MediationContract/sign',

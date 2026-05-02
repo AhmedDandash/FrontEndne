@@ -185,7 +185,7 @@ export default function MediationContractsPage() {
     warrantyReturn: language === 'ar' ? 'إرجاع ضمن فترة الضمان' : 'Warranty Return',
     updateStatus: language === 'ar' ? 'تحديث الحالة يدوياً' : 'Update Status Manually',
     statusHistory: language === 'ar' ? 'سجل الحالات' : 'Status History',
-    musanedDocNumber: language === 'ar' ? 'رقم توثيق مساند' : 'Musaned Documentation #',
+    invoicePaymentDate: language === 'ar' ? 'تاريخ سداد الفاتورة' : 'Invoice Payment Date',
     deliveryDate: language === 'ar' ? 'تاريخ التسليم' : 'Delivery Date',
     deliveryNotes: language === 'ar' ? 'ملاحظات التسليم' : 'Delivery Notes',
     customerSignedAt: language === 'ar' ? 'تاريخ توقيع العميل' : 'Customer Signed At',
@@ -299,7 +299,9 @@ export default function MediationContractsPage() {
       const data: SignMediationContractDto = {
         contractId: selectedContract!.id,
         musanedContractNumber: values.musanedContractNumber,
-        musanedDocumentationNumber: values.musanedDocumentationNumber || null,
+        invoicePaymentDate: values.invoicePaymentDate
+          ? new Date(values.invoicePaymentDate).toISOString()
+          : null,
       };
       await signContract(data);
       setShowSignModal(false);
@@ -916,8 +918,8 @@ export default function MediationContractsPage() {
           >
             <Input placeholder={t.musanedNumber} />
           </Form.Item>
-          <Form.Item name="musanedDocumentationNumber" label={t.musanedDocNumber}>
-            <Input placeholder={t.musanedDocNumber} />
+          <Form.Item name="invoicePaymentDate" label={t.invoicePaymentDate}>
+            <DatePicker showTime style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

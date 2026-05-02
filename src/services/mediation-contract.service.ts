@@ -1,8 +1,3 @@
-/**
- * Mediation Contract Service
- * Handles all mediation contract-related API calls — endpoints per PDF spec only
- */
-
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type {
@@ -75,27 +70,34 @@ export class MediationContractService {
     return this.unwrapList<MediationContract>(response.data);
   }
 
-  static async getById(id: number): Promise<MediationContract> {
+  static async getById(id: string): Promise<MediationContract> {
     const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT.GET_BY_ID(id));
     return this.unwrap<MediationContract>(response.data);
   }
 
   static async create(data: CreateMediationContractDto): Promise<MediationContract> {
-    const payload = {
-      ...data,
+    const payload: Record<string, any> = {
+      customerId: data.customerId ?? null,
+      workerId: data.workerId ?? null,
+      workerPassportNumber: data.workerPassportNumber ?? null,
+      offerId: data.offerId ?? null,
       contractType: data.contractType != null ? Number(data.contractType) : null,
-      customerId: data.customerId != null ? Number(data.customerId) : null,
-      marketerId: data.marketerId != null ? Number(data.marketerId) : null,
       contractCategory: data.contractCategory != null ? Number(data.contractCategory) : null,
-      offerId: data.offerId != null ? Number(data.offerId) : null,
+      marketerId: data.marketerId ?? null,
       visaType: data.visaType != null ? Number(data.visaType) : null,
-      arrivalDestinationId:
-        data.arrivalDestinationId != null ? Number(data.arrivalDestinationId) : null,
+      visaNumber: data.visaNumber ?? null,
+      visaDateHijri: data.visaDateHijri ?? null,
+      visaDate: data.visaDate ?? null,
+      isComprehensiveQualificationVisa: data.isComprehensiveQualificationVisa ?? null,
+      arrivalDestinationId: data.arrivalDestinationId != null ? Number(data.arrivalDestinationId) : null,
       otherCosts: data.otherCosts != null ? Number(data.otherCosts) : null,
       managerDiscount: data.managerDiscount != null ? Number(data.managerDiscount) : null,
       costDiscount: data.costDiscount != null ? Number(data.costDiscount) : null,
-      domesticWorkerInsurance:
-        data.domesticWorkerInsurance != null ? Number(data.domesticWorkerInsurance) : null,
+      costDescription: data.costDescription ?? null,
+      hasContractInsurance: data.hasContractInsurance ?? false,
+      domesticWorkerInsurance: data.domesticWorkerInsurance != null ? Number(data.domesticWorkerInsurance) : null,
+      musanedContractNumber: data.musanedContractNumber ?? null,
+      musanedDocumentationNumber: data.musanedDocumentationNumber ?? null,
     };
     const response = await api.post<any>(API_ENDPOINTS.MEDIATION_CONTRACT.CREATE, payload);
     return this.unwrap<MediationContract>(response.data);
@@ -103,7 +105,7 @@ export class MediationContractService {
 
   static async cancelContract(data: ContractCancelDto): Promise<any> {
     const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.CONTRACT_CANCEL, {
-      contractId: Number(data.contractId),
+      contractId: data.contractId,
       cancelBy: data.cancelBy != null ? Number(data.cancelBy) : null,
       cancelNote: data.cancelNote || null,
     });
@@ -114,16 +116,16 @@ export class MediationContractService {
 
   static async sign(data: SignMediationContractDto): Promise<any> {
     const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.SIGN, {
-      contractId: Number(data.contractId),
+      contractId: data.contractId,
       musanedContractNumber: data.musanedContractNumber,
-      musanedDocumentationNumber: data.musanedDocumentationNumber || null,
+      invoicePaymentDate: data.invoicePaymentDate ?? null,
     });
     return this.unwrap<any>(response.data);
   }
 
   static async generateDeliveryForm(data: DeliveryFormDto): Promise<any> {
     const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.DELIVERY_FORM, {
-      contractId: Number(data.contractId),
+      contractId: data.contractId,
       deliveryDate: data.deliveryDate || null,
       notes: data.notes || null,
     });
@@ -132,7 +134,7 @@ export class MediationContractService {
 
   static async signDelivery(data: DeliveryFormSignDto): Promise<any> {
     const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.DELIVERY_FORM_SIGN, {
-      contractId: Number(data.contractId),
+      contractId: data.contractId,
       customerSignedAt: data.customerSignedAt || new Date().toISOString(),
     });
     return this.unwrap<any>(response.data);
@@ -140,7 +142,7 @@ export class MediationContractService {
 
   static async warrantyReturn(data: WarrantyReturnDto): Promise<any> {
     const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.WARRANTY_RETURN, {
-      contractId: Number(data.contractId),
+      contractId: data.contractId,
       returnDate: data.returnDate,
       returnReason: Number(data.returnReason),
       daysWithCustomer: Number(data.daysWithCustomer),
