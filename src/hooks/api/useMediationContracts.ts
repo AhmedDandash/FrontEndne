@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { MediationContractService } from '@/services/mediation-contract.service';
 import type {
+  MediationContractDetail,
   CreateMediationContractDto,
   ContractCancelDto,
   SignMediationContractDto,
@@ -142,10 +143,10 @@ export function useMediationContracts() {
   };
 }
 
-export function useMediationContract(id: string) {
-  return useQuery({
+export function useMediationContract(id?: string | null) {
+  return useQuery<MediationContractDetail>({
     queryKey: [QUERY_KEY, id],
-    queryFn: () => MediationContractService.getById(id),
+    queryFn: () => MediationContractService.getById(id!),
     enabled: !!id,
   });
 }

@@ -2,6 +2,7 @@ import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type {
   MediationContract,
+  MediationContractDetail,
   CreateMediationContractDto,
   ContractCancelDto,
   SignMediationContractDto,
@@ -70,9 +71,9 @@ export class MediationContractService {
     return this.unwrapList<MediationContract>(response.data);
   }
 
-  static async getById(id: string): Promise<MediationContract> {
+  static async getById(id: string): Promise<MediationContractDetail> {
     const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT.GET_BY_ID(id));
-    return this.unwrap<MediationContract>(response.data);
+    return this.unwrap<MediationContractDetail>(response.data);
   }
 
   static async create(data: CreateMediationContractDto): Promise<MediationContract> {

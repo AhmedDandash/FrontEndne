@@ -14,14 +14,17 @@ import {
   Avatar,
   Empty,
   Modal,
-  Progress,
   Badge,
   Spin,
   Form,
   DatePicker,
   InputNumber,
-  List,
   Divider,
+  Tabs,
+  Table,
+  Timeline,
+  Descriptions,
+  Alert,
 } from 'antd';
 import {
   FileTextOutlined,
@@ -52,7 +55,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import {
   useMediationContracts,
-  useContractStatusHistory,
+  useMediationContract,
 } from '@/hooks/api/useMediationContracts';
 import type {
   MediationContract,
@@ -98,7 +101,6 @@ export default function MediationContractsPage() {
   const [showDeliverySignModal, setShowDeliverySignModal] = useState(false);
   const [showWarrantyReturnModal, setShowWarrantyReturnModal] = useState(false);
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
-  const [showStatusHistoryModal, setShowStatusHistoryModal] = useState(false);
 
   // Forms
   const [cancelForm] = Form.useForm();
@@ -127,8 +129,8 @@ export default function MediationContractsPage() {
     isUpdatingStatus,
   } = useMediationContracts();
 
-  const { data: statusHistory = [], isLoading: isLoadingHistory } = useContractStatusHistory(
-    showStatusHistoryModal ? selectedContract?.id : undefined
+  const { data: contractDetail, isLoading: isLoadingDetail } = useMediationContract(
+    showDetailsModal ? selectedContract?.id : undefined
   );
 
   const { customers: allCustomers, isLoading: isLoadingCustomers } = useCustomers();
@@ -185,6 +187,7 @@ export default function MediationContractsPage() {
     warrantyReturn: language === 'ar' ? 'إرجاع ضمن فترة الضمان' : 'Warranty Return',
     updateStatus: language === 'ar' ? 'تحديث الحالة يدوياً' : 'Update Status Manually',
     statusHistory: language === 'ar' ? 'سجل الحالات' : 'Status History',
+    offerAmount: language === 'ar' ? 'قيمة العرض' : 'Offer Amount',
     invoicePaymentDate: language === 'ar' ? 'تاريخ سداد الفاتورة' : 'Invoice Payment Date',
     deliveryDate: language === 'ar' ? 'تاريخ التسليم' : 'Delivery Date',
     deliveryNotes: language === 'ar' ? 'ملاحظات التسليم' : 'Delivery Notes',
@@ -236,6 +239,16 @@ export default function MediationContractsPage() {
       5: { color: 'default', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 5, language), icon: <ClockCircleOutlined /> },
     };
     return configs[statusId ?? 0] || { color: 'default', label: language === 'ar' ? 'غير محدد' : 'Unknown', icon: <ClockCircleOutlined /> };
+  };
+
+  const getStatusConfigFromName = (statusName: string | null | undefined): { color: 'processing' | 'warning' | 'success' | 'error' | 'default'; label: string } => {
+    const name = (statusName || '').toLowerCase();
+    if (name === 'draft') return { color: 'processing', label: language === 'ar' ? 'مسودة' : 'Draft' };
+    if (name === 'signed') return { color: 'success', label: language === 'ar' ? 'موقّع' : 'Signed' };
+    if (name === 'delivered') return { color: 'success', label: language === 'ar' ? 'مُسلَّم' : 'Delivered' };
+    if (name === 'cancelled' || name === 'canceled') return { color: 'error', label: language === 'ar' ? 'ملغي' : 'Cancelled' };
+    if (name === 'returned') return { color: 'warning', label: language === 'ar' ? 'مُرجَع' : 'Returned' };
+    return { color: 'default', label: statusName || (language === 'ar' ? 'غير محدد' : 'Unknown') };
   };
 
   const getTypeTag = (contractType: number | null | undefined) => {
@@ -389,7 +402,9 @@ export default function MediationContractsPage() {
 
   // Render a contract card
   const renderContractCard = (contract: MediationContract) => {
-    const statusConfig = getStatusConfig(contract.statusId);
+    const statusConfig = contract.statusName
+      ? getStatusConfigFromName(contract.statusName)
+      : getStatusConfig(contract.statusId);
     const typeTag = getTypeTag(contract.contractType);
     const customerDisplay =
       language === 'ar'
@@ -461,26 +476,50 @@ export default function MediationContractsPage() {
               </div>
             </div>
 
-            {/* Right Section */}
+            {/* Right Section — Cost Panel */}
             <div className={styles.cardRight}>
-              <div className={styles.paymentSection}>
-                <div className={styles.paymentHeader}>
-                  <span className={styles.paymentLabel}>{t.totalCost}</span>
-                  <span className={styles.paymentPercentage}>{formatCurrency(contract.totalCost)}</span>
+              {/* Total Cost Banner */}
+              <div className={styles.totalCostBanner}>
+                <div className={styles.totalCostMeta}>
+                  <DollarOutlined className={styles.totalCostIcon} />
+                  <span className={styles.totalCostLabel}>{t.totalCost}</span>
                 </div>
-                <Progress percent={0} showInfo={false} strokeColor={{ '0%': '#003366', '100%': '#0056b3' }} />
-                <div className={styles.paymentAmounts}>
-                  <div className={styles.amountItem}>
-                    <span className={styles.amountLabel}>{t.localCost}</span>
-                    <span className={styles.amountValue} style={{ color: '#52c41a' }}>{formatCurrency(contract.localCost)}</span>
-                  </div>
-                  <div className={styles.amountItem}>
-                    <span className={styles.amountLabel}>{t.agentCost}</span>
-                    <span className={styles.amountValue} style={{ color: '#faad14' }}>{formatCurrency(contract.agentCostSAR)}</span>
-                  </div>
+                <div className={styles.totalCostAmount}>{formatCurrency(contract.totalCost)}</div>
+              </div>
+
+              {/* Cost Breakdown */}
+              <div className={styles.costBreakdown}>
+                <div className={styles.costRow}>
+                  <span className={styles.costDot} style={{ background: '#003366' }} />
+                  <span className={styles.costLabel}>{t.offerAmount}</span>
+                  <span className={styles.costValue} style={{ color: '#003366' }}>
+                    {formatCurrency(contract.offerAmount)}
+                  </span>
+                </div>
+                <div className={styles.costRow}>
+                  <span className={styles.costDot} style={{ background: '#1890ff' }} />
+                  <span className={styles.costLabel}>{t.salary}</span>
+                  <span className={styles.costValue} style={{ color: '#1890ff' }}>
+                    {formatCurrency(contract.salary)}
+                  </span>
+                </div>
+                <div className={styles.costRow}>
+                  <span className={styles.costDot} style={{ background: '#faad14' }} />
+                  <span className={styles.costLabel}>{t.taxValue}</span>
+                  <span className={styles.costValue} style={{ color: '#faad14' }}>
+                    {formatCurrency(contract.totalTaxValue)}
+                  </span>
+                </div>
+                <div className={styles.costRow}>
+                  <span className={styles.costDot} style={{ background: '#722ed1' }} />
+                  <span className={styles.costLabel}>{t.otherCosts}</span>
+                  <span className={styles.costValue} style={{ color: '#722ed1' }}>
+                    {formatCurrency(contract.otherCosts)}
+                  </span>
                 </div>
               </div>
 
+              {/* Date Range */}
               <div className={styles.datesSection}>
                 <div className={styles.dateItem}>
                   <CalendarOutlined />
@@ -592,18 +631,6 @@ export default function MediationContractsPage() {
                 }}
               >
                 {t.updateStatus}
-              </Button>
-              <Button
-                type="link"
-                icon={<HistoryOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  setShowStatusHistoryModal(true);
-                }}
-              >
-                {t.statusHistory}
               </Button>
             </div>
           </div>
@@ -790,83 +817,380 @@ export default function MediationContractsPage() {
 
       {/* ========== CONTRACT DETAILS MODAL ========== */}
       <Modal
-        title={t.contractDetails + ': #' + (selectedContract?.id || '')}
+        title={
+          <span>
+            {t.contractDetails}
+            {selectedContract?.contractNumber ? ` — #${selectedContract.contractNumber}` : ''}
+            {selectedContract?.statusName && (
+              <Badge
+                status={getStatusConfigFromName(selectedContract.statusName).color}
+                text={selectedContract.statusName}
+                style={{ marginInlineStart: 12, fontSize: 13 }}
+              />
+            )}
+          </span>
+        }
         open={showDetailsModal}
         onCancel={() => { setShowDetailsModal(false); setSelectedContract(null); }}
-        footer={<Button type="primary" onClick={() => setShowDetailsModal(false)}>{t.close}</Button>}
-        width={900}
+        footer={<Button type="primary" onClick={() => { setShowDetailsModal(false); setSelectedContract(null); }}>{t.close}</Button>}
+        width={960}
         destroyOnClose
       >
-        {selectedContract && (() => {
-          const detailCustomerDisplay =
-            language === 'ar'
-              ? selectedContract.customerNameAr || selectedContract.customerName || '#' + selectedContract.customerId
-              : selectedContract.customerName || selectedContract.customerNameAr || '#' + selectedContract.customerId;
-          return (
-            <div className={styles.detailsModal}>
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <div className={styles.modalSection}><h4>{t.customer}</h4><p className={styles.modalValue}>{detailCustomerDisplay}</p></div>
-                </Col>
-                <Col span={12}>
-                  <div className={styles.modalSection}>
-                    <h4>{t.type}</h4>
-                    <Tag color={getTypeTag(selectedContract.contractType).color}>{getTypeTag(selectedContract.contractType).label}</Tag>
+        {isLoadingDetail ? (
+          <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>
+        ) : contractDetail ? (
+          <Tabs
+            defaultActiveKey="info"
+            items={[
+              {
+                key: 'info',
+                label: language === 'ar' ? 'معلومات العقد' : 'Contract Info',
+                children: (
+                  <div className={styles.detailsModal}>
+                    <Divider orientation="left" style={{ fontSize: 13, color: '#8c8c8c' }}>
+                      {language === 'ar' ? 'بيانات العميل' : 'Customer'}
+                    </Divider>
+                    <Descriptions column={2} size="small" bordered>
+                      <Descriptions.Item label={t.customer}>
+                        {contractDetail.customerName || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'الرقم الوطني' : 'National ID'}>
+                        {contractDetail.customerNationalId || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'الجوال' : 'Phone'}>
+                        {contractDetail.customerPhone || '-'}
+                      </Descriptions.Item>
+                    </Descriptions>
+
+                    <Divider orientation="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
+                      {language === 'ar' ? 'بيانات العامل' : 'Worker'}
+                    </Divider>
+                    <Descriptions column={2} size="small" bordered>
+                      <Descriptions.Item label={language === 'ar' ? 'اسم العامل' : 'Worker Name'}>
+                        {contractDetail.workerName || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'رقم الجواز' : 'Passport'}>
+                        {contractDetail.workerPassportNumber || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'الجنسية' : 'Nationality'}>
+                        {contractDetail.workerNationalityAr || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'نوع العامل' : 'Worker Type'}>
+                        {contractDetail.workerTypeName || '-'}
+                      </Descriptions.Item>
+                    </Descriptions>
+
+                    <Divider orientation="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
+                      {language === 'ar' ? 'بيانات العقد' : 'Contract'}
+                    </Divider>
+                    <Descriptions column={2} size="small" bordered>
+                      <Descriptions.Item label={language === 'ar' ? 'رقم العقد' : 'Contract #'}>
+                        {contractDetail.contractNumber || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.status}>
+                        <Badge
+                          status={getStatusConfigFromName(contractDetail.statusName).color}
+                          text={contractDetail.statusName || '-'}
+                        />
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'نوع العقد' : 'Contract Type'}>
+                        {contractDetail.contractTypeName || contractDetail.contractType || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'فئة العقد' : 'Contract Category'}>
+                        {contractDetail.contractCategoryName || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'الوكيل' : 'Agent'}>
+                        {contractDetail.agentName || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'أيام منذ الإنشاء' : 'Days Since Creation'}>
+                        {contractDetail.daysSinceCreation != null ? contractDetail.daysSinceCreation : '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.musanedNumber}>
+                        {contractDetail.musanedContractNumber || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'رقم توثيق مساند' : 'Musaned Doc #'}>
+                        {contractDetail.musanedDocumentationNumber || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.visaNumber}>
+                        {contractDetail.visaNumber || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'حالة التأشيرة' : 'Visa Status'}>
+                        {contractDetail.visaStatusName || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'نوع التأشيرة' : 'Visa Type'}>
+                        {contractDetail.visaType != null ? contractDetail.visaType : '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'تاريخ التأشيرة' : 'Visa Date'}>
+                        {formatDate(contractDetail.visaDate)}
+                        {contractDetail.visaDateHijri ? ` (${contractDetail.visaDateHijri})` : ''}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'تأشيرة تأهيل شامل' : 'Comprehensive Visa'}>
+                        {contractDetail.isComprehensiveQualificationVisa
+                          ? (language === 'ar' ? 'نعم' : 'Yes')
+                          : (language === 'ar' ? 'لا' : 'No')}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.arrivalCity}>
+                        {contractDetail.arrivalDestinationName ||
+                          (contractDetail.arrivalDestinationId
+                            ? getEnumLabel([...ARRIVAL_DESTINATIONS], contractDetail.arrivalDestinationId, language)
+                            : '-')}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'تاريخ الإنشاء' : 'Created At'}>
+                        {formatDate(contractDetail.createdAt)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'أُنشئ بواسطة' : 'Created By'}>
+                        {contractDetail.createdByName || '-'}
+                      </Descriptions.Item>
+                      {contractDetail.contractEndNote && (
+                        <Descriptions.Item label={language === 'ar' ? 'ملاحظة إنهاء العقد' : 'Contract End Note'} span={2}>
+                          {contractDetail.contractEndNote}
+                        </Descriptions.Item>
+                      )}
+                    </Descriptions>
+
+                    {contractDetail.isCancel && (
+                      <Alert
+                        type="warning"
+                        showIcon
+                        message={language === 'ar' ? 'هذا العقد ملغى' : 'This contract is cancelled'}
+                        style={{ marginBlockStart: 16 }}
+                      />
+                    )}
+
+                    {contractDetail.cancelNote && (
+                      <>
+                        <Divider orientation="left" style={{ fontSize: 13, color: '#ff4d4f', marginBlockStart: 20 }}>
+                          {t.cancelContract}
+                        </Divider>
+                        <Alert
+                          type="error"
+                          showIcon
+                          message={getEnumLabel([...CANCEL_BY], contractDetail.cancelBy, language)}
+                          description={contractDetail.cancelNote}
+                        />
+                      </>
+                    )}
                   </div>
-                </Col>
-                <Col span={12}>
-                  <div className={styles.modalSection}>
-                    <h4>{t.status}</h4>
-                    <Badge
-                      status={getStatusConfig(selectedContract.statusId).color as 'processing' | 'warning' | 'success' | 'error' | 'default'}
-                      text={getStatusConfig(selectedContract.statusId).label}
-                    />
+                ),
+              },
+              {
+                key: 'financial',
+                label: language === 'ar' ? 'التكاليف' : 'Financial',
+                children: (
+                  <div className={styles.detailsModal}>
+                    {/* Total cost hero */}
+                    <div className={styles.totalCostBanner} style={{ marginBlockEnd: 20 }}>
+                      <div className={styles.totalCostMeta}>
+                        <DollarOutlined className={styles.totalCostIcon} />
+                        <span className={styles.totalCostLabel}>{t.totalCost}</span>
+                      </div>
+                      <div className={styles.totalCostAmount}>{formatCurrency(contractDetail.totalCost)}</div>
+                    </div>
+
+                    <Descriptions column={3} size="small" bordered>
+                      <Descriptions.Item label={t.offerAmount}>
+                        <span style={{ color: '#003366', fontWeight: 700 }}>{formatCurrency(contractDetail.offerAmount)}</span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.localCost}>
+                        <span style={{ color: '#52c41a', fontWeight: 700 }}>{formatCurrency(contractDetail.localCost)}</span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.agentCost}>
+                        <span style={{ color: '#faad14', fontWeight: 700 }}>{formatCurrency(contractDetail.agentCostSAR)}</span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.salary}>
+                        <span style={{ color: '#1890ff', fontWeight: 700 }}>{formatCurrency(contractDetail.salary)}</span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.otherCosts}>
+                        <span style={{ color: '#722ed1', fontWeight: 700 }}>{formatCurrency(contractDetail.otherCosts)}</span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.taxValue}>
+                        <span style={{ color: '#fa8c16', fontWeight: 700 }}>{formatCurrency(contractDetail.totalTaxValue)}</span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.managerDiscount}>
+                        <span style={{ color: '#ff4d4f', fontWeight: 700 }}>-{formatCurrency(contractDetail.managerDiscount)}</span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t.costDiscount}>
+                        <span style={{ color: '#ff4d4f', fontWeight: 700 }}>-{formatCurrency(contractDetail.costDiscount)}</span>
+                      </Descriptions.Item>
+                      {contractDetail.hasContractInsurance && (
+                        <Descriptions.Item label={t.insuranceCost}>
+                          <span style={{ color: '#13c2c2', fontWeight: 700 }}>{formatCurrency(contractDetail.domesticWorkerInsurance)}</span>
+                        </Descriptions.Item>
+                      )}
+                    </Descriptions>
+
+                    {contractDetail.costDescription && (
+                      <Alert
+                        type="info"
+                        showIcon
+                        message={language === 'ar' ? 'ملاحظة التكلفة' : 'Cost Note'}
+                        description={contractDetail.costDescription}
+                        style={{ marginBlockStart: 16 }}
+                      />
+                    )}
                   </div>
-                </Col>
-                <Col span={12}>
-                  <div className={styles.modalSection}><h4>{t.musanedNumber}</h4><p className={styles.modalValue}>{selectedContract.musanedContractNumber || '-'}</p></div>
-                </Col>
-                <Col span={12}>
-                  <div className={styles.modalSection}><h4>{t.visaNumber}</h4><p className={styles.modalValue}>{selectedContract.visaNumber || '-'}</p></div>
-                </Col>
-                <Col span={12}>
-                  <div className={styles.modalSection}>
-                    <h4>{t.arrivalCity}</h4>
-                    <p className={styles.modalValue}>
-                      {selectedContract.arrivalDestinationId
-                        ? getEnumLabel([...ARRIVAL_DESTINATIONS], selectedContract.arrivalDestinationId, language)
-                        : '-'}
-                    </p>
+                ),
+              },
+              {
+                key: 'followup',
+                label: language === 'ar' ? 'المتابعة' : 'Follow-up',
+                children: (
+                  <div className={styles.detailsModal}>
+                    {contractDetail.followUpItems && contractDetail.followUpItems.length > 0 ? (
+                      <Table
+                        dataSource={contractDetail.followUpItems}
+                        rowKey="id"
+                        size="small"
+                        pagination={false}
+                        columns={[
+                          {
+                            title: language === 'ar' ? 'الحالة' : 'Status',
+                            render: (_: any, row: any) => language === 'ar' ? row.statusNameAr : row.statusNameEn,
+                          },
+                          {
+                            title: language === 'ar' ? 'النتيجة' : 'Result',
+                            dataIndex: 'resultName',
+                            render: (v: string) => (
+                              <Tag color={v === 'Pending' ? 'orange' : v === 'Done' ? 'green' : 'default'}>{v || '-'}</Tag>
+                            ),
+                          },
+                          {
+                            title: language === 'ar' ? 'أقصى أيام' : 'Max Days',
+                            dataIndex: 'maxDays',
+                            align: 'center',
+                          },
+                          {
+                            title: language === 'ar' ? 'مكتمل في' : 'Completed At',
+                            dataIndex: 'completedAt',
+                            render: (v: string) => formatDate(v),
+                          },
+                          {
+                            title: language === 'ar' ? 'ملاحظات' : 'Notes',
+                            dataIndex: 'notes',
+                            render: (v: string) => v || '-',
+                          },
+                        ]}
+                      />
+                    ) : (
+                      <Empty description={language === 'ar' ? 'لا توجد عناصر متابعة' : 'No follow-up items'} />
+                    )}
                   </div>
-                </Col>
-
-                <Col span={24}><Divider>{t.financialInfo}</Divider></Col>
-
-                <Col span={8}><div className={styles.modalSection}><h4>{t.localCost}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.localCost)}</p></div></Col>
-                <Col span={8}><div className={styles.modalSection}><h4>{t.agentCost}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.agentCostSAR)}</p></div></Col>
-                <Col span={8}><div className={styles.modalSection}><h4>{t.salary}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.salary)}</p></div></Col>
-                <Col span={8}><div className={styles.modalSection}><h4>{t.otherCosts}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.otherCosts)}</p></div></Col>
-                <Col span={8}><div className={styles.modalSection}><h4>{t.taxValue}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.totalTaxValue)}</p></div></Col>
-                <Col span={8}><div className={styles.modalSection}><h4>{t.managerDiscount}</h4><p className={styles.modalValue} style={{ color: '#ff4d4f' }}>-{formatCurrency(selectedContract.managerDiscount)}</p></div></Col>
-                <Col span={8}><div className={styles.modalSection}><h4>{t.costDiscount}</h4><p className={styles.modalValue} style={{ color: '#ff4d4f' }}>-{formatCurrency(selectedContract.costDiscount)}</p></div></Col>
-                <Col span={8}><div className={styles.modalSection}><h4>{t.totalCost}</h4><p className={styles.modalValue} style={{ color: '#003366', fontSize: 18 }}>{formatCurrency(selectedContract.totalCost)}</p></div></Col>
-                {selectedContract.hasContractInsurance && (
-                  <Col span={8}><div className={styles.modalSection}><h4>{t.insuranceCost}</h4><p className={styles.modalValue}>{formatCurrency(selectedContract.domesticWorkerInsurance)}</p></div></Col>
-                )}
-
-
-
-                {selectedContract.cancelNote && (
-                  <>
-                    <Col span={24}><Divider>{t.cancelContract}</Divider></Col>
-                    <Col span={12}><div className={styles.modalSection}><h4>{t.cancelBy}</h4><p className={styles.modalValue}>{getEnumLabel([...CANCEL_BY], selectedContract.cancelBy, language)}</p></div></Col>
-                    <Col span={12}><div className={styles.modalSection}><h4>{t.cancelNote}</h4><p className={styles.modalValue}>{selectedContract.cancelNote}</p></div></Col>
-                  </>
-                )}
-              </Row>
-            </div>
-          );
-        })()}
+                ),
+              },
+              {
+                key: 'history',
+                label: language === 'ar' ? 'سجل الحالات' : 'Status History',
+                children: (
+                  <div className={styles.detailsModal}>
+                    {contractDetail.statusHistories && contractDetail.statusHistories.length > 0 ? (
+                      <Timeline
+                        mode="left"
+                        items={contractDetail.statusHistories.map((h) => ({
+                          color: h.newStatusName === 'Cancelled' ? 'red' : h.newStatusName === 'Signed' || h.newStatusName === 'Delivered' ? 'green' : 'blue',
+                          label: formatDate(h.createdAt),
+                          children: (
+                            <div>
+                              <div style={{ marginBlockEnd: 4 }}>
+                                <Tag color="default">{h.oldStatusName || '—'}</Tag>
+                                {' → '}
+                                <Tag color="blue">{h.newStatusName || '—'}</Tag>
+                              </div>
+                              {h.notes && <div style={{ fontSize: 13, color: '#595959' }}>{h.notes}</div>}
+                              {h.createdByName && (
+                                <div style={{ fontSize: 12, color: '#8c8c8c', marginBlockStart: 2 }}>
+                                  {t.changedBy}: {h.createdByName}
+                                </div>
+                              )}
+                            </div>
+                          ),
+                        }))}
+                      />
+                    ) : (
+                      <Empty description={language === 'ar' ? 'لا يوجد سجل حالات' : 'No status history'} />
+                    )}
+                  </div>
+                ),
+              },
+              {
+                key: 'delivery',
+                label: language === 'ar' ? 'نموذج التسليم' : 'Delivery Form',
+                children: (
+                  <div className={styles.detailsModal}>
+                    {contractDetail.deliveryForm ? (
+                      <Descriptions column={2} size="small" bordered>
+                        <Descriptions.Item label={t.deliveryDate}>
+                          {formatDate(contractDetail.deliveryForm.deliveryDate)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t.customerSignedAt}>
+                          {formatDate(contractDetail.deliveryForm.customerSignedAt)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={language === 'ar' ? 'تاريخ الإنشاء' : 'Created At'}>
+                          {formatDate(contractDetail.deliveryForm.createdAt)}
+                        </Descriptions.Item>
+                        {contractDetail.deliveryForm.notes && (
+                          <Descriptions.Item label={t.deliveryNotes} span={2}>
+                            {contractDetail.deliveryForm.notes}
+                          </Descriptions.Item>
+                        )}
+                      </Descriptions>
+                    ) : (
+                      <Empty description={language === 'ar' ? 'لم يُنشأ نموذج التسليم بعد' : 'Delivery form not yet generated'} />
+                    )}
+                  </div>
+                ),
+              },
+              {
+                key: 'warranty',
+                label: language === 'ar' ? 'الضمان والإرجاع' : 'Warranty Return',
+                children: (
+                  <div className={styles.detailsModal}>
+                    {contractDetail.warrantyReturn ? (
+                      <>
+                        <Alert
+                          type="warning"
+                          showIcon
+                          message={language === 'ar' ? 'تم إرجاع العامل ضمن فترة الضمان' : 'Worker returned within warranty period'}
+                          style={{ marginBlockEnd: 16 }}
+                        />
+                        <Descriptions column={2} size="small" bordered>
+                          <Descriptions.Item label={t.returnDate}>
+                            {formatDate(contractDetail.warrantyReturn.returnDate)}
+                          </Descriptions.Item>
+                          <Descriptions.Item label={t.returnReason}>
+                            {contractDetail.warrantyReturn.returnReasonName || contractDetail.warrantyReturn.returnReason || '-'}
+                          </Descriptions.Item>
+                          <Descriptions.Item label={t.daysWithCustomer}>
+                            {contractDetail.warrantyReturn.daysWithCustomer ?? '-'}
+                          </Descriptions.Item>
+                          <Descriptions.Item label={t.refundAmount}>
+                            <span style={{ color: '#fa8c16', fontWeight: 700 }}>
+                              {formatCurrency(contractDetail.warrantyReturn.refundAmount)}
+                            </span>
+                          </Descriptions.Item>
+                          {contractDetail.warrantyReturn.newWorkerLocation && (
+                            <Descriptions.Item label={t.newWorkerLocation} span={2}>
+                              {contractDetail.warrantyReturn.newWorkerLocation}
+                            </Descriptions.Item>
+                          )}
+                          {contractDetail.warrantyReturn.notes && (
+                            <Descriptions.Item label={t.note} span={2}>
+                              {contractDetail.warrantyReturn.notes}
+                            </Descriptions.Item>
+                          )}
+                          <Descriptions.Item label={language === 'ar' ? 'تاريخ الإنشاء' : 'Created At'}>
+                            {formatDate(contractDetail.warrantyReturn.createdAt)}
+                          </Descriptions.Item>
+                        </Descriptions>
+                      </>
+                    ) : (
+                      <Empty description={language === 'ar' ? 'لا يوجد إرجاع ضمان' : 'No warranty return recorded'} />
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        ) : null}
       </Modal>
 
       {/* ========== CANCEL CONTRACT MODAL ========== */}
@@ -1074,47 +1398,6 @@ export default function MediationContractsPage() {
         </Form>
       </Modal>
 
-      {/* ========== STATUS HISTORY MODAL ========== */}
-      <Modal
-        title={`${t.statusHistory} — #${selectedContract?.id || ''}`}
-        open={showStatusHistoryModal}
-        onCancel={() => { setShowStatusHistoryModal(false); setSelectedContract(null); }}
-        footer={<Button type="primary" onClick={() => setShowStatusHistoryModal(false)}>{t.close}</Button>}
-        width={700}
-        destroyOnClose
-      >
-        {isLoadingHistory ? (
-          <div style={{ textAlign: 'center', padding: 24 }}><Spin /></div>
-        ) : statusHistory.length > 0 ? (
-          <List
-            dataSource={statusHistory}
-            renderItem={(item) => (
-              <List.Item>
-                <List.Item.Meta
-                  title={
-                    <span>
-                      <Tag color="default">{item.oldStatusName || '—'}</Tag>
-                      {' → '}
-                      <Tag color="blue">{item.newStatusName || '—'}</Tag>
-                    </span>
-                  }
-                  description={
-                    <div>
-                      {item.notes && <div>{item.notes}</div>}
-                      <div style={{ color: '#888', fontSize: 12 }}>
-                        {item.createdByName && <span>{t.changedBy}: {item.createdByName} · </span>}
-                        {formatDate(item.createdAt)}
-                      </div>
-                    </div>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        ) : (
-          <Empty description={language === 'ar' ? 'لا يوجد سجل حالات' : 'No status history'} />
-        )}
-      </Modal>
     </div>
   );
 }

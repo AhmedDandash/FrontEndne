@@ -67,7 +67,6 @@ export default function OfferSelector({
     age: isArabic ? 'العمر' : 'Age',
     religion: isArabic ? 'الديانة' : 'Religion',
     experience: isArabic ? 'الخبرة' : 'Experience',
-    branch: isArabic ? 'الفرع' : 'Branch',
     noOffers: isArabic ? 'لا توجد عروض' : 'No offers found',
     loading: isArabic ? 'جاري التحميل...' : 'Loading...',
     selected: isArabic ? 'محدد' : 'Selected',
@@ -86,12 +85,7 @@ export default function OfferSelector({
     [isArabic]
   );
 
-  const getBranchName = useCallback(
-    (_offer: MediationContractOffer): string => {
-      return isArabic ? 'غير محدد' : 'N/A';
-    },
-    [isArabic]
-  );
+  
 
   // Helper: resolve job name
   const getJobName = useCallback(
@@ -153,11 +147,9 @@ export default function OfferSelector({
         const search = searchTerm.toLowerCase();
         const natName = getNationalityName(offer).toLowerCase();
         const jobName = getJobName(offer).toLowerCase();
-        const branchName = getBranchName(offer).toLowerCase();
         if (
           !natName.includes(search) &&
           !jobName.includes(search) &&
-          !branchName.includes(search) &&
           !String(offer.id).includes(search)
         ) {
           return false;
@@ -172,7 +164,6 @@ export default function OfferSelector({
     searchTerm,
     getNationalityName,
     getJobName,
-    getBranchName,
   ]);
 
   // Find currently selected offer for the highlight badge
@@ -265,12 +256,7 @@ export default function OfferSelector({
       render: (val: number | null | undefined) => <Tag color="purple">{formatSAR(val)}</Tag>,
       sorter: (a, b) => (a.totalOfferCost || 0) - (b.totalOfferCost || 0),
     },
-    {
-      title: t.branch,
-      key: 'branch',
-      width: 120,
-      render: (_: unknown, record) => getBranchName(record),
-    },
+    
   ];
 
   // Loading state
