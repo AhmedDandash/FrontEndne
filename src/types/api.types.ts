@@ -49,6 +49,10 @@ export interface Branch {
   openingConversation?: string | null;
   whatsAppWelcomeTemplate?: string | null;
   mainBranch?: number | null;
+  parentBranchId?: string | null;
+  parentBranchNameAr?: string | null;
+  parentBranchNameEn?: string | null;
+  subBranches?: Branch[];
   taxNumber?: string | null;
   domain?: string | null;
   appUrl?: string | null;
@@ -61,9 +65,12 @@ export interface Branch {
   zaka_BuildingNumber?: string | null;
   zaka_StreetAr?: string | null;
   createdAt?: string | null;
+  createdDate?: string | null;
+  createdBy?: string | null;
 }
 
 export interface BranchDto {
+  parentBranchId?: string | null;
   nameAr?: string | null;
   nameEn?: string | null;
   organizationTypeAr?: number | null;

@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
   BRANCH: {
     GET_ALL: '/api/V1/Branch',
     GET_BY_ID: (id: number | string) => `/api/V1/Branch/${id}`,
+    GET_SUB_BRANCHES: (id: number | string) => `/api/V1/Branch/${id}/sub-branches`,
     CREATE: '/api/V1/Branch',
     UPDATE: (id: number | string) => `/api/V1/Branch/${id}`,
     DELETE: (id: number | string) => `/api/V1/Branch/${id}`,

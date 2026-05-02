@@ -23,22 +23,7 @@ export function useBranches() {
     queryKey: [QUERY_KEY],
     queryFn: async () => {
       const result = await BranchService.getAll();
-      const branchesList = Array.isArray(result) ? result : [];
-      console.log('🏢 Branches fetched from API:', result);
-      console.log('📊 First branch sample:', branchesList[0]);
-      console.log(
-        '🔍 First branch keys:',
-        branchesList[0] ? Object.keys(branchesList[0]) : 'No branches'
-      );
-      console.log('🆔 Does first branch have id?', branchesList[0]?.id !== undefined);
-
-      // Check if branches have id field, if not, log a warning
-      if (branchesList.length > 0 && !branchesList[0].hasOwnProperty('id')) {
-        console.error('❌ WARNING: Branches from API are missing the "id" field!');
-        console.log('Available fields:', Object.keys(branchesList[0]));
-      }
-
-      return branchesList;
+      return Array.isArray(result) ? result : [];
     },
   });
 
@@ -47,6 +32,15 @@ export function useBranches() {
     return useQuery({
       queryKey: [QUERY_KEY, id],
       queryFn: () => BranchService.getById(id),
+      enabled: !!id,
+    });
+  };
+
+  // Get sub-branches for a given branch
+  const useSubBranches = (id: number | string) => {
+    return useQuery({
+      queryKey: [QUERY_KEY, id, 'sub-branches'],
+      queryFn: () => BranchService.getSubBranches(id),
       enabled: !!id,
     });
   };
@@ -94,6 +88,7 @@ export function useBranches() {
     error,
     refetch,
     useBranch,
+    useSubBranches,
     createBranch: createMutation.mutate,
     updateBranch: updateMutation.mutate,
     deleteBranch: deleteMutation.mutate,

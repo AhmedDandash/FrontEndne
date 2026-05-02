@@ -36,6 +36,14 @@ export class BranchService {
   }
 
   /**
+   * Get sub-branches for a given branch
+   */
+  static async getSubBranches(id: number | string): Promise<Branch[]> {
+    const response = await api.get<any>(API_ENDPOINTS.BRANCH.GET_SUB_BRANCHES(id));
+    return this.unwrapList<Branch>(response.data);
+  }
+
+  /**
    * Create new branch
    */
   static async create(data: BranchDto): Promise<Branch> {

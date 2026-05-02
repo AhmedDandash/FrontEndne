@@ -48,7 +48,6 @@ import {
   SendOutlined,
   CarOutlined,
   RollbackOutlined,
-  HistoryOutlined,
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
@@ -847,7 +846,7 @@ export default function MediationContractsPage() {
                 label: language === 'ar' ? 'معلومات العقد' : 'Contract Info',
                 children: (
                   <div className={styles.detailsModal}>
-                    <Divider orientation="left" style={{ fontSize: 13, color: '#8c8c8c' }}>
+                    <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c' }}>
                       {language === 'ar' ? 'بيانات العميل' : 'Customer'}
                     </Divider>
                     <Descriptions column={2} size="small" bordered>
@@ -862,7 +861,7 @@ export default function MediationContractsPage() {
                       </Descriptions.Item>
                     </Descriptions>
 
-                    <Divider orientation="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
+                    <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
                       {language === 'ar' ? 'بيانات العامل' : 'Worker'}
                     </Divider>
                     <Descriptions column={2} size="small" bordered>
@@ -880,7 +879,7 @@ export default function MediationContractsPage() {
                       </Descriptions.Item>
                     </Descriptions>
 
-                    <Divider orientation="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
+                    <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
                       {language === 'ar' ? 'بيانات العقد' : 'Contract'}
                     </Divider>
                     <Descriptions column={2} size="small" bordered>
@@ -959,7 +958,7 @@ export default function MediationContractsPage() {
 
                     {contractDetail.cancelNote && (
                       <>
-                        <Divider orientation="left" style={{ fontSize: 13, color: '#ff4d4f', marginBlockStart: 20 }}>
+                        <Divider titlePlacement="left" style={{ fontSize: 13, color: '#ff4d4f', marginBlockStart: 20 }}>
                           {t.cancelContract}
                         </Divider>
                         <Alert

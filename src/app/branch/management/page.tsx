@@ -19,6 +19,8 @@ import {
   Spin,
   message,
   Select,
+  Descriptions,
+  Divider,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -27,6 +29,7 @@ import {
   MoreOutlined,
   EditOutlined,
   DeleteOutlined,
+  EyeOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
   SafetyCertificateOutlined,
@@ -35,6 +38,11 @@ import {
   ShopOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
+  ApartmentOutlined,
+  MailOutlined,
+  GlobalOutlined,
+  IdcardOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useBranches } from '@/hooks/api/useBranches';
@@ -46,12 +54,15 @@ export default function BranchPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [selectedMainBranch, setSelectedMainBranch] = useState<number>(1);
+  const [viewingBranchId, setViewingBranchId] = useState<string | null>(null);
   const [form] = Form.useForm();
 
   // Use the real API hooks
   const {
     branches,
     isLoading,
+    useBranch,
     createBranch,
     updateBranch,
     deleteBranch,
@@ -59,6 +70,8 @@ export default function BranchPage() {
     isUpdating,
     isDeleting,
   } = useBranches();
+
+  const { data: viewBranchData, isLoading: isViewLoading } = useBranch(viewingBranchId ?? '');
 
   const t = (key: string) => {
     const translations: { [key: string]: { ar: string; en: string } } = {
@@ -83,8 +96,10 @@ export default function BranchPage() {
       actions: { ar: 'الإجراءات', en: 'Actions' },
       active: { ar: 'نشط', en: 'Active' },
       mainBranch: { ar: 'الفرع الرئيسي', en: 'Main Branch' },
-      subBranch: { ar: 'فرع', en: 'Branch' },
+      subBranch: { ar: 'فرع فرعي', en: 'Sub Branch' },
       branchType: { ar: 'نوع الفرع', en: 'Branch Type' },
+      parentBranch: { ar: 'الفرع الأصلي', en: 'Parent Branch' },
+      subBranches: { ar: 'الفروع الفرعية', en: 'Sub Branches' },
       noBranches: { ar: 'لا توجد فروع', en: 'No Branches Found' },
       totalBranches: { ar: 'إجمالي الفروع', en: 'Total Branches' },
       save: { ar: 'حفظ', en: 'Save' },
@@ -94,11 +109,36 @@ export default function BranchPage() {
         en: 'Are you sure you want to delete this branch?',
       },
       deleteTitle: { ar: 'حذف الفرع', en: 'Delete Branch' },
+      selectParentBranch: { ar: 'اختر الفرع الأصلي', en: 'Select Parent Branch' },
+      view: { ar: 'عرض', en: 'View' },
+      branchDetails: { ar: 'تفاصيل الفرع', en: 'Branch Details' },
+      generalInfo: { ar: 'المعلومات العامة', en: 'General Information' },
+      contactDetails: { ar: 'بيانات الاتصال', en: 'Contact Details' },
+      officialDocs: { ar: 'الوثائق الرسمية', en: 'Official Documents' },
+      zakaInfo: { ar: 'بيانات الزكاة', en: 'Zakat Information' },
+      laborLicense: { ar: 'رقم رخصة العمل', en: 'Labor License Number' },
+      laborLicenseDate: { ar: 'تاريخ رخصة العمل', en: 'Labor License Date' },
+      commercialRegDate: { ar: 'تاريخ السجل التجاري', en: 'Commercial Registration Date' },
+      commercialRegIssuedBy: { ar: 'جهة إصدار السجل التجاري', en: 'Commercial Reg. Issued By' },
+      poBox: { ar: 'صندوق البريد', en: 'PO Box' },
+      postalCode: { ar: 'الرمز البريدي', en: 'Postal Code' },
+      managerName: { ar: 'اسم المدير', en: 'Manager Name' },
+      embassyBranch: { ar: 'فرع السفارة الفلبينية', en: 'Philippine Embassy Branch' },
+      whatsappTemplate: { ar: 'قالب واتساب', en: 'WhatsApp Template' },
+      openingConversation: { ar: 'رسالة الترحيب', en: 'Opening Conversation' },
+      domain: { ar: 'النطاق', en: 'Domain' },
+      appUrl: { ar: 'رابط التطبيق', en: 'App URL' },
+      createdDate: { ar: 'تاريخ الإنشاء', en: 'Created Date' },
+      createdBy: { ar: 'أنشئ بواسطة', en: 'Created By' },
+      parentBranchLabel: { ar: 'الفرع الأصلي', en: 'Parent Branch' },
     };
     return translations[key]?.[language] || key;
   };
 
-  const filteredBranches = (branches || []).filter((branch) => {
+  // API returns only top-level branches (parentBranchId === null) with subBranches nested
+  const topLevelBranches = (branches || []).filter((b) => !b.parentBranchId);
+
+  const filteredBranches = topLevelBranches.filter((branch) => {
     const searchLower = searchTerm.toLowerCase();
     const name = language === 'ar' ? branch.nameAr : branch.nameEn;
     const address = language === 'ar' ? branch.addressAr : branch.addressEn;
@@ -112,15 +152,19 @@ export default function BranchPage() {
 
   const handleAddBranch = () => {
     setEditingBranch(null);
+    setSelectedMainBranch(1);
     form.resetFields();
     setIsModalVisible(true);
   };
 
-  const handleEditBranch = (branch: Branch) => {
-    console.log('📝 Editing branch:', branch);
-    console.log('🆔 Branch ID:', branch.id);
+  const handleViewBranch = (branch: Branch) => {
+    setViewingBranchId(String(branch.id));
+  };
 
+  const handleEditBranch = (branch: Branch) => {
     setEditingBranch(branch);
+    const mainBranchVal = branch.mainBranch ?? 1;
+    setSelectedMainBranch(mainBranchVal);
     form.setFieldsValue({
       nameAr: branch.nameAr,
       nameEn: branch.nameEn,
@@ -132,7 +176,8 @@ export default function BranchPage() {
       branchLicense: branch.branchLicense,
       commercialRegistrationNumber: branch.commercialRegistrationNumber,
       taxNumber: branch.taxNumber,
-      mainBranch: branch.mainBranch === null ? 1 : 0,
+      mainBranch: mainBranchVal,
+      parentBranchId: branch.parentBranchId ?? undefined,
     });
     setIsModalVisible(true);
   };
@@ -152,17 +197,13 @@ export default function BranchPage() {
   const handleModalSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const branchData: BranchDto = values;
-
-      console.log('💾 Submitting branch data:', {
-        isEditing: !!editingBranch,
-        branchId: editingBranch?.id,
-        data: branchData,
-      });
+      const branchData: BranchDto = {
+        ...values,
+        parentBranchId: values.mainBranch === 0 ? values.parentBranchId : null,
+      };
 
       if (editingBranch) {
         if (!editingBranch.id) {
-          console.error('❌ Branch ID is missing!', editingBranch);
           message.error('Branch ID is missing. Cannot update.');
           return;
         }
@@ -173,8 +214,8 @@ export default function BranchPage() {
 
       setIsModalVisible(false);
       form.resetFields();
-    } catch (error) {
-      console.error('Validation failed:', error);
+    } catch {
+      // validation errors shown inline
     }
   };
 
@@ -182,10 +223,17 @@ export default function BranchPage() {
     setIsModalVisible(false);
     form.resetFields();
     setEditingBranch(null);
+    setSelectedMainBranch(1);
   };
 
   const getActionMenu = (branch: Branch): MenuProps => ({
     items: [
+      {
+        key: 'view',
+        label: t('view'),
+        icon: <EyeOutlined />,
+        onClick: () => handleViewBranch(branch),
+      },
       {
         key: 'edit',
         label: t('edit'),
@@ -252,7 +300,12 @@ export default function BranchPage() {
               </div>
               <div className={styles.statInfo}>
                 <p className={styles.statLabel}>{t('totalBranches')}</p>
-                <h3 className={styles.statValue}>{branches?.length || 0}</h3>
+                <h3 className={styles.statValue}>
+                  {(branches || []).reduce(
+                    (acc, b) => acc + 1 + (b.subBranches?.length || 0),
+                    0
+                  )}
+                </h3>
               </div>
             </div>
           </Card>
@@ -266,7 +319,10 @@ export default function BranchPage() {
               <div className={styles.statInfo}>
                 <p className={styles.statLabel}>{t('active')}</p>
                 <h3 className={styles.statValue}>
-                  {branches?.filter((b) => b.nameAr || b.nameEn).length || 0}
+                  {(branches || []).reduce(
+                    (acc, b) => acc + 1 + (b.subBranches?.length || 0),
+                    0
+                  )}
                 </h3>
               </div>
             </div>
@@ -317,6 +373,11 @@ export default function BranchPage() {
                         >
                           {branch.mainBranch === 1 ? t('mainBranch') : t('subBranch')}
                         </Tag>
+                        {(branch.subBranches?.length ?? 0) > 0 && (
+                          <Tag color="purple" icon={<ApartmentOutlined />}>
+                            {branch.subBranches!.length} {t('subBranches')}
+                          </Tag>
+                        )}
                       </Space>
                     </div>
                   </div>
@@ -417,10 +478,73 @@ export default function BranchPage() {
                       )}
                     </Row>
                   </div>
+
+                  {/* Sub Branches */}
+                  {(branch.subBranches?.length ?? 0) > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <p className={styles.infoLabel} style={{ marginBottom: 8 }}>
+                        <ApartmentOutlined style={{ marginInlineEnd: 6 }} />
+                        {t('subBranches')}
+                      </p>
+                      {branch.subBranches!.map((sub) => (
+                        <div
+                          key={sub.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '6px 10px',
+                            marginBottom: 6,
+                            background: '#f5f7fa',
+                            borderRadius: 6,
+                            border: '1px solid #e8ecf0',
+                          }}
+                        >
+                          <Space size={8}>
+                            <ApartmentOutlined style={{ color: '#7c3aed' }} />
+                            <span style={{ fontSize: 13 }}>
+                              {language === 'ar' ? sub.nameAr : sub.nameEn}
+                            </span>
+                            {sub.phone && (
+                              <span style={{ fontSize: 12, color: '#888' }}>{sub.phone}</span>
+                            )}
+                          </Space>
+                          <Space size={4}>
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<EyeOutlined />}
+                              onClick={() => handleViewBranch(sub)}
+                            />
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<EditOutlined />}
+                              onClick={() => handleEditBranch(sub)}
+                            />
+                            <Button
+                              type="text"
+                              size="small"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => handleDeleteBranch(sub)}
+                            />
+                          </Space>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Card Footer Actions */}
                 <div className={styles.cardFooter}>
+                  <Button
+                    type="link"
+                    icon={<EyeOutlined />}
+                    onClick={() => handleViewBranch(branch)}
+                  >
+                    {t('view')}
+                  </Button>
                   <Button
                     type="link"
                     icon={<EditOutlined />}
@@ -481,17 +605,44 @@ export default function BranchPage() {
             </Col>
           </Row>
 
-          <Form.Item
-            name="mainBranch"
-            label={t('branchType')}
-            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
-            initialValue={0}
-          >
-            <Select placeholder={t('branchType')}>
-              <Select.Option value={1}>{t('mainBranch')}</Select.Option>
-              <Select.Option value={0}>{t('subBranch')}</Select.Option>
-            </Select>
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={selectedMainBranch === 0 ? 12 : 24}>
+              <Form.Item
+                name="mainBranch"
+                label={t('branchType')}
+                rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
+                initialValue={1}
+              >
+                <Select
+                  placeholder={t('branchType')}
+                  onChange={(val) => {
+                    setSelectedMainBranch(val);
+                    form.setFieldValue('parentBranchId', undefined);
+                  }}
+                >
+                  <Select.Option value={1}>{t('mainBranch')}</Select.Option>
+                  <Select.Option value={0}>{t('subBranch')}</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            {selectedMainBranch === 0 && (
+              <Col span={12}>
+                <Form.Item
+                  name="parentBranchId"
+                  label={t('parentBranch')}
+                  rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
+                >
+                  <Select placeholder={t('selectParentBranch')} allowClear>
+                    {topLevelBranches.map((b) => (
+                      <Select.Option key={String(b.id)} value={String(b.id)}>
+                        {language === 'ar' ? b.nameAr : b.nameEn}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            )}
+          </Row>
 
           <Row gutter={16}>
             <Col span={12}>
@@ -542,6 +693,253 @@ export default function BranchPage() {
             </Col>
           </Row>
         </Form>
+      </Modal>
+
+      {/* Branch Detail Modal */}
+      <Modal
+        title={
+          <Space>
+            <ShopOutlined />
+            {t('branchDetails')}
+            {viewBranchData && (
+              <Tag color={viewBranchData.mainBranch === 1 ? 'blue' : 'purple'}>
+                {viewBranchData.mainBranch === 1 ? t('mainBranch') : t('subBranch')}
+              </Tag>
+            )}
+          </Space>
+        }
+        open={!!viewingBranchId}
+        onCancel={() => setViewingBranchId(null)}
+        width={720}
+        footer={
+          viewBranchData
+            ? [
+                <Button key="close" onClick={() => setViewingBranchId(null)}>
+                  {t('cancel')}
+                </Button>,
+                <Button
+                  key="edit"
+                  type="primary"
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    setViewingBranchId(null);
+                    handleEditBranch(viewBranchData);
+                  }}
+                >
+                  {t('edit')}
+                </Button>,
+              ]
+            : null
+        }
+      >
+        {isViewLoading ? (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <Spin size="large" />
+          </div>
+        ) : viewBranchData ? (
+          <>
+            {/* General Info */}
+            <Descriptions
+              title={
+                <Space>
+                  <IdcardOutlined />
+                  {t('generalInfo')}
+                </Space>
+              }
+              bordered
+              size="small"
+              column={2}
+              style={{ marginBottom: 24 }}
+            >
+              <Descriptions.Item label={t('branchNameAr')} span={1}>
+                {viewBranchData.nameAr || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('branchNameEn')} span={1}>
+                {viewBranchData.nameEn || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('branchType')} span={2}>
+                <Tag color={viewBranchData.mainBranch === 1 ? 'blue' : 'purple'}>
+                  {viewBranchData.mainBranch === 1 ? t('mainBranch') : t('subBranch')}
+                </Tag>
+              </Descriptions.Item>
+              {viewBranchData.parentBranchId && (
+                <Descriptions.Item label={t('parentBranchLabel')} span={2}>
+                  {language === 'ar'
+                    ? viewBranchData.parentBranchNameAr
+                    : viewBranchData.parentBranchNameEn}
+                </Descriptions.Item>
+              )}
+              <Descriptions.Item label={t('managerName')} span={2}>
+                {viewBranchData.managerNameAr || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('addressAr')} span={1}>
+                {viewBranchData.addressAr || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('addressEn')} span={1}>
+                {viewBranchData.addressEn || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('poBox')} span={1}>
+                {viewBranchData.poBox || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('postalCode')} span={1}>
+                {viewBranchData.postalCode || '—'}
+              </Descriptions.Item>
+              {viewBranchData.domain && (
+                <Descriptions.Item label={t('domain')} span={1}>
+                  <GlobalOutlined style={{ marginInlineEnd: 4 }} />
+                  {viewBranchData.domain}
+                </Descriptions.Item>
+              )}
+              {viewBranchData.appUrl && (
+                <Descriptions.Item label={t('appUrl')} span={1}>
+                  {viewBranchData.appUrl}
+                </Descriptions.Item>
+              )}
+              {viewBranchData.createdDate && (
+                <Descriptions.Item label={t('createdDate')} span={1}>
+                  <CalendarOutlined style={{ marginInlineEnd: 4 }} />
+                  {new Date(viewBranchData.createdDate).toLocaleDateString()}
+                </Descriptions.Item>
+              )}
+              {viewBranchData.createdBy !== undefined && (
+                <Descriptions.Item label={t('createdBy')} span={1}>
+                  {viewBranchData.createdBy || '—'}
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+
+            {/* Contact Details */}
+            <Descriptions
+              title={
+                <Space>
+                  <PhoneOutlined />
+                  {t('contactDetails')}
+                </Space>
+              }
+              bordered
+              size="small"
+              column={2}
+              style={{ marginBottom: 24 }}
+            >
+              <Descriptions.Item label={t('phone')} span={1}>
+                {viewBranchData.phone || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('mobile')} span={1}>
+                {viewBranchData.mobile || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('email')} span={2}>
+                {viewBranchData.email ? (
+                  <Space>
+                    <MailOutlined />
+                    {viewBranchData.email}
+                  </Space>
+                ) : (
+                  '—'
+                )}
+              </Descriptions.Item>
+              {viewBranchData.whatsAppWelcomeTemplate && (
+                <Descriptions.Item label={t('whatsappTemplate')} span={2}>
+                  {viewBranchData.whatsAppWelcomeTemplate}
+                </Descriptions.Item>
+              )}
+              {viewBranchData.openingConversation && (
+                <Descriptions.Item label={t('openingConversation')} span={2}>
+                  {viewBranchData.openingConversation}
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+
+            {/* Official Documents */}
+            <Descriptions
+              title={
+                <Space>
+                  <SafetyCertificateOutlined />
+                  {t('officialDocs')}
+                </Space>
+              }
+              bordered
+              size="small"
+              column={2}
+              style={{ marginBottom: 24 }}
+            >
+              <Descriptions.Item label={t('licenseId')} span={2}>
+                {viewBranchData.branchLicense || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('tradingId')} span={1}>
+                {viewBranchData.commercialRegistrationNumber || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('commercialRegDate')} span={1}>
+                {viewBranchData.commercialRegistrationDate
+                  ? new Date(viewBranchData.commercialRegistrationDate).toLocaleDateString()
+                  : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('commercialRegIssuedBy')} span={2}>
+                {viewBranchData.commercialRegistrationIssuedByAr || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('laborLicense')} span={1}>
+                {viewBranchData.laborLicenseNumber || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('laborLicenseDate')} span={1}>
+                {viewBranchData.laborLicenseDate
+                  ? new Date(viewBranchData.laborLicenseDate).toLocaleDateString()
+                  : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('taxNumber')} span={1}>
+                {viewBranchData.taxNumber || '—'}
+              </Descriptions.Item>
+              {viewBranchData.philippineEmbassyBranch && (
+                <Descriptions.Item label={t('embassyBranch')} span={1}>
+                  {viewBranchData.philippineEmbassyBranch}
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+
+            {/* Zakat Info */}
+            {(viewBranchData.zaka_RegistrationNameAr ||
+              viewBranchData.zaka_TaxNumber ||
+              viewBranchData.zaka_City_Name) && (
+              <>
+                <Divider />
+                <Descriptions
+                  title={
+                    <Space>
+                      <BankOutlined />
+                      {t('zakaInfo')}
+                    </Space>
+                  }
+                  bordered
+                  size="small"
+                  column={2}
+                >
+                  <Descriptions.Item label="اسم التسجيل" span={2}>
+                    {viewBranchData.zaka_RegistrationNameAr || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="رقم السجل التجاري" span={1}>
+                    {viewBranchData.zaka_Commercial_Registration_Number || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="الرقم الضريبي" span={1}>
+                    {viewBranchData.zaka_TaxNumber || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="المدينة" span={1}>
+                    {viewBranchData.zaka_City_Name || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="الرمز البريدي" span={1}>
+                    {viewBranchData.zaka_Postal_Zone || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="الحي" span={1}>
+                    {viewBranchData.zaka_DistrictAr || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="رقم المبنى" span={1}>
+                    {viewBranchData.zaka_BuildingNumber || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="الشارع" span={2}>
+                    {viewBranchData.zaka_StreetAr || '—'}
+                  </Descriptions.Item>
+                </Descriptions>
+              </>
+            )}
+          </>
+        ) : null}
       </Modal>
     </div>
   );
