@@ -28,6 +28,7 @@ import {
   EditOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
+import RichTextEditor from '@/components/RichTextEditor';
 import { useAuthStore } from '@/store/authStore';
 import {
   useMediationFollowUpItems,
@@ -293,41 +294,17 @@ export default function ContractFollowUpDetailPage() {
         okText={t('save')}
         cancelText={t('cancel')}
         confirmLoading={updateDescMutation.isPending}
-        width={920}
+        width={720}
         destroyOnClose
       >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
-          {/* Left — raw HTML input */}
-          <div>
-            <p className={styles.fieldLabel}>
-              {isRTL ? 'مدخل HTML' : 'HTML Input'}
-            </p>
-            <Input.TextArea
-              rows={12}
-              value={descriptionValue}
-              onChange={(e) => setDescriptionValue(e.target.value)}
-              placeholder={t('descriptionPlaceholder')}
-              style={{ fontFamily: 'monospace', fontSize: 12 }}
-            />
-          </div>
-          {/* Right — live preview rendered from the HTML */}
-          <div>
-            <p className={styles.fieldLabel}>
-              {isRTL ? 'معاينة مباشرة' : 'Live Preview'}
-            </p>
-            <div
-              style={{
-                border: '1px solid #d9d9d9',
-                borderRadius: 6,
-                padding: '8px 12px',
-                minHeight: 240,
-                maxHeight: 320,
-                overflowY: 'auto',
-                background: '#fafafa',
-              }}
-              dangerouslySetInnerHTML={{ __html: descriptionValue || '' }}
-            />
-          </div>
+        <div style={{ marginTop: 12 }}>
+          <RichTextEditor
+            value={descriptionValue}
+            onChange={setDescriptionValue}
+            placeholder={t('descriptionPlaceholder')}
+            height={280}
+            dir={isRTL ? 'rtl' : 'ltr'}
+          />
         </div>
       </Modal>
 
@@ -472,6 +449,16 @@ function ItemCard({
           </span>
         )}
       </div>
+
+      {/* ── Description (rendered inline) ── */}
+      {item.inputDescription && (
+        <div className={styles.descriptionPreview}>
+          <div
+            className={styles.descriptionSnippet}
+            dangerouslySetInnerHTML={{ __html: item.inputDescription }}
+          />
+        </div>
+      )}
 
       {/* ── Actions ── */}
       <div className={styles.itemActions}>

@@ -17,7 +17,7 @@ export class FollowUpRequirementService {
   }
 
   /**
-   * GET /GetByNationalityAndJob?nationalityId=UUID&jobId=UUID
+   * GET /GetByNationalityAndJob?nationalityId=<ContractNationality.id>&jobId=<Job.id>
    * Returns null when no requirement exists for this combination.
    */
   static async getByNationalityAndJob(
@@ -43,8 +43,8 @@ export class FollowUpRequirementService {
 
   /**
    * POST /Create
-   * nationalityId = ContractNationality.nationalityId (master UUID)
-   * jobId         = Job UUID (same UUID used by MediationContractOffer.jobId)
+   * nationalityId = ContractNationality.id (integer PK from /api/FollowUp/ContractNationality/GetAll)
+   * jobId         = Job id
    */
   static async create(dto: CreateFollowUpRequirementDto): Promise<FollowUpRequirement> {
     const response = await api.post<any>(

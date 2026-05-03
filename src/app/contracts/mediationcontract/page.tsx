@@ -136,9 +136,9 @@ export default function MediationContractsPage() {
 
   // Translations
   const t = {
-    pageTitle: language === 'ar' ? 'عقود الوساطة' : 'Mediation Contracts',
+    pageTitle: language === 'ar' ? 'عقود الاستقدام ' : 'Mediation Contracts',
     pageSubtitle:
-      language === 'ar' ? 'إدارة جميع عقود الوساطة والتوسط' : 'Manage all mediation contracts',
+      language === 'ar' ? 'إدارة جميع عقود الاستقدام ' : 'Manage all mediation contracts',
     addContract: language === 'ar' ? 'إضافة عقد' : 'Add Contract',
     exportExcel: language === 'ar' ? 'تصدير إكسل' : 'Export Excel',
     print: language === 'ar' ? 'طباعة' : 'Print',

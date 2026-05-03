@@ -12,7 +12,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useFollowUpRequirement } from '@/hooks/api/useFollowUpRequirements';
 
 interface RequirementCardProps {
-  /** ContractNationality.nationalityId — master UUID */
+  /** ContractNationality.id — integer PK from /api/FollowUp/ContractNationality/GetAll */
   nationalityId: string | null;
   /** Job UUID (same as MediationContractOffer.jobId) */
   jobId: string | null;

@@ -139,15 +139,13 @@ export default function Sidebar({
       icon: <FileTextOutlined />,
       label: language === 'ar' ? 'العقود' : 'Contracts',
       children: [
-       
-
         {
           key: 'contracts-mediation',
-          label: language === 'ar' ? 'عقود الوساطة' : 'Mediation',
+          label: language === 'ar' ? 'عقود الاستقدام ' : 'Mediation',
           children: [
             {
               key: '/contracts/mediationcontract',
-              label: language === 'ar' ? 'عقود الوساطة' : 'Mediation Contracts',
+              label: language === 'ar' ? 'عقود الاستقدام ' : 'Mediation Contracts',
             },
             {
               key: '/contracts/mediationcontract/automaticfollowup',
@@ -155,7 +153,7 @@ export default function Sidebar({
             },
             {
               key: '/contracts/mediationcontract/offers',
-              label: language === 'ar' ? 'عروض عقود الوساطة' : 'Mediation Offers',
+              label: language === 'ar' ? 'عروض عقود الاستقدام ' : 'Mediation Offers',
             },
           ],
         },
@@ -405,16 +403,16 @@ export default function Sidebar({
         // { key: '/settings/sms', label: language === 'ar' ? 'إعدادات الرسائل' : 'SMS Settings' },
         {
           key: 'mediation-settings',
-          label: language === 'ar' ? 'إعدادات الوساطة' : 'Mediation Settings',
+          label: language === 'ar' ? 'إعدادات عقود الاستقدام' : 'Mediation Settings',
           children: [
             {
               key: '/settings/mediation',
               label: language === 'ar' ? 'إعدادات المتابعة' : 'Follow-Up Settings',
             },
-            {
-              key: '/contract-creation-requirements',
-              label: language === 'ar' ? 'متطلبات إنشاء العقود' : 'Contract Requirements',
-            },
+            // {
+            //   key: '/contract-creation-requirements',
+            //   label: language === 'ar' ? 'متطلبات إنشاء العقود' : 'Contract Requirements',
+            // },
           ],
         },
       ],

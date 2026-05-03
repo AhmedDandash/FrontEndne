@@ -510,12 +510,12 @@ function ContractCreationRequirementsTab({ t, isRTL }: TabProps) {
   const nationalityOptions = useMemo(
     () =>
       contractNationalities
-        .filter((cn) => cn.isActive !== false && !!cn.nationalityId)
+        .filter((cn) => cn.isActive !== false)
         .map((cn) => ({
-          value: cn.nationalityId as string,
+          value: String(cn.id),
           label: isRTL
-            ? cn.nameAr || cn.nameEn || cn.nationalityId
-            : cn.nameEn || cn.nameAr || cn.nationalityId,
+            ? cn.nameAr || cn.nameEn || String(cn.id)
+            : cn.nameEn || cn.nameAr || String(cn.id),
         })),
     [contractNationalities, isRTL]
   );

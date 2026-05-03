@@ -9,7 +9,7 @@ import type {
 const QK = 'followup-requirements';
 
 /**
- * GET /GetByNationalityAndJob?nationalityId=UUID&jobId=UUID
+ * GET /GetByNationalityAndJob?nationalityId=<ContractNationality.id>&jobId=<Job.id>
  * Enabled only when both params are non-empty strings.
  */
 export function useFollowUpRequirement(

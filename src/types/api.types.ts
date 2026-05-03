@@ -1499,7 +1499,7 @@ export interface CreateContractCreationRequirementNewDto {
 /** Returned by GetByNationalityAndJob and GetById */
 export interface FollowUpRequirement {
   id?: string | null;
-  /** UUID — master nationality UUID (ContractNationality.nationalityId) */
+  /** ContractNationality.id (integer PK from /api/FollowUp/ContractNationality/GetAll) */
   nationalityId?: string | null;
   nationalityNameAr?: string | null;
   nationalityNameEn?: string | null;

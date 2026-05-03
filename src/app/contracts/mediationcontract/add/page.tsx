@@ -32,7 +32,6 @@ import { useAuthStore } from '@/store/authStore';
 import { useMediationContracts } from '@/hooks/api/useMediationContracts';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { useWorkers } from '@/hooks/api/useWorkers';
-import { useContractNationalities } from '@/hooks/api/useContractNationalities';
 import type { CreateMediationContractDto, MediationContractOffer } from '@/types/api.types';
 import {
   MEDIATION_CONTRACT_TYPE,
@@ -64,7 +63,6 @@ export default function AddMediationContractPage() {
   const { createContract, isCreating } = useMediationContracts();
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
   const { data: workers, isLoading: isLoadingWorkers } = useWorkers();
-  const { data: contractNationalities = [] } = useContractNationalities();
 
   // Handle offer selection → auto-fill fields
   const handleOfferSelect = (offer: MediationContractOffer) => {
@@ -394,24 +392,16 @@ export default function AddMediationContractPage() {
       />
 
       {/* Read-only requirement card — auto-fetches when offer has nationality + job */}
-      {selectedOffer && (() => {
-        // selectedOffer.nationalityId is ContractNationality.id (integer PK).
-        // GetByNationalityAndJob expects ContractNationality.nationalityId (master UUID).
-        const contractNat = contractNationalities.find(
-          (cn) => String(cn.id) === String(selectedOffer.nationalityId)
-        );
-        const resolvedNationalityId = contractNat?.nationalityId ?? null;
-        return (
-          <div style={{ marginTop: 16 }}>
-            <RequirementCard
-              nationalityId={resolvedNationalityId}
-              jobId={selectedOffer.jobId ?? null}
-              nationalityName={selectedOffer.nationalityNameAr ?? selectedOffer.nationalityName ?? undefined}
-              jobName={selectedOffer.jobName ?? undefined}
-            />
-          </div>
-        );
-      })()}
+      {selectedOffer && (
+        <div style={{ marginTop: 16 }}>
+          <RequirementCard
+            nationalityId={selectedOffer.nationalityId ? String(selectedOffer.nationalityId) : null}
+            jobId={selectedOffer.jobId ?? null}
+            nationalityName={selectedOffer.nationalityNameAr ?? selectedOffer.nationalityName ?? undefined}
+            jobName={selectedOffer.jobName ?? undefined}
+          />
+        </div>
+      )}
     </>
   );
 
