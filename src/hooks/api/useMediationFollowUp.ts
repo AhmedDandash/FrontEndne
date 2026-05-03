@@ -6,6 +6,7 @@ import type {
   MediationFollowUpItem,
   UpdateFollowUpItemDescriptionDto,
   CompleteFollowUpItemDto,
+  CanCompleteResponse,
 } from '@/types/api.types';
 
 const KEYS = {
@@ -61,6 +62,14 @@ export function useUpdateFollowUpDescription(contractId?: string | null) {
         error.response?.data?.message || 'فشل تحديث المرحلة / Failed to update stage'
       );
     },
+  });
+}
+
+// ── CanComplete check — called imperatively before submitting completion ──────
+
+export function useCanComplete() {
+  return useMutation<CanCompleteResponse, Error, string>({
+    mutationFn: (itemId: string) => MediationFollowUpService.canComplete(itemId),
   });
 }
 

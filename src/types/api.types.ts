@@ -1311,6 +1311,8 @@ export interface UpdateNationalityFollowUpConfigDto {
   sortOrder?: number | null;
   dependsOnStatusId?: number | null;
   fileNameAr?: string | null;
+  fileNameEn?: string | null;
+  whatsAppStatusName?: string | null;
   maxDays?: number | null;
   isActive?: boolean | null;
 }
@@ -1395,19 +1397,23 @@ export interface MediationFollowUpDashboardRow {
   contractNumber?: number | null;
   workerName?: string | null;
   workerPassportNumber?: string | null;
+  workerNationalityAr?: string | null;
+  workerTypeName?: string | null;
   customerName?: string | null;
   customerNationalId?: string | null;
-  nationalityName?: string | null;
-  nationalityNameAr?: string | null;
+  customerPhone?: string | null;
   musanedContractNumber?: string | null;
   statusId?: number | null;
   statusName?: string | null;
-  workerType?: number | null;
-  workerTypeName?: string | null;
+  contractTypeName?: string | null;
+  visaNumber?: string | null;
+  visaDate?: string | null;
+  totalCost?: number | null;
+  salary?: number | null;
+  offerAmount?: number | null;
+  daysSinceCreation?: number | null;
   createdAt?: string | null;
-  // progress summary — may be returned by the API
-  totalItems?: number | null;
-  completedItems?: number | null;
+  workerType?: number | null;
 }
 
 /**

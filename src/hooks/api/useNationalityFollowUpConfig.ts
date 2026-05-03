@@ -3,6 +3,7 @@ import { message } from 'antd';
 import { NationalityFollowUpConfigService } from '@/services/nationality-followup-config.service';
 import type {
   NationalityFollowUpConfig,
+  UpdateNationalityFollowUpConfigDto,
   BulkUpdateNationalityFollowUpConfigDto,
 } from '@/types/api.types';
 
@@ -38,6 +39,19 @@ export function useToggleNationalityFollowUpConfig() {
     onSettled: (_d, _e, vars) => {
       qc.invalidateQueries({ queryKey: [QK, vars.contractNationalityId] });
     },
+  });
+}
+
+export function useUpdateNationalityFollowUpConfig(contractNationalityId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpdateNationalityFollowUpConfigDto) =>
+      NationalityFollowUpConfigService.update(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QK, contractNationalityId] });
+      message.success('تم حفظ السطر | Row saved');
+    },
+    onError: () => message.error('فشل حفظ السطر | Row save failed'),
   });
 }
 

@@ -52,14 +52,333 @@
   align-items: end;
 }
 
-/* ── Table ── */
+/* ── Empty fallback card ── */
 .tableCard {
   border-radius: 8px;
 }
 
+/* ── Cards Grid (full-width rows like mediation contracts) ── */
+.cardsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* ── Follow-Up Card ── */
+.followUpCard {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.followUpCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.followUpCard :global(.ant-card-body) {
+  padding: 0;
+}
+
+/* ── Card Layout (mirrors mediation contract) ── */
+.cardContent {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+.cardLeft {
+  flex: 1;
+  padding: 20px;
+  border-inline-end: 1px solid #f0f0f0;
+}
+
+.cardRight {
+  inline-size: 280px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #edf1f5 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cardBottom {
+  inline-size: 100%;
+  padding: 12px 20px;
+  background: #fafafa;
+  border-block-start: 1px solid #f0f0f0;
+}
+
+/* ── Card Header ── */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-block-end: 12px;
+  padding-block-end: 12px;
+  border-block-end: 1px solid #f0f0f0;
+}
+
+.contractNumber {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #003366;
+}
+
+.contractIcon {
+  font-size: 18px;
+  color: #003366;
+}
+
+/* ── Tags ── */
+.tagsSection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-block-end: 16px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.typeTag {
+  font-weight: 600;
+  padding-inline: 12px;
+  padding-block: 4px;
+  border-radius: 6px;
+}
+
+/* ── Worker (customer) row ── */
+.customerSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-block-end: 16px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+.customerAvatar {
+  background: linear-gradient(135deg, #003366 0%, #00478c 100%);
+  flex-shrink: 0;
+}
+
+.customerDetails {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.customerName {
+  display: block;
+  font-weight: 600;
+  font-size: 15px;
+  color: #262626;
+  margin-block-end: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customerMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #666;
+}
+
+/* ── Extra details ── */
+.detailsSection {
+  margin-block-end: 0;
+}
+
+.detailItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-block: 8px;
+  border-block-end: 1px solid #f5f5f5;
+}
+
+.detailItem:last-child {
+  border-block-end: none;
+}
+
+.detailIcon {
+  font-size: 16px;
+  color: #003366;
+  margin-block-start: 2px;
+}
+
+.detailText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailLabel {
+  font-size: 12px;
+  color: #8c8c8c;
+  font-weight: 500;
+}
+
+.detailValue {
+  font-size: 14px;
+  color: #262626;
+  font-weight: 600;
+}
+
+/* ── Right Panel: progress banner ── */
+.progressBanner {
+  background: linear-gradient(135deg, #003366 0%, #00478c 100%);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressBannerMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.85;
+}
+
+.progressBannerIcon {
+  font-size: 14px;
+}
+
+.progressBannerLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.progressBannerValue {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.progressBannerSub {
+  font-size: 11px;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Right Panel: stats breakdown ── */
+.statsBreakdown {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.statRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statDot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statLabel {
+  flex: 1;
+  font-size: 12px;
+  color: #595959;
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ── Right Panel: date ── */
+.datesSection {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+  gap: 8px;
+}
+
+.dateItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #595959;
+  font-weight: 500;
+}
+
+/* ── Action Buttons ── */
+.actionsList {
+  display: flex;
+  gap: 10px;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 10px !important;
+  padding-block: 8px !important;
+  block-size: auto !important;
+  min-block-size: 36px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #595959 !important;
+  background: white !important;
+  border: 1px solid #e8e8e8 !important;
+  transition: all 0.3s ease;
+}
+
+.actionBtn:hover {
+  background: #f0f7ff !important;
+  border-color: #003366 !important;
+  color: #003366 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 51, 102, 0.15);
+}
+
+/* ── Pagination ── */
+.paginationBar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* ── Shared ── */
 .contractNo {
   font-weight: 700;
   color: #003366;
+  font-size: 15px;
 }
 
 .mono {
@@ -70,4 +389,20 @@
 .pct {
   color: #8c8c8c;
   font-size: 11px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 576px) {
+  .cardContent {
+    flex-direction: column;
+  }
+
+  .cardLeft {
+    border-inline-end: none;
+    border-block-end: 1px solid #f0f0f0;
+  }
+
+  .cardRight {
+    inline-size: 100%;
+  }
 }

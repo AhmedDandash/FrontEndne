@@ -16,6 +16,7 @@ import {
   Card,
   Select,
   Input,
+  message,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -33,6 +34,7 @@ import {
   useMediationFollowUpItem,
   useUpdateFollowUpDescription,
   useCompleteFollowUpItem,
+  useCanComplete,
 } from '@/hooks/api/useMediationFollowUp';
 import type { MediationFollowUpItem } from '@/types/api.types';
 import styles from './ContractFollowUpDetail.module.css';
@@ -130,6 +132,7 @@ export default function ContractFollowUpDetailPage() {
 
   const updateDescMutation = useUpdateFollowUpDescription(contractId);
   const completeItemMutation = useCompleteFollowUpItem(contractId);
+  const canCompleteMutation = useCanComplete();
 
   // Sort items by sortOrder ascending
   const sortedItems = useMemo(
@@ -172,6 +175,17 @@ export default function ContractFollowUpDetailPage() {
     if (!completeItemId) return;
     try {
       const values = await completeForm.validateFields();
+
+      // Final gate: re-verify eligibility via CanComplete before submitting
+      const check = await canCompleteMutation.mutateAsync(completeItemId);
+      if (!check.canComplete) {
+        message.error(t('cannotCompleteMsg'));
+        setCompleteItemId(null);
+        completeForm.resetFields();
+        refetch();
+        return;
+      }
+
       await completeItemMutation.mutateAsync({
         contractFollowUpItemId: completeItemId,
         completedAt: values.completedAt,
@@ -181,7 +195,7 @@ export default function ContractFollowUpDetailPage() {
       setCompleteItemId(null);
       completeForm.resetFields();
     } catch {
-      // form validation errors
+      // form validation errors — canCompleteMutation errors are shown via message
     }
   };
 
@@ -279,18 +293,41 @@ export default function ContractFollowUpDetailPage() {
         okText={t('save')}
         cancelText={t('cancel')}
         confirmLoading={updateDescMutation.isPending}
-        width={640}
+        width={920}
         destroyOnClose
       >
-        <div style={{ marginTop: 12 }}>
-          <p className={styles.fieldLabel}>{t('description')}</p>
-          {/* Textarea for HTML-capable input — axios serializes via JSON.stringify automatically */}
-          <Input.TextArea
-            rows={8}
-            value={descriptionValue}
-            onChange={(e) => setDescriptionValue(e.target.value)}
-            placeholder={t('descriptionPlaceholder')}
-          />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+          {/* Left — raw HTML input */}
+          <div>
+            <p className={styles.fieldLabel}>
+              {isRTL ? 'مدخل HTML' : 'HTML Input'}
+            </p>
+            <Input.TextArea
+              rows={12}
+              value={descriptionValue}
+              onChange={(e) => setDescriptionValue(e.target.value)}
+              placeholder={t('descriptionPlaceholder')}
+              style={{ fontFamily: 'monospace', fontSize: 12 }}
+            />
+          </div>
+          {/* Right — live preview rendered from the HTML */}
+          <div>
+            <p className={styles.fieldLabel}>
+              {isRTL ? 'معاينة مباشرة' : 'Live Preview'}
+            </p>
+            <div
+              style={{
+                border: '1px solid #d9d9d9',
+                borderRadius: 6,
+                padding: '8px 12px',
+                minHeight: 240,
+                maxHeight: 320,
+                overflowY: 'auto',
+                background: '#fafafa',
+              }}
+              dangerouslySetInnerHTML={{ __html: descriptionValue || '' }}
+            />
+          </div>
         </div>
       </Modal>
 
@@ -302,7 +339,7 @@ export default function ContractFollowUpDetailPage() {
         onOk={handleCompleteItem}
         okText={t('complete')}
         cancelText={t('cancel')}
-        confirmLoading={completeItemMutation.isPending}
+        confirmLoading={canCompleteMutation.isPending || completeItemMutation.isPending}
         destroyOnClose
       >
         <Form form={completeForm} layout="vertical" style={{ marginTop: 12 }}>
@@ -389,7 +426,7 @@ function ItemCard({
   const name = isRTL
     ? item.statusNameAr || item.statusNameEn
     : item.statusNameEn || item.statusNameAr;
-  const canComplete = item.canComplete !== false; // default to true if undefined
+  const canComplete = item.canComplete === true; // strict: blocked unless explicitly confirmed
 
   return (
     <Card

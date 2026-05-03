@@ -6,21 +6,28 @@ import {
   Button,
   Input,
   Select,
-  Table,
   Tag,
   DatePicker,
   Space,
   Card,
   Tooltip,
   InputNumber,
+  Pagination,
+  Empty,
+  Spin,
+  Avatar,
 } from 'antd';
 import {
   SearchOutlined,
   EyeOutlined,
   ReloadOutlined,
   FileProtectOutlined,
+  UserOutlined,
+  IdcardOutlined,
+  GlobalOutlined,
+  CalendarOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
 import { useAuthStore } from '@/store/authStore';
 import { useMediationFollowUpDashboard } from '@/hooks/api/useMediationFollowUp';
 import type {
@@ -144,99 +151,144 @@ export default function AutomaticFollowUpPage() {
     [router]
   );
 
-  const columns: ColumnsType<MediationFollowUpDashboardRow> = useMemo(
-    () => [
-      {
-        title: t('contractNumber'),
-        dataIndex: 'contractNumber',
-        key: 'contractNumber',
-        width: 110,
-        render: (v: number) =>
-          v ? <span className={styles.contractNo}>#{v}</span> : '—',
-      },
-      {
-        title: t('workerName'),
-        dataIndex: 'workerName',
-        key: 'workerName',
-        render: (v: string) => v || '—',
-      },
-      {
-        title: t('passportNumber'),
-        dataIndex: 'workerPassportNumber',
-        key: 'workerPassportNumber',
-        render: (v: string) => <span className={styles.mono}>{v || '—'}</span>,
-      },
-      {
-        title: t('customerName'),
-        dataIndex: 'customerName',
-        key: 'customerName',
-        render: (v: string) => v || '—',
-      },
-      {
-        title: t('nationality'),
-        key: 'nationality',
-        render: (_: any, row: MediationFollowUpDashboardRow) =>
-          row.nationalityNameAr || row.nationalityName || '—',
-      },
-      {
-        title: t('musanedNumber'),
-        dataIndex: 'musanedContractNumber',
-        key: 'musanedContractNumber',
-        render: (v: string) => <span className={styles.mono}>{v || '—'}</span>,
-      },
-      {
-        title: t('status'),
-        key: 'status',
-        width: 130,
-        render: (_: any, row: MediationFollowUpDashboardRow) => {
-          const name = row.statusName;
-          if (!name) return '—';
-          return <Tag color="blue">{name}</Tag>;
-        },
-      },
-      {
-        title: t('progress'),
-        key: 'progress',
-        width: 110,
-        render: (_: any, row: MediationFollowUpDashboardRow) => {
-          if (row.totalItems == null) return '—';
-          const pct = row.totalItems > 0
-            ? Math.round(((row.completedItems ?? 0) / row.totalItems) * 100)
-            : 0;
-          return (
-            <span>
-              {row.completedItems ?? 0}/{row.totalItems}
-              <span className={styles.pct}> ({pct}%)</span>
-            </span>
-          );
-        },
-      },
-      {
-        title: t('createdAt'),
-        dataIndex: 'createdAt',
-        key: 'createdAt',
-        width: 120,
-        render: (v: string) =>
-          v ? new Date(v).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-GB') : '—',
-      },
-      {
-        title: t('actions'),
-        key: 'actions',
-        width: 80,
-        fixed: 'right' as const,
-        render: (_: any, row: MediationFollowUpDashboardRow) => (
-          <Tooltip title={t('viewDetails')}>
-            <Button
-              type="primary"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewDetails(row)}
-              style={{ background: '#003366', borderColor: '#003366' }}
-            />
-          </Tooltip>
-        ),
-      },
-    ],
+  const renderCard = useCallback(
+    (row: MediationFollowUpDashboardRow) => {
+      const createdDate = row.createdAt
+        ? new Date(row.createdAt).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-GB')
+        : '—';
+
+      const nationality = row.workerNationalityAr;
+
+      return (
+        <Card
+          key={row.contractId ?? row.id ?? Math.random().toString()}
+          className={styles.followUpCard}
+          hoverable
+        >
+          <div className={styles.cardContent}>
+            {/* ── Left Panel ── */}
+            <div className={styles.cardLeft}>
+              <div className={styles.cardHeader}>
+                <div className={styles.contractNumber}>
+                  <FileTextOutlined className={styles.contractIcon} />
+                  <span>#{row.contractNumber ?? '—'}</span>
+                  {row.musanedContractNumber && (
+                    <Tag color="geekblue" style={{ marginInlineStart: 8 }}>
+                      {t('musanedNumber')}: {row.musanedContractNumber}
+                    </Tag>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.tagsSection}>
+                {row.statusName && (
+                  <Tag color="blue" className={styles.typeTag}>{row.statusName}</Tag>
+                )}
+                {row.workerTypeName && (
+                  <Tag color="geekblue">{row.workerTypeName}</Tag>
+                )}
+              </div>
+
+              {/* Worker row */}
+              <div className={styles.customerSection}>
+                <Avatar size={44} icon={<UserOutlined />} className={styles.customerAvatar} />
+                <div className={styles.customerDetails}>
+                  <span className={styles.customerName}>{row.workerName || '—'}</span>
+                  <div className={styles.customerMeta}>
+                    <IdcardOutlined />
+                    <span dir="ltr">{row.workerPassportNumber || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Extra details */}
+              <div className={styles.detailsSection}>
+                <div className={styles.detailItem}>
+                  <UserOutlined className={styles.detailIcon} />
+                  <div className={styles.detailText}>
+                    <span className={styles.detailLabel}>{t('customerName')}</span>
+                    <span className={styles.detailValue}>{row.customerName || '—'}</span>
+                  </div>
+                </div>
+                {nationality && (
+                  <div className={styles.detailItem}>
+                    <GlobalOutlined className={styles.detailIcon} />
+                    <div className={styles.detailText}>
+                      <span className={styles.detailLabel}>{t('nationality')}</span>
+                      <span className={styles.detailValue}>{nationality}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Right Panel ── */}
+            <div className={styles.cardRight}>
+              {/* Status banner */}
+              <div className={styles.progressBanner}>
+                <div className={styles.progressBannerMeta}>
+                  <FileProtectOutlined className={styles.progressBannerIcon} />
+                  <span className={styles.progressBannerLabel}>{t('status')}</span>
+                </div>
+                <div className={styles.progressBannerValue}>
+                  {row.statusName || '—'}
+                </div>
+                {row.daysSinceCreation != null && (
+                  <div className={styles.progressBannerSub}>
+                    <CalendarOutlined style={{ marginInlineEnd: 4 }} />
+                    {language === 'ar'
+                      ? `${row.daysSinceCreation} يوم منذ الإنشاء`
+                      : `${row.daysSinceCreation} days since creation`}
+                  </div>
+                )}
+              </div>
+
+              {/* Stats breakdown */}
+              <div className={styles.statsBreakdown}>
+                <div className={styles.statRow}>
+                  <span className={styles.statDot} style={{ background: '#003366' }} />
+                  <span className={styles.statLabel}>{t('contractNumber')}</span>
+                  <span className={styles.statValue} style={{ color: '#003366' }}>
+                    #{row.contractNumber ?? '—'}
+                  </span>
+                </div>
+                <div className={styles.statRow}>
+                  <span className={styles.statDot} style={{ background: '#52c41a' }} />
+                  <span className={styles.statLabel}>{t('musanedNumber')}</span>
+                  <span className={styles.statValue} style={{ color: '#52c41a' }}>
+                    <span className={styles.mono}>{row.musanedContractNumber || '—'}</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Date */}
+              <div className={styles.datesSection}>
+                <div className={styles.dateItem}>
+                  <CalendarOutlined />
+                  <span>{createdDate}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Bottom Action Bar ── */}
+          <div className={styles.cardBottom}>
+            <div className={styles.actionsList}>
+              <Tooltip title={t('viewDetails')}>
+                <Button
+                  type="link"
+                  icon={<EyeOutlined />}
+                  className={styles.actionBtn}
+                  onClick={() => handleViewDetails(row)}
+                >
+                  {t('viewDetails')}
+                </Button>
+              </Tooltip>
+            </div>
+          </div>
+        </Card>
+      );
+    },
     [t, language, handleViewDetails]
   );
 
@@ -331,29 +383,34 @@ export default function AutomaticFollowUpPage() {
         </div>
       </Card>
 
-      {/* ── Table ── */}
-      <Card className={styles.tableCard}>
-        <Table<MediationFollowUpDashboardRow>
-          dataSource={rows}
-          columns={columns}
-          rowKey={(row) => row.contractId ?? row.id ?? Math.random().toString()}
-          loading={isLoading}
-          scroll={{ x: 1100 }}
-          pagination={{
-            current: appliedParams.Page ?? 1,
-            pageSize: appliedParams.PageSize ?? 15,
-            total,
-            onChange: handlePageChange,
-            showSizeChanger: true,
-            pageSizeOptions: ['10', '15', '25', '50'],
-            showTotal: (tot) =>
-              isRTL ? `إجمالي ${tot} عقد` : `Total ${tot} contracts`,
-          }}
-          locale={{ emptyText: t('noData') }}
-          size="middle"
-          bordered
-        />
-      </Card>
+      {/* ── Cards Grid ── */}
+      <Spin spinning={isLoading}>
+        {rows.length === 0 && !isLoading ? (
+          <Card className={styles.tableCard}>
+            <Empty description={t('noData')} />
+          </Card>
+        ) : (
+          <div className={styles.cardsGrid}>
+            {rows.map(renderCard)}
+          </div>
+        )}
+      </Spin>
+
+      {total > 0 && (
+        <div className={styles.paginationBar}>
+          <Pagination
+            current={appliedParams.Page ?? 1}
+            pageSize={appliedParams.PageSize ?? 15}
+            total={total}
+            onChange={handlePageChange}
+            showSizeChanger
+            pageSizeOptions={['10', '15', '25', '50']}
+            showTotal={(tot) =>
+              isRTL ? `إجمالي ${tot} عقد` : `Total ${tot} contracts`
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }

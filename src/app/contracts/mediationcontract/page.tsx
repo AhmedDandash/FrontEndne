@@ -833,7 +833,6 @@ export default function MediationContractsPage() {
         onCancel={() => { setShowDetailsModal(false); setSelectedContract(null); }}
         footer={<Button type="primary" onClick={() => { setShowDetailsModal(false); setSelectedContract(null); }}>{t.close}</Button>}
         width={960}
-        destroyOnClose
       >
         {isLoadingDetail ? (
           <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>
@@ -1202,7 +1201,6 @@ export default function MediationContractsPage() {
         cancelText={t.cancel}
         confirmLoading={isCancelling}
         okButtonProps={{ danger: true }}
-        destroyOnClose
       >
         <Form form={cancelForm} layout="vertical">
           <Form.Item
@@ -1231,7 +1229,6 @@ export default function MediationContractsPage() {
         okText={t.save}
         cancelText={t.cancel}
         confirmLoading={isSigning}
-        destroyOnClose
       >
         <Form form={signForm} layout="vertical">
           <Form.Item
@@ -1256,7 +1253,6 @@ export default function MediationContractsPage() {
         okText={t.submit}
         cancelText={t.cancel}
         confirmLoading={isGeneratingDelivery}
-        destroyOnClose
       >
         <Form form={deliveryForm} layout="vertical">
           <Form.Item name="deliveryDate" label={t.deliveryDate}>
@@ -1277,7 +1273,6 @@ export default function MediationContractsPage() {
         okText={t.save}
         cancelText={t.cancel}
         confirmLoading={isSigningDelivery}
-        destroyOnClose
       >
         <Form form={deliverySignForm} layout="vertical">
           <Form.Item name="customerSignedAt" label={t.customerSignedAt}>
@@ -1296,7 +1291,6 @@ export default function MediationContractsPage() {
         cancelText={t.cancel}
         confirmLoading={isReturning}
         okButtonProps={{ danger: true }}
-        destroyOnClose
       >
         <Form form={warrantyReturnForm} layout="vertical">
           <Form.Item
@@ -1381,7 +1375,6 @@ export default function MediationContractsPage() {
         okText={t.save}
         cancelText={t.cancel}
         confirmLoading={isUpdatingStatus}
-        destroyOnClose
       >
         <Form form={updateStatusForm} layout="vertical">
           <Form.Item

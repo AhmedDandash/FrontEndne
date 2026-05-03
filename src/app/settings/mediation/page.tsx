@@ -34,6 +34,7 @@ import {
   useUpdateFollowUpStatus,
   useDeleteFollowUpStatus,
 } from '@/hooks/api/useFollowUpStatuses';
+import { FollowUpStatusService } from '@/services/follow-up-status.service';
 import {
   useContractNationalities,
   useCreateContractNationality,
@@ -165,14 +166,27 @@ function FollowUpStatusesTab({ t, isRTL }: TabProps) {
     setModalOpen(true);
   };
 
-  const openEdit = (record: FollowUpStatus) => {
+  const openEdit = async (record: FollowUpStatus) => {
     setEditing(record);
+    // Pre-fill with cached row so the modal opens instantly
+    form.resetFields();
     form.setFieldsValue({
       nameAr: record.nameAr,
       nameEn: record.nameEn,
       defaultSortOrder: record.defaultSortOrder ?? 1,
     });
     setModalOpen(true);
+    // Then silently fetch fresh data from GetById and overwrite the form
+    try {
+      const fresh = await FollowUpStatusService.getById(record.id);
+      form.setFieldsValue({
+        nameAr: fresh.nameAr,
+        nameEn: fresh.nameEn,
+        defaultSortOrder: fresh.defaultSortOrder ?? 1,
+      });
+    } catch {
+      // keep the pre-filled values on error
+    }
   };
 
   const handleSave = async () => {

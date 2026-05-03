@@ -22,6 +22,12 @@ export class FollowUpStatusService {
     return extractArray<FollowUpStatus>(res.data);
   }
 
+  static async getById(id: number): Promise<FollowUpStatus> {
+    const res = await api.get<any>(API_ENDPOINTS.FOLLOWUP_STATUS.GET_BY_ID(id));
+    const raw = res.data?.data ?? res.data?.value ?? res.data;
+    return raw as FollowUpStatus;
+  }
+
   static async create(data: CreateFollowUpStatusDto): Promise<FollowUpStatus> {
     const res = await api.post<FollowUpStatus>(API_ENDPOINTS.FOLLOWUP_STATUS.CREATE, data);
     return res.data;

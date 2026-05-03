@@ -10,11 +10,13 @@ import {
   Empty,
   Tooltip,
   Table,
+  Input,
 } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 import {
   useNationalityFollowUpConfig,
   useToggleNationalityFollowUpConfig,
+  useUpdateNationalityFollowUpConfig,
   useBulkUpdateNationalityFollowUpConfig,
 } from '@/hooks/api/useNationalityFollowUpConfig';
 import type { NationalityFollowUpConfig, UpdateNationalityFollowUpConfigDto } from '@/types/api.types';
@@ -28,7 +30,11 @@ interface Props {
 export function NationalityConfigGrid({ contractNationalityId, isRTL }: Props) {
   const { data: configs = [], isLoading } = useNationalityFollowUpConfig(contractNationalityId);
   const toggleMutation = useToggleNationalityFollowUpConfig();
+  const updateRowMutation = useUpdateNationalityFollowUpConfig(contractNationalityId);
   const bulkUpdateMutation = useBulkUpdateNationalityFollowUpConfig();
+
+  // Tracks which row is being individually saved
+  const [savingRowId, setSavingRowId] = useState<number | null>(null);
 
   // Local draft state — mirrors the configs for inline editing before Save All
   const [drafts, setDrafts] = useState<Record<number, Partial<UpdateNationalityFollowUpConfigDto>>>({});
@@ -61,16 +67,33 @@ export function NationalityConfigGrid({ contractNationalityId, isRTL }: Props) {
           : c.statusNameEn || c.statusNameAr || String(c.id),
       }));
 
-  const handleSaveAll = async () => {
-    const configsPayload: UpdateNationalityFollowUpConfigDto[] = configs.map((c) => ({
-      id: c.id,
-      sortOrder: (drafts[c.id]?.sortOrder ?? c.sortOrder) as number | null,
-      dependsOnStatusId: (drafts[c.id]?.dependsOnStatusId ?? c.dependsOnStatusId) as number | null,
-      fileNameAr: (drafts[c.id]?.fileNameAr ?? c.fileNameAr) as string | null,
-      maxDays: (drafts[c.id]?.maxDays ?? c.maxDays) as number | null,
-      isActive: c.isActive ?? false,
-    }));
+  const buildRowPayload = (c: NationalityFollowUpConfig): UpdateNationalityFollowUpConfigDto => ({
+    id: c.id,
+    sortOrder: (drafts[c.id]?.sortOrder ?? c.sortOrder) as number | null,
+    dependsOnStatusId: (drafts[c.id]?.dependsOnStatusId ?? c.dependsOnStatusId) as number | null,
+    fileNameAr: (drafts[c.id]?.fileNameAr ?? c.fileNameAr) as string | null,
+    fileNameEn: (drafts[c.id]?.fileNameEn ?? c.fileNameEn) as string | null,
+    whatsAppStatusName: (drafts[c.id]?.whatsAppStatusName ?? c.whatsAppStatusName) as string | null,
+    maxDays: (drafts[c.id]?.maxDays ?? c.maxDays) as number | null,
+    isActive: c.isActive ?? false,
+  });
 
+  const handleSaveRow = async (config: NationalityFollowUpConfig) => {
+    setSavingRowId(config.id);
+    try {
+      await updateRowMutation.mutateAsync(buildRowPayload(config));
+      setDrafts((prev) => {
+        const next = { ...prev };
+        delete next[config.id];
+        return next;
+      });
+    } finally {
+      setSavingRowId(null);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    const configsPayload = configs.map(buildRowPayload);
     await bulkUpdateMutation.mutateAsync({
       nationalityId: contractNationalityId,
       configs: configsPayload,
@@ -146,13 +169,39 @@ export function NationalityConfigGrid({ contractNationalityId, isRTL }: Props) {
     {
       title: isRTL ? 'اسم الملف (عربي)' : 'File Name (AR)',
       key: 'fileNameAr',
-      width: 160,
+      width: 150,
       render: (_: any, record: NationalityFollowUpConfig) => (
-        <input
-          className={styles.inlineInput}
+        <Input
+          size="small"
           value={(getField(record, 'fileNameAr') as string) ?? ''}
           onChange={(e) => patchDraft(record.id, { fileNameAr: e.target.value })}
-          placeholder={isRTL ? 'اسم الملف' : 'File name'}
+          placeholder={isRTL ? 'اسم (عربي)' : 'AR name'}
+        />
+      ),
+    },
+    {
+      title: isRTL ? 'اسم الملف (إنجليزي)' : 'File Name (EN)',
+      key: 'fileNameEn',
+      width: 150,
+      render: (_: any, record: NationalityFollowUpConfig) => (
+        <Input
+          size="small"
+          value={(getField(record, 'fileNameEn') as string) ?? ''}
+          onChange={(e) => patchDraft(record.id, { fileNameEn: e.target.value })}
+          placeholder={isRTL ? 'اسم (إنجليزي)' : 'EN name'}
+        />
+      ),
+    },
+    {
+      title: isRTL ? 'اسم واتساب' : 'WhatsApp Name',
+      key: 'whatsAppStatusName',
+      width: 150,
+      render: (_: any, record: NationalityFollowUpConfig) => (
+        <Input
+          size="small"
+          value={(getField(record, 'whatsAppStatusName') as string) ?? ''}
+          onChange={(e) => patchDraft(record.id, { whatsAppStatusName: e.target.value })}
+          placeholder={isRTL ? 'اسم واتساب' : 'WhatsApp name'}
         />
       ),
     },
@@ -192,6 +241,34 @@ export function NationalityConfigGrid({ contractNationalityId, isRTL }: Props) {
         />
       ),
     },
+    {
+      title: isRTL ? 'حفظ السطر' : 'Save Row',
+      key: 'rowSave',
+      width: 90,
+      render: (_: any, record: NationalityFollowUpConfig) => {
+        const hasDraft = !!drafts[record.id];
+        const isSaving = savingRowId === record.id;
+        return (
+          <Tooltip
+            title={
+              hasDraft
+                ? isRTL ? 'حفظ هذا السطر فقط' : 'Save this row only'
+                : isRTL ? 'لا تغييرات في هذا السطر' : 'No pending changes'
+            }
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={<SaveOutlined />}
+              disabled={!hasDraft || isSaving}
+              loading={isSaving}
+              onClick={() => handleSaveRow(record)}
+              style={hasDraft ? { color: '#003366' } : undefined}
+            />
+          </Tooltip>
+        );
+      },
+    },
   ];
 
   return (
@@ -224,6 +301,7 @@ export function NationalityConfigGrid({ contractNationalityId, isRTL }: Props) {
         pagination={false}
         size="small"
         bordered
+        scroll={{ x: 1100 }}
         rowClassName={(record) =>
           !record.isActive ? styles.inactiveRow : ''
         }

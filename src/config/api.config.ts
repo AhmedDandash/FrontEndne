@@ -291,8 +291,6 @@ export const API_ENDPOINTS = {
 
   // Contract Follow-Up (per mediation_contract_settings.txt spec)
   CONTRACT_FOLLOWUP: {
-    GET_BY_CONTRACT: (contractId: string) =>
-      `/api/FollowUp/ContractFollowUp/GetByContract/${contractId}`,
     CAN_COMPLETE: (itemId: string) => `/api/FollowUp/ContractFollowUp/CanComplete/${itemId}`,
     COMPLETE_ITEM: '/api/FollowUp/ContractFollowUp/CompleteItem',
   },
