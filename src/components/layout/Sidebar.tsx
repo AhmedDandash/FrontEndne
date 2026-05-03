@@ -5,13 +5,11 @@ import { Layout, Menu, Drawer, Badge } from 'antd';
 import {
   // DashboardOutlined,
   BarChartOutlined,
-  TeamOutlined,
   FileTextOutlined,
   // UserAddOutlined,
   // CalendarOutlined,
   // FileSearchOutlined,
   // GiftOutlined,
-  MessageOutlined,
   UserOutlined,
   IdcardOutlined,
   WarningOutlined,
