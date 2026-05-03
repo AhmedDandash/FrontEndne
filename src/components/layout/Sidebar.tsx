@@ -64,19 +64,9 @@ export default function Sidebar({
     //   onClick: () => router.push('/dashboard'),
     // },
     {
-      key: 'branch',
+      key: '/branch/management',
       icon: <ShopOutlined />,
       label: language === 'ar' ? ' الفروع' : 'Branch',
-      children: [
-        {
-          key: '/branch/management',
-          label: language === 'ar' ? 'إدارة الفروع' : 'Branch Management',
-        },
-        // {
-        //   key: '/branch/documents',
-        //   label: language === 'ar' ? 'المستندات' : 'Documents',
-        // },
-      ],
     },
     // {
     //   key: 'statistics',
@@ -125,14 +115,9 @@ export default function Sidebar({
       ],
     },
     {
-      key: 'customers',
-      icon: <TeamOutlined />,
+      key: '/customers',
+      icon: <ShopOutlined />,
       label: language === 'ar' ? 'العملاء' : 'Customers',
-      children: [
-        { key: '/customers', label: language === 'ar' ? 'جميع العملاء' : 'All Customers' },
-        // { key: '/customers/contacts', label: language === 'ar' ? 'جهات الاتصال' : 'Contacts' },
-        // { key: '/customers/phones', label: language === 'ar' ? 'أرقام العملاء' : 'Phone Numbers' },
-      ],
     },
     {
       key: 'contracts',
@@ -238,26 +223,26 @@ export default function Sidebar({
     //     },
     //   ],
     // },
-    {
-      key: 'communication',
-      icon: <MessageOutlined />,
-      label: language === 'ar' ? 'التواصل' : 'Communication',
-      children: [
-        { key: '/communication/sms', label: language === 'ar' ? 'رسائل العملاء' : 'Customer SMS' },
-        {
-          key: '/communication/email',
-          label: language === 'ar' ? 'إرسال بريد إلكتروني' : 'Send Email',
-        },
-        {
-          key: '/communication/templates-sms',
-          label: language === 'ar' ? 'إعدادات قوالب الرسائل' : 'SMS Templates Settings',
-        },
-        {
-          key: '/communication/tracking-sms',
-          label: language === 'ar' ? 'إعدادات قوالب الرسائل' : 'SMS Templates Settings',
-        },
-      ],
-    },
+    // {
+    //   key: 'communication',
+    //   icon: <MessageOutlined />,
+    //   label: language === 'ar' ? 'التواصل' : 'Communication',
+    //   children: [
+    //     { key: '/communication/sms', label: language === 'ar' ? 'رسائل العملاء' : 'Customer SMS' },
+    //     {
+    //       key: '/communication/email',
+    //       label: language === 'ar' ? 'إرسال بريد إلكتروني' : 'Send Email',
+    //     },
+    //     {
+    //       key: '/communication/templates-sms',
+    //       label: language === 'ar' ? 'إعدادات قوالب الرسائل' : 'SMS Templates Settings',
+    //     },
+    //     {
+    //       key: '/communication/tracking-sms',
+    //       label: language === 'ar' ? 'إعدادات قوالب الرسائل' : 'SMS Templates Settings',
+    //     },
+    //   ],
+    // },
     {
       key: 'agents',
       icon: <UserOutlined />,

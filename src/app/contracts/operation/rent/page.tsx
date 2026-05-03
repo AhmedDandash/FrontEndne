@@ -270,12 +270,16 @@ export default function RentContractsPage() {
 
   // Translations
   const t = {
-    pageTitle: isRtl ? 'عقود التشغيل' : 'Operation Contracts',
-    pageSubtitle: isRtl ? 'إدارة جميع عقود تشغيل العمالة' : 'Manage all operation worker contracts',
+    pageTitle: isRtl ? 'عقود العاملات المقيمة ' : 'Operation Contracts',
+    pageSubtitle: isRtl
+      ? 'إدارة جميع عقود العاملات المقيمة'
+      : 'Manage all operation worker contracts',
     addContract: isRtl ? 'إضافة عقد' : 'Add Contract',
     exportExcel: isRtl ? 'تصدير إكسل' : 'Export Excel',
     print: isRtl ? 'طباعة' : 'Print',
-    search: isRtl ? 'بحث برقم العقد أو اسم العميل...' : 'Search by contract number or customer name...',
+    search: isRtl
+      ? 'بحث برقم العقد أو اسم العميل...'
+      : 'Search by contract number or customer name...',
     allStatuses: isRtl ? 'جميع الحالات' : 'All Statuses',
     draft: isRtl ? 'مسودة' : 'Draft',
     signed: isRtl ? 'موقع' : 'Signed',
@@ -308,7 +312,9 @@ export default function RentContractsPage() {
     renewContract: isRtl ? 'تجديد العقد' : 'Renew Contract',
     terminateContract: isRtl ? 'إنهاء العقد' : 'Terminate Contract',
     printReceipt: isRtl ? 'طباعة الإيصال' : 'Print Receipt',
-    confirmDelete: isRtl ? 'هل أنت متأكد من حذف هذا العقد؟' : 'Are you sure you want to delete this contract?',
+    confirmDelete: isRtl
+      ? 'هل أنت متأكد من حذف هذا العقد؟'
+      : 'Are you sure you want to delete this contract?',
     yes: isRtl ? 'نعم' : 'Yes',
     no: isRtl ? 'لا' : 'No',
     renewDate: isRtl ? 'تاريخ الانتهاء الجديد' : 'New End Date',
