@@ -27,8 +27,8 @@ import {
   EyeOutlined,
   EditOutlined,
   ReloadOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
-import RichTextEditor from '@/components/RichTextEditor';
 import { useAuthStore } from '@/store/authStore';
 import {
   useMediationFollowUpItems,
@@ -37,6 +37,8 @@ import {
   useCompleteFollowUpItem,
   useCanComplete,
 } from '@/hooks/api/useMediationFollowUp';
+import { InputDescriptionModal } from '@/components/followup/InputDescriptionModal';
+import { hasFilledInputDescription } from '@/types/follow-up-forms.types';
 import type { MediationFollowUpItem } from '@/types/api.types';
 import styles from './ContractFollowUpDetail.module.css';
 
@@ -50,15 +52,11 @@ function useT(language: string) {
       refresh: { ar: 'تحديث', en: 'Refresh' },
       complete: { ar: 'إتمام المرحلة', en: 'Complete Stage' },
       viewDetails: { ar: 'عرض التفاصيل', en: 'View Details' },
-      updateDescription: { ar: 'تحديث الوصف', en: 'Update Description' },
+      fillForm: { ar: 'تعبئة البيانات', en: 'Fill Data' },
       cancel: { ar: 'إلغاء', en: 'Cancel' },
       save: { ar: 'حفظ', en: 'Save' },
       close: { ar: 'إغلاق', en: 'Close' },
       description: { ar: 'الوصف / الملاحظات', en: 'Description / Notes' },
-      descriptionPlaceholder: {
-        ar: 'أدخل تفاصيل هذه المرحلة (يمكن إدخال HTML)',
-        en: 'Enter stage details (HTML supported)',
-      },
       statusPending: { ar: 'قيد الانتظار', en: 'Pending' },
       statusCompleted: { ar: 'مكتمل', en: 'Completed' },
       statusFailed: { ar: 'فشل', en: 'Failed' },
@@ -72,6 +70,10 @@ function useT(language: string) {
         ar: 'لا يمكن إتمام هذه المرحلة حتى تكتمل المرحلة السابقة',
         en: 'Cannot complete this stage until the previous stage is finished',
       },
+      fillFormFirstMsg: {
+        ar: 'يجب تعبئة بيانات المرحلة أولاً قبل إتمامها',
+        en: 'You must fill in the stage data before completing it',
+      },
       noItems: { ar: 'لا توجد مراحل متابعة لهذا العقد', en: 'No follow-up stages for this contract' },
       completeModalTitle: { ar: 'إتمام المرحلة', en: 'Complete Stage' },
       result: { ar: 'النتيجة', en: 'Result' },
@@ -80,8 +82,9 @@ function useT(language: string) {
       resultSkipped: { ar: 'متجاوز', en: 'Skipped' },
       completedAtLabel: { ar: 'تاريخ الإتمام', en: 'Completed At' },
       detailsModalTitle: { ar: 'تفاصيل المرحلة', en: 'Stage Details' },
-      inputDescription: { ar: 'الوصف المدخل', en: 'Input Description' },
+      inputDescription: { ar: 'البيانات المدخلة', en: 'Input Data' },
       loading: { ar: 'جاري التحميل...', en: 'Loading...' },
+      dataSaved: { ar: 'تم حفظ بيانات المرحلة بنجاح', en: 'Stage data saved successfully' },
     };
     return (key: string) => map[key]?.[language] ?? map[key]?.['en'] ?? key;
   }, [language]);
@@ -123,9 +126,8 @@ export default function ContractFollowUpDetailPage() {
 
   // Modals
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
-  const [updateItemId, setUpdateItemId] = useState<string | null>(null);
+  const [inputFormItem, setInputFormItem] = useState<MediationFollowUpItem | null>(null);
   const [completeItemId, setCompleteItemId] = useState<string | null>(null);
-  const [descriptionValue, setDescriptionValue] = useState('');
   const [completeForm] = Form.useForm();
 
   const { data: items = [], isLoading, refetch } = useMediationFollowUpItems(contractId);
@@ -135,7 +137,6 @@ export default function ContractFollowUpDetailPage() {
   const completeItemMutation = useCompleteFollowUpItem(contractId);
   const canCompleteMutation = useCanComplete();
 
-  // Sort items by sortOrder ascending
   const sortedItems = useMemo(
     () => [...items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
     [items]
@@ -147,12 +148,29 @@ export default function ContractFollowUpDetailPage() {
     if (item.id) setDetailItemId(item.id);
   };
 
-  const openUpdate = (item: MediationFollowUpItem) => {
-    setDescriptionValue(item.inputDescription ?? '');
-    if (item.id) setUpdateItemId(item.id);
+  const openInputForm = (item: MediationFollowUpItem) => {
+    setInputFormItem(item);
+  };
+
+  const handleInputFormSave = async (jsonData: string) => {
+    if (!inputFormItem?.id) return;
+    await updateDescMutation.mutateAsync({
+      itemId: inputFormItem.id,
+      inputDescription: jsonData,
+    });
+    setInputFormItem(null);
+    message.success(t('dataSaved'));
+    refetch();
   };
 
   const openComplete = (item: MediationFollowUpItem) => {
+    // Gate: form must be filled before completing
+    if (!hasFilledInputDescription(item.inputDescription)) {
+      message.warning(t('fillFormFirstMsg'));
+      // Auto-open the input form so the user can fill it right away
+      setInputFormItem(item);
+      return;
+    }
     completeForm.resetFields();
     completeForm.setFieldsValue({
       completedAt: new Date().toISOString().slice(0, 16),
@@ -161,23 +179,11 @@ export default function ContractFollowUpDetailPage() {
     if (item.id) setCompleteItemId(item.id);
   };
 
-  const handleUpdateDescription = async () => {
-    if (!updateItemId) return;
-    // Use the variable directly — JSON.stringify is handled by axios/the http client
-    await updateDescMutation.mutateAsync({
-      itemId: updateItemId,
-      inputDescription: descriptionValue || null,
-    });
-    setUpdateItemId(null);
-    setDescriptionValue('');
-  };
-
   const handleCompleteItem = async () => {
     if (!completeItemId) return;
     try {
       const values = await completeForm.validateFields();
 
-      // Final gate: re-verify eligibility via CanComplete before submitting
       const check = await canCompleteMutation.mutateAsync(completeItemId);
       if (!check.canComplete) {
         message.error(t('cannotCompleteMsg'));
@@ -196,7 +202,7 @@ export default function ContractFollowUpDetailPage() {
       setCompleteItemId(null);
       completeForm.resetFields();
     } catch {
-      // form validation errors — canCompleteMutation errors are shown via message
+      // form validation errors shown by Ant Design
     }
   };
 
@@ -257,7 +263,7 @@ export default function ContractFollowUpDetailPage() {
             isRTL={isRTL}
             t={t}
             onViewDetail={openDetail}
-            onUpdate={openUpdate}
+            onFillForm={openInputForm}
             onComplete={openComplete}
           />
         ))}
@@ -285,28 +291,14 @@ export default function ContractFollowUpDetailPage() {
         ) : null}
       </Modal>
 
-      {/* ── Update Description Modal ── */}
-      <Modal
-        open={!!updateItemId}
-        title={t('updateDescription')}
-        onCancel={() => { setUpdateItemId(null); setDescriptionValue(''); }}
-        onOk={handleUpdateDescription}
-        okText={t('save')}
-        cancelText={t('cancel')}
-        confirmLoading={updateDescMutation.isPending}
-        width={720}
-        destroyOnClose
-      >
-        <div style={{ marginTop: 12 }}>
-          <RichTextEditor
-            value={descriptionValue}
-            onChange={setDescriptionValue}
-            placeholder={t('descriptionPlaceholder')}
-            height={280}
-            dir={isRTL ? 'rtl' : 'ltr'}
-          />
-        </div>
-      </Modal>
+      {/* ── Input Description (structured) Modal ── */}
+      <InputDescriptionModal
+        item={inputFormItem}
+        open={!!inputFormItem}
+        onCancel={() => setInputFormItem(null)}
+        onSave={handleInputFormSave}
+        loading={updateDescMutation.isPending}
+      />
 
       {/* ── Complete Item Modal ── */}
       <Modal
@@ -389,7 +381,7 @@ function ItemCard({
   isRTL,
   t,
   onViewDetail,
-  onUpdate,
+  onFillForm,
   onComplete,
 }: {
   item: MediationFollowUpItem;
@@ -397,17 +389,38 @@ function ItemCard({
   isRTL: boolean;
   t: (k: string) => string;
   onViewDetail: (item: MediationFollowUpItem) => void;
-  onUpdate: (item: MediationFollowUpItem) => void;
+  onFillForm: (item: MediationFollowUpItem) => void;
   onComplete: (item: MediationFollowUpItem) => void;
 }) {
   const name = isRTL
     ? item.statusNameAr || item.statusNameEn
     : item.statusNameEn || item.statusNameAr;
-  const canComplete = item.canComplete === true; // strict: blocked unless explicitly confirmed
+
+  const dependencyOk = item.canComplete === true;
+  const alreadyDone = item.result === 2;
+  const formFilled = hasFilledInputDescription(item.inputDescription);
+
+  // Complete button is fully enabled only when:
+  //   • predecessor is complete (canComplete)
+  //   • item is not already done
+  //   • inputDescription has been saved
+  const completeEnabled = dependencyOk && !alreadyDone && formFilled;
+
+  // Derive the tooltip message for the Complete button
+  let completeTooltip: string;
+  if (alreadyDone) {
+    completeTooltip = t('statusCompleted');
+  } else if (!dependencyOk) {
+    completeTooltip = t('cannotCompleteMsg');
+  } else if (!formFilled) {
+    completeTooltip = t('fillFormFirstMsg');
+  } else {
+    completeTooltip = t('complete');
+  }
 
   return (
     <Card
-      className={`${styles.itemCard} ${item.result === 2 ? styles.itemCardCompleted : ''}`}
+      className={`${styles.itemCard} ${alreadyDone ? styles.itemCardCompleted : ''}`}
       size="small"
     >
       <div className={styles.itemCardHeader}>
@@ -419,11 +432,22 @@ function ItemCard({
       </div>
 
       {/* ── Dependency warning ── */}
-      {!canComplete && item.result !== 2 && (
+      {!dependencyOk && !alreadyDone && (
         <Alert
           type="warning"
           showIcon
           message={t('cannotCompleteMsg')}
+          className={styles.dependsAlert}
+          banner
+        />
+      )}
+
+      {/* ── Fill-form required warning ── */}
+      {dependencyOk && !alreadyDone && !formFilled && (
+        <Alert
+          type="info"
+          showIcon
+          message={t('fillFormFirstMsg')}
           className={styles.dependsAlert}
           banner
         />
@@ -450,13 +474,10 @@ function ItemCard({
         )}
       </div>
 
-      {/* ── Description (rendered inline) ── */}
+      {/* ── Saved data preview (JSON rendered as key-value) ── */}
       {item.inputDescription && (
         <div className={styles.descriptionPreview}>
-          <div
-            className={styles.descriptionSnippet}
-            dangerouslySetInnerHTML={{ __html: item.inputDescription }}
-          />
+          <InputDescriptionPreview raw={item.inputDescription} />
         </div>
       )}
 
@@ -465,18 +486,27 @@ function ItemCard({
         <Tooltip title={t('viewDetails')}>
           <Button size="small" icon={<EyeOutlined />} onClick={() => onViewDetail(item)} />
         </Tooltip>
-        <Tooltip title={t('updateDescription')}>
-          <Button size="small" icon={<EditOutlined />} onClick={() => onUpdate(item)} />
+
+        <Tooltip title={t('fillForm')}>
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => onFillForm(item)}
+            type={formFilled ? 'default' : 'dashed'}
+          >
+            {t('fillForm')}
+          </Button>
         </Tooltip>
-        <Tooltip title={canComplete ? t('complete') : t('cannotCompleteMsg')}>
+
+        <Tooltip title={completeTooltip}>
           <Button
             size="small"
             type="primary"
-            icon={<CheckCircleOutlined />}
-            disabled={!canComplete || item.result === 2}
+            icon={completeEnabled ? <CheckCircleOutlined /> : <LockOutlined />}
+            disabled={!completeEnabled}
             onClick={() => onComplete(item)}
             style={
-              canComplete && item.result !== 2
+              completeEnabled
                 ? { background: '#00aa64', borderColor: '#00aa64' }
                 : undefined
             }
@@ -489,53 +519,73 @@ function ItemCard({
   );
 }
 
+// ── Renders inputDescription as structured key-value if it is valid JSON ──────
+function InputDescriptionPreview({ raw }: { raw: string }) {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      return (
+        <dl style={{ margin: 0, fontSize: 12, color: '#555' }}>
+          {Object.entries(parsed).map(([k, v]) =>
+            v != null && v !== '' ? (
+              <div key={k} style={{ display: 'flex', gap: 4 }}>
+                <dt style={{ fontWeight: 600, minWidth: 120 }}>{k}:</dt>
+                <dd style={{ margin: 0 }}>{String(v)}</dd>
+              </div>
+            ) : null
+          )}
+        </dl>
+      );
+    }
+  } catch {
+    // Fall through to HTML render for legacy content
+  }
+  return (
+    <div
+      className={styles.descriptionSnippet}
+      dangerouslySetInnerHTML={{ __html: raw }}
+    />
+  );
+}
+
 function ItemDetailContent({
   item,
-  isRTL,
-  t,
 }: {
   item: MediationFollowUpItem;
   isRTL: boolean;
   t: (k: string) => string;
 }) {
-  return (
-    <Descriptions column={1} bordered size="small">
-      <Descriptions.Item label={isRTL ? 'الاسم (عربي)' : 'Name (AR)'}>
-        {item.statusNameAr || '—'}
-      </Descriptions.Item>
-      <Descriptions.Item label={isRTL ? 'الاسم (إنجليزي)' : 'Name (EN)'}>
-        {item.statusNameEn || '—'}
-      </Descriptions.Item>
-      <Descriptions.Item label={t('sortOrder')}>
-        {item.sortOrder ?? '—'}
-      </Descriptions.Item>
-      <Descriptions.Item label={t('dependsOn')}>
-        {item.dependsOnStatusName || '—'}
-      </Descriptions.Item>
-      <Descriptions.Item label={t('maxDays')}>
-        {item.maxDays ?? '—'}
-      </Descriptions.Item>
-      <Descriptions.Item label={isRTL ? 'الحالة' : 'Status'}>
-        {resultTag(item.result, t)}
-      </Descriptions.Item>
-      <Descriptions.Item label={t('completedAt')}>
-        {item.completedAt ? new Date(item.completedAt).toLocaleString() : '—'}
-      </Descriptions.Item>
-      <Descriptions.Item label={t('notes')}>
-        {item.notes || '—'}
-      </Descriptions.Item>
-      <Descriptions.Item label={t('inputDescription')}>
-        {item.inputDescription ? (
-          // Render HTML content safely using dangerouslySetInnerHTML
-          // (content was entered by the logged-in admin, not external input)
-          <div
-            className={styles.htmlContent}
-            dangerouslySetInnerHTML={{ __html: item.inputDescription }}
-          />
-        ) : (
-          '—'
+  if (!item.inputDescription) {
+    return <p style={{ color: '#aaa', textAlign: 'center', margin: '24px 0' }}>لا توجد بيانات مدخلة بعد</p>;
+  }
+
+  let parsed: Record<string, unknown> | null = null;
+  try {
+    const p = JSON.parse(item.inputDescription);
+    if (p && typeof p === 'object') parsed = p as Record<string, unknown>;
+  } catch {
+    // legacy HTML
+  }
+
+  if (parsed) {
+    return (
+      <Descriptions column={1} bordered size="small">
+        {Object.entries(parsed).map(([key, value]) =>
+          value != null && value !== '' ? (
+            <Descriptions.Item key={key} label={key}>
+              {String(value)}
+            </Descriptions.Item>
+          ) : null
         )}
-      </Descriptions.Item>
-    </Descriptions>
+      </Descriptions>
+    );
+  }
+
+  // Legacy HTML content
+  return (
+    <div
+      style={{ padding: '8px 0' }}
+      dangerouslySetInnerHTML={{ __html: item.inputDescription }}
+    />
   );
 }

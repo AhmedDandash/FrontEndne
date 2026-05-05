@@ -82,7 +82,7 @@ export class MediationContractService {
       workerId: data.workerId ?? null,
       workerPassportNumber: data.workerPassportNumber ?? null,
       offerId: data.offerId ?? null,
-      contractType: data.contractType != null ? Number(data.contractType) : null,
+      contractType: data.contractType != null ? Number(data.contractType) : 0,
       contractCategory: data.contractCategory != null ? Number(data.contractCategory) : null,
       marketerId: data.marketerId ?? null,
       visaType: data.visaType != null ? Number(data.visaType) : null,

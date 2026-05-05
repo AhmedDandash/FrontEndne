@@ -437,7 +437,7 @@ export default function Sidebar({
     <>
       <div className={styles.logoContainer}>
         <Image
-          src="/images/logo.png"
+          src="/images/logonavbar.png"
           alt="Logo"
           fill
           className={styles.logoImage}

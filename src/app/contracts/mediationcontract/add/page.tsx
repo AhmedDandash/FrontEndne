@@ -226,10 +226,10 @@ export default function AddMediationContractPage() {
             : null,
       };
 
-      createContract(payload);
+      await createContract(payload);
       router.push('/contracts/mediationcontract');
     } catch {
-      // validation errors shown inline
+      // validation errors and API errors (e.g. passport mismatch) shown via message.error in mutation onError
     }
   };
 
@@ -269,11 +269,14 @@ export default function AddMediationContractPage() {
           </Form.Item>
         </Col>
         <Col xs={24} md={12}>
-          <Form.Item name="contractType" label={t.contractType}>
+          <Form.Item
+            name="contractType"
+            label={t.contractType}
+            rules={[{ required: true, message: isRtl ? 'يرجى اختيار نوع العقد' : 'Please select contract type' }]}
+          >
             <Select
               size="large"
               placeholder={isRtl ? 'اختر نوع العقد' : 'Select contract type'}
-              allowClear
             >
               {toSelectOptions(MEDIATION_CONTRACT_TYPE, language).map((opt) => (
                 <Option key={opt.value} value={opt.value}>
