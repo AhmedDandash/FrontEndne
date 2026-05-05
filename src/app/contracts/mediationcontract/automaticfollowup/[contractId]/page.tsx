@@ -474,13 +474,6 @@ function ItemCard({
         )}
       </div>
 
-      {/* ── Saved data preview (JSON rendered as key-value) ── */}
-      {item.inputDescription && (
-        <div className={styles.descriptionPreview}>
-          <InputDescriptionPreview raw={item.inputDescription} />
-        </div>
-      )}
-
       {/* ── Actions ── */}
       <div className={styles.itemActions}>
         <Tooltip title={t('viewDetails')}>
@@ -519,44 +512,52 @@ function ItemCard({
   );
 }
 
-// ── Renders inputDescription as structured key-value if it is valid JSON ──────
-function InputDescriptionPreview({ raw }: { raw: string }) {
-  try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') {
-      return (
-        <dl style={{ margin: 0, fontSize: 12, color: '#555' }}>
-          {Object.entries(parsed).map(([k, v]) =>
-            v != null && v !== '' ? (
-              <div key={k} style={{ display: 'flex', gap: 4 }}>
-                <dt style={{ fontWeight: 600, minWidth: 120 }}>{k}:</dt>
-                <dd style={{ margin: 0 }}>{String(v)}</dd>
-              </div>
-            ) : null
-          )}
-        </dl>
-      );
-    }
-  } catch {
-    // Fall through to HTML render for legacy content
+// ── Human-readable label map for every JSON key ──────────────────────────────
+const FIELD_LABELS: Record<string, { ar: string; en: string }> = {
+  ActionDate:            { ar: 'تاريخ الإجراء',        en: 'Action Date' },
+  arrivalDate:           { ar: 'تاريخ الوصول',          en: 'Arrival Date' },
+  medicalStatus:         { ar: 'الحالة الطبية',          en: 'Medical Status' },
+  status:                { ar: 'الحالة',                 en: 'Status' },
+  contractAgentStatusId: { ar: 'الحالة',                 en: 'Status' },
+  Notes:                 { ar: 'الملاحظات',              en: 'Notes' },
+  AirlineCompanyId:      { ar: 'شركة الطيران',           en: 'Airline Company' },
+  CarrierLines:          { ar: 'اسم الناقل',             en: 'Carrier Lines' },
+  FlightNumber:          { ar: 'رقم الرحلة',             en: 'Flight Number' },
+  FlightPlaceId:         { ar: 'مكان الرحلة',            en: 'Flight Place' },
+  time:                  { ar: 'وقت الإقلاع',            en: 'Departure Time' },
+  DayReceipt:            { ar: 'يوم استلام التذكرة',     en: 'Receipt Day' },
+  TimeReceipt:           { ar: 'وقت استلام التذكرة',     en: 'Receipt Time' },
+};
+
+// All status options merged — used to resolve a numeric code to its label
+import { ITEM_STATUS_OPTIONS } from '@/types/follow-up-forms.types';
+
+const ALL_STATUS_OPTIONS = Object.values(ITEM_STATUS_OPTIONS).flat();
+
+function resolveStatusValue(key: string, value: unknown): string {
+  const isStatusField =
+    key === 'contractAgentStatusId' || key === 'medicalStatus' || key === 'status';
+  if (isStatusField && typeof value === 'number') {
+    const found = ALL_STATUS_OPTIONS.find((o) => o.value === value);
+    if (found) return found.labelAr;
   }
-  return (
-    <div
-      className={styles.descriptionSnippet}
-      dangerouslySetInnerHTML={{ __html: raw }}
-    />
-  );
+  return String(value);
 }
 
 function ItemDetailContent({
   item,
+  isRTL,
 }: {
   item: MediationFollowUpItem;
   isRTL: boolean;
   t: (k: string) => string;
 }) {
   if (!item.inputDescription) {
-    return <p style={{ color: '#aaa', textAlign: 'center', margin: '24px 0' }}>لا توجد بيانات مدخلة بعد</p>;
+    return (
+      <p style={{ color: '#aaa', textAlign: 'center', margin: '24px 0' }}>
+        لا توجد بيانات مدخلة بعد
+      </p>
+    );
   }
 
   let parsed: Record<string, unknown> | null = null;
@@ -569,14 +570,21 @@ function ItemDetailContent({
 
   if (parsed) {
     return (
-      <Descriptions column={1} bordered size="small">
-        {Object.entries(parsed).map(([key, value]) =>
-          value != null && value !== '' ? (
-            <Descriptions.Item key={key} label={key}>
-              {String(value)}
+      <Descriptions column={1} bordered size="small" style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
+        {Object.entries(parsed).map(([key, value]) => {
+          if (value == null || value === '') return null;
+          const labels = FIELD_LABELS[key];
+          const label = labels
+            ? isRTL
+              ? labels.ar
+              : `${labels.en} / ${labels.ar}`
+            : key;
+          return (
+            <Descriptions.Item key={key} label={label}>
+              {resolveStatusValue(key, value)}
             </Descriptions.Item>
-          ) : null
-        )}
+          );
+        })}
       </Descriptions>
     );
   }
