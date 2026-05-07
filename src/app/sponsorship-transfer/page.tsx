@@ -68,14 +68,7 @@ import type {
   CreateComplaintDto,
 } from '@/types/api.types';
 import styles from './SponsorshipTransfer.module.css';
-
-let useWorkersHook: any;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  useWorkersHook = require('@/hooks/api/useWorkers').useWorkers;
-} catch {
-  useWorkersHook = () => ({ data: [] });
-}
+import { useWorkers } from '@/hooks/api/useWorkers';
 
 const { TextArea } = Input;
 
@@ -517,7 +510,7 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
   const createMutation = useCreateTransferContract();
 
   const { data: customers = [] } = useCustomers() as any;
-  const { data: workers   = [] } = useWorkersHook()  as any;
+  const { data: workers   = [] } = useWorkers()  as any;
   const { data: marketerData }   = useMarketers()    as any;
   const marketers = Array.isArray(marketerData) ? marketerData : marketerData?.data ?? [];
 
