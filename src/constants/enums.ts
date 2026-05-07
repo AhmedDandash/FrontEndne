@@ -429,14 +429,22 @@ export const ARRIVAL_DESTINATIONS = [
 ] as const;
 
 // ==================== Transfer Contract Status ====================
-// حالة عقد النقل — values per swagger TransferContractStatus enum
+// حالة عقد النقل — values per TransferContractStatus API spec
+// 1=Draft, 4=SentToAuthorities, 5=Approved, 6=Rejected, 8=TransferCompleted
 export const TRANSFER_CONTRACT_STATUS = [
   { value: 1, labelAr: 'مسودة', labelEn: 'Draft' },
-  { value: 2, labelAr: 'موقّع', labelEn: 'Signed' },
-  { value: 3, labelAr: 'مكتمل', labelEn: 'Completed' },
-  { value: 4, labelAr: 'مُقدَّم للجهة', labelEn: 'Submitted to Authority' },
-  { value: 5, labelAr: 'قيد المراجعة', labelEn: 'Under Review' },
-  { value: 6, labelAr: 'مقبول', labelEn: 'Accepted' },
-  { value: 7, labelAr: 'مرفوض', labelEn: 'Rejected' },
+  { value: 4, labelAr: 'أُرسل للجهات المختصة', labelEn: 'Sent To Authorities' },
+  { value: 5, labelAr: 'مقبول', labelEn: 'Approved' },
+  { value: 6, labelAr: 'مرفوض', labelEn: 'Rejected' },
+  { value: 8, labelAr: 'تم نقل الكفالة', labelEn: 'Transfer Completed' },
+] as const;
+
+// ==================== Payment Means Code Type ====================
+// نوع وسيلة الدفع — values per PaymentMeansCodeType API spec
+export const PAYMENT_MEANS_CODE_TYPE = [
+  { value: 1, labelAr: 'نقداً', labelEn: 'Cash' },
+  { value: 2, labelAr: 'شيك', labelEn: 'Check' },
+  { value: 3, labelAr: 'تحويل بنكي', labelEn: 'Bank Transfer' },
+  { value: 6, labelAr: 'شبكة', labelEn: 'Network (POS)' },
 ] as const;
 

@@ -6,113 +6,117 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { TransferContractService } from '@/services/transfer-contract.service';
-import type { CreateTransferContractDto, UpdateTransferContractDto } from '@/types/api.types';
+import type { CreateTransferContractDto } from '@/types/api.types';
 
 const QUERY_KEY = ['transfer-contracts'];
 
-export function useTransferContracts(params?: Record<string, any>) {
+export interface TransferContractParams {
+  pageNumber?: number;
+  pageSize?: number;
+  search?: string;
+}
+
+/** GET /api/TransferContract — paginated list */
+export function useTransferContracts(params?: TransferContractParams) {
   return useQuery({
-    queryKey: [...QUERY_KEY, params],
+    queryKey: [...QUERY_KEY, 'list', params],
     queryFn: () => TransferContractService.getAll(params),
   });
 }
 
-export function useTransferContract(id: number | string | undefined) {
+/** GET /api/TransferContract/{id} */
+export function useTransferContract(id: string | undefined | null) {
   return useQuery({
-    queryKey: [...QUERY_KEY, id],
+    queryKey: [...QUERY_KEY, 'detail', id],
     queryFn: () => TransferContractService.getById(id!),
     enabled: !!id,
   });
 }
 
+/** POST /api/TransferContract */
 export function useCreateTransferContract() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateTransferContractDto) => TransferContractService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      message.success('تمت إضافة عقد النقل بنجاح / Transfer contract created successfully');
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, 'list'] });
+      message.success('تمت إضافة عقد نقل الكفالة بنجاح');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل إضافة عقد النقل / Failed to create transfer contract');
+      const msg =
+        err.response?.data?.errors?.[0] ||
+        err.response?.data?.message ||
+        'فشل إنشاء عقد نقل الكفالة';
+      message.error(msg);
     },
   });
 }
 
-export function useUpdateTransferContract() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: UpdateTransferContractDto }) =>
-      TransferContractService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      message.success('تم تحديث عقد النقل بنجاح / Transfer contract updated successfully');
-    },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل تحديث عقد النقل / Failed to update transfer contract');
-    },
-  });
-}
-
+/** DELETE /api/TransferContract/{id} — only Draft */
 export function useDeleteTransferContract() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number | string) => TransferContractService.delete(id),
+    mutationFn: (id: string) => TransferContractService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      message.success('تم حذف عقد النقل بنجاح / Transfer contract deleted successfully');
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, 'list'] });
+      message.success('تم حذف العقد بنجاح');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل حذف عقد النقل / Failed to delete transfer contract');
+      message.error(
+        err.response?.data?.errors?.[0] || 'فشل حذف العقد — تأكد أن العقد في حالة مسودة'
+      );
     },
   });
 }
 
-/** POST /api/TransferContract/{id}/sign — Draft → Signed */
+/** POST /api/TransferContract/{id}/sign — Draft → TransferCompleted */
 export function useSignTransferContract() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number | string) => TransferContractService.sign(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      message.success('تم توقيع عقد النقل بنجاح / Transfer contract signed successfully');
+    mutationFn: (id: string) => TransferContractService.sign(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, 'list'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, 'detail', id] });
+      message.success('تم توقيع العقد وإتمام نقل الكفالة بنجاح');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل توقيع عقد النقل / Failed to sign transfer contract');
+      message.error(err.response?.data?.errors?.[0] || 'فشل توقيع العقد');
     },
   });
 }
 
-/** POST /api/TransferContract/{id}/complete — Signed → Completed */
+/** POST /api/TransferContract/{id}/complete — manual completion (requires Approved) */
 export function useCompleteTransferContract() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number | string) => TransferContractService.complete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      message.success('تم إتمام عقد النقل بنجاح / Transfer contract completed successfully');
+    mutationFn: (id: string) => TransferContractService.complete(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, 'list'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, 'detail', id] });
+      message.success('تم إتمام العقد بنجاح');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل إتمام عقد النقل / Failed to complete transfer contract');
+      message.error(err.response?.data?.errors?.[0] || 'فشل إتمام العقد');
     },
   });
 }
 
 /**
- * PATCH /api/TransferContract/{id}/authority-status?status=&note=
- * Pass status (TransferContractStatus 1-7) and optional note as query params.
+ * PATCH /api/TransferContract/{id}/authority-status
+ * status: 4=SentToAuthorities, 5=Approved, 6=Rejected
  */
 export function useUpdateTransferContractAuthorityStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status, note }: { id: number | string; status?: number; note?: string }) =>
+    mutationFn: ({ id, status, note }: { id: string; status: number; note?: string }) =>
       TransferContractService.updateAuthorityStatus(id, { status, note }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      message.success('تم تحديث حالة الجهة بنجاح / Authority status updated successfully');
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, 'list'] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, 'detail', vars.id] });
+      message.success('تم تحديث حالة الجهة بنجاح');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل تحديث حالة الجهة / Failed to update authority status');
+      message.error(err.response?.data?.errors?.[0] || 'فشل تحديث حالة الجهة');
     },
   });
 }

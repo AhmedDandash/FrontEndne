@@ -1,89 +1,77 @@
 /**
  * Transfer Contract Service
- * New module in new API contract: /api/TransferContract
+ * /api/TransferContract
  *
- * Lifecycle: Draft → sign() → Signed → complete() → Completed
- * authority-status: updates submission authority status
+ * Lifecycle: Draft (1) → sign() → TransferCompleted (8)
+ * Authority tracking: PATCH authority-status (4=SentToAuthorities, 5=Approved, 6=Rejected)
  */
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
-import type { TransferContract, CreateTransferContractDto, UpdateTransferContractDto } from '@/types/api.types';
+import type {
+  TransferContract,
+  PaginatedTransferContractsResponse,
+  CreateTransferContractDto,
+} from '@/types/api.types';
+
+/** Unwrap the standard { success, data, errors, statusCode } envelope */
+function unwrap<T>(raw: any): T {
+  if (raw?.data !== undefined) return raw.data as T;
+  return raw as T;
+}
 
 export class TransferContractService {
-  /**
-   * GET /api/TransferContract
-   */
-  static async getAll(params?: Record<string, any>): Promise<TransferContract[]> {
+  /** GET /api/TransferContract?pageNumber=&pageSize=&search= */
+  static async getAll(
+    params?: Record<string, any>
+  ): Promise<PaginatedTransferContractsResponse> {
     const response = await api.get<any>(API_ENDPOINTS.TRANSFER_CONTRACT.GET_ALL, { params });
-
-    if (Array.isArray(response.data)) return response.data;
-    if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;
-    if (response.data?.result && Array.isArray(response.data.result)) return response.data.result;
-    if (response.data?.items && Array.isArray(response.data.items)) return response.data.items;
-    return [];
+    const envelope = response.data;
+    // API returns { success, data: { pageSize, pageNumber, totalCount, items: [...] } }
+    const page = envelope?.data ?? envelope;
+    return {
+      items: page?.items ?? [],
+      totalCount: page?.totalCount ?? 0,
+      pageNumber: page?.pageNumber ?? 1,
+      pageSize: page?.pageSize ?? 10,
+    };
   }
 
-  /**
-   * GET /api/TransferContract/{id}
-   */
-  static async getById(id: number | string): Promise<TransferContract> {
-    const response = await api.get<TransferContract>(API_ENDPOINTS.TRANSFER_CONTRACT.GET_BY_ID(id));
-    return response.data;
+  /** GET /api/TransferContract/{id} */
+  static async getById(id: string): Promise<TransferContract> {
+    const response = await api.get<any>(API_ENDPOINTS.TRANSFER_CONTRACT.GET_BY_ID(id));
+    return unwrap<TransferContract>(response.data);
   }
 
-  /**
-   * POST /api/TransferContract
-   * Body: { customerId, workerId, marketerId, transferFees, governmentFees, totalAmount, notes }
-   */
+  /** POST /api/TransferContract */
   static async create(data: CreateTransferContractDto): Promise<TransferContract> {
-    const response = await api.post<TransferContract>(API_ENDPOINTS.TRANSFER_CONTRACT.CREATE, data);
-    return response.data;
+    const response = await api.post<any>(API_ENDPOINTS.TRANSFER_CONTRACT.CREATE, data);
+    return unwrap<TransferContract>(response.data);
   }
 
-  /**
-   * PUT /api/TransferContract/{id}
-   */
-  static async update(id: number | string, data: UpdateTransferContractDto): Promise<TransferContract> {
-    const response = await api.put<TransferContract>(API_ENDPOINTS.TRANSFER_CONTRACT.UPDATE(id), data);
-    return response.data;
-  }
-
-  /**
-   * DELETE /api/TransferContract/{id}
-   */
-  static async delete(id: number | string): Promise<void> {
+  /** DELETE /api/TransferContract/{id} — only Draft contracts can be deleted */
+  static async delete(id: string): Promise<void> {
     await api.delete(API_ENDPOINTS.TRANSFER_CONTRACT.DELETE(id));
   }
 
-  /**
-   * POST /api/TransferContract/{id}/sign
-   * Transition: Draft → Signed. No request body.
-   */
-  static async sign(id: number | string): Promise<void> {
+  /** POST /api/TransferContract/{id}/sign — Draft → TransferCompleted */
+  static async sign(id: string): Promise<void> {
     await api.post(API_ENDPOINTS.TRANSFER_CONTRACT.SIGN(id), null);
   }
 
-  /**
-   * POST /api/TransferContract/{id}/complete
-   * Transition: Signed → Completed. No request body.
-   */
-  static async complete(id: number | string): Promise<void> {
+  /** POST /api/TransferContract/{id}/complete — manual completion (requires Approved status) */
+  static async complete(id: string): Promise<void> {
     await api.post(API_ENDPOINTS.TRANSFER_CONTRACT.COMPLETE(id), null);
   }
 
   /**
    * PATCH /api/TransferContract/{id}/authority-status?status=&note=
-   * Updates submission authority status.
-   * @param status — TransferContractStatus enum value (1-7)
-   * @param note   — optional note string
+   * status: 4=SentToAuthorities, 5=Approved, 6=Rejected
    */
   static async updateAuthorityStatus(
-    id: number | string,
-    params?: { status?: number; note?: string }
+    id: string,
+    params: { status: number; note?: string }
   ): Promise<void> {
-    await api.patch(API_ENDPOINTS.TRANSFER_CONTRACT.AUTHORITY_STATUS(id), null, {
-      params: params ?? {},
-    });
+    await api.patch(API_ENDPOINTS.TRANSFER_CONTRACT.AUTHORITY_STATUS(id), null, { params });
   }
 }

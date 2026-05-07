@@ -1525,24 +1525,54 @@ export interface UpdateFollowUpRequirementDto {
 }
 
 // ==================== Transfer Contract Types ====================
-// TransferContractStatus: 1=Draft, 2=Signed, 3=Completed
+// TransferContractStatus: 1=Draft, 4=SentToAuthorities, 5=Approved, 6=Rejected, 8=TransferCompleted
+// PaymentMeansCodeType: 1=Cash, 2=Check, 3=Transfer, 6=Network
 export interface TransferContract {
-  id: number | string;
+  id: string;
+  contractNumber?: number | null;
   /** UUID string */
   customerId?: string | null;
   customerName?: string | null;
   /** UUID string */
   workerId?: string | null;
   workerName?: string | null;
+  workerIdNumber?: string | null;
   /** UUID string */
   marketerId?: string | null;
   marketerName?: string | null;
   transferFees?: number | null;
   governmentFees?: number | null;
   totalAmount?: number | null;
+  /** Derived or returned by API — total paid so far */
+  paidAmount?: number | null;
+  contractStatus?: number | null;
+  statusName?: string | null;
+  paymentMeansCodeTypeId?: number | null;
+  paymentMeansName?: string | null;
+  trialPeriodDays?: number | null;
   notes?: string | null;
-  status?: number | null;
-  createdAt?: string | null;
+  requestDate?: string | null;
+  approvalDate?: string | null;
+  createdDate?: string | null;
+  createdByName?: string | null;
+}
+
+export interface TransferContractListItem {
+  id: string;
+  contractNumber?: number | null;
+  workerName?: string | null;
+  customerName?: string | null;
+  contractStatus?: number | null;
+  statusName?: string | null;
+  totalAmount?: number | null;
+  createdDate?: string | null;
+}
+
+export interface PaginatedTransferContractsResponse {
+  items: TransferContractListItem[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
 }
 
 export interface CreateTransferContractDto {
@@ -1550,20 +1580,14 @@ export interface CreateTransferContractDto {
   customerId: string;
   /** UUID string */
   workerId: string;
-  /** UUID string */
+  /** UUID string (optional) */
   marketerId?: string | null;
   transferFees: number;
   governmentFees: number;
   totalAmount: number;
+  /** PaymentMeansCodeType: 1=Cash, 2=Check, 3=Transfer, 6=Network */
+  paymentMeansCodeTypeId: number;
+  trialPeriodDays: number;
   notes?: string | null;
 }
 
-export interface UpdateTransferContractDto {
-  customerId?: string | null;
-  workerId?: string | null;
-  marketerId?: string | null;
-  transferFees?: number | null;
-  governmentFees?: number | null;
-  totalAmount?: number | null;
-  notes?: string | null;
-}

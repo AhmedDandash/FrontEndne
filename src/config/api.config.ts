@@ -234,7 +234,6 @@ export const API_ENDPOINTS = {
     GET_ALL: '/api/TransferContract',
     GET_BY_ID: (id: number | string) => `/api/TransferContract/${id}`,
     CREATE: '/api/TransferContract',
-    UPDATE: (id: number | string) => `/api/TransferContract/${id}`,
     DELETE: (id: number | string) => `/api/TransferContract/${id}`,
     SIGN: (id: number | string) => `/api/TransferContract/${id}/sign`,
     COMPLETE: (id: number | string) => `/api/TransferContract/${id}/complete`,

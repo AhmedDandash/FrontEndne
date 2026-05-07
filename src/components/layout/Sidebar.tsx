@@ -258,16 +258,18 @@ export default function Sidebar({
     //   ],
     // },
     {
+      key: '/sponsorship-transfer',
+      icon: <ShopOutlined />,
+      label: language === 'ar' ? ' نقل الكفالة' : 'Sponsorship Transfer',
+    },
+    {
       key: 'agents',
       icon: <UserOutlined />,
       label: language === 'ar' ? 'الوكلاء' : 'Agents',
       children: [
         { key: '/agents', label: language === 'ar' ? 'جميع الوكلاء' : 'All Agents' },
-        { key: '/agents/assignment', label: language === 'ar' ? 'تعيين الوكلاء' : 'Assignment' },
-        {
-          key: '/agents/sponsorship-transfer',
-          label: language === 'ar' ? 'نقل الكفالة' : 'Sponsorship Transfer',
-        },
+        // { key: '/agents/assignment', label: language === 'ar' ? 'تعيين الوكلاء' : 'Assignment' },
+        
       ],
     },
     {

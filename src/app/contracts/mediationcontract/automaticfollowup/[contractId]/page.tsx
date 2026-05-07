@@ -7,15 +7,12 @@ import {
   Spin,
   Empty,
   Modal,
-  Form,
   Tag,
   Tooltip,
   Alert,
   Descriptions,
   Steps,
   Card,
-  Select,
-  Input,
   message,
 } from 'antd';
 import {
@@ -27,18 +24,20 @@ import {
   EyeOutlined,
   EditOutlined,
   ReloadOutlined,
-  LockOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import {
   useMediationFollowUpItems,
   useMediationFollowUpItem,
   useUpdateFollowUpDescription,
-  useCompleteFollowUpItem,
-  useCanComplete,
 } from '@/hooks/api/useMediationFollowUp';
 import { InputDescriptionModal } from '@/components/followup/InputDescriptionModal';
-import { hasFilledInputDescription } from '@/types/follow-up-forms.types';
+import {
+  hasFilledInputDescription,
+  detectItemFormType,
+  getStatusFieldName,
+  ITEM_STATUS_OPTIONS,
+} from '@/types/follow-up-forms.types';
 import type { MediationFollowUpItem } from '@/types/api.types';
 import styles from './ContractFollowUpDetail.module.css';
 
@@ -50,7 +49,6 @@ function useT(language: string) {
       pageTitle: { ar: 'مراحل متابعة العقد', en: 'Contract Follow-Up Stages' },
       backToDashboard: { ar: 'العودة للوحة المتابعة', en: 'Back to Dashboard' },
       refresh: { ar: 'تحديث', en: 'Refresh' },
-      complete: { ar: 'إتمام المرحلة', en: 'Complete Stage' },
       viewDetails: { ar: 'عرض التفاصيل', en: 'View Details' },
       fillForm: { ar: 'تعبئة البيانات', en: 'Fill Data' },
       cancel: { ar: 'إلغاء', en: 'Cancel' },
@@ -67,20 +65,14 @@ function useT(language: string) {
       completedAt: { ar: 'تاريخ الإتمام', en: 'Completed At' },
       notes: { ar: 'ملاحظات', en: 'Notes' },
       cannotCompleteMsg: {
-        ar: 'لا يمكن إتمام هذه المرحلة حتى تكتمل المرحلة السابقة',
-        en: 'Cannot complete this stage until the previous stage is finished',
+        ar: 'لا يمكن تغيير الحالة حتى تكتمل المرحلة السابقة',
+        en: 'Cannot change status until the previous stage is finished',
       },
       fillFormFirstMsg: {
-        ar: 'يجب تعبئة بيانات المرحلة أولاً قبل إتمامها',
-        en: 'You must fill in the stage data before completing it',
+        ar: 'يجب تعبئة بيانات المرحلة أولاً قبل تغيير حالتها',
+        en: 'You must fill in the stage data before changing its status',
       },
       noItems: { ar: 'لا توجد مراحل متابعة لهذا العقد', en: 'No follow-up stages for this contract' },
-      completeModalTitle: { ar: 'إتمام المرحلة', en: 'Complete Stage' },
-      result: { ar: 'النتيجة', en: 'Result' },
-      resultCompleted: { ar: 'مكتمل', en: 'Completed' },
-      resultFailed: { ar: 'فشل', en: 'Failed' },
-      resultSkipped: { ar: 'متجاوز', en: 'Skipped' },
-      completedAtLabel: { ar: 'تاريخ الإتمام', en: 'Completed At' },
       detailsModalTitle: { ar: 'تفاصيل المرحلة', en: 'Stage Details' },
       inputDescription: { ar: 'البيانات المدخلة', en: 'Input Data' },
       loading: { ar: 'جاري التحميل...', en: 'Loading...' },
@@ -127,15 +119,11 @@ export default function ContractFollowUpDetailPage() {
   // Modals
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [inputFormItem, setInputFormItem] = useState<MediationFollowUpItem | null>(null);
-  const [completeItemId, setCompleteItemId] = useState<string | null>(null);
-  const [completeForm] = Form.useForm();
 
   const { data: items = [], isLoading, refetch } = useMediationFollowUpItems(contractId);
   const { data: detailItem, isLoading: detailLoading } = useMediationFollowUpItem(detailItemId);
 
   const updateDescMutation = useUpdateFollowUpDescription(contractId);
-  const completeItemMutation = useCompleteFollowUpItem(contractId);
-  const canCompleteMutation = useCanComplete();
 
   const sortedItems = useMemo(
     () => [...items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
@@ -163,48 +151,6 @@ export default function ContractFollowUpDetailPage() {
     refetch();
   };
 
-  const openComplete = (item: MediationFollowUpItem) => {
-    // Gate: form must be filled before completing
-    if (!hasFilledInputDescription(item.inputDescription)) {
-      message.warning(t('fillFormFirstMsg'));
-      // Auto-open the input form so the user can fill it right away
-      setInputFormItem(item);
-      return;
-    }
-    completeForm.resetFields();
-    completeForm.setFieldsValue({
-      completedAt: new Date().toISOString().slice(0, 16),
-      result: 2,
-    });
-    if (item.id) setCompleteItemId(item.id);
-  };
-
-  const handleCompleteItem = async () => {
-    if (!completeItemId) return;
-    try {
-      const values = await completeForm.validateFields();
-
-      const check = await canCompleteMutation.mutateAsync(completeItemId);
-      if (!check.canComplete) {
-        message.error(t('cannotCompleteMsg'));
-        setCompleteItemId(null);
-        completeForm.resetFields();
-        refetch();
-        return;
-      }
-
-      await completeItemMutation.mutateAsync({
-        contractFollowUpItemId: completeItemId,
-        completedAt: values.completedAt,
-        notes: values.notes ?? null,
-        result: values.result,
-      });
-      setCompleteItemId(null);
-      completeForm.resetFields();
-    } catch {
-      // form validation errors shown by Ant Design
-    }
-  };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -264,7 +210,6 @@ export default function ContractFollowUpDetailPage() {
             t={t}
             onViewDetail={openDetail}
             onFillForm={openInputForm}
-            onComplete={openComplete}
           />
         ))}
       </div>
@@ -300,45 +245,6 @@ export default function ContractFollowUpDetailPage() {
         loading={updateDescMutation.isPending}
       />
 
-      {/* ── Complete Item Modal ── */}
-      <Modal
-        open={!!completeItemId}
-        title={t('completeModalTitle')}
-        onCancel={() => { setCompleteItemId(null); completeForm.resetFields(); }}
-        onOk={handleCompleteItem}
-        okText={t('complete')}
-        cancelText={t('cancel')}
-        confirmLoading={canCompleteMutation.isPending || completeItemMutation.isPending}
-        destroyOnClose
-      >
-        <Form form={completeForm} layout="vertical" style={{ marginTop: 12 }}>
-          <Form.Item
-            name="result"
-            label={t('result')}
-            rules={[{ required: true }]}
-            initialValue={2}
-          >
-            <Select
-              options={[
-                { value: 2, label: t('resultCompleted') },
-                { value: 3, label: t('resultFailed') },
-                { value: 4, label: t('resultSkipped') },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item
-            name="completedAt"
-            label={t('completedAtLabel')}
-            rules={[{ required: true }]}
-            initialValue={new Date().toISOString().slice(0, 16)}
-          >
-            <Input type="datetime-local" />
-          </Form.Item>
-          <Form.Item name="notes" label={t('notes')}>
-            <Input.TextArea rows={3} />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 }
@@ -375,6 +281,31 @@ function PageHeader({
   );
 }
 
+// ── Extract status label from inputDescription JSON ───────────────────────────
+
+function getInputDescriptionStatusLabel(item: MediationFollowUpItem): string | null {
+  if (!item.inputDescription) return null;
+  let parsed: Record<string, unknown> | null = null;
+  try {
+    const p = JSON.parse(item.inputDescription);
+    if (p && typeof p === 'object') parsed = p as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  if (!parsed) return null;
+
+  const formType = detectItemFormType(item);
+  if (!formType) return null;
+
+  const fieldName = getStatusFieldName(formType);
+  const value = parsed[fieldName];
+  if (value == null) return null;
+
+  const options = ITEM_STATUS_OPTIONS[formType] ?? [];
+  const found = options.find((o) => o.value === value);
+  return found?.labelAr ?? String(value);
+}
+
 function ItemCard({
   item,
   idx,
@@ -382,7 +313,6 @@ function ItemCard({
   t,
   onViewDetail,
   onFillForm,
-  onComplete,
 }: {
   item: MediationFollowUpItem;
   idx: number;
@@ -390,37 +320,20 @@ function ItemCard({
   t: (k: string) => string;
   onViewDetail: (item: MediationFollowUpItem) => void;
   onFillForm: (item: MediationFollowUpItem) => void;
-  onComplete: (item: MediationFollowUpItem) => void;
 }) {
   const name = isRTL
     ? item.statusNameAr || item.statusNameEn
     : item.statusNameEn || item.statusNameAr;
 
   const dependencyOk = item.canComplete === true;
-  const alreadyDone = item.result === 2;
   const formFilled = hasFilledInputDescription(item.inputDescription);
+  const isSettled = item.result != null && item.result !== 1;
 
-  // Complete button is fully enabled only when:
-  //   • predecessor is complete (canComplete)
-  //   • item is not already done
-  //   • inputDescription has been saved
-  const completeEnabled = dependencyOk && !alreadyDone && formFilled;
-
-  // Derive the tooltip message for the Complete button
-  let completeTooltip: string;
-  if (alreadyDone) {
-    completeTooltip = t('statusCompleted');
-  } else if (!dependencyOk) {
-    completeTooltip = t('cannotCompleteMsg');
-  } else if (!formFilled) {
-    completeTooltip = t('fillFormFirstMsg');
-  } else {
-    completeTooltip = t('complete');
-  }
+  const inputStatusLabel = getInputDescriptionStatusLabel(item);
 
   return (
     <Card
-      className={`${styles.itemCard} ${alreadyDone ? styles.itemCardCompleted : ''}`}
+      className={`${styles.itemCard} ${isSettled ? styles.itemCardCompleted : ''}`}
       size="small"
     >
       <div className={styles.itemCardHeader}>
@@ -428,11 +341,15 @@ function ItemCard({
           <span className={styles.itemIndex}>{idx + 1}</span>
           <span className={styles.itemName}>{name || '—'}</span>
         </div>
-        {resultTag(item.result, t)}
+        {/* Show inputDescription status if available, otherwise fall back to result tag */}
+        {inputStatusLabel
+          ? <Tag color="blue">{inputStatusLabel}</Tag>
+          : resultTag(item.result, t)
+        }
       </div>
 
       {/* ── Dependency warning ── */}
-      {!dependencyOk && !alreadyDone && (
+      {!dependencyOk && !isSettled && (
         <Alert
           type="warning"
           showIcon
@@ -443,7 +360,7 @@ function ItemCard({
       )}
 
       {/* ── Fill-form required warning ── */}
-      {dependencyOk && !alreadyDone && !formFilled && (
+      {dependencyOk && !isSettled && !formFilled && (
         <Alert
           type="info"
           showIcon
@@ -490,23 +407,6 @@ function ItemCard({
             {t('fillForm')}
           </Button>
         </Tooltip>
-
-        <Tooltip title={completeTooltip}>
-          <Button
-            size="small"
-            type="primary"
-            icon={completeEnabled ? <CheckCircleOutlined /> : <LockOutlined />}
-            disabled={!completeEnabled}
-            onClick={() => onComplete(item)}
-            style={
-              completeEnabled
-                ? { background: '#00aa64', borderColor: '#00aa64' }
-                : undefined
-            }
-          >
-            {t('complete')}
-          </Button>
-        </Tooltip>
       </div>
     </Card>
   );
@@ -530,8 +430,6 @@ const FIELD_LABELS: Record<string, { ar: string; en: string }> = {
 };
 
 // All status options merged — used to resolve a numeric code to its label
-import { ITEM_STATUS_OPTIONS } from '@/types/follow-up-forms.types';
-
 const ALL_STATUS_OPTIONS = Object.values(ITEM_STATUS_OPTIONS).flat();
 
 function resolveStatusValue(key: string, value: unknown): string {
