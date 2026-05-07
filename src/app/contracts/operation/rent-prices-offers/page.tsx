@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Card,
   Row,
@@ -192,12 +192,21 @@ export default function RentPricesOffersPage() {
     return m;
   }, [branches, isAr]);
 
-  const getNat = (o: EmploymentContractOffer) =>
-    o.nationalityName || nationalityMap.get(String(o.nationalityId ?? '')) || String(o.nationalityId ?? '—');
-  const getJob = (o: EmploymentContractOffer) =>
-    o.jobName || jobMap.get(String(o.jobId ?? '')) || String(o.jobId ?? '—');
-  const getBranch = (o: EmploymentContractOffer) =>
-    o.branchName || branchMap.get(String(o.branchId ?? '')) || t('allBranches');
+  const getNat = useCallback(
+    (o: EmploymentContractOffer) =>
+      o.nationalityName || nationalityMap.get(String(o.nationalityId ?? '')) || String(o.nationalityId ?? '—'),
+    [nationalityMap]
+  );
+  const getJob = useCallback(
+    (o: EmploymentContractOffer) =>
+      o.jobName || jobMap.get(String(o.jobId ?? '')) || String(o.jobId ?? '—'),
+    [jobMap]
+  );
+  const getBranch = useCallback(
+    (o: EmploymentContractOffer) =>
+      o.branchName || branchMap.get(String(o.branchId ?? '')) || t('allBranches'),
+    [branchMap, t]
+  );
   const getDuration = (id?: number | null) => {
     if (!id) return '—';
     const p = periodTypes.find((x) => x.id === id);
@@ -223,7 +232,7 @@ export default function RentPricesOffersPage() {
       }
       return true;
     });
-  }, [allOffers, nationalityFilter, jobFilter, branchFilter, searchText]);
+  }, [allOffers, nationalityFilter, jobFilter, branchFilter, searchText, getNat, getJob, getBranch]);
 
   // ── stats ────────────────────────────────────────────────────────────────
   const uniqueNationalities = useMemo(

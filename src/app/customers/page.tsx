@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -170,11 +170,14 @@ export default function CustomersPage() {
     return translations[key]?.[language] || key;
   };
 
-  const getCustomerCityLabel = (customer: Customer) => {
-    return language === 'ar'
-      ? (customer.cityAr || customer.cityEn || '').trim()
-      : (customer.cityEn || customer.cityAr || '').trim();
-  };
+  const getCustomerCityLabel = useCallback(
+    (customer: Customer) => {
+      return language === 'ar'
+        ? (customer.cityAr || customer.cityEn || '').trim()
+        : (customer.cityEn || customer.cityAr || '').trim();
+    },
+    [language]
+  );
 
   useEffect(() => {
     // Reset city filter when switching language to avoid stale value mismatch.
@@ -199,7 +202,7 @@ export default function CustomersPage() {
 
       return matchesSearch && matchesCity;
     });
-  }, [customers, searchText, cityFilter, language]);
+  }, [customers, searchText, cityFilter, getCustomerCityLabel]);
 
   // Get unique cities for filter in the active UI language
   const cities = useMemo(() => {
@@ -210,7 +213,7 @@ export default function CustomersPage() {
       if (label) citySet.add(label);
     });
     return Array.from(citySet);
-  }, [customers, language]);
+  }, [customers, getCustomerCityLabel]);
 
   // Handler functions
   const handleAddCustomer = () => {
