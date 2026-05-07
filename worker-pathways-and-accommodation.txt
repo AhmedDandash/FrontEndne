@@ -1,0 +1,96 @@
+اﻟﺪﻟﯿﻞ اﻟﺸﺎﻣﻞ ﻟﻤﺴﺎرات اﻟﻌﻤﺎل واﻟﺘﺴﻜﯿ
+ﻦ
+(Worker Housing API Guide)اﻟﺠﺪﯾﺪة واﻟﻤُﻌﺪّﻟﺔ اﻟﺘﻲ ﺗﺨﺺ إدارة اﻟﻌﻤﺎل ﻓﻲ اﻟﺴﻜﻦ API (Endpoints) وﯾﺸﺮح ﺗﻔﺎﺻﯿﻞ ﻛﺎﻓﺔ ﻣﺴﺎرات اﻟـ ،)Frontend( ﻫﺬا اﻟﺪﻟﯿﻞ ﻣﺨﺼﺺ ﻟﻔﺮﯾﻖ اﻟﻮاﺟﻬﺎت اﻷﻣﺎﻣﯿﺔ
+.)وﺣﺎﻻﺗﻬﻢ اﻟﻤﺨﺘﻠﻔﺔ )اﻟﺘﺮﺣﯿﻞ، اﻟﺘﺴﻠﯿﻢ، إﺻﺪار اﻹﻗﺎﻣﺔ، إﻟﺦ
+
+[!IMPORTANT] ﺟﻤﻴﻊ اﻟﻤﺴﺎرات اﻟﻤﺬﻛﻮرة ﻫﻨﺎ ﺗﻨﺪرج ﺗﺤﺖ ﻣﺴﺎر (Base URL): /api/V1/WorkerMaster Housed( اﻟﻘﺎﺋﻤﺔ اﻟﺮﺋﯿﺴﯿﺔ ﻟﻠﻌﻤﺎل اﻟﻤُﺴﻜﻨﯿﻦ .1
+
+Endpoint) )Tabs( ﻫﺬا ﻫﻮ اﻟﻤﺴﺎر اﻷﺳﺎﺳﻲ اﻟﺬي ﯾﺠﻠﺐ ﻗﺎﺋﻤﺔ اﻟﻌﻤﺎل اﻟﻤﺘﻮاﺟﺪﯾﻦ ﻓﻲ اﻟﺴﻜﻦ. ﻟﻘﺪ ﺗﻢ ﺗﻌﺪﯾﻠﻪ ﺟﺬرﯾﺎ ً ﻟﯿﺼﺒﺢ اﻟﻤﺴﺎر اﻟﻮﺣﯿﺪ اﻟﺬي ﺗﺤﺘﺎﺟﻪ ﻟﻠﻔﻠﺘﺮة ﺑﻨﺎءً ﻋﻠﻰ اﻟﺘﺒﻮﯾﺒﺎ
+ت.اﻟﻤﻮﺟﻮدة ﻓﻲ اﻟﻮاﺟﻬﺔ
+GET /Housed :اﻟﻤﺴﺎر اﻷﺳﺎﺳﻲ
+:اﻟﺒﯿﺎﻧﺎت اﻟﻤﻀﺎﻓﺔ ﺣﺪﯾﺜﺎ ً ﻓﻲ اﻻﺳﺘﺠﺎﺑﺔ
+
+housedDays: ﻋﺪد أﯾﺎم ﻣﻜﻮث اﻟﻌﺎﻣﻞ ﻓﻲ اﻟﺴﻜﻦ.
+isReadyForDeportation: ﺷﺎرة (True/False) ﺗﺤﺪد ﻣﺎ إذا ﻛﺎن ﺟﺎﻫﺰا ً ﻟﻠﺘﺮﺣﯿﻞ.
+isReadyForHandover: ﺷﺎرة (True/False) ﺗﺤﺪد ﻣﺎ إذا ﻛﺎن ﺟﺎﻫﺰا ً ﻟﻠﺘﺴﻠﯿﻢ.
+isResidencyIssued: ﺷﺎرة (True/False) ﺗﺤﺪد ﻣﺎ إذا ﺗﻢ إﺻﺪار إﻗﺎﻣﺔ ﻟﻪ.
+iqamaNumber: رﻗﻢ اﻹﻗﺎﻣﺔ )إن وﺟﺪ).
+notes: ﻣﻼﺣﻈﺎت اﻟﻌﺎﻣﻞ.:)Query Parameters( ﻛﯿﻔﯿﺔ اﺳﺘﺨﺪام ﻫﺬا اﻟﻤﺴﺎر ﻟﻠﻔﻠﺘﺮة
+:ﺑﺪﻻً ﻣﻦ اﺳﺘﺪﻋﺎء ﻣﺴﺎرات ﻣﻨﻔﺼﻠﺔ ﻟﻜﻞ ﺣﺎﻟﺔ، ﯾﻤﻜﻨﻚ اﺳﺘﺨﺪام اﻟﻤﻌﺎﻣﻼت اﻟﺘﺎﻟﯿﺔ ﻟﺠﻠﺐ اﻟﻘﻮاﺋﻢ اﻟﻤﻔﻠﺘﺮة
+اﻟﺘﺒﻮﯾﺐ ﻓﻲ اﻟﻮاﺟﻬﺔ
+اﻟﻜﻞ ﺑﺎﻟﺴﻜﻦ
+)ﻧﻘﻞ ﻛﻔﺎﻟﺔ )ﺑﺎﻟﺴﻜﻦ
+)ﺗﺸﻐﯿﻞ )ﺑﺎﻟﺴﻜﻦ
+)ﺗﺮﺣﯿﻞ )ﺑﺎﻟﺴﻜﻦ
+)ﺗﺴﻠﯿﻢ )ﺑﺎﻟﺴﻜﻦ
+)URL( ﺷﻜﻞ اﻻﺳﺘﺪﻋﺎء
+
+GET /Housed?pageNumber=1&pageSize=20
+GET /Housed?wantsTransfer=true
+GET /Housed?wantsWork=true
+GET /Housed?isReadyForDeportation=true
+GET /Housed?isReadyForHandover=trueGET /Housed?hasResidency=false )إﺻﺪار إﻗﺎﻣﺔ )ﺑﺪون إﻗﺎﻣﺔ
+
+[!TIP] ﺟﻤﻴﻊ ﻫﺬه اﻟﻔﻼﺗﺮ ﻳﻤﻜﻦ دﻣﺠﻬﺎ ﻣﻊ اﻟﻔﻼﺗﺮ اﻟﺴﺎﺑﻘﺔ ﻣﺜﻞ searchKeyword. ﻫﺬه اﻟﻄﺮﻳﻘﺔ ﺗﻐﻨﻴﻚ ﺗﻤﺎﻣﺎ ً ﻋﻦ اﺳﺘﺨﺪام.AvailableForTransfer و AvailableForWork اﻟﻤﺴﺎرات اﻟﻘﺪﻳﻤﺔ ﻣﺜﻞ
+)Worker Actions( إﺟﺮاءات اﻟﻌﻤﺎل .2
+.ﺗ ُﺴﺘﺨﺪم ﻫﺬه اﻟﻤﺴﺎرات ﻋﻨﺪ اﻟﻀﻐﻂ ﻋﻠﻰ اﻷزرار اﻟﺨﺎﺻﺔ ﺑﺎﺗﺨﺎذ إﺟﺮاء ﻣﻌﯿﻦ ﺗﺠﺎه اﻟﻌﺎﻣﻞ
+)Deportation( أ( اﻟﺘﺮﺣﯿﻞ
+."ﯾُﺴﺘﺨﺪم ﻋﻨﺪﻣﺎ ﯾﺘﻢ اﻟﻀﻐﻂ ﻋﻠﻰ زر "ﺗﺮﺣﯿﻞ
+
+{ POST /{workerId}/Deportation :اﻟﻤﺴﺎ
+ر)ﻷﻧﻪ ﯾﺤﺘﻮي ﻋﻠﻰ ﺻﻮرة( FormData :ﻧﻮع اﻟﻄﻠﺐ
+،TicketImage، CarrierName، TripNumber ﻧﻮع اﻟﻤﻮاﺻﻠﺔ إﺟﺒﺎري(. ﯾﻤﻜﻨﻚ أﯾﻀﺎ ً إرﺳﺎل( TransportType :اﻟﺤﻘﻮل اﻟﻤﻄﻠﻮﺑﺔ
+
+DeportationTime، DestinationName وﻏﯿﺮﻫﺎ..isReadyForDeportation = true "اﻟﺘﺄﺛﯿﺮ: ﯾﻐﯿﺮ ﺣﺎﻟﺔ اﻟﻌﺎﻣﻞ إﻟﻰ "ﺟﺎﻫﺰ ﻟﻠﺘﺮﺣﯿﻞ
+)Handover( ب( اﻟﺘﺴﻠﯿﻢ
+."ﯾُﺴﺘﺨﺪم ﻋﻨﺪﻣﺎ ﯾﺘﻢ اﻟﻀﻐﻂ ﻋﻠﻰ زر "ﺗﺴﻠﯿﻢ
+POST /{workerId}/Handover :اﻟﻤﺴﺎر
+JSON :ﻧﻮع اﻟﻄﻠﺐ
+:)Body( ﺟﺴﻢ اﻟﻄﻠﺐ
+
+  "handoverTime": "2026-05-10T14:30:00Z", 
+  "saudiMobile": "05XXXXXXXX", 
+  "whatsAppNumber": "05XXXXXXXX", 
+  "borderNumber": "1234567890" 
+} .isReadyForHandover = true "اﻟﺘﺄﺛﯿﺮ: ﯾﻐﯿﺮ ﺣﺎﻟﺔ اﻟﻌﺎﻣﻞ إﻟﻰ "ﺟﺎﻫﺰ ﻟﻠﺘﺴﻠﯿ
+ﻢ )Issue Residency( ج( إﺻﺪار إﻗﺎﻣﺔ
+.ﯾُﺴﺘﺨﺪم ﻟﺘﺴﺠﯿﻞ إﺗﻤﺎم إﺻﺪار إﻗﺎﻣﺔ ﻟﻠﻌﺎﻣ
+ﻞPOST /{workerId}/IssueResidency :اﻟﻤﺴﺎر
+JSON :ﻧﻮع اﻟﻄﻠﺐ
+:)Body( ﺟﺴﻢ اﻟﻄﻠﺐ
+
+{ 
+} 
+{ 
+} 
+  "iqamaNumber": "2123456789" .iqamaNumber وﯾﺤﻔﻆ رﻗﻢ اﻹﻗﺎﻣﺔ isResidencyIssued = true اﻟﺘﺄﺛﯿﺮ: ﯾﻐﯿﺮ ﺣﺎﻟ
+ﺔ)Add Update( د( إﺿﺎﻓﺔ ﺗﺤﺪﯾﺚ / ﻣﻼﺣﻈﺔ
+.ﯾُﺴﺘﺨﺪم ﻹﺿﺎﻓﺔ ﻣﻼﺣﻈﺔ ﺣﺮة أو ﺗﺤﺪﯾﺚ ﻋﺎم ﻋﻠﻰ ﻣﻠﻒ اﻟﻌﺎﻣﻞ
+POST /{workerId}/AddUpdate :اﻟﻤﺴﺎر
+JSON :ﻧﻮع اﻟﻄﻠﺐ
+:)Body( ﺟﺴﻢ اﻟﻄﻠﺐ
+
+  "updateDate": "2026-05-04T10:00:00Z", 
+  "notes": "ﰎ اﺳﺘﻼم أوراق اﻟﻌﺎﻣﻞ ﻣﻦ اﳌﻜﺘﺐ" .Timeline اﻟﺨﺎص ﺑﺎﻟﻌﺎﻣﻞ ﻣﺒﺎﺷﺮة، وﯾُﻀﯿﻒ ﺳﺠﻼً ﺟﺪﯾﺪا ً ﻓﻲ اﻟـ notes اﻟﺘﺄﺛﯿﺮ: ﯾُﺤﺪث ﺣﻘﻞ اﻟ
+ـ& Cancellations( إﺟﺮاءات اﻹﻟﻐﺎء واﻟﺨﺮوج .3
+
+Exits))Cancel Deportation( أ( إﻟﻐﺎء اﻟﺘﺮﺣﯿﻞ
+.ﯾُﺴﺘﺨﺪم ﻟﻠﺘﺮاﺟﻊ ﻋﻦ ﻋﻤﻠﯿﺔ ﺗﺮﺣﯿﻞ اﻟﻌﺎﻣﻞ
+POST /{workerId}/CancelDeportation :اﻟﻤﺴﺎر
+)Empty Body( ﻧﻮع اﻟﻄﻠﺐ: ﻻ ﯾﻮﺟﺪ
+.isReadyForDeportation اﻟﺘﺄﺛﯿﺮ: ﯾﺰﯾﻞ ﺷﺎرة
+)Exit & Re-Entry( ب( ﺧﺮوج وﻋﻮدة
+.)ﯾُﺴﺘﺨﺪم ﻟﺘﺴﺠﯿﻞ ﺧﺮوج اﻟﻌﺎﻣﻞ ﻣﻦ اﻟﺴﻜﻦ ﺑﺸﻜﻞ ﻣﺆﻗﺖ )ﻛﺎﻟﻤﺴﺘﺸﻔﻰ
+POST /{workerId}/ExitAndReEntry :اﻟﻤﺴﺎر
+JSON :ﻧﻮع اﻟﻄﻠﺐ
+:)Body( ﺟﺴﻢ اﻟﻄﻠﺐ
+
+{ 
+} 
+  "exitDate": "2026-05-04T12:00:00Z", 
+  "reason": "اﻟﺬﻫﺎب إﱃ اﳌﺴﺘﺸﻔﻰ" )Exit Housing( ج( ﺧﺮوج ﻧﻬﺎﺋﻲ ﻣﻦ اﻟﺴﻜ
+ﻦ.ﻫﺬا ﻫﻮ اﻟﺰر اﻟﻨﻬﺎﺋﻲ اﻟﺬي ﯾﻘﻮم ﺑﺈﺧﺮاج اﻟﻌﺎﻣﻞ ﻣﻦ اﻟﺴﻜﻦ ﻧﻬﺎﺋﯿﺎ ً
+POST /{workerId}/ExitHousing :اﻟﻤﺴﺎر
+)Empty Body( ﻧﻮع اﻟﻄﻠﺐ: ﻻ ﯾﻮﺟﺪ
+
+[!WARNING] ﺑﻤﺠﺮد اﻻﺳﺘﺪﻋﺎء، ﺳﻴﺘﻢ إﺧﺮاج اﻟﻌﺎﻣﻞ ﻣﻦ اﻟﺴﻜﻦ ﺗﻤﺎﻣﺎ ً وﻟﻦ ﻳﻌﻮد ﻳﻈﻬﺮ ﻓﻲ ﻗﻮاﺋﻢ اﻟـ Housed.

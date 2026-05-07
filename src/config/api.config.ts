@@ -429,4 +429,34 @@ export const API_ENDPOINTS = {
     CLOSE: (id: string) => `/api/HR/Complaint/Close/${id}`,
     DELETE: (id: string) => `/api/HR/Complaint/Delete/${id}`,
   },
+
+  // ─── Housing Management — /api/Housing/* ─────────────────────────────────
+  HOUSING: {
+    GET_ALL: '/api/Housing/GetAll',
+    GET_ACTIVE_LIST: '/api/Housing/GetActiveList',
+    CREATE: '/api/Housing',
+    UPDATE: (id: string) => `/api/Housing/${id}`,
+    TOGGLE_ACTIVE: (id: string) => `/api/Housing/ToggleActive/${id}`,
+    DELETE: (id: string) => `/api/Housing/${id}`,
+  },
+
+  // ─── Worker Status Log — extends existing Worker routes ──────────────────
+  WORKER_STATUS_LOG: {
+    CREATE: '/api/V1/Worker/StatusLog',
+    DELETE: (id: string) => `/api/V1/Worker/${id}/StatusLog/Last`,
+    ACTIVATE_WANTS_WORK: (id: string) => `/api/V1/Worker/${id}/ActivateWantsWork`,
+    ACTIVATE_WANTS_TRANSFER: (id: string) => `/api/V1/Worker/${id}/ActivateWantsTransfer`,
+  },
+
+  // ─── Worker housing/pathway actions — /api/V1/Worker/* ───────────────────
+  WORKER_MASTER: {
+    HOUSED: '/api/V1/Worker/Housed',
+    DEPORTATION: (workerId: string) => `/api/V1/Worker/${workerId}/Deportation`,
+    CANCEL_DEPORTATION: (workerId: string) => `/api/V1/Worker/${workerId}/CancelDeportation`,
+    HANDOVER: (workerId: string) => `/api/V1/Worker/${workerId}/Handover`,
+    ISSUE_RESIDENCY: (workerId: string) => `/api/V1/Worker/${workerId}/IssueResidency`,
+    ADD_UPDATE: (workerId: string) => `/api/V1/Worker/${workerId}/AddUpdate`,
+    EXIT_AND_REENTRY: (workerId: string) => `/api/V1/Worker/${workerId}/ExitAndReEntry`,
+    EXIT_HOUSING: (workerId: string) => `/api/V1/Worker/${workerId}/ExitHousing`,
+  },
 } as const;

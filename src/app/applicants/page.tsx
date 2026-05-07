@@ -58,8 +58,10 @@ import {
   CloseCircleOutlined,
   LogoutOutlined,
   FileImageOutlined,
+  HomeOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { resolveImageUrl } from '@/utils/image';
 import {
   useWorkers,
   useWorker,
@@ -77,6 +79,8 @@ import {
 import { useAgents } from '@/hooks/api/useAgents';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import { useHousingActiveList } from '@/hooks/api/useHousing';
+import { useAssignWorkerHousing } from '@/hooks/api/useWorkerHousing';
 import type { Worker, WorkerDto } from '@/types/api.types';
 import {
   GENDER,
@@ -482,6 +486,9 @@ export default function WorkersPage() {
   }>({});
   const [form] = Form.useForm();
   const [medicalExamForm] = Form.useForm();
+  const [housingForm] = Form.useForm();
+  /** worker id for whom we are opening the "assign to housing" modal */
+  const [housingModalWorkerId, setHousingModalWorkerId] = useState<string | null>(null);
   /** New worker image file selected in the form */
   const [workerImageFile, setWorkerImageFile] = useState<File | null>(null);
   /** Preview URL for the image */
@@ -499,6 +506,8 @@ export default function WorkersPage() {
   const { data: agents = [] } = useAgents();
   const { data: nationalities = [] } = useNationalities();
   const { data: medicalExaminations = [] } = useMedicalExaminations();
+  const { data: activeHousings = [] } = useHousingActiveList();
+  const { mutateAsync: assignToHousing, isPending: isAssigning } = useAssignWorkerHousing();
 
   // Only show active jobs in the filter
   const availableJobs = useMemo(() => {
@@ -1346,7 +1355,7 @@ export default function WorkersPage() {
                 <div style={{ textAlign: 'center', marginBottom: 12 }}>
                   {worker.uploadImage ? (
                     <Image
-                      src={worker.uploadImage}
+                      src={resolveImageUrl(worker.uploadImage)}
                       alt={worker.fullNameAr || 'Worker'}
                       width={100}
                       height={100}
@@ -1505,12 +1514,16 @@ export default function WorkersPage() {
                     onClick={() => confirmWorkerStatusAction(worker, 'refused')}
                   />
                 </Tooltip>
-                <Tooltip title={language === 'ar' ? 'نقل للسكن' : 'Move to Accommodation'}>
+                <Tooltip title={language === 'ar' ? 'إسكان' : 'Assign Housing'}>
                   <Button
                     type="text"
-                    icon={<LogoutOutlined />}
+                    icon={<HomeOutlined />}
                     className={styles.actionButton}
-                    onClick={() => confirmWorkerStatusAction(worker, 'out')}
+                    onClick={() => {
+                      setHousingModalWorkerId(String(worker.id));
+                      housingForm.resetFields();
+                      housingForm.setFieldsValue({ statusDate: dayjs() });
+                    }}
                   />
                 </Tooltip>
                 <Tooltip title={t('edit')}>
@@ -1568,6 +1581,63 @@ export default function WorkersPage() {
         </div>
       )}
 
+      {/* ── Assign to Housing Modal ──────────────────────────────────────── */}
+      <Modal
+        open={!!housingModalWorkerId}
+        title={
+          <Space>
+            <HomeOutlined style={{ color: '#1677ff' }} />
+            <span>{language === 'ar' ? 'إسكان العامل' : 'Assign Worker to Housing'}</span>
+          </Space>
+        }
+        onCancel={() => { setHousingModalWorkerId(null); housingForm.resetFields(); }}
+        confirmLoading={isAssigning}
+        okText={language === 'ar' ? 'تسكين' : 'Assign'}
+        cancelText={language === 'ar' ? 'إلغاء' : 'Cancel'}
+        width={460}
+        destroyOnClose
+        onOk={async () => {
+          const vals = await housingForm.validateFields();
+          await assignToHousing({
+            workerId: housingModalWorkerId!,
+            statusType: 8,
+            housingId: vals.housingId,
+            statusDate: (vals.statusDate as any)?.toISOString?.() ?? new Date().toISOString(),
+            notes: vals.notes ?? null,
+          });
+          setHousingModalWorkerId(null);
+          housingForm.resetFields();
+        }}
+      >
+        <Form form={housingForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="housingId"
+            label={language === 'ar' ? 'السكن' : 'Housing Unit'}
+            rules={[{ required: true, message: language === 'ar' ? 'يجب اختيار السكن' : 'Please select a housing unit' }]}
+          >
+            <Select
+              showSearch
+              placeholder={language === 'ar' ? 'اختر السكن...' : 'Select housing unit...'}
+              optionFilterProp="label"
+              options={activeHousings.map((h) => ({
+                value: h.id,
+                label: `${h.name} (${language === 'ar' ? 'متاح' : 'available'}: ${h.availableSlots ?? '?'} / ${h.capacity})`,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="statusDate"
+            label={language === 'ar' ? 'تاريخ التسكين' : 'Housing Date'}
+            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
+          >
+            <DatePicker showTime style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="notes" label={language === 'ar' ? 'ملاحظات' : 'Notes'}>
+            <Input.TextArea rows={3} placeholder={language === 'ar' ? 'ملاحظات اختيارية...' : 'Optional notes...'} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
       {/* View Worker Details Modal */}
       <Modal
         title={
@@ -1596,7 +1666,7 @@ export default function WorkersPage() {
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               {viewingWorker?.uploadImage ? (
                 <Image
-                  src={viewingWorker?.uploadImage}
+                  src={resolveImageUrl(viewingWorker?.uploadImage)}
                   alt={viewingWorker?.fullNameAr || 'Worker'}
                   width={150}
                   height={150}

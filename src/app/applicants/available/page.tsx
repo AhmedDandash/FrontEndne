@@ -29,9 +29,12 @@ import {
   StarFilled,
   ManOutlined,
   WomanOutlined,
-  FlagOutlined,
   FileTextOutlined,
   FilePdfOutlined,
+  TrophyOutlined,
+  CalendarOutlined,
+  CheckCircleOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useWorker, useWorkers } from '@/hooks/api/useWorkers';
@@ -46,6 +49,7 @@ import {
   toSelectOptions,
 } from '@/constants/enums';
 import styles from './AvailableWorkers.module.css';
+import { resolveImageUrl } from '@/utils/image';
 import dayjs from 'dayjs';
 
 // Translations
@@ -602,124 +606,122 @@ export default function AvailableWorkersPage() {
         <div className={styles.workersGrid}>
           {filteredWorkers.map((worker) => (
             <Card key={worker.id} className={styles.workerCard}>
-              <div className={styles.cardLayout}>
-                {/* Worker Image */}
-                <div className={styles.cardImage}>
-                  <Avatar
-                    size={120}
-                    icon={<UserOutlined />}
-                    className={styles.workerAvatar}
-                    style={{
-                      backgroundColor: worker.gender === GENDER[1].value ? '#f472b6' : '#003366',
-                    }}
-                  />
+              {/* Header */}
+              <div className={styles.workerCardHeader}>
+                <p className={styles.workerReference}>
+                  {t('referenceNo')}: {worker.referenceNo || 'N/A'}
+                </p>
+                <Tag color="success" icon={<CheckCircleOutlined />}>
+                  {language === 'ar' ? 'متاح' : 'Available'}
+                </Tag>
+              </div>
+
+              {/* Body */}
+              <div className={styles.workerCardBody}>
+                <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                  {worker.uploadImage ? (
+                    <Image
+                      src={resolveImageUrl(worker.uploadImage)}
+                      alt={worker.fullNameAr || 'Worker'}
+                      width={100}
+                      height={100}
+                      style={{
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '3px solid #003366',
+                      }}
+                      preview={{ mask: <EyeOutlined style={{ fontSize: 18 }} /> }}
+                    />
+                  ) : (
+                    <Avatar
+                      size={100}
+                      icon={<UserOutlined />}
+                      style={{
+                        backgroundColor: worker.gender === GENDER[1].value ? '#f472b6' : '#003366',
+                      }}
+                    />
+                  )}
                 </div>
 
-                {/* Card Body */}
-                <div className={styles.cardBody}>
-                  <div className={styles.cardTop}>
-                    <div className={styles.workerMainInfo}>
-                      <p className={styles.workerRef}>{worker.referenceNo || 'N/A'}</p>
-                      <h3 className={styles.workerName}>
-                        {language === 'ar'
-                          ? worker.fullNameAr || worker.fullNameEn
-                          : worker.fullNameEn || worker.fullNameAr}
-                      </h3>
-                      {worker.fullNameEn && worker.fullNameAr && (
-                        <p className={styles.workerSubName}>
-                          {language === 'ar' ? worker.fullNameEn : worker.fullNameAr}
-                        </p>
-                      )}
-                      <div className={styles.workerTags}>
-                        <Tag color="blue" icon={<FlagOutlined />}>
-                          {worker.nationalityId || 'N/A'}
-                        </Tag>
-                        <Tag color="green" icon={<IdcardOutlined />}>
-                          {worker.passportNo || 'N/A'}
-                        </Tag>
-                        {worker.hasExperience && (
-                          <Tag color="orange" icon={<StarFilled />}>
-                            {t('hasExperience')}
-                          </Tag>
-                        )}
-                      </div>
-                    </div>
+                <h3 className={styles.workerName}>
+                  <UserOutlined />
+                  {language === 'ar' ? worker.fullNameAr : worker.fullNameEn || worker.fullNameAr}
+                </h3>
+
+                <div className={styles.workerDetails}>
+                  <div className={styles.detailRow}>
+                    <IdcardOutlined className={styles.detailIcon} />
+                    <span className={styles.detailLabel}>{t('passportNo')}:</span>
+                    <span className={styles.detailValue}>{worker.passportNo || 'N/A'}</span>
                   </div>
-
-                  {/* Details */}
-                  <div className={styles.cardDetails}>
-                    <div className={styles.detailGroup}>
-                      <p className={styles.detailGroupTitle}>{t('personalInfo')}</p>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailItemLabel}>{t('gender')}</span>
-                        <span className={styles.detailItemValue}>
-                          {worker.gender === GENDER[0].value ? (
-                            <Tag icon={<ManOutlined />} color="blue">
-                              {getEnumLabel(GENDER, worker.gender, language)}
-                            </Tag>
-                          ) : worker.gender === GENDER[1].value ? (
-                            <Tag icon={<WomanOutlined />} color="pink">
-                              {getEnumLabel(GENDER, worker.gender, language)}
-                            </Tag>
-                          ) : (
-                            'N/A'
-                          )}
-                        </span>
-                      </div>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailItemLabel}>{t('age')}</span>
-                        <span className={styles.detailItemValue}>
-                          {worker.age ? `${worker.age} ${t('years')}` : 'N/A'}
-                        </span>
-                      </div>
-
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailItemLabel}>{t('maritalStatus')}</span>
-                        <span className={styles.detailItemValue}>
-                          {getEnumLabel(MARITAL_STATUS, worker.maritalStatus, language)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className={styles.detailGroup}>
-                      <p className={styles.detailGroupTitle}>{t('workInfo')}</p>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailItemLabel}>{t('jobname')}</span>
-                        <span className={styles.detailItemValue}>{worker.jobname || 'N/A'}</span>
-                      </div>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailItemLabel}>{t('experience')}</span>
-                        <span className={styles.detailItemValue}>
-                          {worker.hasExperience ? t('hasExperience') : t('noExperience')}
-                        </span>
-                      </div>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailItemLabel}>{t('agentName')}</span>
-                        <span className={styles.detailItemValue}>
-                          {worker.agentName || worker.agentId || 'N/A'}
-                        </span>
-                      </div>
-                    </div>
+                  <div className={styles.detailRow}>
+                    <EnvironmentOutlined className={styles.detailIcon} />
+                    <span className={styles.detailLabel}>{t('nationality')}:</span>
+                    <span className={styles.detailValue}>{worker.nationalityId || 'N/A'}</span>
                   </div>
-
-                  {/* Card Actions */}
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
-                    <Button
-                      size="small"
-                      icon={<EyeOutlined />}
-                      onClick={() => setViewingWorkerId(String(worker.id))}
-                    >
-                      {t('view')}
-                    </Button>
-                    <Button
-                      size="small"
-                      icon={<FilePdfOutlined />}
-                      onClick={() => handlePrintCV(worker.id)}
-                    >
-                      {t('printCV')}
-                    </Button>
+                  <div className={styles.detailRow}>
+                    <TrophyOutlined className={styles.detailIcon} />
+                    <span className={styles.detailLabel}>{t('jobname')}:</span>
+                    <span className={styles.detailValue}>{worker.jobname || 'N/A'}</span>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <CalendarOutlined className={styles.detailIcon} />
+                    <span className={styles.detailLabel}>{t('maritalStatus')}:</span>
+                    <span className={styles.detailValue}>
+                      {getEnumLabel(MARITAL_STATUS, worker.maritalStatus, language)}
+                    </span>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <CalendarOutlined className={styles.detailIcon} />
+                    <span className={styles.detailLabel}>{t('age')}:</span>
+                    <span className={styles.detailValue}>
+                      {worker.age ? `${worker.age} ${t('years')}` : 'N/A'}
+                    </span>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <UserOutlined className={styles.detailIcon} />
+                    <span className={styles.detailLabel}>{t('agentName')}:</span>
+                    <span className={styles.detailValue}>
+                      {worker.agentName || worker.agentId || 'N/A'}
+                    </span>
                   </div>
                 </div>
+
+                <div className={styles.workerBadges}>
+                  {worker.gender !== undefined && worker.gender !== null && (
+                    <Tag
+                      color={worker.gender === GENDER[0].value ? 'blue' : 'pink'}
+                      icon={worker.gender === GENDER[0].value ? <ManOutlined /> : <WomanOutlined />}
+                    >
+                      {getEnumLabel(GENDER, worker.gender, language)}
+                    </Tag>
+                  )}
+                  {worker.hasExperience && (
+                    <Tag color="orange" icon={<StarFilled />}>
+                      {t('hasExperience')}
+                    </Tag>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className={styles.workerCardActions}>
+                <Button
+                  type="text"
+                  icon={<EyeOutlined />}
+                  className={styles.actionButton}
+                  onClick={() => setViewingWorkerId(String(worker.id))}
+                >
+                  {t('view')}
+                </Button>
+                <Button
+                  type="text"
+                  icon={<FilePdfOutlined />}
+                  className={styles.actionButton}
+                  onClick={() => handlePrintCV(worker.id)}
+                >
+                  {t('printCV')}
+                </Button>
               </div>
             </Card>
           ))}
@@ -747,7 +749,7 @@ export default function AvailableWorkersPage() {
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               {viewingWorker?.uploadImage ? (
                 <Image
-                  src={viewingWorker.uploadImage}
+                  src={resolveImageUrl(viewingWorker.uploadImage)}
                   alt={viewingWorker.fullNameAr || 'Worker'}
                   width={150}
                   height={150}
@@ -912,22 +914,46 @@ export default function AvailableWorkersPage() {
             <Divider />
             <div style={{ marginTop: 8 }}>
               <h4 style={{ color: '#003366', marginBottom: 12 }}>{t('documents')}</h4>
-              {viewingWorker?.uploadImage ? (
-                <div>
-                  <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
-                    {t('passportScan')}
-                  </p>
-                  <Image
-                    src={viewingWorker.uploadImage}
-                    alt={t('passportScan')}
-                    width={200}
-                    style={{ border: '1px solid #e2e8f0', borderRadius: 8 }}
-                    preview={{ mask: <EyeOutlined /> }}
-                  />
-                </div>
-              ) : (
-                <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>{t('noDocuments')}</p>
-              )}
+              {(() => {
+                const allDocs = [
+                  ...(viewingWorker?.uploadImage ? [viewingWorker.uploadImage] : []),
+                  ...(viewingWorker?.attachments ?? []),
+                ];
+                return allDocs.length > 0 ? (
+                  <Image.PreviewGroup>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                      {allDocs.map((src, idx) => {
+                        const isPdf = src.startsWith('data:application/pdf') || src.endsWith('.pdf');
+                        return isPdf ? (
+                          <div
+                            key={idx}
+                            style={{
+                              width: 120, height: 120, borderRadius: 8, border: '1px solid #e2e8f0',
+                              background: '#fff0f0', display: 'flex', flexDirection: 'column',
+                              alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}
+                            onClick={() => window.open(src, '_blank')}
+                          >
+                            <FilePdfOutlined style={{ fontSize: 36, color: '#e53e3e' }} />
+                            <span style={{ fontSize: 11, color: '#718096', marginTop: 6 }}>PDF</span>
+                          </div>
+                        ) : (
+                          <Image
+                            key={idx}
+                            src={src}
+                            width={120}
+                            height={120}
+                            style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }}
+                            preview={{ mask: <EyeOutlined /> }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </Image.PreviewGroup>
+                ) : (
+                  <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>{t('noDocuments')}</p>
+                );
+              })()}
             </div>
           </div>
         )}

@@ -15,6 +15,7 @@ import {
   WarningOutlined,
   SettingOutlined,
   ShopOutlined,
+  HomeOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useRouter, usePathname } from 'next/navigation';
@@ -109,6 +110,21 @@ export default function Sidebar({
         {
           key: '/applicants/available',
           label: language === 'ar' ? 'العمال المتاحون' : 'Available Applicants',
+        },
+      ],
+    },
+    {
+      key: 'housing',
+      icon: <HomeOutlined />,
+      label: language === 'ar' ? 'السكن' : 'Housing',
+      children: [
+        {
+          key: '/housing/management',
+          label: language === 'ar' ? 'إدارة السكنات' : 'Housing Management',
+        },
+        {
+          key: '/housing/applicants',
+          label: language === 'ar' ? 'العمال بالسكن' : 'Housing Applicants',
         },
       ],
     },
