@@ -245,6 +245,7 @@ export const API_ENDPOINTS = {
   MEDICAL_EXAMINATION: {
     GET_ALL: '/api/V1/MedicalExamination',
     GET_BY_ID: (id: number | string) => `/api/V1/MedicalExamination/${id}`,
+    CHECK_WORKER: (workerId: number | string) => `/api/V1/MedicalExamination/check-worker/${workerId}`,
     CREATE: '/api/V1/MedicalExamination',
     UPDATE: (id: number | string) => `/api/V1/MedicalExamination/${id}`,
     DELETE: (id: number | string) => `/api/V1/MedicalExamination/${id}`,

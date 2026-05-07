@@ -304,6 +304,22 @@ export function useUpdateMedicalExamination() {
   });
 }
 
+/** Check if a worker already has a medical examination */
+export function useCheckWorkerMedicalExamination() {
+  return useMutation({
+    mutationFn: async (workerId: string | number) => {
+      try {
+        const response = await api.get(API_ENDPOINTS.MEDICAL_EXAMINATION.CHECK_WORKER(workerId));
+        const payload = response.data;
+        if (payload?.success && payload?.data) return payload.data as MedicalExamination;
+        return null;
+      } catch {
+        return null;
+      }
+    },
+  });
+}
+
 /** Delete medical examination */
 export function useDeleteMedicalExamination() {
   const queryClient = useQueryClient();

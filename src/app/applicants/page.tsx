@@ -75,6 +75,7 @@ import {
   useMedicalExaminations,
   useUpdateMedicalExamination,
   useDeleteMedicalExamination,
+  useCheckWorkerMedicalExamination,
 } from '@/hooks/api/useWorkers';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useJobs } from '@/hooks/api/useJobs';
@@ -466,6 +467,10 @@ export default function WorkersPage() {
   const [medicalExamId, setMedicalExamId] = useState<number | string | null>(null);
   /** true = view-only mode for existing record; false = edit/create mode */
   const [medicalExamViewOnly, setMedicalExamViewOnly] = useState(false);
+  /** worker id whose medical exam check is in-flight (for button loading state) */
+  const [pendingMedicalCheckId, setPendingMedicalCheckId] = useState<string | null>(null);
+  /** exam data returned by the check-worker API, used in the view-only modal */
+  const [checkedMedicalExam, setCheckedMedicalExam] = useState<import('@/types/api.types').MedicalExamination | null>(null);
   /** worker id whose uploaded document (passport scan) is being previewed */
   const [docViewerWorkerId, setDocViewerWorkerId] = useState<number | string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
@@ -545,6 +550,7 @@ export default function WorkersPage() {
     useUpdateMedicalExamination();
   const { mutate: deleteMedicalExamination, isPending: isDeletingMedicalExam } =
     useDeleteMedicalExamination();
+  const { mutateAsync: checkWorkerMedicalExam } = useCheckWorkerMedicalExamination();
 
   // Fetch editing worker details when opening edit modal
   const { data: editingWorker } = useWorker(editingWorkerId ?? undefined);
@@ -762,13 +768,51 @@ export default function WorkersPage() {
             medicalExamForm.resetFields();
             setMedicalExamWorkerId(null);
             setMedicalExamId(null);
+            setCheckedMedicalExam(null);
           },
         });
       },
     });
   };
 
-  const handleDelete = (id: number | string) => {
+  const handleOpenMedicalExam = async (workerId: number | string) => {
+    setPendingMedicalCheckId(String(workerId));
+    try {
+      const exam = await checkWorkerMedicalExam(workerId);
+      setMedicalExamWorkerId(workerId);
+      if (exam) {
+        setCheckedMedicalExam(exam);
+        setMedicalExamId(exam.id);
+        setMedicalExamViewOnly(true);
+        medicalExamForm.setFieldsValue({
+          examDate: exam.examDate ? dayjs(exam.examDate) : undefined,
+          medicalStatus: exam.medicalStatus,
+          notes: exam.notes,
+        });
+      } else {
+        setCheckedMedicalExam(null);
+        setMedicalExamId(null);
+        setMedicalExamViewOnly(false);
+        medicalExamForm.resetFields();
+      }
+    } finally {
+      setPendingMedicalCheckId(null);
+    }
+  };
+
+  const handleDelete = async (id: number | string) => {
+    const exam = await checkWorkerMedicalExam(id);
+    if (exam) {
+      Modal.warning({
+        title: language === 'ar' ? 'لا يمكن حذف العمالة' : 'Cannot Delete Worker',
+        icon: <ExclamationCircleOutlined />,
+        content:
+          language === 'ar'
+            ? 'يجب حذف الفحص الطبي أولاً قبل حذف هذه العمالة'
+            : 'This worker has a medical examination. Please delete the medical examination first before deleting the worker.',
+      });
+      return;
+    }
     Modal.confirm({
       title: t('deleteTitle'),
       icon: <ExclamationCircleOutlined />,
@@ -1547,27 +1591,8 @@ export default function WorkersPage() {
                     type="text"
                     icon={<MedicineBoxOutlined />}
                     className={styles.actionButton}
-                    onClick={() => {
-                      const existingExam = medicalExaminations.find(
-                        (e) => String(e.workerId) === String(worker.id)
-                      );
-                      setMedicalExamWorkerId(worker.id);
-                      if (existingExam) {
-                        // Record exists → open in view-only mode first
-                        setMedicalExamId(existingExam.id);
-                        setMedicalExamViewOnly(true);
-                        medicalExamForm.setFieldsValue({
-                          examDate: existingExam.examDate ? dayjs(existingExam.examDate) : undefined,
-                          medicalStatus: existingExam.medicalStatus,
-                          notes: existingExam.notes,
-                        });
-                      } else {
-                        // No record → open directly in create mode
-                        setMedicalExamId(null);
-                        setMedicalExamViewOnly(false);
-                        medicalExamForm.resetFields();
-                      }
-                    }}
+                    loading={pendingMedicalCheckId === String(worker.id)}
+                    onClick={() => handleOpenMedicalExam(worker.id)}
                   />
                 </Tooltip>
                 <Dropdown menu={getActionMenu(worker)} trigger={['click']}>
@@ -2346,6 +2371,7 @@ export default function WorkersPage() {
           setMedicalExamWorkerId(null);
           setMedicalExamId(null);
           setMedicalExamViewOnly(false);
+          setCheckedMedicalExam(null);
           medicalExamForm.resetFields();
         }}
         footer={null}
@@ -2355,7 +2381,7 @@ export default function WorkersPage() {
         {/* ── View-only mode: show existing record as read-only Descriptions ── */}
         {medicalExamViewOnly && medicalExamId !== null ? (
           (() => {
-            const exam = medicalExaminations.find((e) => String(e.id) === String(medicalExamId));
+            const exam = checkedMedicalExam;
             return (
               <div>
                 <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
@@ -2385,6 +2411,7 @@ export default function WorkersPage() {
                       setMedicalExamWorkerId(null);
                       setMedicalExamId(null);
                       setMedicalExamViewOnly(false);
+                      setCheckedMedicalExam(null);
                       medicalExamForm.resetFields();
                     }}
                   >
@@ -2455,6 +2482,7 @@ export default function WorkersPage() {
                     setMedicalExamWorkerId(null);
                     setMedicalExamId(null);
                     setMedicalExamViewOnly(false);
+                    setCheckedMedicalExam(null);
                     medicalExamForm.resetFields();
                   }
                 }}
