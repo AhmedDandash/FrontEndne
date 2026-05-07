@@ -336,8 +336,8 @@ export const VISA_JOB_TYPES = [
 // حالة الشكوى
 export const COMPLAINT_STATUS = [
   { value: 1, labelAr: 'مفتوحة', labelEn: 'Open' },
-  { value: 2, labelAr: 'مغلقة', labelEn: 'Closed' },
-  { value: 3, labelAr: 'معلقة', labelEn: 'On Hold' },
+  { value: 2, labelAr: 'معلقة', labelEn: 'On Hold' },
+  { value: 3, labelAr: 'منتهية', labelEn: 'Finished' },
 ] as const;
 
 // ==================== Submission Authority (Issue) ====================

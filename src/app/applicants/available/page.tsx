@@ -44,7 +44,6 @@ import {
   RELIGION,
   NATIONALITIES,
   WORKER_CONTRACT_TYPE,
-  PREVIOUS_EXPERIENCE,
   getEnumLabel,
   toSelectOptions,
 } from '@/constants/enums';
@@ -214,12 +213,7 @@ export default function AvailableWorkersPage() {
   const [filters, setFilters] = useState<{
     search?: string;
     nationality?: string;
-    job?: string;
-    religion?: string;
-    experience?: string;
     gender?: string;
-    vip?: string;
-    agent?: string;
     ageMin?: number;
     ageMax?: number;
     passportFilter?: string;
@@ -245,16 +239,9 @@ export default function AvailableWorkersPage() {
         worker.fullNameEn?.toLowerCase().includes(searchLower) ||
         worker.passportNo?.toLowerCase().includes(searchLower);
 
-      // const matchesNationality =
-      //   !filters.nationality || worker.nationalityId === Number(filters.nationality);
-      // const matchesJob = !filters.job || worker.jobname === filters.job;
-      // const matchesReligion = !filters.religion || worker.religion === Number(filters.religion);
-      // const matchesExperience =
-      //   !filters.experience ||
-      //   (filters.experience === '1' && worker.hasExperience) ||
-      //   (filters.experience === '2' && !worker.hasExperience);
-      // const matchesAgent = !filters.agent || worker.agentId === Number(filters.agent);
-      // const matchesGender = !filters.gender || worker.gender === Number(filters.gender);
+      const matchesNationality =
+        !filters.nationality || String(worker.nationalityId) === String(filters.nationality);
+      const matchesGender = !filters.gender || worker.gender === Number(filters.gender);
 
       // Only show Available workers (workerStatus === 1)
       const matchesAvailable = worker.workerStatus === 1;
@@ -277,6 +264,8 @@ export default function AvailableWorkersPage() {
       return (
         matchesAvailable &&
         matchesSearch &&
+        matchesNationality &&
+        matchesGender &&
         matchesAgeMin &&
         matchesAgeMax &&
         matchesPassport &&
@@ -382,7 +371,7 @@ export default function AvailableWorkersPage() {
       {/* Statistics */}
       <Row gutter={16} className={styles.statsRow}>
         <Col xs={24} sm={12} lg={6}>
-          <Card className={styles.statCard}>
+          <Card className={styles.statCard} onClick={() => setActiveTab('all')}>
             <div className={styles.statContent}>
               <div
                 className={styles.statIcon}
@@ -398,7 +387,7 @@ export default function AvailableWorkersPage() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card className={styles.statCard}>
+          <Card className={styles.statCard} onClick={() => setActiveTab('mediation')}>
             <div className={styles.statContent}>
               <div
                 className={styles.statIcon}
@@ -414,7 +403,7 @@ export default function AvailableWorkersPage() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card className={styles.statCard}>
+          <Card className={styles.statCard} onClick={() => setActiveTab('rent')}>
             <div className={styles.statContent}>
               <div
                 className={styles.statIcon}
@@ -430,7 +419,7 @@ export default function AvailableWorkersPage() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card className={styles.statCard}>
+          <Card className={styles.statCard} onClick={() => setActiveTab('sponsorship')}>
             <div className={styles.statContent}>
               <div
                 className={styles.statIcon}
@@ -490,46 +479,6 @@ export default function AvailableWorkersPage() {
                     label: o.label,
                   }))}
                 />
-              </Col>
-
-              <Col xs={24} md={6}>
-                <label className={styles.filterLabel}>{t('religion')}</label>
-                <Select
-                  size="large"
-                  placeholder={t('religion')}
-                  value={filters.religion}
-                  onChange={(value) => setFilters({ ...filters, religion: value })}
-                  style={{ width: '100%' }}
-                  allowClear
-                >
-                  {toSelectOptions([...RELIGION], language)
-                    .filter((o) => o.value !== 0)
-                    .map((o) => (
-                      <Select.Option key={o.value} value={String(o.value)}>
-                        {o.label}
-                      </Select.Option>
-                    ))}
-                </Select>
-              </Col>
-
-              <Col xs={24} md={6}>
-                <label className={styles.filterLabel}>{t('experience')}</label>
-                <Select
-                  size="large"
-                  placeholder={t('experience')}
-                  value={filters.experience}
-                  onChange={(value) => setFilters({ ...filters, experience: value })}
-                  style={{ width: '100%' }}
-                  allowClear
-                >
-                  {toSelectOptions([...PREVIOUS_EXPERIENCE], language)
-                    .filter((o) => o.value !== 0)
-                    .map((o) => (
-                      <Select.Option key={o.value} value={String(o.value)}>
-                        {o.label}
-                      </Select.Option>
-                    ))}
-                </Select>
               </Col>
 
               <Col xs={24} md={6}>
@@ -663,13 +612,6 @@ export default function AvailableWorkersPage() {
                     <TrophyOutlined className={styles.detailIcon} />
                     <span className={styles.detailLabel}>{t('jobname')}:</span>
                     <span className={styles.detailValue}>{worker.jobname || 'N/A'}</span>
-                  </div>
-                  <div className={styles.detailRow}>
-                    <CalendarOutlined className={styles.detailIcon} />
-                    <span className={styles.detailLabel}>{t('maritalStatus')}:</span>
-                    <span className={styles.detailValue}>
-                      {getEnumLabel(MARITAL_STATUS, worker.maritalStatus, language)}
-                    </span>
                   </div>
                   <div className={styles.detailRow}>
                     <CalendarOutlined className={styles.detailIcon} />
@@ -941,6 +883,7 @@ export default function AvailableWorkersPage() {
                           <Image
                             key={idx}
                             src={src}
+                            alt={`${t('documents')} ${idx + 1}`}
                             width={120}
                             height={120}
                             style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }}

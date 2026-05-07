@@ -45,12 +45,9 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
-  PrinterOutlined,
   FilePdfOutlined,
   UploadOutlined,
-  FileExcelOutlined,
   FileTextOutlined,
-  DownOutlined,
   StopOutlined,
   ManOutlined,
   WomanOutlined,
@@ -105,6 +102,7 @@ const translations = {
     printSalary: 'Print Salary',
     quickSearch: 'Quick Search',
     print: 'Print',
+    downloadPdf: 'Download All Info PDF',
     workerReport: 'Worker Report',
     trialReport: 'Trial Report',
     allData: 'All Data',
@@ -113,9 +111,6 @@ const translations = {
     search: 'Search',
     clearFilters: 'Clear',
     totalWorkers: 'Total Workers',
-    maleWorkers: 'Male Workers',
-    femaleWorkers: 'Female Workers',
-    experiencedWorkers: 'Experienced',
     // Tabs
     tabAll: 'All',
     tabAvailable: 'Available',
@@ -275,6 +270,7 @@ const translations = {
     noDocuments: 'No documents uploaded',
   },
   ar: {
+    downloadPdf: 'تحميل تقرير كل البيانات PDF',
     pageTitle: 'ادارة العمالة',
     addWorker: 'إضافة العمالة',
     addFromFile: 'إضافة من ملف',
@@ -289,9 +285,6 @@ const translations = {
     search: 'بحث',
     clearFilters: 'إلغاء',
     totalWorkers: 'إجمالي العمال',
-    maleWorkers: 'عمال ذكور',
-    femaleWorkers: 'عمال إناث',
-    experiencedWorkers: 'ذوو خبرة',
     // Tabs
     tabAll: 'الكل',
     tabAvailable: 'عمالة للاختيار',
@@ -478,10 +471,8 @@ export default function WorkersPage() {
     search?: string;
     gender?: string;
     nationality?: string;
-    religion?: string;
     job?: string;
     agent?: string;
-    hasExperience?: boolean;
     status?: string;
     workerType?: string;
     deletionStatus?: string;
@@ -580,15 +571,64 @@ export default function WorkersPage() {
         worker.passportNo?.toLowerCase().includes(searchLower) ||
         worker.referenceNo?.toLowerCase().includes(searchLower);
 
+      const selectedNationality = filters.nationality
+        ? nationalities.find(
+            (nationality) =>
+              String(nationality.id) === String(filters.nationality) ||
+              String(nationality.nationalityId) === String(filters.nationality)
+          )
+        : undefined;
+      const selectedNationalityValues = [
+        filters.nationality,
+        selectedNationality?.id,
+        selectedNationality?.nationalityId,
+      ]
+        .filter((value) => value !== undefined && value !== null && value !== '')
+        .map(String);
+      const selectedNationalityNames = [
+        selectedNationality?.nationalityNameAr,
+        selectedNationality?.nationalityNameEn,
+      ]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
+      const workerNationalityValues = [worker.nationalityId]
+        .filter((value) => value !== undefined && value !== null && value !== '')
+        .map(String);
+      const workerNationalitySource = worker as Worker & {
+        nationalityNameAr?: string;
+        nationalityNameEn?: string;
+      };
+      const workerNationalityNames = [
+        workerNationalitySource.nationalityName,
+        workerNationalitySource.nationalityNameAr,
+        workerNationalitySource.nationalityNameEn,
+      ]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
+
+      const selectedJob = filters.job
+        ? jobs.find((job) => String(job.id) === String(filters.job))
+        : undefined;
+      const selectedJobNames = [selectedJob?.jobNameAr, selectedJob?.jobNameEn]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
+      const workerJobNames = [worker.jobName, worker.jobname]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
+
       const matchesGender = !filters.gender || worker.gender === Number(filters.gender);
       const matchesNationality =
-        !filters.nationality || worker.nationalityId === filters.nationality;
-      const matchesReligion = !filters.religion || worker.religion === Number(filters.religion);
-      const matchesJob = !filters.job || String(worker.jobId) === String(filters.job);
+        !filters.nationality ||
+        workerNationalityValues.some((value) => selectedNationalityValues.includes(value)) ||
+        workerNationalityNames.some((name) => selectedNationalityNames.includes(name));
+      const matchesJob =
+        !filters.job ||
+        String(worker.jobId) === String(filters.job) ||
+        workerJobNames.some((name) => selectedJobNames.includes(name));
       const matchesAgent = !filters.agent || String(worker.agentId) === String(filters.agent);
-      const matchesExperience =
-        filters.hasExperience === undefined || worker.hasExperience === filters.hasExperience;
       const matchesStatus = !filters.status || worker.workerStatus === Number(filters.status);
+      const matchesWorkerType =
+        !filters.workerType || worker.workerType === Number(filters.workerType);
       const matchesAgeMin =
         filters.ageMin === undefined || (worker.age != null && worker.age >= filters.ageMin);
       const matchesAgeMax =
@@ -604,39 +644,25 @@ export default function WorkersPage() {
         matchesSearch &&
         matchesGender &&
         matchesNationality &&
-        matchesReligion &&
         matchesJob &&
         matchesAgent &&
-        matchesExperience &&
         matchesStatus &&
+        matchesWorkerType &&
         matchesTab &&
         matchesAgeMin &&
         matchesAgeMax &&
         matchesPassport
       );
     });
-  }, [workers, filters, activeTab]);
+  }, [workers, filters, activeTab, jobs, nationalities]);
 
-  // Stats
-  const stats = useMemo(() => {
-    return {
-      total: filteredWorkers.length,
-      male: filteredWorkers.filter((w) => w.gender === GENDER[0].value).length,
-      female: filteredWorkers.filter((w) => w.gender === GENDER[1].value).length,
-      experienced: filteredWorkers.filter((w) => w.hasExperience).length,
-    };
-  }, [filteredWorkers]);
-
-  // Print menu items from HTML
-  const printMenu: MenuProps = {
-    items: [
-      { key: 'worker-report', label: t('workerReport'), icon: <FileTextOutlined /> },
-      { key: 'trial-report', label: t('trialReport'), icon: <FileTextOutlined /> },
-      { key: 'all-data', label: t('allData'), icon: <FileExcelOutlined /> },
-    ],
-    onClick: ({ key }) => {
-      console.log('Print:', key);
-    },
+  const handleDownloadAllInfoReport = async () => {
+    const { printAllWorkersPDF } = await import('@/utils/pdf');
+    await printAllWorkersPDF(filteredWorkers, {
+      title: 'All Info Report',
+      titleAr: 'تقرير كل البيانات',
+      fileName: `All_Info_Report_${new Date().toISOString().slice(0, 10)}`,
+    });
   };
 
   // Modal handlers
@@ -997,24 +1023,12 @@ export default function WorkersPage() {
             </div>
           </div>
           <div className={styles.headerButtons}>
-            <Dropdown menu={printMenu}>
-              <Button className={styles.headerBtn} icon={<FileExcelOutlined />}>
-                {t('print')} <DownOutlined />
-              </Button>
-            </Dropdown>
             <Button
               className={styles.headerBtn}
-              icon={<PrinterOutlined />}
-              onClick={() => console.log('Print salary')}
+              icon={<FilePdfOutlined />}
+              onClick={handleDownloadAllInfoReport}
             >
-              {t('printSalary')}
-            </Button>
-            <Button
-              className={styles.headerBtn}
-              icon={<UploadOutlined />}
-              onClick={() => console.log('Add from file')}
-            >
-              {t('addFromFile')}
+              {t('downloadPdf')}
             </Button>
             <Button
               type="primary"
@@ -1044,73 +1058,8 @@ export default function WorkersPage() {
         ))}
       </div>
 
-      {/* Statistics Cards */}
-      <Row gutter={16} className={styles.statsRow}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className={styles.statCard}>
-            <div className={styles.statContent}>
-              <div
-                className={styles.statIcon}
-                style={{ background: 'linear-gradient(135deg, #003366 0%, #00478c 100%)' }}
-              >
-                <TeamOutlined style={{ color: '#ffffff', fontSize: 24 }} />
-              </div>
-              <div className={styles.statInfo}>
-                <p className={styles.statLabel}>{t('totalWorkers')}</p>
-                <p className={styles.statValue}>{stats.total}</p>
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className={styles.statCard}>
-            <div className={styles.statContent}>
-              <div
-                className={styles.statIcon}
-                style={{ background: 'linear-gradient(135deg, #00aa64 0%, #00c478 100%)' }}
-              >
-                <UserOutlined style={{ color: '#ffffff', fontSize: 24 }} />
-              </div>
-              <div className={styles.statInfo}>
-                <p className={styles.statLabel}>{t('maleWorkers')}</p>
-                <p className={styles.statValue}>{stats.male}</p>
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className={styles.statCard}>
-            <div className={styles.statContent}>
-              <div
-                className={styles.statIcon}
-                style={{ background: 'linear-gradient(135deg, #f472b6 0%, #ec4899 100%)' }}
-              >
-                <UserOutlined style={{ color: '#ffffff', fontSize: 24 }} />
-              </div>
-              <div className={styles.statInfo}>
-                <p className={styles.statLabel}>{t('femaleWorkers')}</p>
-                <p className={styles.statValue}>{stats.female}</p>
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className={styles.statCard}>
-            <div className={styles.statContent}>
-              <div
-                className={styles.statIcon}
-                style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)' }}
-              >
-                <TrophyOutlined style={{ color: '#ffffff', fontSize: 24 }} />
-              </div>
-              <div className={styles.statInfo}>
-                <p className={styles.statLabel}>{t('experiencedWorkers')}</p>
-                <p className={styles.statValue}>{stats.experienced}</p>
-              </div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+    
+      
 
       {/* Search and Filters */}
       <Card className={styles.filterCard}>
@@ -1236,49 +1185,6 @@ export default function WorkersPage() {
               </Col>
 
               <Col xs={24} md={6}>
-                <label className={styles.filterLabel}>{t('religion')}</label>
-                <Select
-                  size="large"
-                  placeholder={t('religion')}
-                  value={filters.religion}
-                  onChange={(value) => setFilters({ ...filters, religion: value })}
-                  style={{ width: '100%' }}
-                  allowClear
-                  options={toSelectOptions([...RELIGION], language)
-                    .filter((o) => o.value !== 0)
-                    .map((o) => ({ value: String(o.value), label: o.label }))}
-                />
-              </Col>
-
-              <Col xs={24} md={6}>
-                <label className={styles.filterLabel}>{t('experience')}</label>
-                <Select
-                  size="large"
-                  placeholder={t('experience')}
-                  value={
-                    filters.hasExperience === undefined
-                      ? undefined
-                      : filters.hasExperience
-                        ? 'yes'
-                        : 'no'
-                  }
-                  onChange={(value) =>
-                    setFilters({
-                      ...filters,
-                      hasExperience: value === 'yes' ? true : value === 'no' ? false : undefined,
-                    })
-                  }
-                  style={{ width: '100%' }}
-                  allowClear
-                >
-                  <Select.Option value="yes">{t('hasExperience')}</Select.Option>
-                  <Select.Option value="no">{t('noExperience')}</Select.Option>
-                </Select>
-              </Col>
-
-
-
-              <Col xs={24} md={6}>
                 <label className={styles.filterLabel}>{t('passportFilter')}</label>
                 <Input
                   size="large"
@@ -1325,9 +1231,6 @@ export default function WorkersPage() {
               <Button icon={<ClearOutlined />} onClick={handleClearFilters}>
                 {t('clearFilters')}
               </Button>
-              <Button type="primary" icon={<SearchOutlined />} style={{ background: '#003366' }}>
-                {t('search')}
-              </Button>
             </div>
           </div>
         )}
@@ -1348,11 +1251,6 @@ export default function WorkersPage() {
             {filters.gender && (
               <Tag closable onClose={() => setFilters({ ...filters, gender: undefined })}>
                 {t(filters.gender as any)}
-              </Tag>
-            )}
-            {filters.hasExperience !== undefined && (
-              <Tag closable onClose={() => setFilters({ ...filters, hasExperience: undefined })}>
-                {filters.hasExperience ? t('hasExperience') : t('noExperience')}
               </Tag>
             )}
             <Button
@@ -1457,14 +1355,6 @@ export default function WorkersPage() {
                             ? (language === 'ar' ? job.jobNameAr || job.jobNameEn : job.jobNameEn || job.jobNameAr) || 'N/A'
                             : 'N/A';
                         })()}
-                    </span>
-                  </div>
-
-                  <div className={styles.detailRow}>
-                    <CalendarOutlined className={styles.detailIcon} />
-                    <span className={styles.detailLabel}>{t('maritalStatus')}:</span>
-                    <span className={styles.detailValue}>
-                      {getMaritalLabel(worker.maritalStatus)}
                     </span>
                   </div>
 
@@ -1924,6 +1814,7 @@ export default function WorkersPage() {
                           <Image
                             key={idx}
                             src={src}
+                            alt={`${t('documents')} ${idx + 1}`}
                             width={120}
                             height={120}
                             style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }}
@@ -2553,6 +2444,7 @@ export default function WorkersPage() {
                       <Image
                         key={idx}
                         src={src}
+                        alt={`${t('documents')} ${idx + 1}`}
                         width={150}
                         height={150}
                         style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }}

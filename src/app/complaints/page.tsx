@@ -76,16 +76,138 @@ import styles from './Complaints.module.css';
 
 const { TextArea } = Input;
 
-// Derive a numeric status from the boolean flags returned by the API
 const getComplaintStatus = (complaint: Complaint): number => {
-  if (complaint.isFinish) return COMPLAINT_STATUS[1].value; // 2 = Closed
-  if (complaint.ishold) return COMPLAINT_STATUS[2].value; // 3 = On Hold
-  return COMPLAINT_STATUS[0].value; // 1 = Open
+  const status = Number(complaint.status);
+  if ([1, 2, 3].includes(status)) return status;
+  if (complaint.isFinish) return 3;
+  if (complaint.ishold) return 2;
+  return 1;
 };
 
 const normalizeIdentifierPart = (value: unknown): string => {
   if (value == null) return '';
   return String(value).trim();
+};
+
+const getContractValue = (contract: Record<string, unknown>, keys: string[]): unknown => {
+  for (const key of keys) {
+    const value = contract[key];
+    if (normalizeIdentifierPart(value)) return value;
+  }
+
+  return null;
+};
+
+const getContractOptionLabel = (
+  contract: Record<string, unknown>,
+  isArabic: boolean
+): string => {
+  const contractNumber = normalizeIdentifierPart(
+    getContractValue(contract, [
+      'contractNumber',
+      'ContractNumber',
+      'contractNo',
+      'ContractNo',
+      'number',
+      'Number',
+      'musanedContractNumber',
+      'MusanedContractNumber',
+    ])
+  );
+  const customerName = normalizeIdentifierPart(
+    getContractValue(contract, [
+      'customerName',
+      'CustomerName',
+      'customerNameAr',
+      'CustomerNameAr',
+      'customerNameEn',
+      'CustomerNameEn',
+      'customerNameEnglish',
+      'CustomerNameEnglish',
+    ])
+  );
+  const workerName = normalizeIdentifierPart(
+    getContractValue(contract, [
+      'workerName',
+      'WorkerName',
+      'workerNameAr',
+      'WorkerNameAr',
+      'workerNameEn',
+      'WorkerNameEn',
+    ])
+  );
+  const fallbackId = normalizeIdentifierPart(getContractValue(contract, ['id', 'Id', 'ID']));
+  const displayNumber = contractNumber || fallbackId;
+  const name = customerName || workerName;
+  const prefix = isArabic ? 'عقد رقم' : 'Contract #';
+
+  return `${prefix}${displayNumber}${name ? ` - ${name}` : ''}`;
+};
+
+const getCustomerDisplayName = (customer: Record<string, unknown>, isArabic: boolean): string => {
+  return normalizeIdentifierPart(
+    isArabic
+      ? customer.arabicName ?? customer.ArabicName ?? customer.nameAr ?? customer.NameAr
+      : customer.englishName ?? customer.EnglishName ?? customer.nameEn ?? customer.NameEn
+  ) || normalizeIdentifierPart(
+    customer.arabicName ??
+      customer.ArabicName ??
+      customer.englishName ??
+      customer.EnglishName ??
+      customer.nameAr ??
+      customer.NameAr ??
+      customer.nameEn ??
+      customer.NameEn
+  );
+};
+
+const getWorkerDisplayName = (worker: Record<string, unknown>, isArabic: boolean): string => {
+  return normalizeIdentifierPart(
+    isArabic
+      ? worker.fullNameAr ?? worker.FullNameAr ?? worker.nameAr ?? worker.NameAr
+      : worker.fullNameEn ?? worker.FullNameEn ?? worker.nameEn ?? worker.NameEn
+  ) || normalizeIdentifierPart(
+    worker.fullNameAr ??
+      worker.FullNameAr ??
+      worker.fullNameEn ??
+      worker.FullNameEn ??
+      worker.nameAr ??
+      worker.NameAr ??
+      worker.nameEn ??
+      worker.NameEn
+  );
+};
+
+const getContractCustomerName = (contract: Record<string, unknown>, isArabic: boolean): string => {
+  return normalizeIdentifierPart(
+    getContractValue(contract, [
+      ...(isArabic
+        ? ['customerNameAr', 'CustomerNameAr', 'customerArabicName', 'CustomerArabicName']
+        : ['customerNameEn', 'CustomerNameEn', 'customerEnglishName', 'CustomerEnglishName']),
+      'customerName',
+      'CustomerName',
+      'customerNameAr',
+      'CustomerNameAr',
+      'customerNameEn',
+      'CustomerNameEn',
+    ])
+  );
+};
+
+const getContractWorkerName = (contract: Record<string, unknown>, isArabic: boolean): string => {
+  return normalizeIdentifierPart(
+    getContractValue(contract, [
+      ...(isArabic
+        ? ['workerNameAr', 'WorkerNameAr', 'workerArabicName', 'WorkerArabicName']
+        : ['workerNameEn', 'WorkerNameEn', 'workerEnglishName', 'WorkerEnglishName']),
+      'workerName',
+      'WorkerName',
+      'workerNameAr',
+      'WorkerNameAr',
+      'workerNameEn',
+      'WorkerNameEn',
+    ])
+  );
 };
 
 const getComplaintDisplayNumber = (complaint: Complaint): string => {
@@ -188,10 +310,12 @@ function ComplaintForm({ form, language, isArabic, t }: ComplaintFormProps) {
       ? (contracts as any).data
       : [];
 
-  const contractOptions = contractsArray.map((c) => ({
-    value: c.id,
-    label: c.customerName ? `#${c.id} – ${c.customerName}` : `#${c.id}`,
-  }));
+  const contractOptions = contractsArray
+    .map((c) => ({
+      value: c.id ?? c.Id ?? c.ID,
+      label: getContractOptionLabel(c, isArabic),
+    }))
+    .filter((option) => option.value != null);
 
   return (
     <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
@@ -370,6 +494,9 @@ export default function ComplaintsPage() {
 
   // API hooks
   const { data: complaints = [], isLoading } = useComplaints();
+  const { customers = [] } = useCustomers();
+  const { data: workers = [] } = useWorkers();
+  const { contracts = [] } = useEmploymentOperatingContracts();
   const createMutation = useCreateComplaint();
   const deleteMutation = useDeleteComplaint();
   const finishMutation = useFinishComplaint();
@@ -404,6 +531,103 @@ export default function ComplaintsPage() {
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [viewingComplaint, setViewingComplaint] = useState<Complaint | null>(null);
 
+  const customerNameById = useMemo(() => {
+    const map = new Map<string, string>();
+
+    (customers as unknown as Record<string, unknown>[]).forEach((customer) => {
+      const id = normalizeIdentifierPart(customer.id ?? customer.Id ?? customer.ID);
+      const name = getCustomerDisplayName(customer, isArabic);
+      if (id && name) map.set(id, name);
+    });
+
+    return map;
+  }, [customers, isArabic]);
+
+  const workerNameById = useMemo(() => {
+    const map = new Map<string, string>();
+
+    (workers as unknown as Record<string, unknown>[]).forEach((worker) => {
+      const id = normalizeIdentifierPart(worker.id ?? worker.Id ?? worker.ID);
+      const name = getWorkerDisplayName(worker, isArabic);
+      if (id && name) map.set(id, name);
+    });
+
+    return map;
+  }, [workers, isArabic]);
+
+  const contractNameById = useMemo(() => {
+    const map = new Map<string, { customerName: string; workerName: string; contractNumber: string }>();
+    const contractsArray: Record<string, unknown>[] = Array.isArray(contracts)
+      ? contracts as unknown as Record<string, unknown>[]
+      : Array.isArray((contracts as any)?.data)
+        ? (contracts as any).data
+        : [];
+
+    contractsArray.forEach((contract) => {
+      const id = normalizeIdentifierPart(contract.id ?? contract.Id ?? contract.ID);
+      if (!id) return;
+
+      map.set(id, {
+        customerName: getContractCustomerName(contract, isArabic),
+        workerName: getContractWorkerName(contract, isArabic),
+        contractNumber: normalizeIdentifierPart(
+          getContractValue(contract, [
+            'contractNumber', 'ContractNumber', 'contractNo', 'ContractNo',
+            'number', 'Number', 'musanedContractNumber', 'MusanedContractNumber',
+          ])
+        ),
+      });
+    });
+
+    return map;
+  }, [contracts, isArabic]);
+
+  const getResolvedCustomerName = (complaint: Complaint): string => {
+    const complaintName = normalizeIdentifierPart(complaint.customerName);
+    if (complaintName) return complaintName;
+
+    const customerId = normalizeIdentifierPart(complaint.customerId);
+    if (customerId && customerNameById.has(customerId)) {
+      return customerNameById.get(customerId) || '';
+    }
+
+    const contractId = normalizeIdentifierPart(complaint.relatedContractId);
+    if (contractId && contractNameById.has(contractId)) {
+      return contractNameById.get(contractId)?.customerName || '';
+    }
+
+    return '';
+  };
+
+  const getResolvedWorkerName = (complaint: Complaint): string => {
+    const complaintName = normalizeIdentifierPart(complaint.workerName);
+    if (complaintName) return complaintName;
+
+    const workerId = normalizeIdentifierPart(complaint.workerId);
+    if (workerId && workerNameById.has(workerId)) {
+      return workerNameById.get(workerId) || '';
+    }
+
+    const contractId = normalizeIdentifierPart(complaint.relatedContractId);
+    if (contractId && contractNameById.has(contractId)) {
+      return contractNameById.get(contractId)?.workerName || '';
+    }
+
+    return '';
+  };
+
+  const getResolvedContractNumber = (complaint: Complaint): string => {
+    const direct = normalizeIdentifierPart(complaint.contractNumber);
+    if (direct) return direct;
+
+    const contractId = normalizeIdentifierPart(complaint.relatedContractId);
+    if (contractId && contractNameById.has(contractId)) {
+      return contractNameById.get(contractId)?.contractNumber || contractId;
+    }
+
+    return normalizeIdentifierPart(complaint.relatedContractId);
+  };
+
   // Translations
   const t = (key: string): string => {
     const translations: Record<string, Record<string, string>> = {
@@ -411,7 +635,7 @@ export default function ComplaintsPage() {
         complaintsManagement: 'إدارة الشكاوى',
         totalComplaints: 'إجمالي الشكاوى',
         openComplaints: 'شكاوى مفتوحة',
-        closedComplaints: 'شكاوى مغلقة',
+        closedComplaints: 'شكاوى منتهية',
         pendingComplaints: 'شكاوى معلقة',
         search: 'بحث...',
         status: 'الحالة',
@@ -468,7 +692,7 @@ export default function ComplaintsPage() {
         complaintsManagement: 'Complaints Management',
         totalComplaints: 'Total Complaints',
         openComplaints: 'Open Complaints',
-        closedComplaints: 'Closed Complaints',
+        closedComplaints: 'Finished Complaints',
         pendingComplaints: 'Pending Complaints',
         search: 'Search...',
         status: 'Status',
@@ -528,11 +752,21 @@ export default function ComplaintsPage() {
   // Filtered data
   const filteredComplaints = useMemo(() => {
     return complaints.filter((complaint) => {
+      const customerName =
+        normalizeIdentifierPart(complaint.customerName) ||
+        customerNameById.get(normalizeIdentifierPart(complaint.customerId)) ||
+        contractNameById.get(normalizeIdentifierPart(complaint.relatedContractId))?.customerName ||
+        '';
+      const workerName =
+        normalizeIdentifierPart(complaint.workerName) ||
+        workerNameById.get(normalizeIdentifierPart(complaint.workerId)) ||
+        contractNameById.get(normalizeIdentifierPart(complaint.relatedContractId))?.workerName ||
+        '';
       const matchesSearch =
         !searchTerm ||
         complaint.id.toString().includes(searchTerm) ||
-        (complaint.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (complaint.workerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        workerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (complaint.notesAr || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (complaint.notesEn || '').toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -564,6 +798,9 @@ export default function ComplaintsPage() {
     complaintFromFilter,
     workerLocationFilter,
     complaints,
+    customerNameById,
+    workerNameById,
+    contractNameById,
   ]);
 
   // Pagination
@@ -575,19 +812,18 @@ export default function ComplaintsPage() {
   // Statistics
   const statistics = useMemo(() => {
     const total = complaints.length;
-    const open = complaints.filter((c) => !c.isFinish && !c.ishold).length;
-    const closed = complaints.filter((c) => c.isFinish === true).length;
-    const pending = complaints.filter((c) => c.ishold === true && c.isFinish !== true).length;
+    const open = complaints.filter((c) => getComplaintStatus(c) === 1).length;
+    const pending = complaints.filter((c) => getComplaintStatus(c) === 2).length;
+    const closed = complaints.filter((c) => getComplaintStatus(c) === 3).length;
     return { total, open, closed, pending };
   }, [complaints]);
 
-  // Get status badge derived from isFinish / ishold boolean fields
   const getStatusBadge = (complaint: Complaint) => {
     const status = getComplaintStatus(complaint);
     const statusConfig: Record<number, { color: string; icon: React.ReactNode }> = {
       [COMPLAINT_STATUS[0].value]: { color: '#faad14', icon: <ClockCircleOutlined /> }, // Open
-      [COMPLAINT_STATUS[1].value]: { color: '#00aa64', icon: <CheckCircleOutlined /> }, // Closed
-      [COMPLAINT_STATUS[2].value]: { color: '#8c0000', icon: <WarningOutlined /> }, // On Hold
+      [COMPLAINT_STATUS[1].value]: { color: '#8c0000', icon: <WarningOutlined /> }, // On Hold
+      [COMPLAINT_STATUS[2].value]: { color: '#00aa64', icon: <CheckCircleOutlined /> }, // Finished
     };
     const config = statusConfig[status] || statusConfig[COMPLAINT_STATUS[0].value];
     const text = getEnumLabel(COMPLAINT_STATUS, status, language);
@@ -679,19 +915,40 @@ export default function ComplaintsPage() {
   // Hold/unhold complaint handler — new API requires a reason string
   const handleHold = (complaint: Complaint) => {
     let reason = '';
+    const isOnHold = getComplaintStatus(complaint) === 2;
     Modal.confirm({
-      title: t('holdComplaint'),
+      title: isOnHold ? (isArabic ? 'إلغاء تعليق الشكوى' : 'Resume Complaint') : t('holdComplaint'),
       icon: <PauseCircleOutlined style={{ color: '#8c0000' }} />,
       content: (
         <div>
-          <p style={{ marginBottom: 8 }}>{t('confirmHold')}</p>
+          <p style={{ marginBottom: 8 }}>
+            {isOnHold
+              ? isArabic
+                ? 'هل أنت متأكد من إلغاء تعليق هذه الشكوى؟'
+                : 'Are you sure you want to resume this complaint?'
+              : t('confirmHold')}
+          </p>
+          {isOnHold && complaint.holdReason && (
+            <p style={{ marginBottom: 8, color: '#6c757d' }}>
+              {isArabic ? 'سبب التعليق الحالي: ' : 'Current hold reason: '}
+              {complaint.holdReason}
+            </p>
+          )}
           <Input
-            placeholder={isArabic ? 'سبب التعليق (مطلوب)' : 'Hold reason (required)'}
+            placeholder={
+              isOnHold
+                ? isArabic
+                  ? 'ملاحظة إلغاء التعليق (مطلوبة)'
+                  : 'Resume note (required)'
+                : isArabic
+                  ? 'سبب التعليق (مطلوب)'
+                  : 'Hold reason (required)'
+            }
             onChange={(e) => { reason = e.target.value; }}
           />
         </div>
       ),
-      okText: t('holdComplaint'),
+      okText: isOnHold ? (isArabic ? 'إلغاء التعليق' : 'Resume') : t('holdComplaint'),
       cancelText: t('cancel'),
       okButtonProps: { style: { background: '#8c0000', borderColor: '#8c0000' } },
       onOk: () => {
@@ -750,8 +1007,9 @@ export default function ComplaintsPage() {
 
   // Action menu for each complaint card
   const getActionMenu = (complaint: Complaint): MenuProps => {
-    const isClosed = complaint.isFinish === true;
-    const isOpen = !isClosed && !complaint.ishold;
+    const status = getComplaintStatus(complaint);
+    const isClosed = status === 3;
+    const isOnHold = status === 2;
 
     const items: MenuProps['items'] = [
       {
@@ -779,14 +1037,12 @@ export default function ComplaintsPage() {
         }
       );
 
-      if (isOpen) {
-        items.push({
-          key: 'hold',
-          label: t('holdComplaint'),
-          icon: <PauseCircleOutlined style={{ color: '#8c0000' }} />,
-          onClick: () => handleHold(complaint),
-        });
-      }
+      items.push({
+        key: 'hold',
+        label: isOnHold ? (isArabic ? 'إلغاء التعليق' : 'Resume Complaint') : t('holdComplaint'),
+        icon: <PauseCircleOutlined style={{ color: '#8c0000' }} />,
+        onClick: () => handleHold(complaint),
+      });
 
       items.push({
         key: 'addIssue',
@@ -988,13 +1244,31 @@ export default function ComplaintsPage() {
           <Empty description={t('noComplaints')} />
         ) : (
           paginatedComplaints.map((complaint, index) => {
-            const isClosed = complaint.isFinish === true;
-            const isOnHold = complaint.ishold === true && !complaint.isFinish;
+            const complaintStatus = getComplaintStatus(complaint);
+            const isClosed = complaintStatus === 3;
+            const isOnHold = complaintStatus === 2;
             const complaintDisplayNumber = getComplaintDisplayNumber(complaint);
             const complaintFullIdentifier = getComplaintFullIdentifier(complaint);
+            const customerName = getResolvedCustomerName(complaint);
+            const workerName = getResolvedWorkerName(complaint);
+            const contractNumber = getResolvedContractNumber(complaint);
+            const customerId = normalizeIdentifierPart(complaint.customerId);
+            const workerId = normalizeIdentifierPart(complaint.workerId);
+            const customerDisplay = customerName || (customerId ? `#${customerId}` : '');
+            const workerDisplay = workerName || (workerId ? `#${workerId}` : '');
+            const hasPersonDisplay = Boolean(customerDisplay || workerDisplay || contractNumber);
+
+            const priorityClass =
+              complaint.priority === 1
+                ? styles.priorityLow
+                : complaint.priority === 2
+                  ? styles.priorityMedium
+                  : complaint.priority === 3
+                    ? styles.priorityHigh
+                    : '';
 
             return (
-              <div key={complaint.id} className={styles.complaintCard}>
+              <div key={complaint.id} className={`${styles.complaintCard} ${priorityClass}`}>
                 {/* Top badges row */}
                 <div className={styles.badgesRow}>
                   <div className={styles.badgesLeft}>
@@ -1010,6 +1284,9 @@ export default function ComplaintsPage() {
                       <Tag color="cyan">
                         {getEnumLabel(WORKER_LOCATION, complaint.workerLocation, language)}
                       </Tag>
+                    )}
+                    {complaint.hasIssue && (
+                      <Tag color="blue">{isArabic ? 'لديها قضية' : 'Has Issue'}</Tag>
                     )}
                   </div>
                   <div>{getStatusBadge(complaint)}</div>
@@ -1052,28 +1329,56 @@ export default function ComplaintsPage() {
                   {/* Middle - Details */}
                   <div className={styles.detailsSection}>
                     <Row gutter={[16, 8]}>
-                      <Col xs={24} md={12}>
-                        <div className={styles.infoItem}>
-                          <UserOutlined className={styles.icon} />
-                          <div>
-                            <div className={styles.infoLabel}>{t('customerName')}</div>
-                            <div className={styles.infoValue}>
-                              {complaint.customerName || (isArabic ? 'غير محدد' : 'N/A')}
+                      {contractNumber && (
+                        <Col xs={24} md={12}>
+                          <div className={styles.infoItem}>
+                            <FileTextOutlined className={styles.icon} />
+                            <div>
+                              <div className={styles.infoLabel}>
+                                {isArabic ? 'رقم العقد' : 'Contract #'}
+                              </div>
+                              <div className={styles.infoValue}>{contractNumber}</div>
                             </div>
                           </div>
-                        </div>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <div className={styles.infoItem}>
-                          <UserOutlined className={styles.icon} />
-                          <div>
-                            <div className={styles.infoLabel}>{t('workerName')}</div>
-                            <div className={styles.infoValue}>
-                              {complaint.workerName || (isArabic ? 'غير محدد' : 'N/A')}
+                        </Col>
+                      )}
+                      {customerDisplay && (
+                        <Col xs={24} md={12}>
+                          <div className={styles.infoItem}>
+                            <UserOutlined className={styles.icon} />
+                            <div>
+                              <div className={styles.infoLabel}>{t('customerName')}</div>
+                              <div className={styles.infoValue}>{customerDisplay}</div>
                             </div>
                           </div>
-                        </div>
-                      </Col>
+                        </Col>
+                      )}
+                      {workerDisplay && (
+                        <Col xs={24} md={12}>
+                          <div className={styles.infoItem}>
+                            <UserOutlined className={styles.icon} />
+                            <div>
+                              <div className={styles.infoLabel}>{t('workerName')}</div>
+                              <div className={styles.infoValue}>{workerDisplay}</div>
+                            </div>
+                          </div>
+                        </Col>
+                      )}
+                      {!hasPersonDisplay && (
+                        <Col xs={24}>
+                          <div className={styles.infoItem}>
+                            <UserOutlined className={styles.icon} />
+                            <div>
+                              <div className={styles.infoLabel}>
+                                {isArabic ? 'الاسم' : 'Name'}
+                              </div>
+                              <div className={styles.infoValue}>
+                                {isArabic ? 'غير محدد' : 'Not specified'}
+                              </div>
+                            </div>
+                          </div>
+                        </Col>
+                      )}
                       <Col xs={24}>
                         <div className={styles.infoItem}>
                           <MessageOutlined className={styles.icon} />
@@ -1150,7 +1455,13 @@ export default function ComplaintsPage() {
                 {isOnHold && (
                   <div className={styles.holdBanner}>
                     <PauseCircleOutlined style={{ color: '#8c0000' }} />
-                    <span>{isArabic ? 'الشكوى معلقة' : 'Complaint on hold'}</span>
+                    <span>
+                      {complaint.holdReason
+                        ? `${isArabic ? 'الشكوى معلقة: ' : 'Complaint on hold: '}${complaint.holdReason}`
+                        : isArabic
+                          ? 'الشكوى معلقة'
+                          : 'Complaint on hold'}
+                    </span>
                   </div>
                 )}
               </div>
@@ -1344,6 +1655,10 @@ function ViewDetailsModal({
 
   if (!complaint) return null;
 
+  const status = getComplaintStatus(complaint);
+  const isFinished = status === 3;
+  const isOnHold = status === 2;
+
   return (
     <Modal
       title={
@@ -1374,10 +1689,20 @@ function ViewDetailsModal({
           </Col>
           <Col xs={12} md={8}>
             <div style={{ color: '#6c757d', fontSize: 12, marginBottom: 4 }}>{t('status')}</div>
-            <Tag color={complaint.isFinish ? 'success' : complaint.ishold ? 'error' : 'warning'}>
+            <Tag color={isFinished ? 'success' : isOnHold ? 'error' : 'warning'}>
               {getEnumLabel(COMPLAINT_STATUS, getComplaintStatus(complaint), language)}
             </Tag>
           </Col>
+          {complaint.priority != null && (
+            <Col xs={12} md={8}>
+              <div style={{ color: '#6c757d', fontSize: 12, marginBottom: 4 }}>
+                {isArabic ? 'الأولوية' : 'Priority'}
+              </div>
+              <Tag color={complaint.priority === 1 ? 'success' : complaint.priority === 2 ? 'warning' : 'error'}>
+                {getEnumLabel(COMPLAINT_PRIORITY, complaint.priority, language)}
+              </Tag>
+            </Col>
+          )}
           <Col xs={12} md={8}>
             <div style={{ color: '#6c757d', fontSize: 12, marginBottom: 4 }}>
               {t('customerName')}
@@ -1392,6 +1717,16 @@ function ViewDetailsModal({
               {complaint.workerName || (isArabic ? 'غير محدد' : 'N/A')}
             </div>
           </Col>
+          {(complaint.contractNumber || complaint.relatedContractId) && (
+            <Col xs={12} md={8}>
+              <div style={{ color: '#6c757d', fontSize: 12, marginBottom: 4 }}>
+                {isArabic ? 'رقم العقد' : 'Contract #'}
+              </div>
+              <div style={{ fontWeight: 500 }}>
+                {complaint.contractNumber || String(complaint.relatedContractId)}
+              </div>
+            </Col>
+          )}
           <Col xs={12} md={8}>
             <div style={{ color: '#6c757d', fontSize: 12, marginBottom: 4 }}>{t('createdAt')}</div>
             <div style={{ fontWeight: 500 }}>
@@ -1422,6 +1757,25 @@ function ViewDetailsModal({
           )}
         </Row>
 
+        {isOnHold && complaint.holdReason && (
+          <>
+            <Divider style={{ margin: '16px 0' }} />
+            <div
+              style={{
+                background: 'rgba(140, 0, 0, 0.05)',
+                border: '1px solid rgba(140, 0, 0, 0.2)',
+                borderRadius: 8,
+                padding: 12,
+              }}
+            >
+              <div style={{ color: '#8c0000', fontWeight: 600, marginBottom: 4 }}>
+                {isArabic ? 'سبب التعليق' : 'Hold Reason'}
+              </div>
+              <div>{complaint.holdReason}</div>
+            </div>
+          </>
+        )}
+
         {/* Notes */}
         <Divider style={{ margin: '16px 0' }} />
         <div style={{ color: '#6c757d', fontSize: 12, marginBottom: 4 }}>{t('notes')}</div>
@@ -1445,7 +1799,7 @@ function ViewDetailsModal({
         </div>
 
         {/* Finish notes (if closed) */}
-        {complaint.isFinish === true && (
+        {isFinished && (
           <>
             <Divider style={{ margin: '16px 0' }} />
             <div

@@ -663,6 +663,7 @@ export const CONTRACT_STATUS_VALUES = {
 
 export interface EmploymentOperatingContract {
   id: number | string;
+  contractNumber?: number | string | null;
   createdBy?: number | string | null;
   createdAt?: string | null;
   customerId?: number | string | null;
@@ -787,16 +788,20 @@ export interface Complaint {
   complaintNumber?: string | null;
   // new field name (replaces old complaintFrom)
   source?: number | null;
+  sourceName?: string | null;
   priority?: number | null;
+  priorityName?: string | null;
   customerId?: number | string | null;
   workerId?: number | string | null;
   workerLocation?: number | null;
+  workerLocationName?: string | null;
   // renamed from contractType / contractId
   relatedContractType?: number | null;
   relatedContractId?: number | string | null;
   notesAr?: string | null;
   notesEn?: string | null;
   createdAt?: string | null;
+  createdDate?: string | null;
   createdBy?: number | string | null;
   updatedAt?: string | null;
   updatedBy?: number | string | null;
@@ -808,9 +813,11 @@ export interface Complaint {
   isFinish?: boolean | null;
   finishNote?: string | null;
   ishold?: boolean | null;
+  holdReason?: string | null;
+  statusName?: string | null;
+  hasIssue?: boolean | null;
   // GET /api/Complaint/{id} returns array of updates
   updates?: ComplaintUpdate[] | null;
-  /** @deprecated Derived from isFinish/ishold for UI compatibility */
   status?: number | null;
 }
 

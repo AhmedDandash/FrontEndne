@@ -11,7 +11,6 @@ import {
   // FileSearchOutlined,
   // GiftOutlined,
   UserOutlined,
-  IdcardOutlined,
   WarningOutlined,
   SettingOutlined,
   ShopOutlined,
@@ -272,106 +271,106 @@ export default function Sidebar({
         
       ],
     },
-    {
-      key: 'hr',
-      icon: <IdcardOutlined />,
-      label: language === 'ar' ? 'الموارد البشرية' : 'Human Resources',
-      children: [
-        {
-          key: 'hr-requests',
-          label: language === 'ar' ? 'الطلبات' : 'Requests',
-          children: [
-            {
-              key: '/hr/requests/vacation',
-              label: language === 'ar' ? 'طلب إجازة' : 'Vacation Request',
-              onClick: () => router.push('/hr/requests/vacation'),
-            },
-            {
-              key: '/hr/requests/permission',
-              label: language === 'ar' ? 'طلب إذن' : 'Permission Request',
-              onClick: () => router.push('/hr/requests/permission'),
-            },
-            {
-              key: '/hr/requests/custody',
-              label: language === 'ar' ? 'طلب عهدة' : 'Receipt Custody',
-              onClick: () => router.push('/hr/requests/custody'),
-            },
-            {
-              key: '/hr/requests/job-modification',
-              label: language === 'ar' ? 'تعديل وظيفي' : 'Job Modification',
-              onClick: () => router.push('/hr/requests/job-modification'),
-            },
-            {
-              key: '/hr/requests/resignation',
-              label: language === 'ar' ? 'استقالة' : 'Resignation',
-              onClick: () => router.push('/hr/requests/resignation'),
-            },
-            {
-              key: '/hr/requests/entitlements',
-              label: language === 'ar' ? 'مستحقات' : 'Entitlements',
-              onClick: () => router.push('/hr/requests/entitlements'),
-            },
-            {
-              key: '/hr/requests/loans',
-              label: language === 'ar' ? 'قرض' : 'Loan',
-              onClick: () => router.push('/hr/requests/loans'),
-            },
-          ],
-        },
-        {
-          key: 'hr-followup',
-          label: language === 'ar' ? 'المتابعة' : 'Follow-up',
-          children: [
-            {
-              key: '/hr/followup/inbox',
-              label: language === 'ar' ? 'صندوق الوارد' : 'Requests Inbox',
-              onClick: () => router.push('/hr/followup/inbox'),
-            },
-            {
-              key: '/hr/followup/outbox',
-              label: language === 'ar' ? 'صندوق الصادر' : 'Requests Outbox',
-              onClick: () => router.push('/hr/followup/outbox'),
-            },
-          ],
-        },
-        {
-          key: 'hr-employees',
-          label: language === 'ar' ? 'الموظفون' : 'Employees',
-          children: [
-            {
-              key: '/hr/employees/management',
-              label: language === 'ar' ? 'إدارة الموظفين' : 'Management',
-              onClick: () => router.push('/hr/employees/management'),
-            },
-            {
-              key: '/hr/employees/commission',
-              label: language === 'ar' ? 'العمولات' : 'Commission',
-              onClick: () => router.push('/hr/employees/commission'),
-            },
-            {
-              key: '/hr/employees/commission-slices',
-              label: language === 'ar' ? 'شرائح العمولات' : 'Commission Slices',
-              onClick: () => router.push('/hr/employees/commission-slices'),
-            },
-            {
-              key: '/hr/employees/attendance',
-              label: language === 'ar' ? 'الحضور والانصراف' : 'Attendance',
-              onClick: () => router.push('/hr/employees/attendance'),
-            },
-            {
-              key: '/hr/employees/leave-balance',
-              label: language === 'ar' ? 'رصيد الإجازات' : 'Leave Balance',
-              onClick: () => router.push('/hr/employees/leave-balance'),
-            },
-          ],
-        },
-        {
-          key: '/hr/complaints',
-          label: language === 'ar' ? 'شكاوى الموظفين' : 'Employee Complaints',
-          onClick: () => router.push('/hr/complaints'),
-        },
-      ],
-    },
+    // {
+    //   key: 'hr',
+    //   icon: <IdcardOutlined />,
+    //   label: language === 'ar' ? 'الموارد البشرية' : 'Human Resources',
+    //   children: [
+    //     {
+    //       key: 'hr-requests',
+    //       label: language === 'ar' ? 'الطلبات' : 'Requests',
+    //       children: [
+    //         {
+    //           key: '/hr/requests/vacation',
+    //           label: language === 'ar' ? 'طلب إجازة' : 'Vacation Request',
+    //           onClick: () => router.push('/hr/requests/vacation'),
+    //         },
+    //         {
+    //           key: '/hr/requests/permission',
+    //           label: language === 'ar' ? 'طلب إذن' : 'Permission Request',
+    //           onClick: () => router.push('/hr/requests/permission'),
+    //         },
+    //         {
+    //           key: '/hr/requests/custody',
+    //           label: language === 'ar' ? 'طلب عهدة' : 'Receipt Custody',
+    //           onClick: () => router.push('/hr/requests/custody'),
+    //         },
+    //         {
+    //           key: '/hr/requests/job-modification',
+    //           label: language === 'ar' ? 'تعديل وظيفي' : 'Job Modification',
+    //           onClick: () => router.push('/hr/requests/job-modification'),
+    //         },
+    //         {
+    //           key: '/hr/requests/resignation',
+    //           label: language === 'ar' ? 'استقالة' : 'Resignation',
+    //           onClick: () => router.push('/hr/requests/resignation'),
+    //         },
+    //         {
+    //           key: '/hr/requests/entitlements',
+    //           label: language === 'ar' ? 'مستحقات' : 'Entitlements',
+    //           onClick: () => router.push('/hr/requests/entitlements'),
+    //         },
+    //         {
+    //           key: '/hr/requests/loans',
+    //           label: language === 'ar' ? 'قرض' : 'Loan',
+    //           onClick: () => router.push('/hr/requests/loans'),
+    //         },
+    //       ],
+    //     },
+    //     {
+    //       key: 'hr-followup',
+    //       label: language === 'ar' ? 'المتابعة' : 'Follow-up',
+    //       children: [
+    //         {
+    //           key: '/hr/followup/inbox',
+    //           label: language === 'ar' ? 'صندوق الوارد' : 'Requests Inbox',
+    //           onClick: () => router.push('/hr/followup/inbox'),
+    //         },
+    //         {
+    //           key: '/hr/followup/outbox',
+    //           label: language === 'ar' ? 'صندوق الصادر' : 'Requests Outbox',
+    //           onClick: () => router.push('/hr/followup/outbox'),
+    //         },
+    //       ],
+    //     },
+    //     {
+    //       key: 'hr-employees',
+    //       label: language === 'ar' ? 'الموظفون' : 'Employees',
+    //       children: [
+    //         {
+    //           key: '/hr/employees/management',
+    //           label: language === 'ar' ? 'إدارة الموظفين' : 'Management',
+    //           onClick: () => router.push('/hr/employees/management'),
+    //         },
+    //         {
+    //           key: '/hr/employees/commission',
+    //           label: language === 'ar' ? 'العمولات' : 'Commission',
+    //           onClick: () => router.push('/hr/employees/commission'),
+    //         },
+    //         {
+    //           key: '/hr/employees/commission-slices',
+    //           label: language === 'ar' ? 'شرائح العمولات' : 'Commission Slices',
+    //           onClick: () => router.push('/hr/employees/commission-slices'),
+    //         },
+    //         {
+    //           key: '/hr/employees/attendance',
+    //           label: language === 'ar' ? 'الحضور والانصراف' : 'Attendance',
+    //           onClick: () => router.push('/hr/employees/attendance'),
+    //         },
+    //         {
+    //           key: '/hr/employees/leave-balance',
+    //           label: language === 'ar' ? 'رصيد الإجازات' : 'Leave Balance',
+    //           onClick: () => router.push('/hr/employees/leave-balance'),
+    //         },
+    //       ],
+    //     },
+    //     {
+    //       key: '/hr/complaints',
+    //       label: language === 'ar' ? 'شكاوى الموظفين' : 'Employee Complaints',
+    //       onClick: () => router.push('/hr/complaints'),
+    //     },
+    //   ],
+    // },
     {
       key: '/complaints',
       icon: <WarningOutlined />,

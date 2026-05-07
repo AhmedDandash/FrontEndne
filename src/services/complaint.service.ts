@@ -62,15 +62,42 @@ const normalizeNullableString = (value: unknown): string | null => {
   return normalized || null;
 };
 
+const normalizeNumber = (value: unknown): number | null => {
+  if (value == null || value === '') return null;
+
+  const normalized = Number(value);
+  return Number.isFinite(normalized) ? normalized : null;
+};
+
 const normalizeComplaint = (raw: any): Complaint => {
+  const status = normalizeNumber(raw?.status ?? raw?.Status);
+  const statusName = normalizeNullableString(raw?.statusName ?? raw?.StatusName);
+  const isFinished =
+    status === 3 ||
+    statusName?.toLowerCase() === 'finished' ||
+    normalizeBoolean(raw?.isFinish ?? raw?.IsFinish);
+  const isOnHold =
+    !isFinished &&
+    (status === 2 ||
+      statusName?.toLowerCase() === 'hold' ||
+      statusName?.toLowerCase() === 'onhold' ||
+      statusName?.toLowerCase() === 'on hold' ||
+      normalizeBoolean(raw?.ishold ?? raw?.isHold ?? raw?.Ishold ?? raw?.IsHold));
+
   const complaint: Complaint = {
     id: raw?.id ?? raw?.Id ?? raw?.complaintId ?? raw?.ComplaintId,
     complaintNumber: normalizeNullableString(raw?.complaintNumber ?? raw?.ComplaintNumber),
     source: raw?.source ?? raw?.Source ?? null,
+    sourceName: normalizeNullableString(raw?.sourceName ?? raw?.SourceName),
     priority: raw?.priority ?? raw?.Priority ?? null,
+    priorityName: normalizeNullableString(raw?.priorityName ?? raw?.PriorityName),
+    status: status ?? (isFinished ? 3 : isOnHold ? 2 : 1),
+    statusName,
+    holdReason: normalizeNullableString(raw?.holdReason ?? raw?.HoldReason),
     customerId: raw?.customerId ?? raw?.CustomerId ?? null,
     workerId: raw?.workerId ?? raw?.WorkerId ?? null,
     workerLocation: raw?.workerLocation ?? raw?.WorkerLocation ?? null,
+    workerLocationName: normalizeNullableString(raw?.workerLocationName ?? raw?.WorkerLocationName),
     relatedContractType:
       raw?.relatedContractType ??
       raw?.RelatedContractType ??
@@ -81,7 +108,8 @@ const normalizeComplaint = (raw: any): Complaint => {
       raw?.relatedContractId ?? raw?.RelatedContractId ?? raw?.contractId ?? raw?.ContractId ?? null,
     notesAr: raw?.notesAr ?? raw?.NotesAr ?? null,
     notesEn: raw?.notesEn ?? raw?.NotesEn ?? null,
-    createdAt: raw?.createdAt ?? raw?.CreatedAt ?? null,
+    createdAt: raw?.createdAt ?? raw?.CreatedAt ?? raw?.createdDate ?? raw?.CreatedDate ?? null,
+    createdDate: raw?.createdDate ?? raw?.CreatedDate ?? raw?.createdAt ?? raw?.CreatedAt ?? null,
     createdBy: raw?.createdBy ?? raw?.CreatedBy ?? null,
     updatedAt: raw?.updatedAt ?? raw?.UpdatedAt ?? null,
     updatedBy: raw?.updatedBy ?? raw?.UpdatedBy ?? null,
@@ -89,13 +117,12 @@ const normalizeComplaint = (raw: any): Complaint => {
       raw?.customerName ?? raw?.CustomerName ?? raw?.customerNameAr ?? raw?.CustomerNameAr ?? null,
     workerName: raw?.workerName ?? raw?.WorkerName ?? raw?.workerNameAr ?? raw?.WorkerNameAr ?? null,
     contractNumber: raw?.contractNumber ?? raw?.ContractNumber ?? null,
-    isFinish: normalizeBoolean(raw?.isFinish ?? raw?.IsFinish),
+    isFinish: isFinished,
     finishNote: raw?.finishNote ?? raw?.FinishNote ?? null,
-    ishold: normalizeBoolean(raw?.ishold ?? raw?.isHold ?? raw?.Ishold ?? raw?.IsHold),
+    ishold: isOnHold,
+    hasIssue: normalizeBoolean(raw?.hasIssue ?? raw?.HasIssue),
     updates: extractArray<ComplaintUpdate>(raw?.updates ?? raw?.Updates),
   };
-
-  complaint.status = complaint.isFinish ? 3 : complaint.ishold ? 2 : 1;
 
   return complaint;
 };

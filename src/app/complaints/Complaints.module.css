@@ -113,11 +113,28 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateZ(0);
   position: relative;
+  border-left: 4px solid transparent;
 }
 
 .complaintCard:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   transform: translateY(-2px) translateZ(0);
+}
+
+/* Priority shades — left border + subtle background wash */
+.priorityLow {
+  border-left-color: #52c41a;
+  background: linear-gradient(to right, rgba(82, 196, 26, 0.06) 0%, #fff 80px);
+}
+
+.priorityMedium {
+  border-left-color: #faad14;
+  background: linear-gradient(to right, rgba(250, 173, 20, 0.08) 0%, #fff 80px);
+}
+
+.priorityHigh {
+  border-left-color: #c00;
+  background: linear-gradient(to right, rgba(180, 0, 0, 0.07) 0%, #fff 80px);
 }
 
 /* Badges Row */
@@ -329,6 +346,29 @@ html[dir='rtl'] .finishNotesSection {
 
 html[dir='rtl'] .badgesRow {
   direction: rtl;
+}
+
+html[dir='rtl'] .complaintCard {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+html[dir='rtl'] .priorityLow {
+  border-left-color: transparent;
+  border-right-color: #52c41a;
+  background: linear-gradient(to left, rgba(82, 196, 26, 0.06) 0%, #fff 80px);
+}
+
+html[dir='rtl'] .priorityMedium {
+  border-left-color: transparent;
+  border-right-color: #faad14;
+  background: linear-gradient(to left, rgba(250, 173, 20, 0.08) 0%, #fff 80px);
+}
+
+html[dir='rtl'] .priorityHigh {
+  border-left-color: transparent;
+  border-right-color: #c00;
+  background: linear-gradient(to left, rgba(180, 0, 0, 0.07) 0%, #fff 80px);
 }
 
 /* Responsive Design */

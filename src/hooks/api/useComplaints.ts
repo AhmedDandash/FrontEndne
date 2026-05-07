@@ -23,6 +23,20 @@ const upsertComplaint = (
   return [createdComplaint, ...withoutDuplicate];
 };
 
+const updateCachedComplaint = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  id: number | string,
+  updater: (complaint: Complaint) => Complaint
+) => {
+  queryClient.setQueriesData<Complaint[]>({ queryKey: [QUERY_KEY] }, (current) => {
+    if (!Array.isArray(current)) return current;
+
+    return current.map((complaint) =>
+      String(complaint.id ?? '') === String(id) ? updater(complaint) : complaint
+    );
+  });
+};
+
 export const useComplaints = (params?: { pageNumber?: number; pageSize?: number; search?: string }) => {
   return useQuery<Complaint[], Error>({
     queryKey: [QUERY_KEY, params],
@@ -67,7 +81,11 @@ export const useDeleteComplaint = () => {
 
   return useMutation<void, Error, number | string>({
     mutationFn: ComplaintService.delete,
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
+      queryClient.setQueriesData<Complaint[]>({ queryKey: [QUERY_KEY] }, (current) => {
+        if (!Array.isArray(current)) return current;
+        return current.filter((complaint) => String(complaint.id ?? '') !== String(id));
+      });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       message.success('تم حذف الشكوى بنجاح / Complaint deleted successfully');
     },
@@ -82,8 +100,14 @@ export const useFinishComplaint = () => {
 
   return useMutation<void, Error, number | string>({
     mutationFn: ComplaintService.finish,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+    onSuccess: (_data, id) => {
+      updateCachedComplaint(queryClient, id, (complaint) => ({
+        ...complaint,
+        status: 3,
+        statusName: 'Finished',
+        isFinish: true,
+        ishold: false,
+      }));
       message.success('تم إنهاء الشكوى بنجاح / Complaint finished successfully');
     },
     onError: (error: any) => {
@@ -99,8 +123,19 @@ export const useToggleHoldComplaint = () => {
 
   return useMutation<void, Error, { id: number | string; reason: string }>({
     mutationFn: ({ id, reason }) => ComplaintService.toggleHold(id, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+    onSuccess: (_data, { id, reason }) => {
+      updateCachedComplaint(queryClient, id, (complaint) => {
+        const isCurrentlyOnHold = Number(complaint.status) === 2 || complaint.ishold === true;
+
+        return {
+          ...complaint,
+          status: isCurrentlyOnHold ? 1 : 2,
+          statusName: isCurrentlyOnHold ? 'Open' : 'Hold',
+          isFinish: false,
+          ishold: !isCurrentlyOnHold,
+          holdReason: isCurrentlyOnHold ? null : reason,
+        };
+      });
       message.success('تم تحديث حالة الشكوى بنجاح / Complaint hold status updated');
     },
     onError: (error: any) => {

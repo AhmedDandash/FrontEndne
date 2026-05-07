@@ -2,7 +2,7 @@
  * PDF / Print utilities.
  *
  * Single CV   → html2canvas + jsPDF → direct file download (no new tab).
- * Worker list → window.open + window.print (print dialog in a new tab).
+ * Worker list -> html2canvas + jsPDF -> direct file download (no new tab).
  */
 
 import { api } from '@/lib/api/client';
@@ -458,7 +458,11 @@ ${attachmentsSection}
 
 // ─── Print All HTML builder ───────────────────────────────────────────────────
 
-function buildListHtml(workers: Worker[]): string {
+function buildListHtml(
+  workers: Worker[],
+  title = 'Available Workers List',
+  titleAr = 'تقرير كل البيانات'
+): string {
   const now = new Date().toLocaleString('en-GB');
 
   const SHARED_CSS = `
@@ -466,7 +470,7 @@ function buildListHtml(workers: Worker[]): string {
     @font-face { font-family:'Amiri'; src:url('/fonts/Amiri-Bold.ttf')    format('truetype'); font-weight:700; }
     *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
     body { font-family:'Amiri','Segoe UI',Arial,sans-serif; font-size:9pt; color:#1e293b; background:#fff; }
-    @media print { body{margin:0;} .no-print{display:none!important;} @page{size:A4 landscape;margin:10mm;} }
+    @page{size:A4 landscape;margin:10mm;}
   `;
 
   const tableRows = workers
@@ -494,9 +498,9 @@ function buildListHtml(workers: Worker[]): string {
   <style>
     ${SHARED_CSS}
     body { font-size: 9pt; }
-    .list-header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #003366; padding-bottom:6px; margin-bottom:12px; }
+    .list-header { display:flex; justify-content:space-between; align-items:center; gap:18px; border-bottom:2px solid #003366; padding-bottom:6px; margin-bottom:12px; }
     .list-title-en { font-size:14pt; font-weight:700; color:#003366; }
-    .list-title-ar { font-size:14pt; font-weight:700; color:#003366; direction:rtl; font-family:'Amiri',Arial; }
+    .list-title-ar { font-size:14pt; font-weight:700; color:#003366; direction:rtl; unicode-bidi:isolate; font-family:'Amiri',Arial; word-spacing:3px; white-space:nowrap; }
     .list-meta { font-size:8pt; color:#64748b; margin-top:3px; }
     table { width:100%; border-collapse:collapse; }
     thead tr { background:#003366; color:#fff; }
@@ -505,24 +509,22 @@ function buildListHtml(workers: Worker[]): string {
     tbody td { padding:4px 6px; border-bottom:1px solid #e2e8f0; }
     .num { text-align:center; color:#64748b; width:24px; }
     .center { text-align:center; }
-    .ar { direction:rtl; text-align:right; font-family:'Amiri',Arial; }
-    .print-btn { display:block; margin:0 0 14px auto; padding:8px 22px; background:#003366; color:#fff; border:none; border-radius:6px; font-size:10pt; cursor:pointer; font-family:inherit; }
+    .ar { direction:rtl; unicode-bidi:isolate; text-align:right; font-family:'Amiri',Arial; word-spacing:2px; letter-spacing:0; }
     .footer { margin-top:12px; font-size:7.5pt; color:#94a3b8; display:flex; justify-content:space-between; }
   </style>
 </head>
 <body>
-  <button class="print-btn no-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
   <div class="list-header">
     <div>
-      <div class="list-title-en">Available Workers List</div>
+      <div class="list-title-en">${title}</div>
       <div class="list-meta">Total: ${workers.length} &nbsp;|&nbsp; Printed: ${now}</div>
     </div>
-    <div class="list-title-ar">قائمة العمالة المتاحة</div>
+    <div class="list-title-ar">${titleAr}</div>
   </div>
   <table>
     <thead>
       <tr>
-        <th>#</th><th>Name (EN)</th><th>الاسم</th><th>Passport</th>
+        <th>#</th><th>Name (EN)</th><th class="ar">الاسم</th><th>Passport</th>
         <th>Nationality</th><th>Age</th><th>Job</th><th>Agent</th><th>Type</th>
       </tr>
     </thead>
@@ -530,7 +532,7 @@ function buildListHtml(workers: Worker[]): string {
   </table>
   <div class="footer">
     <span>Printed: ${now}</span>
-    <span>Available Workers — ${workers.length} records</span>
+    <span>Available Workers - ${workers.length} records</span>
   </div>
 </body>
 </html>`;
@@ -637,15 +639,71 @@ export async function printWorkerCVPDF(worker: Worker): Promise<void> {
   }
 }
 
-/** Open a print-ready list of all provided workers in a new tab. */
-export async function printAllWorkersPDF(workers: Worker[]): Promise<void> {
-  const html = buildListHtml(workers);
-  const win  = window.open('', '_blank');
-  if (!win) {
-    alert('Please allow pop-ups for this site to enable printing.');
-    return;
+type WorkersPdfOptions = {
+  title?: string;
+  titleAr?: string;
+  fileName?: string;
+};
+
+/** Render all provided workers to an A4 landscape PDF and download it directly. */
+export async function printAllWorkersPDF(
+  workers: Worker[],
+  options: WorkersPdfOptions = {}
+): Promise<void> {
+  const title = options.title || 'Available Workers List';
+  const titleAr = options.titleAr || 'تقرير كل البيانات';
+  const fileName = sanitizeName(options.fileName || title);
+  const html = buildListHtml(workers, title, titleAr);
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.left = '-10000px';
+  iframe.style.top = '0';
+  iframe.style.width = '1123px';
+  iframe.style.height = '794px';
+  iframe.style.opacity = '0';
+  document.body.appendChild(iframe);
+
+  try {
+    const iDoc = iframe.contentDocument;
+    if (!iDoc) throw new Error('Unable to create PDF document.');
+
+    iDoc.open();
+    iDoc.write(html);
+    iDoc.close();
+    await iDoc.fonts.ready;
+
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf'),
+    ]);
+
+    const canvas = await html2canvas(iDoc.body, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      windowWidth: iDoc.documentElement.scrollWidth,
+      windowHeight: iDoc.documentElement.scrollHeight,
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    let remaining = imgH;
+    let offset = 0;
+
+    while (remaining > 0) {
+      if (offset > 0) pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, -offset, imgW, imgH);
+      offset += pageH;
+      remaining -= pageH;
+    }
+
+    pdf.save(`${fileName}.pdf`);
+  } finally {
+    document.body.removeChild(iframe);
   }
-  win.document.write(html);
-  win.document.close();
-  win.document.fonts.ready.then(() => win.print());
 }

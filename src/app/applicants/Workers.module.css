@@ -133,6 +133,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .statCard:hover {
