@@ -32,14 +32,12 @@ import {
   FileTextOutlined,
   SearchOutlined,
   PlusOutlined,
-  PrinterOutlined,
   UserOutlined,
   CalendarOutlined,
   DollarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
-  FileExcelOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
   FileProtectOutlined,
@@ -669,12 +667,6 @@ export default function MediationContractsPage() {
           <div className={styles.headerActions}>
             <Button icon={<ReloadOutlined />} className={styles.secondaryBtn} onClick={() => refetch()}>
               {t.refresh}
-            </Button>
-            <Button icon={<FileExcelOutlined />} className={styles.secondaryBtn}>
-              {t.exportExcel}
-            </Button>
-            <Button icon={<PrinterOutlined />} className={styles.secondaryBtn}>
-              {t.print}
             </Button>
             <Button
               type="primary"

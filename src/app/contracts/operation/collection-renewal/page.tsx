@@ -23,7 +23,6 @@ import {
 } from 'antd';
 import {
   SearchOutlined,
-  FileExcelOutlined,
   CalendarOutlined,
   UserOutlined,
   IdcardOutlined,
@@ -254,10 +253,6 @@ export default function CollectionRenewalPage() {
     }).format(date);
   };
 
-  const handleExportExcel = () => {
-    console.log('Exporting to Excel...');
-  };
-
   const handleRenewContract = (contract: RentalContract) => {
     console.log('Renewing contract:', contract.contractNumber);
   };
@@ -295,13 +290,6 @@ export default function CollectionRenewalPage() {
             </div>
           </div>
           <div className={styles.headerActions}>
-            <Button
-              icon={<FileExcelOutlined />}
-              className={styles.secondaryBtn}
-              onClick={handleExportExcel}
-            >
-              {isRTL ? 'تصدير Excel' : 'Export Excel'}
-            </Button>
           </div>
         </div>
       </div>

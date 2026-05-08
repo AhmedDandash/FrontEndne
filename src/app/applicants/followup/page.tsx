@@ -32,11 +32,8 @@ import {
   CloseCircleOutlined,
   FileProtectOutlined,
   EditOutlined,
-  PrinterOutlined,
   ClearOutlined,
   DownOutlined,
-  FileTextOutlined,
-  FileExcelOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
@@ -310,18 +307,6 @@ export default function WorkersFollowupPage() {
     };
   }, [filteredWorkers]);
 
-  // Print menu
-  const printMenu: MenuProps = {
-    items: [
-      { key: 'worker-report', label: t('workerReport'), icon: <FileTextOutlined /> },
-      { key: 'followup-report', label: t('followupReport'), icon: <FileTextOutlined /> },
-      { key: 'all-data', label: t('allData'), icon: <FileExcelOutlined /> },
-    ],
-    onClick: ({ key }) => {
-      console.log('Print:', key);
-    },
-  };
-
   const handleClearFilters = () => {
     setFilters({});
   };
@@ -553,11 +538,6 @@ export default function WorkersFollowupPage() {
             </div>
           </div>
           <div className={styles.headerButtons}>
-            <Dropdown menu={printMenu}>
-              <Button className={styles.headerBtn} icon={<PrinterOutlined />}>
-                {t('print')} <DownOutlined />
-              </Button>
-            </Dropdown>
             <Button className={styles.headerBtn} icon={<EditOutlined />}>
               {t('edit')}
             </Button>

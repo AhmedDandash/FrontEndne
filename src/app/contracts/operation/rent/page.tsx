@@ -40,7 +40,6 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   MoreOutlined,
-  FileExcelOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
   TeamOutlined,
@@ -556,10 +555,6 @@ export default function RentContractsPage() {
     window.print();
   };
 
-  const handleExportExcel = () => {
-    console.log('Export to Excel — TODO');
-  };
-
   // ─── Menu items (status-conditional) ───────────────────────────────────────
 
   const getMenuItems = (contract: RentContract): MenuProps['items'] => {
@@ -1067,9 +1062,6 @@ export default function RentContractsPage() {
             </div>
           </div>
           <div className={styles.headerActions}>
-            <Button icon={<FileExcelOutlined />} className={styles.secondaryBtn} onClick={handleExportExcel}>
-              {t.exportExcel}
-            </Button>
             <Button
               type="primary"
               icon={<PlusOutlined />}

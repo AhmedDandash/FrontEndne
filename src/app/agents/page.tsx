@@ -40,8 +40,6 @@ import {
   UserOutlined,
   GlobalOutlined,
   FilterOutlined,
-  PrinterOutlined,
-  DownloadOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
@@ -310,21 +308,6 @@ export default function AgentsPage() {
     ],
   });
 
-  const printMenu: MenuProps = {
-    items: [
-      {
-        key: 'print',
-        label: t('print'),
-        icon: <PrinterOutlined />,
-      },
-      {
-        key: 'export',
-        label: t('export'),
-        icon: <DownloadOutlined />,
-      },
-    ],
-  };
-
   if (isLoading) {
     return (
       <div className={styles.agentsPage}>
@@ -357,9 +340,6 @@ export default function AgentsPage() {
             </div>
           </div>
           <Space>
-            <Dropdown menu={printMenu} trigger={['click']}>
-              <Button icon={<PrinterOutlined />}>{t('print')}</Button>
-            </Dropdown>
             <Button
               type="primary"
               size="large"
