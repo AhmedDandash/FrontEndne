@@ -143,7 +143,7 @@ export default function CustomersPage() {
       name: { ar: 'الاسم', en: 'Name' },
       arabicName: { ar: 'الاسم بالعربي', en: 'Arabic Name' },
       englishName: { ar: 'الاسم بالإنجليزي', en: 'English Name' },
-      identityNumber: { ar: 'رقم الهوية', en: 'Identity Number' },
+      // identityNumber: { ar: 'رقم الهوية', en: 'Identity Number' },
       nationality: { ar: 'الجنسية', en: 'Nationality' },
       mobile: { ar: 'الجوال', en: 'Mobile' },
       city: { ar: 'المدينة', en: 'City' },
@@ -195,7 +195,7 @@ export default function CustomersPage() {
         searchText === '' ||
         (customer.arabicName || '').toLowerCase().includes(searchText.toLowerCase()) ||
         (customer.englishName || '').toLowerCase().includes(searchText.toLowerCase()) ||
-        (customer.identityNumber || '').includes(searchText) ||
+        // (customer.identityNumber || '').includes(searchText) ||
         allPhones.includes(searchText);
 
       const matchesCity = cityFilter === 'all' || getCustomerCityLabel(customer) === cityFilter;
@@ -232,7 +232,7 @@ export default function CustomersPage() {
     form.setFieldsValue({
       arabicName: customer.arabicName,
       englishName: customer.englishName,
-      identityNumber: customer.identityNumber,
+      // identityNumber: customer.identityNumber,
       nationality: customer.nationality,
       mobile: primaryPhone,
       cityAr: customer.cityAr,
@@ -601,7 +601,7 @@ export default function CustomersPage() {
                 {/* Card Content */}
                 <div className={styles.cardContent}>
                   {/* Identity Number */}
-                  {customer.identityNumber && (
+                  {/* {customer.identityNumber && (
                     <div className={styles.infoRow}>
                       <div className={styles.infoIcon}>
                         <IdcardOutlined />
@@ -611,7 +611,7 @@ export default function CustomersPage() {
                         <p className={styles.infoValue}>{customer.identityNumber}</p>
                       </div>
                     </div>
-                  )}
+                  )} */}
 
                   {/* Contact Information — from phones array */}
                   {customer.phones && customer.phones.length > 0 && (
@@ -753,13 +753,13 @@ export default function CustomersPage() {
             </Col>
           </Row>
 
-          <Form.Item
+          {/* <Form.Item
             label={t('identityNumber')}
             name="identityNumber"
             rules={[{ required: true, message: 'Please enter identity number' }]}
           >
             <Input prefix={<IdcardOutlined />} placeholder={t('identityNumber')} />
-          </Form.Item>
+          </Form.Item> */}
 
           <Form.Item
             label={t('nationality')}
@@ -845,7 +845,7 @@ export default function CustomersPage() {
         cancelText={language === 'ar' ? 'إلغاء' : 'Cancel'}
         width={900}
       >
-        {selectedCustomerForContract && (
+        {/* {selectedCustomerForContract && (
           <div style={{ marginBottom: 16, padding: 12, background: '#f5f5f5', borderRadius: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Avatar size={40} icon={<UserOutlined />} />
@@ -858,7 +858,7 @@ export default function CustomersPage() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Offer Selector */}
         <div style={{ marginBottom: 16 }}>
