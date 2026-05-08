@@ -1176,6 +1176,7 @@ export interface MediationContractDetail extends MediationContract {
   deliveryForm?: ContractDeliveryForm | null;
   warrantyReturn?: ContractWarrantyReturn | null;
   statusHistories?: ContractStatusHistory[] | null;
+  attachments?: string[] | null;
 }
 
 // ==================== Contract Creation Requirement ====================

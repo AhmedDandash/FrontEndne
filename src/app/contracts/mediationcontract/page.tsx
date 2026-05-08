@@ -25,6 +25,7 @@ import {
   Timeline,
   Descriptions,
   Alert,
+  Image,
 } from 'antd';
 import {
   FileTextOutlined,
@@ -48,6 +49,9 @@ import {
   SendOutlined,
   CarOutlined,
   RollbackOutlined,
+  PaperClipOutlined,
+  FilePdfOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
@@ -833,6 +837,7 @@ export default function MediationContractsPage() {
         onCancel={() => { setShowDetailsModal(false); setSelectedContract(null); }}
         footer={<Button type="primary" onClick={() => { setShowDetailsModal(false); setSelectedContract(null); }}>{t.close}</Button>}
         width={960}
+        styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
       >
         {isLoadingDetail ? (
           <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>
@@ -1133,6 +1138,88 @@ export default function MediationContractsPage() {
                       </Descriptions>
                     ) : (
                       <Empty description={language === 'ar' ? 'لم يُنشأ نموذج التسليم بعد' : 'Delivery form not yet generated'} />
+                    )}
+                  </div>
+                ),
+              },
+              {
+                key: 'attachments',
+                label: (
+                  <span>
+                    {language === 'ar' ? 'المرفقات' : 'Attachments'}
+                    {contractDetail.attachments && contractDetail.attachments.length > 0 && (
+                      <Badge count={contractDetail.attachments.length} size="small" style={{ marginInlineStart: 6 }} />
+                    )}
+                  </span>
+                ),
+                children: (
+                  <div className={styles.detailsModal}>
+                    {contractDetail.attachments && contractDetail.attachments.length > 0 ? (
+                      <Image.PreviewGroup>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {contractDetail.attachments.map((attachment, idx) => {
+                            const isFullUrl = attachment.startsWith('http');
+                            const url = isFullUrl ? attachment : `/${attachment}`;
+                            const isPdf = attachment.toLowerCase().endsWith('.pdf');
+                            const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(attachment);
+                            return (
+                              <div
+                                key={idx}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 12,
+                                  padding: '12px 16px',
+                                  border: '1px solid #e8e8e8',
+                                  borderRadius: 8,
+                                  background: '#fafafa',
+                                }}
+                              >
+                                {isPdf ? (
+                                  <FilePdfOutlined style={{ fontSize: 28, color: '#e53e3e', flexShrink: 0 }} />
+                                ) : isImage ? (
+                                  <Image
+                                    src={url}
+                                    alt={`${language === 'ar' ? 'مرفق' : 'Attachment'} ${idx + 1}`}
+                                    width={56}
+                                    height={56}
+                                    style={{ objectFit: 'cover', borderRadius: 6, border: '1px solid #e8e8e8', flexShrink: 0 }}
+                                    preview={{ mask: <EyeOutlined /> }}
+                                  />
+                                ) : (
+                                  <PaperClipOutlined style={{ fontSize: 28, color: '#1890ff', flexShrink: 0 }} />
+                                )}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontWeight: 500, color: '#1d1d1d' }}>
+                                    {language === 'ar' ? `مرفق ${idx + 1}` : `Attachment ${idx + 1}`}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 12,
+                                      color: '#8c8c8c',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {attachment}
+                                  </div>
+                                </div>
+                                <Button
+                                  type="link"
+                                  icon={isPdf ? <DownloadOutlined /> : <EyeOutlined />}
+                                  onClick={() => window.open(url, '_blank')}
+                                  style={{ flexShrink: 0 }}
+                                >
+                                  {language === 'ar' ? (isPdf ? 'تحميل' : 'عرض') : (isPdf ? 'Download' : 'View')}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </Image.PreviewGroup>
+                    ) : (
+                      <Empty description={language === 'ar' ? 'لا توجد مرفقات' : 'No attachments'} />
                     )}
                   </div>
                 ),
