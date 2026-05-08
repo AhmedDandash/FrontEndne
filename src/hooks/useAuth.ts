@@ -3,11 +3,11 @@
  * React Query hook for authentication operations
  */
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { message } from 'antd';
 import { AuthService } from '@/services';
-import type { LoginDto, RegisterDto } from '@/types/api.types';
+import type { LoginDto, AddAdmin, ChangePasswordRequestDTO } from '@/types/api.types';
 import { useSearchParams } from 'next/navigation';
 
 export function useAuth() {
@@ -41,14 +41,33 @@ export function useAuth() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: (userData: RegisterDto) => AuthService.addAdmin(userData),
+    mutationFn: (userData: AddAdmin) => AuthService.addAdmin(userData),
     onSuccess: () => {
-      message.success('تم التسجيل بنجاح / Registration successful');
-      router.push('/login');
+      message.success('تم إضافة المسؤول بنجاح / Admin added successfully');
+      router.back();
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'فشل التسجيل / Registration failed');
+      message.error(error.response?.data?.message || 'فشل الإضافة / Failed to add admin');
     },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: (dto: ChangePasswordRequestDTO) => AuthService.changePassword(dto),
+    onSuccess: () => {
+      message.success('تم تغيير كلمة المرور بنجاح / Password changed successfully');
+    },
+    onError: (error: any) => {
+      message.error(
+        error.response?.data?.message || 'فشل تغيير كلمة المرور / Failed to change password',
+      );
+    },
+  });
+
+  const meQuery = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: () => AuthService.me(),
+    enabled: AuthService.isAuthenticated(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const logoutMutation = useMutation({
@@ -70,8 +89,12 @@ export function useAuth() {
     login: loginMutation.mutate,
     register: registerMutation.mutate,
     logout: logoutMutation.mutate,
+    changePassword: changePasswordMutation.mutate,
     isLoggingIn: loginMutation.isPending,
     isRegistering: registerMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
+    isChangingPassword: changePasswordMutation.isPending,
+    me: meQuery.data,
+    isMeLoading: meQuery.isLoading,
   };
 }

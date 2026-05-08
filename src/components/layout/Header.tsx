@@ -10,6 +10,7 @@ import {
   LogoutOutlined,
   SettingOutlined,
   GlobalOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useRouter } from 'next/navigation';
@@ -79,6 +80,12 @@ export default function Header({ collapsed, onToggleSidebar, onToggleMobileDrawe
       icon: <UserOutlined />,
       label: language === 'ar' ? 'الملف الشخصي' : 'Profile',
       onClick: () => router.push('/profile'),
+    },
+    {
+      key: 'change-password',
+      icon: <LockOutlined />,
+      label: language === 'ar' ? 'تغيير كلمة المرور' : 'Change Password',
+      onClick: () => router.push('/change-password'),
     },
     {
       key: 'settings',

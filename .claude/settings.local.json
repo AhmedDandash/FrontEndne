@@ -12,7 +12,12 @@
       "Bash(python -c ' *)",
       "Bash(python -c \":*)",
       "Bash(pip install:*)",
-      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
+      "Bash(Get-ChildItem -Path \"F:\\\\Freelance\\\\FrontEnd\" -Recurse -Directory)",
+      "Bash(Select-Object -First 30)",
+      "Bash(Format-Table FullName)",
+      "Bash(New-Item -ItemType Directory -Path \"F:\\\\Freelance\\\\FrontEnd\\\\src\\\\app\\\\change-password\" -Force)",
+      "Bash(Out-Null)"
     ]
   }
 }

@@ -16,11 +16,40 @@ export interface RegisterDto {
   roles?: number[] | null;
 }
 
+export interface AddAdmin {
+  email?: string | null;
+  password?: string | null;
+  fullName?: string | null;
+}
+
+export interface ChangePasswordRequestDTO {
+  currentPassword?: string | null;
+  newPassword?: string | null;
+  confirmNewPassword?: string | null;
+}
+
+export interface RefreshTokenRequestDTO {
+  refreshToken?: string | null;
+}
+
+export interface RevokeRefreshTokenRequestDTO {
+  refreshToken?: string | null;
+}
+
 export interface AuthResponse {
   token?: string;
   accessToken?: string;
+  refreshToken?: string;
   user?: User;
   message?: string;
+}
+
+export interface MeResponse {
+  id?: string | null;
+  username?: string | null;
+  email?: string | null;
+  fullName?: string | null;
+  roles?: string[] | null;
 }
 
 // ==================== Branch Types ====================

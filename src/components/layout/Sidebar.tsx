@@ -409,11 +409,11 @@ export default function Sidebar({
               key: '/settings/mediation',
               label: language === 'ar' ? 'إعدادات المتابعة' : 'Follow-Up Settings',
             },
-            // {
-            //   key: '/contract-creation-requirements',
-            //   label: language === 'ar' ? 'متطلبات إنشاء العقود' : 'Contract Requirements',
-            // },
           ],
+        },
+        {
+          key: '/register',
+          label: language === 'ar' ? 'إضافة مسؤول' : 'Add Admin',
         },
       ],
     },

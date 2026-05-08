@@ -5,7 +5,15 @@
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
-import type { LoginDto, AuthResponse } from '@/types/api.types';
+import type {
+  LoginDto,
+  AuthResponse,
+  AddAdmin,
+  ChangePasswordRequestDTO,
+  RefreshTokenRequestDTO,
+  RevokeRefreshTokenRequestDTO,
+  MeResponse,
+} from '@/types/api.types';
 
 export class AuthService {
   /**
@@ -81,11 +89,41 @@ export class AuthService {
   }
 
   /**
-   * Add admin user (renamed from register — new API: POST /api/V1/Auth/add-admin)
+   * Add admin user — POST /api/V1/Auth/add-admin
    */
-  static async addAdmin(userData: any): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>(API_ENDPOINTS.AUTH.ADD_ADMIN, userData);
-    return response.data;
+  static async addAdmin(userData: AddAdmin): Promise<AuthResponse> {
+    const response = await api.post<any>(API_ENDPOINTS.AUTH.ADD_ADMIN, userData);
+    return response.data?.data ?? response.data;
+  }
+
+  /**
+   * Change password — PATCH /api/V1/Auth/change-password
+   */
+  static async changePassword(dto: ChangePasswordRequestDTO): Promise<void> {
+    await api.patch(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, dto);
+  }
+
+  /**
+   * Refresh access token — POST /api/V1/Auth/refresh-token
+   */
+  static async refreshToken(dto: RefreshTokenRequestDTO): Promise<AuthResponse> {
+    const response = await api.post<any>(API_ENDPOINTS.AUTH.REFRESH_TOKEN, dto);
+    return response.data?.data ?? response.data;
+  }
+
+  /**
+   * Revoke refresh token (logout) — POST /api/V1/Auth/logout
+   */
+  static async revokeToken(dto: RevokeRefreshTokenRequestDTO): Promise<void> {
+    await api.post(API_ENDPOINTS.AUTH.LOGOUT, dto);
+  }
+
+  /**
+   * Get current user info — GET /api/V1/Auth/me
+   */
+  static async me(): Promise<MeResponse> {
+    const response = await api.get<any>(API_ENDPOINTS.AUTH.ME);
+    return response.data?.data ?? response.data;
   }
 
   /**

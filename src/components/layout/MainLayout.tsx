@@ -13,7 +13,7 @@ import styles from './MainLayout.module.css';
 const { Content } = Layout;
 
 // Routes that don't require authentication
-const publicRoutes = ['/login', '/register', '/forgot-password'];
+const publicRoutes = ['/login', '/forgot-password'];
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -83,8 +83,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
     );
   }
 
-  // Don't show layout on login page
-  if (pathname === '/login') {
+  // Don't show layout on public pages (login, register, forgot-password)
+  if (publicRoutes.includes(pathname)) {
     return <>{children}</>;
   }
 
