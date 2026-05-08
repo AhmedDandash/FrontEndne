@@ -168,10 +168,19 @@ export class ComplaintService {
     pageNumber?: number;
     pageSize?: number;
     search?: string;
-  }): Promise<Complaint[]> {
+  }): Promise<{ complaints: Complaint[]; total: number }> {
     const response = await api.get<any>(API_ENDPOINTS.COMPLAINT.GET_ALL, { params });
-    const complaints = extractArray<any>(response.data).map(normalizeComplaint);
-    return sortComplaints(complaints);
+    const payload = response.data;
+    const complaints = extractArray<any>(payload).map(normalizeComplaint);
+    const total: number =
+      payload?.total ??
+      payload?.data?.total ??
+      payload?.totalCount ??
+      payload?.data?.totalCount ??
+      payload?.count ??
+      payload?.data?.count ??
+      complaints.length;
+    return { complaints: sortComplaints(complaints), total };
   }
 
   static async getById(id: number | string): Promise<Complaint> {

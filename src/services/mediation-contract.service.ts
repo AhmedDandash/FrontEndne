@@ -64,11 +64,24 @@ export class MediationContractService {
     return [];
   }
 
-  static async getAll(): Promise<MediationContract[]> {
+  static async getAll(params?: {
+    PageNumber?: number;
+    PageSize?: number;
+  }): Promise<{ contracts: MediationContract[]; total: number }> {
     const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT.GET_ALL, {
-      params: { PageSize: 9999, PageNumber: 1 },
+      params: { PageSize: params?.PageSize ?? 10, PageNumber: params?.PageNumber ?? 1 },
     });
-    return this.unwrapList<MediationContract>(response.data);
+    const payload = response.data;
+    const contracts = this.unwrapList<MediationContract>(payload);
+    const total: number =
+      payload?.total ??
+      payload?.data?.total ??
+      payload?.value?.total ??
+      payload?.totalCount ??
+      payload?.data?.totalCount ??
+      payload?.data?.value?.totalCount ??
+      contracts.length;
+    return { contracts, total };
   }
 
   static async getById(id: string): Promise<MediationContractDetail> {

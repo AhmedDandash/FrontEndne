@@ -38,8 +38,8 @@ const updateCachedComplaint = (
 };
 
 export const useComplaints = (params?: { pageNumber?: number; pageSize?: number; search?: string }) => {
-  return useQuery<Complaint[], Error>({
-    queryKey: [QUERY_KEY, params],
+  return useQuery<{ complaints: Complaint[]; total: number }, Error>({
+    queryKey: [QUERY_KEY, 'list', params],
     queryFn: () => ComplaintService.getAll(params),
   });
 };

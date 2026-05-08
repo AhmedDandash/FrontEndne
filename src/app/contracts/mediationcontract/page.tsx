@@ -26,6 +26,7 @@ import {
   Descriptions,
   Alert,
   Image,
+  Pagination,
 } from 'antd';
 import {
   FileTextOutlined,
@@ -88,6 +89,8 @@ export default function MediationContractsPage() {
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Modal states
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -116,6 +119,7 @@ export default function MediationContractsPage() {
   // API hooks
   const {
     contracts,
+    total: serverTotal,
     isLoading,
     refetch,
     cancelContract,
@@ -130,7 +134,7 @@ export default function MediationContractsPage() {
     isSigningDelivery,
     isReturning,
     isUpdatingStatus,
-  } = useMediationContracts();
+  } = useMediationContracts({ pageNumber: currentPage, pageSize });
 
   const { data: contractDetail, isLoading: isLoadingDetail } = useMediationContract(
     showDetailsModal ? selectedContract?.id : undefined
@@ -279,16 +283,16 @@ export default function MediationContractsPage() {
     });
   }, [contracts, searchText, typeFilter, statusFilter]);
 
-  // Statistics
+  // Statistics (active/pending/revenue reflect current page only due to server-side pagination)
   const stats = useMemo(() => {
     const all = contracts || [];
     return {
-      total: all.length,
+      total: serverTotal,
       active: all.filter((c) => c.statusId === 2).length,
       pending: all.filter((c) => c.statusId === 5 || c.statusId === 1).length,
       revenue: all.reduce((sum, c) => sum + (c.totalCost || 0), 0),
     };
-  }, [contracts]);
+  }, [contracts, serverTotal]);
 
   // Handle cancel contract
   const handleCancelContract = async () => {
@@ -729,7 +733,7 @@ export default function MediationContractsPage() {
               placeholder={t.search}
               prefix={<SearchOutlined />}
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={(e) => { setSearchText(e.target.value); setCurrentPage(1); }}
               allowClear
               size="large"
               className={styles.searchInput}
@@ -738,7 +742,7 @@ export default function MediationContractsPage() {
           <Col xs={12} sm={6} md={4}>
             <Select
               value={typeFilter}
-              onChange={setTypeFilter}
+              onChange={(v) => { setTypeFilter(v); setCurrentPage(1); }}
               style={{ width: '100%' }}
               size="large"
               options={[
@@ -750,7 +754,7 @@ export default function MediationContractsPage() {
           <Col xs={12} sm={6} md={4}>
             <Select
               value={statusFilter}
-              onChange={setStatusFilter}
+              onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}
               style={{ width: '100%' }}
               size="large"
               options={[
@@ -766,8 +770,8 @@ export default function MediationContractsPage() {
       <div className={styles.resultsInfo}>
         <span>
           {language === 'ar'
-            ? 'عرض ' + filteredContracts.length + ' من ' + (contracts || []).length + ' عقد'
-            : 'Showing ' + filteredContracts.length + ' of ' + (contracts || []).length + ' contracts'}
+            ? 'عرض ' + filteredContracts.length + ' من ' + serverTotal + ' عقد'
+            : 'Showing ' + filteredContracts.length + ' of ' + serverTotal + ' contracts'}
         </span>
       </div>
 
@@ -780,6 +784,29 @@ export default function MediationContractsPage() {
         <Card className={styles.emptyCard}>
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t.noResults} />
         </Card>
+      )}
+
+      {/* Pagination */}
+      {serverTotal > pageSize && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24, marginBottom: 8 }}>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={serverTotal}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              if (size !== pageSize) setCurrentPage(1);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            showTotal={(total, range) =>
+              language === 'ar'
+                ? `${range[0]}-${range[1]} من ${total}`
+                : `${range[0]}-${range[1]} of ${total}`
+            }
+            pageSizeOptions={[10, 20, 50]}
+          />
+        </div>
       )}
 
       {/* ========== CUSTOMER SELECT → navigates to /add ========== */}

@@ -19,18 +19,24 @@ import type {
 
 const QUERY_KEY = 'mediation-contracts';
 
-export function useMediationContracts() {
+export function useMediationContracts(params?: { pageNumber?: number; pageSize?: number }) {
   const queryClient = useQueryClient();
 
   const {
-    data: contracts,
+    data,
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: [QUERY_KEY],
-    queryFn: () => MediationContractService.getAll(),
+    queryKey: [QUERY_KEY, 'list', params],
+    queryFn: () => MediationContractService.getAll({
+      PageNumber: params?.pageNumber ?? 1,
+      PageSize: params?.pageSize ?? 10,
+    }),
   });
+
+  const contracts = data?.contracts;
+  const total = data?.total ?? 0;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateMediationContractDto) => MediationContractService.create(data),
@@ -123,6 +129,7 @@ export function useMediationContracts() {
 
   return {
     contracts,
+    total,
     isLoading,
     error,
     refetch,

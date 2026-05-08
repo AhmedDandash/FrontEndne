@@ -492,8 +492,19 @@ export default function ComplaintsPage() {
   const { language } = useAuthStore();
   const isArabic = language === 'ar';
 
+  // State (must be before hooks that use these values)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [contractTypeFilter, setContractTypeFilter] = useState<string>('all');
+  const [complaintFromFilter, setComplaintFromFilter] = useState<string>('all');
+  const [workerLocationFilter, setWorkerLocationFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   // API hooks
-  const { data: complaints = [], isLoading } = useComplaints();
+  const { data: complaintsData, isLoading } = useComplaints({ pageNumber: currentPage, pageSize });
+  const complaints = complaintsData?.complaints ?? [];
+  const serverTotal = complaintsData?.total ?? 0;
   const { customers = [] } = useCustomers();
   const { data: workers = [] } = useWorkers();
   const { contracts = [] } = useEmploymentOperatingContracts();
@@ -502,15 +513,6 @@ export default function ComplaintsPage() {
   const finishMutation = useFinishComplaint();
   const toggleHoldMutation = useToggleHoldComplaint();
   const addIssueMutation = useAddIssue();
-
-  // State
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [contractTypeFilter, setContractTypeFilter] = useState<string>('all');
-  const [complaintFromFilter, setComplaintFromFilter] = useState<string>('all');
-  const [workerLocationFilter, setWorkerLocationFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
 
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -803,11 +805,8 @@ export default function ComplaintsPage() {
     contractNameById,
   ]);
 
-  // Pagination
-  const paginatedComplaints = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return filteredComplaints.slice(startIndex, startIndex + pageSize);
-  }, [filteredComplaints, currentPage, pageSize]);
+  // paginatedComplaints = filteredComplaints on the current server page
+  const paginatedComplaints = filteredComplaints;
 
   // Statistics
   const statistics = useMemo(() => {
@@ -1471,14 +1470,15 @@ export default function ComplaintsPage() {
       </div>
 
       {/* Pagination */}
-      {filteredComplaints.length > 0 && (
+      {serverTotal > 0 && (
         <div className={styles.paginationContainer}>
           <Pagination
             current={currentPage}
             pageSize={pageSize}
-            total={filteredComplaints.length}
+            total={serverTotal}
             onChange={(page, size) => {
               setCurrentPage(page);
+              if (size !== pageSize) setCurrentPage(1);
               setPageSize(size);
             }}
             showSizeChanger
