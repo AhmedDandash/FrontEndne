@@ -77,30 +77,43 @@ export class MediationContractService {
   }
 
   static async create(data: CreateMediationContractDto): Promise<MediationContract> {
-    const payload: Record<string, any> = {
-      customerId: data.customerId ?? null,
-      workerId: data.workerId ?? null,
-      workerPassportNumber: data.workerPassportNumber ?? null,
-      offerId: data.offerId ?? null,
-      contractType: data.contractType != null ? Number(data.contractType) : 0,
-      contractCategory: data.contractCategory != null ? Number(data.contractCategory) : null,
-      marketerId: data.marketerId ?? null,
-      visaType: data.visaType != null ? Number(data.visaType) : null,
-      visaNumber: data.visaNumber ?? null,
-      visaDateHijri: data.visaDateHijri ?? null,
-      visaDate: data.visaDate ?? null,
-      isComprehensiveQualificationVisa: data.isComprehensiveQualificationVisa ?? null,
-      arrivalDestinationId: data.arrivalDestinationId != null ? Number(data.arrivalDestinationId) : null,
-      otherCosts: data.otherCosts != null ? Number(data.otherCosts) : null,
-      managerDiscount: data.managerDiscount != null ? Number(data.managerDiscount) : null,
-      costDiscount: data.costDiscount != null ? Number(data.costDiscount) : null,
-      costDescription: data.costDescription ?? null,
-      hasContractInsurance: data.hasContractInsurance ?? false,
-      domesticWorkerInsurance: data.domesticWorkerInsurance != null ? Number(data.domesticWorkerInsurance) : null,
-      musanedContractNumber: data.musanedContractNumber ?? null,
-      musanedDocumentationNumber: data.musanedDocumentationNumber ?? null,
+    const form = new FormData();
+
+    const append = (key: string, value: any) => {
+      if (value != null) form.append(key, String(value));
     };
-    const response = await api.post<any>(API_ENDPOINTS.MEDIATION_CONTRACT.CREATE, payload);
+
+    append('CustomerId', data.customerId);
+    append('WorkerId', data.workerId);
+    append('WorkerPassportNumber', data.workerPassportNumber);
+    append('OfferId', data.offerId);
+    append('ContractType', data.contractType != null ? Number(data.contractType) : 0);
+    if (data.contractCategory != null) append('ContractCategory', Number(data.contractCategory));
+    if (data.marketerId) append('MarketerId', data.marketerId);
+    if (data.visaType != null) append('VisaType', Number(data.visaType));
+    if (data.visaNumber) append('VisaNumber', data.visaNumber);
+    if (data.visaDateHijri) append('VisaDateHijri', data.visaDateHijri);
+    if (data.visaDate) append('VisaDate', data.visaDate);
+    if (data.isComprehensiveQualificationVisa != null) {
+      form.append('IsComprehensiveQualificationVisa', String(data.isComprehensiveQualificationVisa));
+    }
+    if (data.arrivalDestinationId != null) append('ArrivalDestinationId', Number(data.arrivalDestinationId));
+    if (data.otherCosts != null) append('OtherCosts', Number(data.otherCosts));
+    if (data.managerDiscount != null) append('ManagerDiscount', Number(data.managerDiscount));
+    if (data.costDiscount != null) append('CostDiscount', Number(data.costDiscount));
+    if (data.costDescription) append('CostDescription', data.costDescription);
+    form.append('HasContractInsurance', String(data.hasContractInsurance ?? false));
+    if (data.domesticWorkerInsurance != null) append('DomesticWorkerInsurance', Number(data.domesticWorkerInsurance));
+    if (data.musanedContractNumber) append('MusanedContractNumber', data.musanedContractNumber);
+    if (data.musanedDocumentationNumber) append('MusanedDocumentationNumber', data.musanedDocumentationNumber);
+
+    if (data.attachments?.length) {
+      data.attachments.forEach((file) => form.append('Attachments', file));
+    }
+
+    const response = await api.post<any>(API_ENDPOINTS.MEDIATION_CONTRACT.CREATE, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return this.unwrap<MediationContract>(response.data);
   }
 

@@ -17,7 +17,9 @@ import {
   Space,
   Alert,
   Tag,
+  Upload,
 } from 'antd';
+import type { UploadFile } from 'antd';
 import {
   UserOutlined,
   FileTextOutlined,
@@ -27,6 +29,8 @@ import {
   SaveOutlined,
   TeamOutlined,
   IdcardOutlined,
+  PaperClipOutlined,
+  InboxOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useMediationContracts } from '@/hooks/api/useMediationContracts';
@@ -59,6 +63,7 @@ export default function AddMediationContractPage() {
   const [hasInsurance, setHasInsurance] = useState(false);
   const [isComprehensiveVisa, setIsComprehensiveVisa] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<MediationContractOffer | null>(null);
+  const [attachmentFiles, setAttachmentFiles] = useState<UploadFile[]>([]);
 
   const { createContract, isCreating } = useMediationContracts();
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
@@ -105,6 +110,13 @@ export default function AddMediationContractPage() {
     step2Title: isRtl ? 'بيانات العامل والعرض' : 'Worker & Offer',
     step3Title: isRtl ? 'بيانات التأشيرة' : 'Visa Data',
     step4Title: isRtl ? 'التكاليف' : 'Contract Costs',
+    step5Title: isRtl ? 'المرفقات' : 'Attachments',
+    // Attachments step
+    attachmentsTitle: isRtl ? 'رفع المرفقات' : 'Upload Attachments',
+    attachmentsHint: isRtl
+      ? 'يمكنك رفع ملفات PDF أو صور (JPG، PNG) أو مستندات Word. حد أقصى 10 ملفات.'
+      : 'You can upload PDF, images (JPG, PNG), or Word documents. Maximum 10 files.',
+    attachmentsDragText: isRtl ? 'اسحب الملفات هنا أو انقر للاختيار' : 'Drag files here or click to select',
     // Customer step
     selectCustomer: isRtl ? 'اختر العميل' : 'Select Customer',
     customer: isRtl ? 'العميل' : 'Customer',
@@ -153,6 +165,7 @@ export default function AddMediationContractPage() {
     { title: t.step2Title, icon: <TeamOutlined /> },
     { title: t.step3Title, icon: <IdcardOutlined /> },
     { title: t.step4Title, icon: <DollarOutlined /> },
+    { title: t.step5Title, icon: <PaperClipOutlined /> },
   ];
 
   const computedTotalCost = () => {
@@ -186,6 +199,7 @@ export default function AddMediationContractPage() {
           'hasContractInsurance',
           'domesticWorkerInsurance',
         ],
+        [], // attachments — no required fields
       ];
       await form.validateFields(fieldGroups[currentStep]);
       setCurrentStep((s) => s + 1);
@@ -224,6 +238,9 @@ export default function AddMediationContractPage() {
           hasInsurance && vals.domesticWorkerInsurance
             ? Number(vals.domesticWorkerInsurance)
             : null,
+        attachments: attachmentFiles
+          .map((f) => f.originFileObj as File | undefined)
+          .filter((f): f is File => !!f),
       };
 
       await createContract(payload);
@@ -688,7 +705,38 @@ export default function AddMediationContractPage() {
     </>
   );
 
-  const stepContent = [renderStep1, renderStep2, renderStep3, renderStep4];
+  // ─── Step 5: Attachments ───────────────────────────────────────────────────
+  const renderStep5 = () => (
+    <>
+      <Alert
+        type="info"
+        showIcon
+        message={t.attachmentsHint}
+        style={{ marginBottom: 24 }}
+      />
+      <Upload.Dragger
+        multiple
+        maxCount={10}
+        fileList={attachmentFiles}
+        beforeUpload={() => false}
+        onChange={({ fileList }) => setAttachmentFiles(fileList)}
+        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+        style={{ padding: '24px 0' }}
+      >
+        <p className="ant-upload-drag-icon">
+          <InboxOutlined style={{ fontSize: 48, color: '#003366' }} />
+        </p>
+        <p className="ant-upload-text" style={{ fontSize: 16, fontWeight: 600 }}>
+          {t.attachmentsDragText}
+        </p>
+        <p className="ant-upload-hint" style={{ color: '#888' }}>
+          PDF, JPG, PNG, DOC, DOCX
+        </p>
+      </Upload.Dragger>
+    </>
+  );
+
+  const stepContent = [renderStep1, renderStep2, renderStep3, renderStep4, renderStep5];
 
   return (
     <div className={styles.addPage} dir={isRtl ? 'rtl' : 'ltr'}>

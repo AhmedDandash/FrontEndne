@@ -509,10 +509,9 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
   const [form] = Form.useForm();
   const createMutation = useCreateTransferContract();
 
-  const { data: customers = [] } = useCustomers() as any;
-  const { data: workers   = [] } = useWorkers()  as any;
-  const { data: marketerData }   = useMarketers()    as any;
-  const marketers = Array.isArray(marketerData) ? marketerData : marketerData?.data ?? [];
+  const { customers }         = useCustomers();
+  const { data: workers }     = useWorkers();
+  const { data: marketers }   = useMarketers();
 
   const transferFees   = Form.useWatch('transferFees',   form) ?? 0;
   const governmentFees = Form.useWatch('governmentFees', form) ?? 0;
@@ -535,17 +534,15 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
     });
   };
 
-  const customerOpts = (Array.isArray(customers) ? customers : customers?.data ?? []).map(
-    (c: any) => ({
-      value: c.id,
-      label: (isAr ? c.arabicName : c.englishName) || c.arabicName || c.englishName || `#${c.id}`,
-    })
-  );
-  const workerOpts = (Array.isArray(workers) ? workers : workers?.data ?? []).map((w: any) => ({
+  const customerOpts = (customers ?? []).map((c: any) => ({
+    value: c.id,
+    label: (isAr ? c.arabicName : c.englishName) || c.arabicName || c.englishName || `#${c.id}`,
+  }));
+  const workerOpts = (workers ?? []).map((w: any) => ({
     value: w.id,
     label: (isAr ? w.fullNameAr : w.fullNameEn) || w.fullNameAr || w.fullNameEn || `#${w.id}`,
   }));
-  const marketerOpts = marketers.map((m: any) => ({
+  const marketerOpts = (marketers ?? []).map((m: any) => ({
     value: m.id,
     label: (isAr ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
   }));

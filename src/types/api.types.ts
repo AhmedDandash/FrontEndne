@@ -1063,6 +1063,7 @@ export interface CreateMediationContractDto {
   domesticWorkerInsurance?: number | null;
   musanedContractNumber?: string | null;
   musanedDocumentationNumber?: string | null;
+  attachments?: File[];
 }
 
 export interface ContractCancelDto {
