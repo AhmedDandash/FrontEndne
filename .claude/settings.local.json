@@ -17,7 +17,9 @@
       "Bash(Select-Object -First 30)",
       "Bash(Format-Table FullName)",
       "Bash(New-Item -ItemType Directory -Path \"F:\\\\Freelance\\\\FrontEnd\\\\src\\\\app\\\\change-password\" -Force)",
-      "Bash(Out-Null)"
+      "Bash(Out-Null)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(grep -E \"\\\\.ts$\")"
     ]
   }
 }

@@ -5,7 +5,6 @@ import { Layout, Spin } from 'antd';
 import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import Breadcrumbs from './Breadcrumbs';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import styles from './MainLayout.module.css';
@@ -124,8 +123,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         />
 
         <Content className={styles.content}>
-          <Breadcrumbs />
-          <div className={styles.pageContent}>{children}</div>
+<div className={styles.pageContent}>{children}</div>
         </Content>
       </Layout>
     </Layout>

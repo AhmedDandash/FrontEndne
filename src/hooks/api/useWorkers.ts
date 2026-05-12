@@ -22,6 +22,28 @@ import { api } from '@/lib/api/client';
 const WORKERS_KEY = ['workers'];
 const MEDICAL_EXAMINATIONS_KEY = ['medical-examinations'];
 
+export interface WorkerFilterParams {
+  SearchName?: string;
+  NationalId?: string;
+  PassportNo?: string;
+  Mobile?: string;
+  NationalityId?: string;
+  JobId?: string;
+  WorkerStatus?: number;
+  MinAge?: number;
+  MaxAge?: number;
+  AgentId?: string;
+  PageNumber?: number;
+  PageSize?: number;
+}
+
+export interface WorkerPagedResult {
+  workers: Worker[];
+  total: number;
+  pageNumber: number;
+  pageSize: number;
+}
+
 const isFile = (value: unknown): value is File => typeof File !== 'undefined' && value instanceof File;
 
 const appendFormValue = (formData: FormData, key: string, value: unknown) => {
@@ -88,6 +110,39 @@ export function useWorkers() {
     queryFn: async () => {
       const response = await api.get(API_ENDPOINTS.WORKERS.GET_ALL);
       return extractWorkerArray(response.data);
+    },
+  });
+}
+
+/** Fetch workers with server-side filtering and pagination */
+export function useWorkersFiltered(params?: WorkerFilterParams) {
+  const cleanParams: Record<string, string | number> = {};
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        cleanParams[k] = v as string | number;
+      }
+    });
+  }
+
+  return useQuery<WorkerPagedResult>({
+    queryKey: [...WORKERS_KEY, 'filtered', cleanParams],
+    queryFn: async () => {
+      const response = await api.get(API_ENDPOINTS.WORKERS.GET_ALL, {
+        params: Object.keys(cleanParams).length > 0 ? cleanParams : undefined,
+      });
+      const payload = response.data;
+      const workers = extractWorkerArray(payload);
+      const total =
+        payload?.total ??
+        payload?.data?.total ??
+        payload?.result?.total ??
+        payload?.totalCount ??
+        payload?.data?.totalCount ??
+        workers.length;
+      const pageNumber = cleanParams.PageNumber as number ?? 1;
+      const pageSize = cleanParams.PageSize as number ?? 20;
+      return { workers, total, pageNumber, pageSize };
     },
   });
 }

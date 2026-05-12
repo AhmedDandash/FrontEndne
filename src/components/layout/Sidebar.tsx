@@ -153,6 +153,10 @@ export default function Sidebar({
               key: '/contracts/mediationcontract/offers',
               label: language === 'ar' ? 'عروض عقود الاستقدام ' : 'Mediation Offers',
             },
+            {
+              key: '/contracts/mediationrequests',
+              label: language === 'ar' ? 'طلب عقد توسط' : 'Mediation Requests',
+            },
           ],
         },
         /* ───── Operation submenu (moved from top-level) ───── */

@@ -103,13 +103,8 @@ export class MediationContractService {
     append('ContractType', data.contractType != null ? Number(data.contractType) : 0);
     if (data.contractCategory != null) append('ContractCategory', Number(data.contractCategory));
     if (data.marketerId) append('MarketerId', data.marketerId);
-    if (data.visaType != null) append('VisaType', Number(data.visaType));
     if (data.visaNumber) append('VisaNumber', data.visaNumber);
-    if (data.visaDateHijri) append('VisaDateHijri', data.visaDateHijri);
     if (data.visaDate) append('VisaDate', data.visaDate);
-    if (data.isComprehensiveQualificationVisa != null) {
-      form.append('IsComprehensiveQualificationVisa', String(data.isComprehensiveQualificationVisa));
-    }
     if (data.arrivalDestinationId != null) append('ArrivalDestinationId', Number(data.arrivalDestinationId));
     if (data.otherCosts != null) append('OtherCosts', Number(data.otherCosts));
     if (data.managerDiscount != null) append('ManagerDiscount', Number(data.managerDiscount));

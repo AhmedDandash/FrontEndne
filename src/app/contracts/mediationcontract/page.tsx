@@ -51,6 +51,7 @@ import {
   PaperClipOutlined,
   FilePdfOutlined,
   DownloadOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
@@ -59,6 +60,7 @@ import {
   useMediationContracts,
   useMediationContract,
 } from '@/hooks/api/useMediationContracts';
+import { useCreateComplaint } from '@/hooks/api/useComplaints';
 import type {
   MediationContract,
   ContractCancelDto,
@@ -67,12 +69,15 @@ import type {
   DeliveryFormSignDto,
   WarrantyReturnDto,
   UpdateContractStatusDto,
+  CreateComplaintDto,
 } from '@/types/api.types';
 import {
   MEDIATION_CONTRACT_STATUS,
   MEDIATION_CONTRACT_TYPE,
   ARRIVAL_DESTINATIONS,
   CANCEL_BY,
+  COMPLAINT_SOURCE,
+  COMPLAINT_PRIORITY,
   getEnumLabel,
   toSelectOptions,
 } from '@/constants/enums';
@@ -99,6 +104,8 @@ export default function MediationContractsPage() {
   const [showCustomerSelectModal, setShowCustomerSelectModal] = useState(false);
   const [customerSelectId, setCustomerSelectId] = useState<number | null>(null);
 
+  const [showComplaintModal, setShowComplaintModal] = useState(false);
+
   // Lifecycle modals
   const [showSignModal, setShowSignModal] = useState(false);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
@@ -113,6 +120,7 @@ export default function MediationContractsPage() {
   const [deliverySignForm] = Form.useForm();
   const [warrantyReturnForm] = Form.useForm();
   const [updateStatusForm] = Form.useForm();
+  const [complaintForm] = Form.useForm();
 
   // API hooks
   const {
@@ -133,6 +141,8 @@ export default function MediationContractsPage() {
     isReturning,
     isUpdatingStatus,
   } = useMediationContracts({ pageNumber: currentPage, pageSize });
+
+  const { mutateAsync: createComplaint, isPending: isCreatingComplaint } = useCreateComplaint();
 
   const { data: contractDetail, isLoading: isLoadingDetail } = useMediationContract(
     showDetailsModal ? selectedContract?.id : undefined
@@ -210,6 +220,10 @@ export default function MediationContractsPage() {
     oldStatus: language === 'ar' ? 'الحالة السابقة' : 'Old Status',
     changedBy: language === 'ar' ? 'بواسطة' : 'Changed By',
     note: language === 'ar' ? 'ملاحظة' : 'Note',
+    addComplaint: language === 'ar' ? 'إضافة شكوى' : 'Add Complaint',
+    complaintSource: language === 'ar' ? 'مصدر الشكوى' : 'Complaint Source',
+    complaintPriority: language === 'ar' ? 'الأولوية' : 'Priority',
+    complaintNotes: language === 'ar' ? 'ملاحظات الشكوى' : 'Complaint Notes',
   };
 
   // Helper functions
@@ -402,6 +416,28 @@ export default function MediationContractsPage() {
       setSelectedContract(null);
     } catch (error) {
       console.error('Update status form validation failed:', error);
+    }
+  };
+
+  // Handle add complaint linked to this contract
+  const handleAddComplaint = async () => {
+    try {
+      const values = await complaintForm.validateFields();
+      const data: CreateComplaintDto = {
+        source: values.source ?? null,
+        priority: values.priority ?? null,
+        customerId: selectedContract?.customerId ?? null,
+        relatedContractType: 1, // mediation contract
+        relatedContractId: selectedContract?.id ?? null,
+        notesAr: values.notesAr ?? null,
+        notesEn: values.notesEn ?? null,
+      };
+      await createComplaint(data);
+      setShowComplaintModal(false);
+      complaintForm.resetFields();
+      setSelectedContract(null);
+    } catch {
+      // validation errors shown inline
     }
   };
 
@@ -636,6 +672,19 @@ export default function MediationContractsPage() {
                 }}
               >
                 {t.updateStatus}
+              </Button>
+              <Button
+                type="link"
+                icon={<WarningOutlined />}
+                className={[styles.actionBtn, styles.dangerBtn].join(' ')}
+                block
+                onClick={() => {
+                  setSelectedContract(contract);
+                  complaintForm.resetFields();
+                  setShowComplaintModal(true);
+                }}
+              >
+                {t.addComplaint}
               </Button>
             </div>
           </div>
@@ -1492,6 +1541,47 @@ export default function MediationContractsPage() {
           </Form.Item>
           <Form.Item name="notes" label={t.note}>
             <Input.TextArea rows={2} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ========== ADD COMPLAINT MODAL ========== */}
+      <Modal
+        title={
+          <span>
+            <WarningOutlined style={{ color: '#ff4d4f', marginInlineEnd: 8 }} />
+            {t.addComplaint}
+            {selectedContract && ` — #${selectedContract.id}`}
+          </span>
+        }
+        open={showComplaintModal}
+        onCancel={() => { setShowComplaintModal(false); complaintForm.resetFields(); }}
+        onOk={handleAddComplaint}
+        okText={t.submit}
+        cancelText={t.cancel}
+        confirmLoading={isCreatingComplaint}
+        okButtonProps={{ danger: true }}
+      >
+        <Form form={complaintForm} layout="vertical">
+          <Form.Item
+            name="source"
+            label={t.complaintSource}
+            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
+          >
+            <Select placeholder={t.complaintSource} options={toSelectOptions([...COMPLAINT_SOURCE], language)} />
+          </Form.Item>
+          <Form.Item
+            name="priority"
+            label={t.complaintPriority}
+            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
+          >
+            <Select placeholder={t.complaintPriority} options={toSelectOptions([...COMPLAINT_PRIORITY], language)} />
+          </Form.Item>
+          <Form.Item name="notesAr" label={language === 'ar' ? 'ملاحظات (عربي)' : 'Notes (Arabic)'}>
+            <Input.TextArea rows={3} placeholder={language === 'ar' ? 'وصف الشكوى بالعربي...' : 'Complaint description in Arabic...'} />
+          </Form.Item>
+          <Form.Item name="notesEn" label={language === 'ar' ? 'ملاحظات (إنجليزي)' : 'Notes (English)'}>
+            <Input.TextArea rows={3} placeholder={language === 'ar' ? 'وصف الشكوى بالإنجليزي...' : 'Complaint description in English...'} />
           </Form.Item>
         </Form>
       </Modal>

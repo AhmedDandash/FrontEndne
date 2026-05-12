@@ -409,6 +409,8 @@ export interface WorkerDto {
   workerType?: number | null;
   /** renamed from uploadimage; create/update sends File via multipart/form-data */
   uploadImage?: string | File | null;
+  /** Worker intro video; create/update sends File via multipart/form-data */
+  uploadVideo?: string | File | null;
   /** Additional document/image uploads for create/update */
   attachments?: (string | File)[] | null;
   isActive?: boolean | null;
@@ -417,6 +419,7 @@ export interface WorkerDto {
 export interface Worker extends WorkerDto {
   id: number | string;
   uploadImage?: string | null;
+  uploadVideo?: string | null;
   attachments?: string[] | null;
   // Read-only fields from GET response
   agentName?: string | null;
@@ -1078,11 +1081,8 @@ export interface CreateMediationContractDto {
   offerId?: string | null;
   marketerId?: string | null;
   contractCategory?: number | null;
-  visaType?: number | null;
   visaNumber?: string | null;
-  visaDateHijri?: string | null;
   visaDate?: string | null;
-  isComprehensiveQualificationVisa?: boolean | null;
   arrivalDestinationId?: number | null;
   otherCosts?: number | null;
   managerDiscount?: number | null;

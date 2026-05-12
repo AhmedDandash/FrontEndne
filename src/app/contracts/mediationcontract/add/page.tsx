@@ -39,7 +39,6 @@ import { useWorkers } from '@/hooks/api/useWorkers';
 import type { CreateMediationContractDto, MediationContractOffer } from '@/types/api.types';
 import {
   MEDIATION_CONTRACT_TYPE,
-  VISA_TYPE,
   ARRIVAL_DESTINATIONS,
   toSelectOptions,
 } from '@/constants/enums';
@@ -61,7 +60,6 @@ export default function AddMediationContractPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
   const [hasInsurance, setHasInsurance] = useState(false);
-  const [isComprehensiveVisa, setIsComprehensiveVisa] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<MediationContractOffer | null>(null);
   const [attachmentFiles, setAttachmentFiles] = useState<UploadFile[]>([]);
 
@@ -129,10 +127,10 @@ export default function AddMediationContractPage() {
     // Worker step
     selectWorker: isRtl ? 'اختر العامل' : 'Select Worker',
     worker: isRtl ? 'العامل' : 'Worker',
-    workerPassportNumber: isRtl ? 'رقم الجواز (للتحقق)' : 'Passport Number (Verification)',
+    workerPassportNumber: isRtl ? 'رقم الجواز' : 'Passport Number',
     workerPassportNote: isRtl
-      ? 'مطلوب للتحقق من هوية العامل عند إنشاء العقد'
-      : 'Required to verify worker identity on contract creation',
+      ? 'يتم ملؤه تلقائياً عند اختيار العامل'
+      : 'Auto-filled when a worker is selected',
     workerNomination: isRtl ? 'نوع الترشيح' : 'Worker Nomination',
     offerSelection: isRtl ? 'اختر العرض' : 'Select Offer',
     offer: isRtl ? 'العرض' : 'Offer',
@@ -140,11 +138,8 @@ export default function AddMediationContractPage() {
       ? 'اختر عرض من الجدول لملء الراتب والتكلفة المحلية وتكلفة الوكيل تلقائياً'
       : 'Select an offer from the table to auto-fill salary, local cost, and agent cost',
     // Visa step
-    visaType: isRtl ? 'نوع التأشيرة' : 'Visa Type',
     visaNumber: isRtl ? 'رقم التأشيرة' : 'Visa Number',
     visaDate: isRtl ? 'تاريخ التأشيرة' : 'Visa Date',
-    visaDateHijri: isRtl ? 'تاريخ التأشيرة (هجري)' : 'Visa Date (Hijri)',
-    comprehensiveVisa: isRtl ? 'تأشيرة تأهيل شامل' : 'Comprehensive Qualification Visa',
     arrivalDestination: isRtl ? 'وجهة الوصول' : 'Arrival Destination',
     // Costs step
     localCost: isRtl ? 'التكلفة المحلية' : 'Local Cost (SAR)',
@@ -184,8 +179,8 @@ export default function AddMediationContractPage() {
     try {
       const fieldGroups: string[][] = [
         ['customerId', 'contractType', 'musanedContractNumber', 'marketerId', 'contractCategory'],
-        ['workerId', 'workerPassportNumber', 'offerId'],
-        ['visaType', 'visaNumber', 'visaDateHijri', 'visaDate', 'arrivalDestinationId'],
+        ['workerId', 'offerId'],
+        ['visaNumber', 'visaDate', 'arrivalDestinationId'],
         [
           'localCost',
           'agentCostSAR',
@@ -223,11 +218,8 @@ export default function AddMediationContractPage() {
         marketerId: vals.marketerId ? String(vals.marketerId) : null,
         contractCategory: vals.contractCategory ? Number(vals.contractCategory) : null,
         offerId: vals.offerId ? String(vals.offerId) : null,
-        visaType: vals.visaType ?? null,
         visaNumber: vals.visaNumber ?? null,
-        visaDateHijri: vals.visaDateHijri ?? null,
         visaDate: vals.visaDate ?? null,
-        isComprehensiveQualificationVisa: isComprehensiveVisa,
         arrivalDestinationId: vals.arrivalDestinationId ? Number(vals.arrivalDestinationId) : null,
         otherCosts: vals.otherCosts ? Number(vals.otherCosts) : null,
         managerDiscount: vals.managerDiscount ? Number(vals.managerDiscount) : null,
@@ -376,6 +368,10 @@ export default function AddMediationContractPage() {
                   .toLowerCase()
                   .includes(input.toLowerCase())
               }
+              onChange={(workerId) => {
+                const selected = (workers || []).find((w) => String(w.id) === String(workerId));
+                form.setFieldsValue({ workerPassportNumber: selected?.passportNo ?? '' });
+              }}
             >
               {(workers || []).map((w) => (
                 <Option key={w.id} value={w.id}>
@@ -389,10 +385,14 @@ export default function AddMediationContractPage() {
           <Form.Item
             name="workerPassportNumber"
             label={t.workerPassportNumber}
-            rules={[{ required: true, message: t.required }]}
             extra={t.workerPassportNote}
           >
-            <Input size="large" placeholder={isRtl ? 'رقم جواز السفر' : 'Passport number'} />
+            <Input
+              size="large"
+              readOnly
+              style={{ background: '#f5f5f5', cursor: 'default' }}
+              placeholder={isRtl ? 'يُملأ تلقائياً' : 'Auto-filled'}
+            />
           </Form.Item>
         </Col>
         <Col xs={24} md={12}>
@@ -429,28 +429,8 @@ export default function AddMediationContractPage() {
   const renderStep3 = () => (
     <Row gutter={[24, 0]}>
       <Col xs={24} md={12}>
-        <Form.Item name="visaType" label={t.visaType}>
-          <Select
-            size="large"
-            placeholder={isRtl ? 'اختر نوع التأشيرة' : 'Select visa type'}
-            allowClear
-          >
-            {toSelectOptions(VISA_TYPE, language).map((opt) => (
-              <Option key={opt.value} value={opt.value}>
-                {opt.label}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-      </Col>
-      <Col xs={24} md={12}>
         <Form.Item name="visaNumber" label={t.visaNumber}>
           <Input size="large" placeholder={isRtl ? 'رقم التأشيرة' : 'Visa number'} />
-        </Form.Item>
-      </Col>
-      <Col xs={24} md={12}>
-        <Form.Item name="visaDateHijri" label={t.visaDateHijri}>
-          <Input size="large" placeholder={isRtl ? 'مثال: 1446/05/10' : 'e.g. 1446/05/10'} />
         </Form.Item>
       </Col>
       <Col xs={24} md={12}>
@@ -477,16 +457,6 @@ export default function AddMediationContractPage() {
               </Option>
             ))}
           </Select>
-        </Form.Item>
-      </Col>
-      <Col xs={24} md={12}>
-        <Form.Item label={t.comprehensiveVisa}>
-          <Switch
-            checked={isComprehensiveVisa}
-            onChange={setIsComprehensiveVisa}
-            checkedChildren={isRtl ? 'نعم' : 'Yes'}
-            unCheckedChildren={isRtl ? 'لا' : 'No'}
-          />
         </Form.Item>
       </Col>
     </Row>

@@ -279,8 +279,8 @@ function ComplaintForm({ form, language, isArabic, t }: ComplaintFormProps) {
   const showWorker = sourceValue === WORKER_FROM;
   const showAgent =
     sourceValue === COMPLAINT_SOURCE.find((o) => o.labelEn === 'From Agent')?.value; // 3 = Agent
-  const showContract = CONTRACT_SOURCES.includes(sourceValue);
-  const showWorkerLocation = showWorker || showContract || showCustomer;
+  const showContract = sourceValue != null;
+  const showWorkerLocation = showWorker || CONTRACT_SOURCES.includes(sourceValue) || showCustomer;
 
   // API data
   const { customers = [], isLoading: loadingCustomers } = useCustomers();
@@ -498,6 +498,7 @@ export default function ComplaintsPage() {
   const [contractTypeFilter, setContractTypeFilter] = useState<string>('all');
   const [complaintFromFilter, setComplaintFromFilter] = useState<string>('all');
   const [workerLocationFilter, setWorkerLocationFilter] = useState<string>('all');
+  const [contractNumberFilter, setContractNumberFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -784,13 +785,21 @@ export default function ComplaintsPage() {
         workerLocationFilter === 'all' ||
         complaint.workerLocation?.toString() === workerLocationFilter;
 
-      // Tab filter by complaint type
+      const resolvedContractNumber =
+        normalizeIdentifierPart(complaint.contractNumber) ||
+        contractNameById.get(normalizeIdentifierPart(complaint.relatedContractId))?.contractNumber ||
+        normalizeIdentifierPart(complaint.relatedContractId);
+      const matchesContractNumber =
+        !contractNumberFilter ||
+        resolvedContractNumber.toLowerCase().includes(contractNumberFilter.toLowerCase());
+
       return (
         matchesSearch &&
         matchesStatus &&
         matchesContractType &&
         matchesComplaintFrom &&
-        matchesWorkerLocation
+        matchesWorkerLocation &&
+        matchesContractNumber
       );
     });
   }, [
@@ -799,6 +808,7 @@ export default function ComplaintsPage() {
     contractTypeFilter,
     complaintFromFilter,
     workerLocationFilter,
+    contractNumberFilter,
     complaints,
     customerNameById,
     workerNameById,
@@ -1232,6 +1242,21 @@ export default function ComplaintsPage() {
                   value: o.value.toString(),
                 })),
               ]}
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>
+              {isArabic ? 'رقم العقد' : 'Contract #'}
+            </label>
+            <Input
+              placeholder={isArabic ? 'بحث برقم العقد...' : 'Search by contract number...'}
+              prefix={<SearchOutlined />}
+              value={contractNumberFilter}
+              onChange={(e) => {
+                setContractNumberFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              allowClear
             />
           </Col>
         </Row>

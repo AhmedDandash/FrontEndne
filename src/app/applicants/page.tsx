@@ -24,6 +24,7 @@ import {
   Switch,
   Avatar,
   Upload,
+  Pagination,
   message,
 } from 'antd';
 import type { MenuProps } from 'antd';
@@ -56,11 +57,13 @@ import {
   LogoutOutlined,
   FileImageOutlined,
   HomeOutlined,
+  VideoCameraOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { resolveImageUrl } from '@/utils/image';
 import {
-  useWorkers,
+  useWorkersFiltered,
   useWorker,
   useWorkerRefused,
   useWorkerDeactivate,
@@ -267,9 +270,21 @@ const translations = {
     printCV: 'Print CV',
     documents: 'Documents',
     passportScan: 'Passport Scan',
+    uploadVideo: 'Worker Video',
+    noVideo: 'No video uploaded',
+    removeVideo: 'Remove video',
+    nationalIdFilter: 'National ID',
+    mobileFilter: 'Mobile',
+    videoSection: 'Worker Video',
     noDocuments: 'No documents uploaded',
   },
   ar: {
+    uploadVideo: 'فيديو العامل',
+    noVideo: 'لا يوجد فيديو محمل',
+    removeVideo: 'حذف الفيديو',
+    nationalIdFilter: 'رقم الهوية',
+    mobileFilter: 'رقم الجوال',
+    videoSection: 'فيديو العامل',
     downloadPdf: 'تحميل تقرير كل البيانات PDF',
     pageTitle: 'ادارة العمالة',
     addWorker: 'إضافة العمالة',
@@ -445,6 +460,8 @@ const translations = {
   },
 };
 
+
+
 type WorkerAttachmentItem = {
   url: string;
   file?: File;
@@ -479,7 +496,11 @@ export default function WorkersPage() {
     ageMin?: number;
     ageMax?: number;
     passportFilter?: string;
+    nationalId?: string;
+    mobile?: string;
   }>({});
+  const [pageNumber, setPageNumber] = useState(1);
+  const PAGE_SIZE = 50;
   const [form] = Form.useForm();
   const [medicalExamForm] = Form.useForm();
   const [housingForm] = Form.useForm();
@@ -491,13 +512,42 @@ export default function WorkersPage() {
   const [workerImagePreview, setWorkerImagePreview] = useState<string | null>(null);
   /** Additional attachments: existing URLs plus new local files */
   const [workerExtraImages, setWorkerExtraImages] = useState<WorkerAttachmentItem[]>([]);
+  /** New video file selected in the form */
+  const [workerVideoFile, setWorkerVideoFile] = useState<File | null>(null);
+  /** Existing video URL (from API) or object URL for new file */
+  const [workerVideoUrl, setWorkerVideoUrl] = useState<string | null>(null);
 
   const t = (key: keyof typeof translations.en) => {
     const lang = translations[language];
     return lang[key] || key;
   };
 
-  const { data: workers = [], isLoading } = useWorkers();
+  const workerApiParams = useMemo(() => {
+    const p: import('@/hooks/api/useWorkers').WorkerFilterParams = {
+      PageNumber: pageNumber,
+      PageSize: PAGE_SIZE,
+    };
+    if (filters.search) p.SearchName = filters.search;
+    if (filters.nationalId) p.NationalId = filters.nationalId;
+    if (filters.passportFilter) p.PassportNo = filters.passportFilter;
+    if (filters.mobile) p.Mobile = filters.mobile;
+    if (filters.nationality) p.NationalityId = String(filters.nationality);
+    if (filters.job) p.JobId = String(filters.job);
+    if (filters.agent) p.AgentId = String(filters.agent);
+    if (activeTab !== 0) p.WorkerStatus = activeTab;
+    else if (filters.status) p.WorkerStatus = Number(filters.status);
+    if (filters.ageMin !== undefined) p.MinAge = filters.ageMin;
+    if (filters.ageMax !== undefined) p.MaxAge = filters.ageMax;
+    return p;
+  }, [filters, activeTab, pageNumber]);
+
+  const {
+    data: workersResult,
+    isLoading,
+  } = useWorkersFiltered(workerApiParams);
+
+  const workers = workersResult?.workers ?? [];
+  const totalWorkers = workersResult?.total ?? 0;
   const { data: jobs = [] } = useJobs();
   const { data: agents = [] } = useAgents();
   const { data: nationalities = [] } = useNationalities();
@@ -560,101 +610,15 @@ export default function WorkersPage() {
     { key: 6, label: t('tabDeported'), icon: <StopOutlined /> },
   ];
 
-  // Filter workers
+  // Client-side filtering for fields not supported by the API (gender, workerType)
   const filteredWorkers = useMemo(() => {
     return workers.filter((worker) => {
-      const searchLower = filters.search?.toLowerCase() || '';
-      const matchesSearch =
-        !searchLower ||
-        worker.fullNameAr?.toLowerCase().includes(searchLower) ||
-        worker.fullNameEn?.toLowerCase().includes(searchLower) ||
-        worker.passportNo?.toLowerCase().includes(searchLower) ||
-        worker.referenceNo?.toLowerCase().includes(searchLower);
-
-      const selectedNationality = filters.nationality
-        ? nationalities.find(
-            (nationality) =>
-              String(nationality.id) === String(filters.nationality) ||
-              String(nationality.nationalityId) === String(filters.nationality)
-          )
-        : undefined;
-      const selectedNationalityValues = [
-        filters.nationality,
-        selectedNationality?.id,
-        selectedNationality?.nationalityId,
-      ]
-        .filter((value) => value !== undefined && value !== null && value !== '')
-        .map(String);
-      const selectedNationalityNames = [
-        selectedNationality?.nationalityNameAr,
-        selectedNationality?.nationalityNameEn,
-      ]
-        .filter(Boolean)
-        .map((value) => String(value).toLowerCase());
-      const workerNationalityValues = [worker.nationalityId]
-        .filter((value) => value !== undefined && value !== null && value !== '')
-        .map(String);
-      const workerNationalitySource = worker as Worker & {
-        nationalityNameAr?: string;
-        nationalityNameEn?: string;
-      };
-      const workerNationalityNames = [
-        workerNationalitySource.nationalityName,
-        workerNationalitySource.nationalityNameAr,
-        workerNationalitySource.nationalityNameEn,
-      ]
-        .filter(Boolean)
-        .map((value) => String(value).toLowerCase());
-
-      const selectedJob = filters.job
-        ? jobs.find((job) => String(job.id) === String(filters.job))
-        : undefined;
-      const selectedJobNames = [selectedJob?.jobNameAr, selectedJob?.jobNameEn]
-        .filter(Boolean)
-        .map((value) => String(value).toLowerCase());
-      const workerJobNames = [worker.jobName, worker.jobname]
-        .filter(Boolean)
-        .map((value) => String(value).toLowerCase());
-
       const matchesGender = !filters.gender || worker.gender === Number(filters.gender);
-      const matchesNationality =
-        !filters.nationality ||
-        workerNationalityValues.some((value) => selectedNationalityValues.includes(value)) ||
-        workerNationalityNames.some((name) => selectedNationalityNames.includes(name));
-      const matchesJob =
-        !filters.job ||
-        String(worker.jobId) === String(filters.job) ||
-        workerJobNames.some((name) => selectedJobNames.includes(name));
-      const matchesAgent = !filters.agent || String(worker.agentId) === String(filters.agent);
-      const matchesStatus = !filters.status || worker.workerStatus === Number(filters.status);
       const matchesWorkerType =
         !filters.workerType || worker.workerType === Number(filters.workerType);
-      const matchesAgeMin =
-        filters.ageMin === undefined || (worker.age != null && worker.age >= filters.ageMin);
-      const matchesAgeMax =
-        filters.ageMax === undefined || (worker.age != null && worker.age <= filters.ageMax);
-      const matchesPassport =
-        !filters.passportFilter ||
-        worker.passportNo?.toLowerCase().includes(filters.passportFilter.toLowerCase());
-
-      // Tab-based workerSatus filtering: 0=All, 1=Trial, 2=Available, 3=Under Procedure, 4=Back Out, 5=Inside Kingdom, 6=Deported
-      const matchesTab = activeTab === 0 || worker.workerStatus === activeTab;
-
-      return (
-        matchesSearch &&
-        matchesGender &&
-        matchesNationality &&
-        matchesJob &&
-        matchesAgent &&
-        matchesStatus &&
-        matchesWorkerType &&
-        matchesTab &&
-        matchesAgeMin &&
-        matchesAgeMax &&
-        matchesPassport
-      );
+      return matchesGender && matchesWorkerType;
     });
-  }, [workers, filters, activeTab, jobs, nationalities]);
+  }, [workers, filters.gender, filters.workerType]);
 
   const handleDownloadAllInfoReport = async () => {
     const { printAllWorkersPDF } = await import('@/utils/pdf');
@@ -670,6 +634,8 @@ export default function WorkersPage() {
     setWorkerImageFile(null);
     setWorkerImagePreview(null);
     setWorkerExtraImages([]);
+    setWorkerVideoFile(null);
+    setWorkerVideoUrl(null);
     if (worker?.id) {
       setEditingWorkerId(String(worker.id));
     } else {
@@ -686,6 +652,8 @@ export default function WorkersPage() {
     setWorkerImageFile(null);
     setWorkerImagePreview(null);
     setWorkerExtraImages([]);
+    setWorkerVideoFile(null);
+    setWorkerVideoUrl(null);
   };
 
   // Populate form when editing worker details are loaded
@@ -694,10 +662,18 @@ export default function WorkersPage() {
       // Pre-load existing image for editing
       if (editingWorker.uploadImage) {
         setWorkerImageFile(null);
-        setWorkerImagePreview(editingWorker.uploadImage);
+        setWorkerImagePreview(editingWorker.uploadImage as string);
       } else {
         setWorkerImageFile(null);
         setWorkerImagePreview(null);
+      }
+      // Pre-load existing video for editing
+      if (editingWorker.uploadVideo) {
+        setWorkerVideoFile(null);
+        setWorkerVideoUrl(editingWorker.uploadVideo as string);
+      } else {
+        setWorkerVideoFile(null);
+        setWorkerVideoUrl(null);
       }
       if (editingWorker.attachments) {
         setWorkerExtraImages(editingWorker.attachments.map((url) => ({ url })));
@@ -736,6 +712,7 @@ export default function WorkersPage() {
       workerType: restValues.workerType ? Number(restValues.workerType) : undefined,
       workerStatus: restValues.workerStatus ? Number(restValues.workerStatus) : undefined,
       uploadImage: workerImageFile || undefined,
+      uploadVideo: workerVideoFile || undefined,
       attachments: workerExtraImages.map((item) => item.file).filter((file): file is File => !!file),
     };
 
@@ -852,6 +829,7 @@ export default function WorkersPage() {
 
   const handleClearFilters = () => {
     setFilters({});
+    setPageNumber(1);
   };
 
   const handlePrintCV = async (worker: Worker) => {
@@ -1050,7 +1028,7 @@ export default function WorkersPage() {
           <button
             key={tab.key}
             className={`${styles.tabItem} ${activeTab === tab.key ? styles.tabItemActive : ''}`}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => { setActiveTab(tab.key); setPageNumber(1); }}
           >
             {tab.icon}
             {tab.label}
@@ -1070,7 +1048,7 @@ export default function WorkersPage() {
               placeholder={t('searchPlaceholder')}
               prefix={<SearchOutlined />}
               value={filters.search || ''}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              onChange={(e) => { setFilters({ ...filters, search: e.target.value }); setPageNumber(1); }}
               style={{ width: 300 }}
               allowClear
             />
@@ -1190,9 +1168,38 @@ export default function WorkersPage() {
                   size="large"
                   placeholder={t('passportFilter')}
                   value={filters.passportFilter || ''}
-                  onChange={(e) =>
-                    setFilters({ ...filters, passportFilter: e.target.value || undefined })
-                  }
+                  onChange={(e) => {
+                    setFilters({ ...filters, passportFilter: e.target.value || undefined });
+                    setPageNumber(1);
+                  }}
+                  allowClear
+                />
+              </Col>
+
+              <Col xs={24} md={6}>
+                <label className={styles.filterLabel}>{t('nationalIdFilter')}</label>
+                <Input
+                  size="large"
+                  placeholder={t('nationalIdFilter')}
+                  value={filters.nationalId || ''}
+                  onChange={(e) => {
+                    setFilters({ ...filters, nationalId: e.target.value || undefined });
+                    setPageNumber(1);
+                  }}
+                  allowClear
+                />
+              </Col>
+
+              <Col xs={24} md={6}>
+                <label className={styles.filterLabel}>{t('mobileFilter')}</label>
+                <Input
+                  size="large"
+                  placeholder={t('mobileFilter')}
+                  value={filters.mobile || ''}
+                  onChange={(e) => {
+                    setFilters({ ...filters, mobile: e.target.value || undefined });
+                    setPageNumber(1);
+                  }}
                   allowClear
                 />
               </Col>
@@ -1496,6 +1503,20 @@ export default function WorkersPage() {
         </div>
       )}
 
+      {/* Pagination */}
+      {totalWorkers > PAGE_SIZE && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+          <Pagination
+            current={pageNumber}
+            pageSize={PAGE_SIZE}
+            total={totalWorkers}
+            onChange={(page) => setPageNumber(page)}
+            showSizeChanger={false}
+            showTotal={(total) => language === 'ar' ? `إجمالي ${total} عامل` : `Total ${total} workers`}
+          />
+        </div>
+      )}
+
       {/* ── Assign to Housing Modal ──────────────────────────────────────── */}
       <Modal
         open={!!housingModalWorkerId}
@@ -1783,13 +1804,31 @@ export default function WorkersPage() {
               </div>
             )}
 
+            {/* Worker Video */}
+            {viewingWorker?.uploadVideo && (
+              <>
+                <Divider />
+                <div style={{ marginTop: 8 }}>
+                  <h4 style={{ color: '#003366', marginBottom: 12 }}>
+                    <PlayCircleOutlined style={{ marginInlineEnd: 6 }} />
+                    {t('videoSection')}
+                  </h4>
+                  <video
+                    src={viewingWorker.uploadVideo}
+                    controls
+                    style={{ width: '100%', maxHeight: 300, borderRadius: 8, border: '1px solid #e2e8f0', background: '#000' }}
+                  />
+                </div>
+              </>
+            )}
+
             {/* Documents / Attachments */}
             <Divider />
             <div style={{ marginTop: 8 }}>
               <h4 style={{ color: '#003366', marginBottom: 12 }}>{t('documents')}</h4>
               {(() => {
                 const allDocs = [
-                  ...(viewingWorker?.uploadImage ? [viewingWorker.uploadImage] : []),
+                  ...(viewingWorker?.uploadImage ? [viewingWorker.uploadImage as string] : []),
                   ...(viewingWorker?.attachments ?? []),
                 ];
                 return allDocs.length > 0 ? (
@@ -1917,6 +1956,61 @@ export default function WorkersPage() {
                 </Button>
               )}
             </div>
+          </div>
+
+          {/* ── Video Upload ── */}
+          <div style={{ marginBottom: 24, padding: '12px 16px', background: '#f8faff', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontWeight: 600, color: '#003366', fontSize: 13 }}>
+                <VideoCameraOutlined style={{ marginInlineEnd: 6 }} />
+                {language === 'ar' ? t('uploadVideo') : t('uploadVideo')}
+              </span>
+              <Upload
+                accept="video/mp4,video/webm,video/ogg,video/quicktime,video/avi"
+                showUploadList={false}
+                maxCount={1}
+                beforeUpload={(file) => {
+                  const isVideo = file.type.startsWith('video/');
+                  if (!isVideo) {
+                    message.error(language === 'ar' ? 'الرجاء اختيار ملف فيديو صالح' : 'Please select a valid video file');
+                    return false;
+                  }
+                  if (file.size / 1024 / 1024 > 200) {
+                    message.error(language === 'ar' ? 'يجب أن يكون حجم الفيديو أقل من 200 ميجابايت' : 'Video must be less than 200 MB');
+                    return false;
+                  }
+                  setWorkerVideoFile(file);
+                  setWorkerVideoUrl(URL.createObjectURL(file));
+                  return false;
+                }}
+              >
+                <Button icon={<UploadOutlined />} size="small">
+                  {language === 'ar' ? 'رفع فيديو' : 'Upload Video'}
+                </Button>
+              </Upload>
+            </div>
+            {workerVideoUrl ? (
+              <div>
+                <video
+                  src={workerVideoUrl}
+                  controls
+                  style={{ width: '100%', maxHeight: 200, borderRadius: 6, border: '1px solid #e2e8f0', background: '#000' }}
+                />
+                <Button
+                  type="link"
+                  danger
+                  size="small"
+                  style={{ marginTop: 4 }}
+                  onClick={() => { setWorkerVideoFile(null); setWorkerVideoUrl(null); }}
+                >
+                  {language === 'ar' ? t('removeVideo') : t('removeVideo')}
+                </Button>
+              </div>
+            ) : (
+              <p style={{ color: '#9ca3af', fontSize: 12, margin: 0 }}>
+                {language === 'ar' ? t('noVideo') : t('noVideo')}
+              </p>
+            )}
           </div>
 
           {/* ── Additional Attachments (images + PDFs) ── */}
