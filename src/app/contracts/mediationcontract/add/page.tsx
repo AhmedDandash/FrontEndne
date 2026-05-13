@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Card,
-  Steps,
   Form,
   Input,
   Select,
@@ -31,11 +30,13 @@ import {
   IdcardOutlined,
   PaperClipOutlined,
   InboxOutlined,
+  CheckOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useMediationContracts } from '@/hooks/api/useMediationContracts';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { useWorkers } from '@/hooks/api/useWorkers';
+import { useMarketers } from '@/hooks/api/useMarketers';
 import type { CreateMediationContractDto, MediationContractOffer } from '@/types/api.types';
 import {
   MEDIATION_CONTRACT_TYPE,
@@ -66,6 +67,7 @@ export default function AddMediationContractPage() {
   const { createContract, isCreating } = useMediationContracts();
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
   const { data: workers, isLoading: isLoadingWorkers } = useWorkers();
+  const { data: marketers, isLoading: isLoadingMarketers } = useMarketers();
 
   // Handle offer selection → auto-fill fields
   const handleOfferSelect = (offer: MediationContractOffer) => {
@@ -312,11 +314,19 @@ export default function AddMediationContractPage() {
         </Col>
         <Col xs={24} md={12}>
           <Form.Item name="marketerId" label={t.marketer}>
-            <InputNumber
+            <Select
+              showSearch
+              allowClear
+              loading={isLoadingMarketers}
               size="large"
-              style={{ width: '100%' }}
-              placeholder={isRtl ? 'معرف المسوق' : 'Marketer ID'}
-              min={0}
+              placeholder={isRtl ? 'اختر المسوق' : 'Select marketer'}
+              filterOption={(input, option) =>
+                String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={(marketers ?? []).map((m) => ({
+                value: m.id,
+                label: (isRtl ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
+              }))}
             />
           </Form.Item>
         </Col>
@@ -732,14 +742,29 @@ export default function AddMediationContractPage() {
       </div>
 
       {/* Steps Progress */}
-      <Card className={styles.stepsCard}>
-        <Steps
-          current={currentStep}
-          direction="horizontal"
-          labelPlacement="vertical"
-          items={steps.map((s) => ({ title: s.title, icon: s.icon }))}
-        />
-      </Card>
+      <div className={styles.stepsTracker}>
+        <div className={styles.stepsRow}>
+          {steps.map((step, idx) => {
+            const isDone = idx < currentStep;
+            const isActive = idx === currentStep;
+            const stateClass = isDone
+              ? styles.stepDone
+              : isActive
+              ? styles.stepActive
+              : styles.stepWait;
+            return (
+              <div key={idx} className={`${styles.stepItem} ${stateClass}`}>
+                <div className={styles.stepIconWrap}>
+                  {isDone ? <CheckOutlined /> : step.icon}
+                  {isDone && <span className={styles.stepBadge}><CheckOutlined style={{ fontSize: 10 }} /></span>}
+                </div>
+                <div className={styles.stepLabel}>{step.title}</div>
+                <div className={styles.stepNum}>{isRtl ? `خطوة ${idx + 1}` : `Step ${idx + 1}`}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Step Form Content */}
       <Card className={styles.formCard}>

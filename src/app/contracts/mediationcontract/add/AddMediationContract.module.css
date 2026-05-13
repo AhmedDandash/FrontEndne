@@ -67,26 +67,142 @@
   border-color: white !important;
 }
 
-/* Steps Card */
-.stepsCard {
-  border-radius: 12px !important;
-  margin-block-end: 24px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+/* Steps Tracker */
+.stepsTracker {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-block-end: 24px;
+  box-shadow: 0 2px 12px rgba(0, 51, 102, 0.08);
+  overflow-x: auto;
 }
 
-.stepsCard :global(.ant-steps-item-title) {
-  font-size: 13px !important;
-  font-weight: 500 !important;
+.stepsRow {
+  display: flex;
+  align-items: flex-start;
+  min-width: 480px;
 }
 
-.stepsCard :global(.ant-steps-item-icon) {
-  background: #003366 !important;
-  border-color: #003366 !important;
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
 }
 
-.stepsCard :global(.ant-steps-item-finish .ant-steps-item-icon) {
-  background: #00478c !important;
-  border-color: #00478c !important;
+/* Connector line between steps */
+.stepItem:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 28px;
+  inset-inline-start: calc(50% + 28px);
+  width: calc(100% - 56px);
+  height: 3px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  transition: background 0.4s ease;
+  z-index: 0;
+}
+
+.stepItem.stepDone:not(:last-child)::after {
+  background: linear-gradient(90deg, #003366, #00478c);
+}
+
+/* Icon circle */
+.stepIconWrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+  border: 3px solid #e5e7eb;
+  background: #f9fafb;
+  color: #9ca3af;
+}
+
+.stepItem.stepActive .stepIconWrap {
+  background: linear-gradient(135deg, #003366 0%, #00478c 100%);
+  border-color: #003366;
+  color: white;
+  box-shadow: 0 6px 20px rgba(0, 51, 102, 0.35);
+  transform: scale(1.08);
+}
+
+.stepItem.stepDone .stepIconWrap {
+  background: linear-gradient(135deg, #00478c 0%, #0066cc 100%);
+  border-color: #00478c;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 71, 140, 0.25);
+}
+
+/* Step number badge on done */
+.stepBadge {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: white;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.stepItem.stepWait .stepBadge {
+  display: none;
+}
+
+.stepItem.stepActive .stepBadge {
+  display: none;
+}
+
+/* Step label */
+.stepLabel {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  line-height: 1.4;
+  max-width: 90px;
+  transition: color 0.3s ease;
+}
+
+.stepItem.stepActive .stepLabel {
+  color: #003366;
+  font-size: 13px;
+}
+
+.stepItem.stepDone .stepLabel {
+  color: #00478c;
+}
+
+/* Step number pill */
+.stepNum {
+  font-size: 10px;
+  font-weight: 500;
+  color: #d1d5db;
+  margin-top: 2px;
+}
+
+.stepItem.stepActive .stepNum {
+  color: #6b7280;
+}
+
+.stepItem.stepDone .stepNum {
+  color: #93c5fd;
 }
 
 /* Form Card */

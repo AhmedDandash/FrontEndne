@@ -68,7 +68,7 @@ import type {
   CreateComplaintDto,
 } from '@/types/api.types';
 import styles from './SponsorshipTransfer.module.css';
-import { useWorkers } from '@/hooks/api/useWorkers';
+import { useWorkersWantsTransfer } from '@/hooks/api/useWorkers';
 
 const { TextArea } = Input;
 
@@ -510,7 +510,7 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
   const createMutation = useCreateTransferContract();
 
   const { customers }         = useCustomers();
-  const { data: workers }     = useWorkers();
+  const { data: workers }     = useWorkersWantsTransfer();
   const { data: marketers }   = useMarketers();
 
   const transferFees   = Form.useWatch('transferFees',   form) ?? 0;
@@ -538,9 +538,9 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
     value: c.id,
     label: (isAr ? c.arabicName : c.englishName) || c.arabicName || c.englishName || `#${c.id}`,
   }));
-  const workerOpts = (workers ?? []).map((w: any) => ({
+  const workerOpts = (workers ?? []).map((w) => ({
     value: w.id,
-    label: (isAr ? w.fullNameAr : w.fullNameEn) || w.fullNameAr || w.fullNameEn || `#${w.id}`,
+    label: w.name || `#${w.id}`,
   }));
   const marketerOpts = (marketers ?? []).map((m: any) => ({
     value: m.id,

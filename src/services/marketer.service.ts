@@ -14,6 +14,9 @@ export class MarketerService {
   static async getAll(): Promise<Marketer[]> {
     const response = await api.get<any>(API_ENDPOINTS.MARKETER.GET_ALL);
 
+    // { success, data: { items: [...] } }
+    if (response.data?.data?.items && Array.isArray(response.data.data.items))
+      return response.data.data.items;
     if (Array.isArray(response.data)) return response.data;
     if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;
     if (response.data?.result && Array.isArray(response.data.result)) return response.data.result;

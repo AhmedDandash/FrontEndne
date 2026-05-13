@@ -96,6 +96,7 @@ export const API_ENDPOINTS = {
     ACTIVATE: (id: number | string) => `/api/V1/Worker/${id}/activate`,
     MOVE_TO_ACCOMMODATION: (id: number | string) => `/api/V1/Worker/${id}/move-to-accommodation`,
     SET_REFUSAL: (id: number | string) => `/api/V1/Worker/${id}/set-refusal`,
+    WANTS_TRANSFER: '/api/V1/Worker/WantsTransfer',
   },
 
   // Recruitment Request

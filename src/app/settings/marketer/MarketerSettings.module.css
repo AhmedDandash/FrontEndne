@@ -1,0 +1,118 @@
+/* Marketer Settings Page */
+
+.page {
+  padding-block: 24px;
+  padding-inline: 24px;
+  min-block-size: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+}
+
+/* Header */
+.pageHeader {
+  background: linear-gradient(135deg, #003366 0%, #00478c 100%);
+  border-radius: 12px;
+  padding-block: 28px;
+  padding-inline: 32px;
+  margin-block-end: 24px;
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.15);
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerIcon {
+  font-size: 36px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: white;
+}
+
+.pageTitle {
+  margin: 0 0 4px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+}
+
+.pageSubtitle {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.refreshBtn {
+  border: 2px solid rgba(255, 255, 255, 0.6) !important;
+  color: white !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+.refreshBtn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: white !important;
+}
+
+.addBtn {
+  background: white !important;
+  color: #003366 !important;
+  border-color: white !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+}
+
+.addBtn:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Table Card */
+.tableCard {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.spinWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding-block: 16px;
+    padding-inline: 16px;
+  }
+
+  .pageHeader {
+    padding-block: 20px;
+    padding-inline: 20px;
+  }
+
+  .pageTitle {
+    font-size: 18px;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

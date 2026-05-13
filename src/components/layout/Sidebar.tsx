@@ -272,7 +272,6 @@ export default function Sidebar({
       children: [
         { key: '/agents', label: language === 'ar' ? 'جميع الوكلاء' : 'All Agents' },
         // { key: '/agents/assignment', label: language === 'ar' ? 'تعيين الوكلاء' : 'Assignment' },
-        
       ],
     },
     // {
@@ -405,15 +404,14 @@ export default function Sidebar({
         //   label: language === 'ar' ? 'إعدادات الموقع' : 'Webpage Settings',
         // },
         // { key: '/settings/sms', label: language === 'ar' ? 'إعدادات الرسائل' : 'SMS Settings' },
+       
         {
-          key: 'mediation-settings',
-          label: language === 'ar' ? 'إعدادات عقود الاستقدام' : 'Mediation Settings',
-          children: [
-            {
-              key: '/settings/mediation',
-              label: language === 'ar' ? 'إعدادات المتابعة' : 'Follow-Up Settings',
-            },
-          ],
+          key: '/settings/mediation',
+          label: language === 'ar' ? 'إعدادات عقود الاستقدام' : 'Follow-Up Settings',
+        },
+        {
+          key: '/settings/marketer',
+          label: language === 'ar' ? 'المسوقون ' : 'Marketers',
         },
         {
           key: '/register',

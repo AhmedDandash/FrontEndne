@@ -103,6 +103,24 @@ const extractWorkerArray = (payload: any): Worker[] => {
   return [];
 };
 
+export interface WorkerTransferOption {
+  id: string;
+  name: string;
+}
+
+/** Fetch workers that have requested a sponsorship transfer (WantsTransfer flag) */
+export function useWorkersWantsTransfer() {
+  return useQuery<WorkerTransferOption[]>({
+    queryKey: [...WORKERS_KEY, 'wants-transfer'],
+    queryFn: async () => {
+      const response = await api.get(API_ENDPOINTS.WORKERS.WANTS_TRANSFER);
+      const payload = response.data;
+      const data = payload?.data ?? payload;
+      return Array.isArray(data) ? (data as WorkerTransferOption[]) : [];
+    },
+  });
+}
+
 /** Fetch all workers */
 export function useWorkers() {
   return useQuery<Worker[]>({
