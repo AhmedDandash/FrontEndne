@@ -309,45 +309,45 @@ export const API_ENDPOINTS = {
       `/api/FollowUp/ContractCreationRequirement/Delete/${id}`,
   },
 
-  // ─── HR Module (/api/HR/*) ───────────────────────────────────────────────
+  // ─── HR Module (/api/V1/*) ───────────────────────────────────────────────
 
   HR_EMPLOYEE: {
-    GET_ALL: '/api/HR/Employee',
-    GET_BY_ID: (id: string) => `/api/HR/Employee/${id}`,
-    CREATE: '/api/HR/Employee',
-    UPDATE: (id: string) => `/api/HR/Employee/${id}`,
-    DELETE: (id: string) => `/api/HR/Employee/${id}`,
-    RESET_PASSWORD: (id: string) => `/api/HR/Employee/${id}/reset-password`,
+    GET_ALL: '/api/V1/Employee',
+    GET_BY_ID: (id: string) => `/api/V1/Employee/${id}`,
+    CREATE: '/api/V1/Employee',
+    UPDATE: (id: string) => `/api/V1/Employee/${id}`,
+    DELETE: (id: string) => `/api/V1/Employee/${id}`,
+    RESET_PASSWORD: (id: string) => `/api/V1/Employee/${id}/reset-password`,
   },
 
   HR_ATTENDANCE: {
-    CHECK_IN: '/api/HR/Attendance/CheckIn',
-    CHECK_OUT: '/api/HR/Attendance/CheckOut',
-    FILTER: '/api/HR/Attendance/Filter',
+    CHECK_IN: '/api/V1/Attendance/CheckIn',
+    CHECK_OUT: '/api/V1/Attendance/CheckOut',
+    FILTER: '/api/V1/Attendance/Filter',
   },
 
   HR_LEAVE: {
-    GET_ALL: '/api/HR/Leave',
-    CREATE: '/api/HR/Leave',
-    GET_BALANCE: (leaveTypeId: string) => `/api/HR/Leave/balance/${leaveTypeId}`,
-    APPROVE: (requestId: string) => `/api/HR/Leave/${requestId}/approve`,
-    REJECT: (requestId: string) => `/api/HR/Leave/${requestId}/reject`,
-    CANCEL: (requestId: string) => `/api/HR/Leave/${requestId}/cancel`,
+    GET_ALL: '/api/V1/Leave',
+    CREATE: '/api/V1/Leave',
+    GET_BALANCE: (leaveTypeId: string) => `/api/V1/Leave/balance/${leaveTypeId}`,
+    APPROVE: (requestId: string) => `/api/V1/Leave/${requestId}/approve`,
+    REJECT: (requestId: string) => `/api/V1/Leave/${requestId}/reject`,
+    CANCEL: (requestId: string) => `/api/V1/Leave/${requestId}/cancel`,
   },
 
   HR_LEAVE_TYPE: {
-    GET_ALL: '/api/HR/LeaveType',
-    GET_BY_ID: (id: string) => `/api/HR/LeaveType/${id}`,
-    CREATE: '/api/HR/LeaveType',
-    UPDATE: (id: string) => `/api/HR/LeaveType/${id}`,
-    DELETE: (id: string) => `/api/HR/LeaveType/${id}`,
+    GET_ALL: '/api/V1/LeaveType',
+    GET_BY_ID: (id: string) => `/api/V1/LeaveType/${id}`,
+    CREATE: '/api/V1/LeaveType',
+    UPDATE: (id: string) => `/api/V1/LeaveType/${id}`,
+    DELETE: (id: string) => `/api/V1/LeaveType/${id}`,
   },
 
   HR_PAYROLL: {
-    GENERATE: '/api/HR/Payroll/generate',
-    GET: '/api/HR/Payroll',
-    EXPORT: '/api/HR/Payroll/export',
-    CLOSE: (id: string) => `/api/HR/Payroll/close/${id}`,
+    GENERATE: '/api/V1/Payroll/generate',
+    GET: '/api/V1/Payroll',
+    EXPORT: '/api/V1/Payroll/export',
+    CLOSE: (id: string) => `/api/V1/Payroll/close/${id}`,
   },
 
   // ─── Housing Management — /api/Housing/* ─────────────────────────────────

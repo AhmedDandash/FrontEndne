@@ -115,13 +115,7 @@ export function useHREmployee(id: string) {
 
 // ─── Attendance hooks ─────────────────────────────────────────────────────────
 
-export function useHRAttendance(filter: AttendanceFilterDto) {
-  const query = useQuery({
-    queryKey: QK.attendance(filter),
-    queryFn: () => HRAttendanceService.filter(filter),
-    enabled: false,
-  });
-
+export function useHRAttendance(_filter: AttendanceFilterDto) {
   const filterMutation = useMutation({
     mutationFn: (dto: AttendanceFilterDto) => HRAttendanceService.filter(dto),
   });
