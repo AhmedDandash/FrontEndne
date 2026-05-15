@@ -309,126 +309,45 @@ export const API_ENDPOINTS = {
       `/api/FollowUp/ContractCreationRequirement/Delete/${id}`,
   },
 
-  // ─── HR Module ───────────────────────────────────────────────────────────
-  // Paths aligned with swagger-Hr-Api.json (RESTful style)
+  // ─── HR Module (/api/HR/*) ───────────────────────────────────────────────
 
-  // HR Employees — GET /api/HR/Employee, POST /api/HR/Employee,
-  //                GET|PUT|DELETE /api/HR/Employee/{id}
-  HR_EMPLOYEES: {
+  HR_EMPLOYEE: {
     GET_ALL: '/api/HR/Employee',
     GET_BY_ID: (id: string) => `/api/HR/Employee/${id}`,
     CREATE: '/api/HR/Employee',
     UPDATE: (id: string) => `/api/HR/Employee/${id}`,
     DELETE: (id: string) => `/api/HR/Employee/${id}`,
+    RESET_PASSWORD: (id: string) => `/api/HR/Employee/${id}/reset-password`,
   },
 
-  // HR Department — POST /api/HR/Department
-  HR_DEPARTMENT: {
-    CREATE: '/api/HR/Department',
-  },
-
-  // HR Lookups — GET /api/HR/Lookup/{resource}
-  HR_LOOKUPS: {
-    DEPARTMENTS: '/api/HR/Lookup/Departments',
-    SALARY_SCALES: '/api/HR/Lookup/SalaryScales',
-    CUSTODY_TYPES: '/api/HR/Lookup/CustodyTypes',
-  },
-
-  // Vacation Request
-  HR_VACATION: {
-    GET_BY_ID: (id: string) => `/api/HR/VacationRequest/${id}`,
-    CREATE: '/api/HR/VacationRequest/Create',
-    APPROVE: (id: string) => `/api/HR/VacationRequest/Approve/${id}`,
-    REJECT: (id: string) => `/api/HR/VacationRequest/Reject/${id}`,
-  },
-
-  // Permission Request
-  HR_PERMISSION: {
-    GET_ALL: '/api/HR/PermissionRequest/GetAll',
-    CREATE: '/api/HR/PermissionRequest/Create',
-    APPROVE: (id: string) => `/api/HR/PermissionRequest/Approve/${id}`,
-    REJECT: (id: string) => `/api/HR/PermissionRequest/Reject/${id}`,
-  },
-
-  // Custody Request
-  HR_CUSTODY: {
-    GET_ALL: '/api/HR/CustodyRequest/GetAll',
-    CREATE: '/api/HR/CustodyRequest/Create',
-    APPROVE: (id: string) => `/api/HR/CustodyRequest/Approve/${id}`,
-    REJECT: (id: string) => `/api/HR/CustodyRequest/Reject/${id}`,
-  },
-
-  // Job Modification Request
-  HR_JOB_MODIFICATION: {
-    GET_ALL: '/api/HR/JobModificationRequest/GetAll',
-    CREATE: '/api/HR/JobModificationRequest/Create',
-    APPROVE: (id: string) => `/api/HR/JobModificationRequest/Approve/${id}`,
-    REJECT: (id: string) => `/api/HR/JobModificationRequest/Reject/${id}`,
-  },
-
-  // Resignation Request
-  HR_RESIGNATION: {
-    GET_ALL: '/api/HR/ResignationRequest/GetAll',
-    CREATE: '/api/HR/ResignationRequest/Create',
-    APPROVE: (id: string) => `/api/HR/ResignationRequest/Approve/${id}`,
-    REJECT: (id: string) => `/api/HR/ResignationRequest/Reject/${id}`,
-  },
-
-  // Entitlements Request
-  HR_ENTITLEMENTS: {
-    GET_ALL: '/api/HR/EntitlementsRequest/GetAll',
-    CREATE: '/api/HR/EntitlementsRequest/Create',
-    APPROVE: (id: string) => `/api/HR/EntitlementsRequest/Approve/${id}`,
-    REJECT: (id: string) => `/api/HR/EntitlementsRequest/Reject/${id}`,
-  },
-
-  // Loans Request
-  HR_LOANS: {
-    GET_ALL: '/api/HR/LoanRequest/GetAll',
-    CREATE: '/api/HR/LoanRequest/Create',
-    APPROVE: (id: string) => `/api/HR/LoanRequest/Approve/${id}`,
-    REJECT: (id: string) => `/api/HR/LoanRequest/Reject/${id}`,
-  },
-
-  // Requests Follow-up (filter via POST)
-  HR_REQUESTS_INBOX: {
-    FILTER: '/api/HR/RequestsInbox/Filter',
-  },
-
-  HR_REQUESTS_OUTBOX: {
-    FILTER: '/api/HR/RequestsOutbox/Filter',
-  },
-
-  // Employee Commission
-  HR_COMMISSION: {
-    GET_ALL: '/api/HR/Commission/GetAll',
-    CREATE: '/api/HR/Commission/Create',
-    DELETE: (id: number) => `/api/HR/Commission/Delete/${id}`,
-  },
-
-  // Commission Slices
-  HR_COMMISSION_SLICES: {
-    GET_ALL: '/api/HR/CommissionSlice/GetAll',
-    CREATE: '/api/HR/CommissionSlice/Create',
-    DELETE: (id: number) => `/api/HR/CommissionSlice/Delete/${id}`,
-  },
-
-  // Attendance — filter via POST
   HR_ATTENDANCE: {
+    CHECK_IN: '/api/HR/Attendance/CheckIn',
+    CHECK_OUT: '/api/HR/Attendance/CheckOut',
     FILTER: '/api/HR/Attendance/Filter',
   },
 
-  // Leave Balance — filter via POST
-  HR_LEAVE_BALANCE: {
-    FILTER: '/api/HR/LeaveBalance/Filter',
+  HR_LEAVE: {
+    GET_ALL: '/api/HR/Leave',
+    CREATE: '/api/HR/Leave',
+    GET_BALANCE: (leaveTypeId: string) => `/api/HR/Leave/balance/${leaveTypeId}`,
+    APPROVE: (requestId: string) => `/api/HR/Leave/${requestId}/approve`,
+    REJECT: (requestId: string) => `/api/HR/Leave/${requestId}/reject`,
+    CANCEL: (requestId: string) => `/api/HR/Leave/${requestId}/cancel`,
   },
 
-  // HR Complaints
-  HR_COMPLAINTS: {
-    CREATE: '/api/HR/Complaint/Create',
-    REPLY: '/api/HR/Complaint/Reply',
-    CLOSE: (id: string) => `/api/HR/Complaint/Close/${id}`,
-    DELETE: (id: string) => `/api/HR/Complaint/Delete/${id}`,
+  HR_LEAVE_TYPE: {
+    GET_ALL: '/api/HR/LeaveType',
+    GET_BY_ID: (id: string) => `/api/HR/LeaveType/${id}`,
+    CREATE: '/api/HR/LeaveType',
+    UPDATE: (id: string) => `/api/HR/LeaveType/${id}`,
+    DELETE: (id: string) => `/api/HR/LeaveType/${id}`,
+  },
+
+  HR_PAYROLL: {
+    GENERATE: '/api/HR/Payroll/generate',
+    GET: '/api/HR/Payroll',
+    EXPORT: '/api/HR/Payroll/export',
+    CLOSE: (id: string) => `/api/HR/Payroll/close/${id}`,
   },
 
   // ─── Housing Management — /api/Housing/* ─────────────────────────────────

@@ -24,19 +24,8 @@ export { ContractCreationRequirementService } from './contract-creation-requirem
 export { NationalityFollowUpService } from './nationality-followup.service';
 export {
   HREmployeeService,
-  HRLookupService,
-  HRVacationService,
-  HRPermissionService,
-  HRCustodyService,
-  HRJobModificationService,
-  HRResignationService,
-  HREntitlementsService,
-  HRLoansService,
-  HRRequestsInboxService,
-  HRRequestsOutboxService,
-  HRCommissionService,
-  HRCommissionSliceService,
   HRAttendanceService,
-  HRLeaveBalanceService,
-  HRComplaintService,
+  HRLeaveService,
+  HRLeaveTypeService,
+  HRPayrollService,
 } from './hr.service';
