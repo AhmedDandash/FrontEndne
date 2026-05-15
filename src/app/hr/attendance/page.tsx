@@ -14,7 +14,6 @@ import {
   Row,
   Col,
   Statistic,
-  Divider,
 } from 'antd';
 import {
   SearchOutlined,
