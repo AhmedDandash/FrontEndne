@@ -9,6 +9,8 @@ import type {
   AttendanceFilterDto,
   AttendanceRecord,
   CreateLeaveRequestDto,
+  ApproveLeaveDto,
+  RejectLeaveDto,
   LeaveRequestDto,
   LeaveTypeDto,
   CreateLeaveTypeDto,
@@ -94,11 +96,11 @@ export class HREmployeeService {
 
 export class HRAttendanceService {
   static async checkIn(): Promise<void> {
-    await api.post(API_ENDPOINTS.HR_ATTENDANCE.CHECK_IN);
+    await api.post(API_ENDPOINTS.HR_ATTENDANCE.CHECK_IN, {});
   }
 
   static async checkOut(): Promise<void> {
-    await api.post(API_ENDPOINTS.HR_ATTENDANCE.CHECK_OUT);
+    await api.post(API_ENDPOINTS.HR_ATTENDANCE.CHECK_OUT, {});
   }
 
   static async filter(dto: AttendanceFilterDto): Promise<AttendanceRecord[]> {
@@ -125,12 +127,12 @@ export class HRLeaveService {
     return raw?.balance ?? raw?.Balance ?? 0;
   }
 
-  static async approve(requestId: string): Promise<void> {
-    await api.put(API_ENDPOINTS.HR_LEAVE.APPROVE(requestId));
+  static async approve(requestId: string, dto?: ApproveLeaveDto): Promise<void> {
+    await api.put(API_ENDPOINTS.HR_LEAVE.APPROVE(requestId), dto ?? {});
   }
 
-  static async reject(requestId: string): Promise<void> {
-    await api.put(API_ENDPOINTS.HR_LEAVE.REJECT(requestId));
+  static async reject(requestId: string, dto?: RejectLeaveDto): Promise<void> {
+    await api.put(API_ENDPOINTS.HR_LEAVE.REJECT(requestId), dto ?? {});
   }
 
   static async cancel(requestId: string): Promise<void> {

@@ -39,8 +39,7 @@ export default function HRAttendancePage() {
   const [form] = Form.useForm();
   const [filter, setFilter] = useState<AttendanceFilterDto>({});
 
-  const { records, isLoading, filterAttendance, checkIn, checkOut, isCheckingIn, isCheckingOut } =
-    useHRAttendance(filter);
+  const { records, isLoading, filterAttendance } = useHRAttendance(filter);
 
   const handleFilter = async () => {
     const values = form.getFieldsValue();
@@ -125,28 +124,10 @@ export default function HRAttendancePage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
         <Space>
           <ClockCircleOutlined style={{ fontSize: 22, color: '#1677ff' }} />
           <Title level={4} style={{ margin: 0 }}>الحضور والانصراف</Title>
-        </Space>
-        <Space>
-          <Button
-            type="default"
-            icon={<LoginOutlined />}
-            loading={isCheckingIn}
-            onClick={() => checkIn()}
-          >
-            تسجيل حضور
-          </Button>
-          <Button
-            type="primary"
-            icon={<LogoutOutlined />}
-            loading={isCheckingOut}
-            onClick={() => checkOut()}
-          >
-            تسجيل انصراف
-          </Button>
         </Space>
       </div>
 

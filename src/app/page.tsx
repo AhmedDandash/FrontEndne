@@ -12,7 +12,7 @@ export default function Home() {
 
     if (authToken) {
       // Redirect to dashboard if authenticated
-      router.push("/branch/management");
+      router.push("/dashboard");
     } else {
       // Redirect to login if not authenticated
       router.push("/login");

@@ -49,9 +49,13 @@ const STATUS_LABEL: Record<string, string> = {
   Cancelled: 'ملغى',
 };
 
+type ActionType = 'approve' | 'reject';
+
 export default function HRLeavePage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [actionModal, setActionModal] = useState<{ type: ActionType; record: LeaveRequestDto } | null>(null);
   const [form] = Form.useForm();
+  const [commentForm] = Form.useForm();
 
   const {
     leaveRequests,
@@ -83,6 +87,23 @@ export default function HRLeavePage() {
     await createLeave(dto);
     setCreateModalOpen(false);
     form.resetFields();
+  };
+
+  const handleActionConfirm = async () => {
+    if (!actionModal) return;
+    const { approvalComment } = commentForm.getFieldsValue();
+    if (actionModal.type === 'approve') {
+      await approveLeave({ requestId: actionModal.record.id, approvalComment });
+    } else {
+      await rejectLeave({ requestId: actionModal.record.id, approvalComment });
+    }
+    setActionModal(null);
+    commentForm.resetFields();
+  };
+
+  const handleActionCancel = () => {
+    setActionModal(null);
+    commentForm.resetFields();
   };
 
   const columns: ColumnsType<LeaveRequestDto> = [
@@ -132,6 +153,12 @@ export default function HRLeavePage() {
       render: (v) => (v ? dayjs(v).format('YYYY/MM/DD') : '—'),
     },
     {
+      title: 'تعليق القرار',
+      dataIndex: 'approvalComment',
+      ellipsis: true,
+      render: (v) => v || '—',
+    },
+    {
       title: 'الإجراءات',
       key: 'actions',
       width: 140,
@@ -143,37 +170,22 @@ export default function HRLeavePage() {
             {isPending && (
               <>
                 <Tooltip title="موافقة">
-                  <Popconfirm
-                    title="تأكيد الموافقة"
-                    description="هل تريد الموافقة على هذه الإجازة؟"
-                    onConfirm={() => approveLeave(record.id)}
-                    okText="موافقة"
-                    cancelText="إلغاء"
-                  >
-                    <Button
-                      type="text"
-                      icon={<CheckOutlined />}
-                      style={{ color: '#52c41a' }}
-                      loading={isApproving}
-                    />
-                  </Popconfirm>
+                  <Button
+                    type="text"
+                    icon={<CheckOutlined />}
+                    style={{ color: '#52c41a' }}
+                    loading={isApproving}
+                    onClick={() => setActionModal({ type: 'approve', record })}
+                  />
                 </Tooltip>
                 <Tooltip title="رفض">
-                  <Popconfirm
-                    title="تأكيد الرفض"
-                    description="هل تريد رفض هذه الإجازة؟"
-                    onConfirm={() => rejectLeave(record.id)}
-                    okText="رفض"
-                    cancelText="إلغاء"
-                    okButtonProps={{ danger: true }}
-                  >
-                    <Button
-                      type="text"
-                      danger
-                      icon={<CloseOutlined />}
-                      loading={isRejecting}
-                    />
-                  </Popconfirm>
+                  <Button
+                    type="text"
+                    danger
+                    icon={<CloseOutlined />}
+                    loading={isRejecting}
+                    onClick={() => setActionModal({ type: 'reject', record })}
+                  />
                 </Tooltip>
               </>
             )}
@@ -249,10 +261,11 @@ export default function HRLeavePage() {
           loading={isLoading}
           pagination={{ pageSize: 15, showSizeChanger: false }}
           locale={{ emptyText: 'لا توجد طلبات إجازة' }}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1200 }}
         />
       </Card>
 
+      {/* Create Leave Modal */}
       <Modal
         open={createModalOpen}
         title="طلب إجازة جديدة"
@@ -297,6 +310,45 @@ export default function HRLeavePage() {
 
           <Form.Item name="reason" label="سبب الإجازة (اختياري)">
             <TextArea rows={3} maxLength={500} showCount placeholder="اكتب سبب الإجازة..." />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Approve / Reject Modal */}
+      <Modal
+        open={!!actionModal}
+        title={actionModal?.type === 'approve' ? 'الموافقة على الإجازة' : 'رفض الإجازة'}
+        onCancel={handleActionCancel}
+        onOk={handleActionConfirm}
+        confirmLoading={actionModal?.type === 'approve' ? isApproving : isRejecting}
+        okText={actionModal?.type === 'approve' ? 'موافقة' : 'رفض'}
+        okButtonProps={actionModal?.type === 'reject' ? { danger: true } : undefined}
+        cancelText="إلغاء"
+        width={480}
+        destroyOnClose
+      >
+        {actionModal && (
+          <div style={{ marginBottom: 12, color: '#555' }}>
+            <strong>الموظف:</strong> {actionModal.record.employeeName || '—'}&nbsp;&nbsp;
+            <strong>الفترة:</strong>{' '}
+            {actionModal.record.fromDate ? dayjs(actionModal.record.fromDate).format('YYYY/MM/DD') : '—'}
+            {' — '}
+            {actionModal.record.toDate ? dayjs(actionModal.record.toDate).format('YYYY/MM/DD') : '—'}
+            &nbsp;({actionModal.record.daysCount ?? '—'} يوم)
+          </div>
+        )}
+        <Form form={commentForm} layout="vertical">
+          <Form.Item name="approvalComment" label="تعليق القرار (اختياري)">
+            <TextArea
+              rows={3}
+              maxLength={500}
+              showCount
+              placeholder={
+                actionModal?.type === 'approve'
+                  ? 'أضف ملاحظة للموافقة...'
+                  : 'اكتب سبب الرفض...'
+              }
+            />
           </Form.Item>
         </Form>
       </Modal>

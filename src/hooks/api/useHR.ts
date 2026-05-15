@@ -165,7 +165,8 @@ export function useHRLeave() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (requestId: string) => HRLeaveService.approve(requestId),
+    mutationFn: ({ requestId, approvalComment }: { requestId: string; approvalComment?: string }) =>
+      HRLeaveService.approve(requestId, { approvalComment }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.leave });
       message.success('تمت الموافقة على الإجازة');
@@ -176,7 +177,8 @@ export function useHRLeave() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (requestId: string) => HRLeaveService.reject(requestId),
+    mutationFn: ({ requestId, approvalComment }: { requestId: string; approvalComment?: string }) =>
+      HRLeaveService.reject(requestId, { approvalComment }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.leave });
       message.success('تم رفض الإجازة');

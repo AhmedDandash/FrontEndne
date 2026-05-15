@@ -113,6 +113,14 @@ export interface CreateLeaveRequestDto {
   reason?: string | null;
 }
 
+export interface ApproveLeaveDto {
+  approvalComment?: string | null;
+}
+
+export interface RejectLeaveDto {
+  approvalComment?: string | null;
+}
+
 export interface LeaveRequestDto {
   id: string;
   employeeId?: string | null;

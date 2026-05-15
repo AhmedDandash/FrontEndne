@@ -3,13 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Layout, Menu, Drawer, Badge } from 'antd';
 import {
-  // DashboardOutlined,
-  BarChartOutlined,
+  DashboardOutlined,
+  TeamOutlined,
   FileTextOutlined,
-  // UserAddOutlined,
-  // CalendarOutlined,
-  // FileSearchOutlined,
-  // GiftOutlined,
   UserOutlined,
   WarningOutlined,
   SettingOutlined,
@@ -56,16 +52,15 @@ export default function Sidebar({
   }, [pathname]);
 
   const menuItems: MenuItem[] = [
-    // {
-    //   key: '/dashboard',
-    //   icon: <DashboardOutlined />,
-    //   label: language === 'ar' ? 'لوحة التحكم' : 'Dashboard',
-    //   onClick: () => router.push('/dashboard'),
-    // },
+    {
+      key: '/dashboard',
+      icon: <DashboardOutlined />,
+      label: language === 'ar' ? 'الرئيسية' : 'Dashboard',
+    },
     {
       key: '/branch/management',
       icon: <ShopOutlined />,
-      label: language === 'ar' ? ' الفروع' : 'Branch',
+      label: language === 'ar' ? 'الفروع' : 'Branches',
     },
     // {
     //   key: 'statistics',
@@ -96,20 +91,16 @@ export default function Sidebar({
     // },
     {
       key: 'Workers',
-      icon: <BarChartOutlined />,
+      icon: <TeamOutlined />,
       label: language === 'ar' ? 'العمالة' : 'Workers',
       children: [
         {
           key: '/applicants',
-          label: language === 'ar' ? 'العمالة' : 'Workers',
+          label: language === 'ar' ? 'جميع العمال' : 'All Workers',
         },
-        // {
-        //   key: '/applicants/followup',
-        //   label: language === 'ar' ? 'متابعة العمال' : 'Workers Follow-up',
-        // },
         {
           key: '/applicants/available',
-          label: language === 'ar' ? 'العمال المتاحون' : 'Available Applicants',
+          label: language === 'ar' ? 'العمال المتاحون' : 'Available Workers',
         },
       ],
     },
@@ -264,7 +255,7 @@ export default function Sidebar({
     {
       key: '/sponsorship-transfer',
       icon: <ShopOutlined />,
-      label: language === 'ar' ? ' نقل الكفالة' : 'Sponsorship Transfer',
+      label: language === 'ar' ? 'نقل الكفالة' : 'Sponsorship Transfer',
     },
     {
       key: 'agents',
@@ -335,7 +326,7 @@ export default function Sidebar({
        
         {
           key: '/settings/mediation',
-          label: language === 'ar' ? 'إعدادات عقود الاستقدام' : 'Follow-Up Settings',
+          label: language === 'ar' ? 'إعدادات عقود الاستقدام' : 'Mediation Settings',
         },
         {
           key: '/settings/marketer',
