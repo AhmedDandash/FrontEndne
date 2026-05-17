@@ -36,7 +36,5 @@ export class DepartmentService {
     });
   }
 
-  static async delete(id: string): Promise<void> {
-    await api.delete(API_ENDPOINTS.DEPARTMENT.DELETE(id));
-  }
+
 }

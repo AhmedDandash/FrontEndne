@@ -149,24 +149,11 @@ export function useDepartments() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => DepartmentService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QK.departments });
-      message.success('تم حذف القسم');
-    },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل حذف القسم');
-    },
-  });
-
   return {
     departments: query.data ?? [],
     isLoading: query.isLoading,
     refetch: query.refetch,
     createDepartment: createMutation.mutateAsync,
-    deleteDepartment: deleteMutation.mutateAsync,
     isCreating: createMutation.isPending,
-    isDeleting: deleteMutation.isPending,
   };
 }

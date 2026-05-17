@@ -356,6 +356,7 @@ export const API_ENDPOINTS = {
   DEPARTMENT: {
     GET_ALL: '/api/V1/Lookup/Departments',
     CREATE: '/api/V1/Department',
+    DELETE: (id: string) => `/api/V1/Department/${id}`,
   },
 
   // ─── Admin API (/api/V1/Admin/*) ─────────────────────────────────────────
