@@ -14,6 +14,8 @@ import {
   Row,
   Col,
   Statistic,
+  Divider,
+  Alert,
 } from 'antd';
 import {
   SearchOutlined,
@@ -23,10 +25,10 @@ import {
   LogoutOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { useHRAttendance } from '@/hooks/api/useHR';
+import { useHRAttendance, useHREmployees } from '@/hooks/api/useHR';
 import type { AttendanceFilterDto, AttendanceRecord } from '@/types/hr.types';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 const STATUS_COLOR: Record<string, string> = {
@@ -35,11 +37,25 @@ const STATUS_COLOR: Record<string, string> = {
   Late: 'warning',
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  Present: 'حاضر',
+  Absent: 'غائب',
+  Late: 'متأخر',
+};
+
 export default function HRAttendancePage() {
   const [form] = Form.useForm();
   const [filter, setFilter] = useState<AttendanceFilterDto>({});
 
-  const { records, isLoading, filterAttendance } = useHRAttendance(filter);
+  const { records, isLoading, filterAttendance, checkIn, checkOut, isCheckingIn, isCheckingOut } =
+    useHRAttendance(filter);
+
+  const { employees } = useHREmployees({ pageSize: 200 });
+
+  const employeeOptions = employees.map((e) => ({
+    value: e.id,
+    label: `${e.nameAr || e.nameEn || '—'} ${e.employeeNumber ? `(${e.employeeNumber})` : ''}`.trim(),
+  }));
 
   const handleFilter = async () => {
     const values = form.getFieldsValue();
@@ -101,19 +117,22 @@ export default function HRAttendancePage() {
       title: 'دقائق التأخير',
       dataIndex: 'lateMinutes',
       render: (v) =>
-        v != null && v > 0 ? <Tag color="warning">{v} دقيقة</Tag> : <Tag color="success">في الوقت</Tag>,
+        v != null && v > 0 ? (
+          <Tag color="warning">{v} دقيقة</Tag>
+        ) : (
+          <Tag color="success">في الوقت</Tag>
+        ),
     },
     {
       title: 'دقائق الإضافي',
       dataIndex: 'overtimeMinutes',
-      render: (v) =>
-        v != null && v > 0 ? <Tag color="blue">{v} دقيقة</Tag> : '—',
+      render: (v) => (v != null && v > 0 ? <Tag color="blue">{v} دقيقة</Tag> : '—'),
     },
     {
       title: 'الحالة',
       dataIndex: 'status',
       render: (v) => (
-        <Tag color={STATUS_COLOR[v] ?? 'default'}>{v || '—'}</Tag>
+        <Tag color={STATUS_COLOR[v] ?? 'default'}>{STATUS_LABEL[v] ?? v ?? '—'}</Tag>
       ),
     },
   ];
@@ -127,13 +146,69 @@ export default function HRAttendancePage() {
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
         <Space>
           <ClockCircleOutlined style={{ fontSize: 22, color: '#1677ff' }} />
-          <Title level={4} style={{ margin: 0 }}>الحضور والانصراف</Title>
+          <Title level={4} style={{ margin: 0 }}>
+            الحضور والانصراف
+          </Title>
         </Space>
       </div>
 
+      {/* ── Check-In / Check-Out panel ── */}
+      <Card style={{ marginBottom: 16 }}>
+        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+          <Text strong style={{ fontSize: 14 }}>
+            تسجيل الحضور/الانصراف (للمستخدم الحالي)
+          </Text>
+          <Alert
+            type="info"
+            showIcon
+            message="يتم تحديد الموظف تلقائياً من رمز المصادقة (JWT). لا حاجة لاختيار الموظف."
+            style={{ marginBottom: 8 }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              icon={<LoginOutlined />}
+              loading={isCheckingIn}
+              onClick={() => checkIn()}
+              size="large"
+              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+            >
+              تسجيل الحضور
+            </Button>
+            <Button
+              icon={<LogoutOutlined />}
+              loading={isCheckingOut}
+              onClick={() => checkOut()}
+              size="large"
+              danger
+            >
+              تسجيل الانصراف
+            </Button>
+          </Space>
+        </Space>
+      </Card>
+
+      <Divider style={{ margin: '0 0 16px' }} />
+
+      {/* ── Filter panel ── */}
       <Card style={{ marginBottom: 16 }}>
         <Form form={form} layout="vertical">
           <Row gutter={16}>
+            <Col xs={24} sm={12} md={8}>
+              <Form.Item name="employeeId" label="الموظف">
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="اختر الموظف (اختياري)"
+                  options={employeeOptions}
+                  filterOption={(input, option) =>
+                    String(option?.label ?? '')
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                />
+              </Form.Item>
+            </Col>
             <Col xs={24} sm={12} md={8}>
               <Form.Item name="dateRange" label="الفترة الزمنية">
                 <RangePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
@@ -152,7 +227,7 @@ export default function HRAttendancePage() {
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} sm={12} md={8}>
+            <Col xs={24}>
               <Form.Item label=" " style={{ marginTop: 2 }}>
                 <Space>
                   <Button

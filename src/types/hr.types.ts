@@ -1,3 +1,55 @@
+// ==================== Admin / Position Types ====================
+// Position = Job = JobId = JobName — unified business concept per spec
+
+export interface EmployeePosition {
+  id: string;
+  nameAr?: string | null;
+  nameEn?: string | null;
+}
+
+export interface EmployeePositionCreateDto {
+  nameAr?: string | null;
+  nameEn?: string | null;
+}
+
+export interface AddUserDto {
+  fullName: string;
+  userName?: string | null;
+  email?: string | null;
+  password?: string | null;
+  role: string;
+}
+
+export interface AssignRoleDto {
+  userId: string;
+  role: string;
+}
+
+export interface AdminUser {
+  id: string;
+  userName?: string | null;
+  email?: string | null;
+  roles?: string[] | null;
+}
+
+export interface AdminRole {
+  id: string;
+  name?: string | null;
+}
+
+// ==================== Department Types ====================
+
+export interface Department {
+  id: string;
+  nameAr?: string | null;
+  nameEn?: string | null;
+}
+
+export interface CreateDepartmentDto {
+  nameAr?: string | null;
+  nameEn?: string | null;
+}
+
 // ==================== Employee Types ====================
 
 export interface EmployeeDto {
@@ -9,11 +61,16 @@ export interface EmployeeDto {
   idNumber?: string | null;
   mobileNumber?: string | null;
   jobId?: string | null;
-  jobName?: string | null;
+  jobNameAr?: string | null;
+  jobNameEn?: string | null;
   departmentId?: string | null;
-  departmentName?: string | null;
+  departmentNameAr?: string | null;
+  departmentNameEn?: string | null;
+  branchId?: string | number | null;
+  branchName?: string | null;
   nationalityId?: string | null;
-  nationalityName?: string | null;
+  nationalityNameAr?: string | null;
+  nationalityNameEn?: string | null;
   hiringDate?: string | null;
   isActive?: boolean;
   bankName?: string | null;
@@ -39,6 +96,7 @@ export interface CreateEmployeeDto {
   mobileNumber?: string | null;
   jobId?: string | null;
   departmentId?: string | null;
+  branchId?: string | null;
   nationalityId?: string | null;
   hiringDate?: string | null;
   basicSalary?: number | null;
@@ -60,6 +118,7 @@ export interface UpdateEmployeeDto {
   mobileNumber?: string | null;
   jobId?: string | null;
   departmentId?: string | null;
+  branchId?: string | null;
   nationalityId?: string | null;
   hiringDate?: string | null;
   basicSalary?: number | null;

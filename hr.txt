@@ -6,23 +6,23 @@ Version 1.0 — 2025
 Table of Contents
 1.
 Employee Management
-/api/HR/Employee
+/api/V1/Employee
 2.
 Attendance Management
-/api/HR/Attendance
+/api/V1/Attendance
 3.
 Leave Management
-/api/HR/Leave
+/api/V1/Leave
 4.
 Leave Types Management
-/api/HR/LeaveType
+/api/V1/LeaveType
 5.
 Payroll Management
-/api/HR/Payroll
+/api/V1/Payroll
 1. Employee Management
-Base URL: /api/HR/Employee | Authentication: JWT Bearer Token required for most endpoints.
+Base URL: /api/V1/Employee | Authentication: JWT Bearer Token required for most endpoints.
 GET
-/api/HR/Employee
+/api/V1/Employee
 Get All Employees
 Returns a paginated list of all employees with optional search by name or employee number.
 Parameters
@@ -48,7 +48,7 @@ Number of records per page (default: 10)
 IdNumber, MobileNumber, JobId, JobName, DepartmentId, DepartmentName, NationalityId, NationalityName, HiringDate,
 IsActive, BankName, BankAccountNumber, IBAN, UserName.
 GET
-/api/HR/Employee/{id}
+/api/V1/Employee/{id}
 Get Employee By ID
 Returns full details of a single employee including salary breakdown.
 Parameters
@@ -63,7 +63,7 @@ Description
 Yes
 Response
 Employee unique identifier
-POST /api/HR/Employee
+POST /api/V1/Employee
 Create New Employee
 Creates a new employee record. Automatically creates an Identity user account, assigns the 'Employee' role,
 and initialises leave balances for all active leave types. Runs inside a database transaction.
@@ -93,7 +93,7 @@ UserName string No Login username
 Response
 200 OK — 'Employee created successfully'. 400 if email already exists. 404 if JobId or DepartmentId invalid.
 Note: A random 10-character password is auto-generated for the new user account.
-PUT /api/HR/Employee/{id}
+PUT /api/V1/Employee/{id}
 Update Employee
 Updates employee data. Email and UserId cannot be changed after creation.
 Parameters
@@ -119,7 +119,7 @@ Response
 200 OK — 'Employee updated successfully'. 404 if not found.
 DELE
 TE
-/api/HR/Employee/{id}
+/api/V1/Employee/{id}
 Deactivate Employee (Soft Delete)
 Sets IsActive = false. The record is NOT physically deleted from the database.
 Parameters
@@ -135,7 +135,7 @@ Response
 Employee unique identifier
 Note: This is a soft delete — the employee record remains in the database.
 PUT
-/api/HR/Employee/{id}/reset-password
+/api/V1/Employee/{id}/reset-password
 Reset Employee Password
 Resets the employee's account password to a system default. Planned: send new password via WhatsApp
 notification.
@@ -152,21 +152,21 @@ Employee unique identifier
 200 OK — 'Employee password reset successfully'. 404 if not found. 500 if reset fails.
 Note: Currently resets to 'DefaultPassword123!'. WhatsApp notification integration is planned.
 2. Attendance Management
-Base URL: /api/HR/Attendance | Authentication: JWT Bearer Token required for all endpoints.
-POST /api/HR/Attendance/CheckIn
+Base URL: /api/V1/Attendance | Authentication: JWT Bearer Token required for all endpoints.
+POST /api/V1/Attendance/CheckIn
 Employee Check-In
 Records the check-in time for the currently authenticated employee. The employee is identified automatically
 from the JWT token.
 Response
 200 OK — Check-in recorded. Returns error if already checked in today.
 Note: No request body required. Employee ID is resolved from the authenticated user's token.
-POST /api/HR/Attendance/CheckOut
+POST /api/V1/Attendance/CheckOut
 Employee Check-Out
 Records the check-out time and calculates late minutes and overtime minutes based on shift schedule.
 Response
 200 OK — Check-out recorded with calculated durations. Returns error if no check-in found.
 Note: System automatically calculates LateMinutes and OvertimeMinutes used in payroll generation.
-POST /api/HR/Attendance/Filter
+POST /api/V1/Attendance/Filter
 Filter Attendance Records
 Returns attendance records filtered by various criteria such as employee, date range, and status.
 Request Body (JSON)
@@ -193,9 +193,9 @@ End of date range
 Attendance status: Present, Absent, Late, etc.
 200 OK — List of attendance records matching the filter criteria.
 3. Leave Management
-Base URL: /api/HR/Leave | Authentication: JWT Bearer Token required. Status flow: Pending → Approved / Rejected /
+Base URL: /api/V1/Leave | Authentication: JWT Bearer Token required. Status flow: Pending → Approved / Rejected /
 Cancelled.
-POST /api/HR/Leave
+POST /api/V1/Leave
 Create Leave Request
 Submits a new leave request for the authenticated employee. Validates date range, balance availability, and
 overlap with existing requests.
@@ -226,7 +226,7 @@ insufficient balance.
 Note: Dates cannot be in the past. FromDate must be <= ToDate. System checks for overlapping approved/pending
 requests.
 PUT
-/api/HR/Leave/{requestId}/approve
+/api/V1/Leave/{requestId}/approve
 Approve Leave Request
 Approves a pending leave request. Deducts the leave days from the employee's balance. Only pending
 requests can be approved.
@@ -243,7 +243,7 @@ Leave request unique identifier
 200 OK — 'Leave request approved successfully'. Errors: request not found, not pending, insufficient balance.
 Note: Updates LeaveBalance.UsedBalance and sets ApprovedById and ApprovedAt on the request.
 PUT
-/api/HR/Leave/{requestId}/reject
+/api/V1/Leave/{requestId}/reject
 Reject Leave Request
 Rejects a pending leave request. Balance is not affected. Only pending requests can be rejected.
 Parameters
@@ -258,7 +258,7 @@ Response
 Leave request unique identifier
 200 OK — 'Leave request rejected successfully'. 404 if not found. Error if not in Pending status.
 PUT
-/api/HR/Leave/{requestId}/cancel
+/api/V1/Leave/{requestId}/cancel
 Cancel Leave Request
 Cancels a leave request. If the request was already approved, the used balance days are restored to the
 employee's balance.
@@ -276,7 +276,7 @@ Leave request unique identifier
 Note: For approved requests: UsedBalance is decremented (minimum 0). For pending requests: cancelled directly with no
 balance impact.
 GET
-/api/HR/Leave
+/api/V1/Leave
 Get All Leave Requests
 Returns all leave requests in the system (admin view). Includes status, dates, days count, and approval
 information.
@@ -284,7 +284,7 @@ Response
 200 OK — List of LeaveRequestDto: Id, EmployeeId, LeaveTypeId, FromDate, ToDate, DaysCount, reason, Status,
 ApprovedAt, ApprovalComment.
 GET
-/api/HR/Leave/balance/{leaveTypeId}
+/api/V1/Leave/balance/{leaveTypeId}
 Get Leave Balance
 Returns the remaining leave balance for the authenticated employee for a specific leave type in the current
 year.
@@ -301,9 +301,9 @@ Leave type unique identifier
 200 OK — JSON object: { Balance: decimal }. Returns 0 if no balance record found.
 Note: Balance = TotalBalance - UsedBalance for the current calendar year.
 4. Leave Types Management
-Base URL: /api/HR/LeaveType | Defines the types of leave available (e.g. Annual, Sick, Emergency). No authentication
+Base URL: /api/V1/LeaveType | Defines the types of leave available (e.g. Annual, Sick, Emergency). No authentication
 attribute in controller — verify with team.
-POST /api/HR/LeaveType
+POST /api/V1/LeaveType
 Create Leave Type
 Creates a new leave type. Name must be unique across all leave types.
 Request Body (JSON)
@@ -337,13 +337,13 @@ Whether this leave type is paid or unpaid
 201 Created — 'Leave type created successfully'. 400 if name already exists.
 Note: When a new Employee is created, balances are auto-initialised for all active leave types.
 GET
-/api/HR/LeaveType
+/api/V1/LeaveType
 Get All Leave Types
 Returns all leave types with their configuration.
 Response
 200 OK — List of LeaveTypeDto: Id, Name, DefaultDaysPerYear, IsActive, AllowCarryForward, IsPaid.
 GET
-/api/HR/LeaveType/{id}
+/api/V1/LeaveType/{id}
 Get Leave Type By ID
 Returns a single leave type by its ID.
 Parameters
@@ -358,7 +358,7 @@ Response
 Leave type unique identifier
 200 OK — LeaveTypeDto. 404 Not Found if leave type does not exist.
 PUT
-/api/HR/LeaveType/{id}
+/api/V1/LeaveType/{id}
 Update Leave Type
 Updates an existing leave type configuration. All fields are replaced.
 Parameters
@@ -402,7 +402,7 @@ Is paid leave
 Note: Duplicate name check is currently commented out in the service — all names accepted on update.
 DELE
 TE
-/api/HR/LeaveType/{id}
+/api/V1/LeaveType/{id}
 Delete Leave Type
 Permanently deletes a leave type. This is a hard delete — use with caution in production.
 Parameters
@@ -418,9 +418,9 @@ Response
 Leave type unique identifier
 Note: Hard delete — record is permanently removed. Consider deactivating (IsActive=false) instead.
 5. Payroll Management
-Base URL: /api/HR/Payroll | Payroll is calculated per month/year. Formula: NetSalary = BaseSalary + Overtime 
+Base URL: /api/V1/Payroll | Payroll is calculated per month/year. Formula: NetSalary = BaseSalary + Overtime 
 LateDeduction - AbsenceDeduction - LeaveDeduction + Bonus - AdditionalDeduction.
-POST /api/HR/Payroll/generate
+POST /api/V1/Payroll/generate
 Generate Monthly Payroll
 Generates payroll for all active employees for the specified month and year. Calculates salary, deductions,
 and bonuses based on attendance and approved leaves.
@@ -443,7 +443,7 @@ Note: Calculation breakdown per employee: - LateDeduction = (TotalLateMinutes / 
 OvertimeAmount = (TotalOvertimeMinutes / 60) * OvertimeHourRate - AbsenceDeduction = AbsentDays * (BasicSalary /
 30) - LeaveDeduction = UnpaidLeaveDays * (BasicSalary / 30)
 GET
-/api/HR/Payroll
+/api/V1/Payroll
 Get Payroll for Month/Year
 Returns the full payroll details for a specific month and year, including per-employee breakdown.
 Parameters
@@ -463,7 +463,7 @@ Response
 Yes
 4-digit year
 PUT
-/api/HR/Payroll/close/{id}
+/api/V1/Payroll/close/{id}
 Close Payroll Run
 Marks a payroll run as closed (IsClosed = true). A closed payroll cannot be reopened.
 Parameters
@@ -479,7 +479,7 @@ PayrollRun unique identifier
 200 OK — 'Payroll run closed successfully'. 404 if not found. 400 if already closed.
 Note: Once closed, the payroll run is locked. Any corrections require creating a new run.
 GET
-/api/HR/Payroll/export
+/api/V1/Payroll/export
 Export Payroll to Excel
 Generates and downloads an Excel file (.xlsx) with the payroll data for the specified month and year.
 Parameters
@@ -501,23 +501,23 @@ Yes
 4-digit year
 Appendix: End-to-End Workflow Summary
 New Employee Onboarding
-1 POST /api/HR/Employee — Create employee (auto-creates user account + leave balances)
-2 GET /api/HR/Employee/{id} — Verify employee data
-3 PUT /api/HR/Employee/{id}/reset-password — Send password to employee
+1 POST /api/V1/Employee — Create employee (auto-creates user account + leave balances)
+2 GET /api/V1/Employee/{id} — Verify employee data
+3 PUT /api/V1/Employee/{id}/reset-password — Send password to employee
 Daily Attendance
-1 POST /api/HR/Attendance/CheckIn — Employee checks in at start of shift
-2 POST /api/HR/Attendance/CheckOut — Employee checks out (late/overtime auto-calculated)
-3 POST /api/HR/Attendance/Filter — HR views attendance records by date/employee
+1 POST /api/V1/Attendance/CheckIn — Employee checks in at start of shift
+2 POST /api/V1/Attendance/CheckOut — Employee checks out (late/overtime auto-calculated)
+3 POST /api/V1/Attendance/Filter — HR views attendance records by date/employee
 Leave Request Lifecycle
-1 GET /api/HR/Leave/balance/{leaveTypeId} — Employee checks available balance
-2 POST /api/HR/Leave — Employee submits leave request
-3 GET /api/HR/Leave — HR reviews all pending requests
-4 PUT /api/HR/Leave/{id}/approve OR /reject — HR takes action
-5 PUT /api/HR/Leave/{id}/cancel — Employee or HR cancels if needed
+1 GET /api/V1/Leave/balance/{leaveTypeId} — Employee checks available balance
+2 POST /api/V1/Leave — Employee submits leave request
+3 GET /api/V1/Leave — HR reviews all pending requests
+4 PUT /api/V1/Leave/{id}/approve OR /reject — HR takes action
+5 PUT /api/V1/Leave/{id}/cancel — Employee or HR cancels if needed
 Monthly Payroll Processing
-1 POST /api/HR/Payroll/generate — Generate payroll (uses attendance + leave data)
-2 GET /api/HR/Payroll?month=X&year;=Y — Review payroll details
-3 GET /api/HR/Payroll/export?month=X&year;=Y — Export Excel report
-4 PUT /api/HR/Payroll/close/{id} — Lock the payroll run
+1 POST /api/V1/Payroll/generate — Generate payroll (uses attendance + leave data)
+2 GET /api/V1/Payroll?month=X&year;=Y — Review payroll details
+3 GET /api/V1/Payroll/export?month=X&year;=Y — Export Excel report
+4 PUT /api/V1/Payroll/close/{id} — Lock the payroll run
 All endpoints return ApiResponse<T> with fields: StatusCode, Data, Message. Authenticated endpoints require Authorization:
 Bearer <token> header.

@@ -350,6 +350,28 @@ export const API_ENDPOINTS = {
     CLOSE: (id: string) => `/api/V1/Payroll/close/${id}`,
   },
 
+  // ─── Department (/api/V1/Department) ─────────────────────────────────────
+  // NOTE: POST uses query params (nameAr, nameEn), not a JSON body.
+
+  DEPARTMENT: {
+    GET_ALL: '/api/V1/Lookup/Departments',
+    CREATE: '/api/V1/Department',
+  },
+
+  // ─── Admin API (/api/V1/Admin/*) ─────────────────────────────────────────
+  // Position = Job = JobId = JobName — unified entity referenced by employees
+
+  HR_ADMIN: {
+    ADD_USER: '/api/V1/Admin/add-user',
+    ASSIGN_ROLE: '/api/V1/Admin/assign-role',
+    REMOVE_ROLE: '/api/V1/Admin/remove-role',
+    ALL_USERS: '/api/V1/Admin/all-users',
+    ALL_ROLES: '/api/V1/Admin/all-roles',
+    POSITIONS: '/api/V1/Admin/positions',
+    CREATE_POSITION: '/api/V1/Admin/create-position',
+    DELETE_POSITION: (id: string) => `/api/V1/Admin/delete-position/${id}`,
+  },
+
   // ─── Housing Management — /api/Housing/* ─────────────────────────────────
   HOUSING: {
     GET_ALL: '/api/Housing/GetAll',

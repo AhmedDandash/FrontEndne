@@ -123,13 +123,19 @@ export function useHRAttendance(_filter: AttendanceFilterDto) {
   const checkInMutation = useMutation({
     mutationFn: () => HRAttendanceService.checkIn(),
     onSuccess: () => message.success('تم تسجيل الحضور بنجاح'),
-    onError: (err: any) => message.error(err?.response?.data?.message || 'فشل تسجيل الحضور'),
+    onError: (err: any) => {
+      const d = err?.response?.data;
+      message.error(d?.errors?.[0] || d?.message || 'فشل تسجيل الحضور');
+    },
   });
 
   const checkOutMutation = useMutation({
     mutationFn: () => HRAttendanceService.checkOut(),
     onSuccess: () => message.success('تم تسجيل الانصراف بنجاح'),
-    onError: (err: any) => message.error(err?.response?.data?.message || 'فشل تسجيل الانصراف'),
+    onError: (err: any) => {
+      const d = err?.response?.data;
+      message.error(d?.errors?.[0] || d?.message || 'فشل تسجيل الانصراف');
+    },
   });
 
   return {

@@ -19,7 +19,15 @@
       "Bash(New-Item -ItemType Directory -Path \"F:\\\\Freelance\\\\FrontEnd\\\\src\\\\app\\\\change-password\" -Force)",
       "Bash(Out-Null)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(grep -E \"\\\\.ts$\")"
+      "Bash(grep -E \"\\\\.ts$\")",
+      "Bash(cd /F/Freelance/FrontEnd && ls -la src/app/ | grep -i \"hr\\\\|admin\\\\|employee\\\\|staff\\\\|position\")",
+      "Bash(xargs grep -l \"hr\\\\|HR\\\\|employee\\\\|payroll\\\\|attendance\\\\|leave\")",
+      "Bash(xargs grep -l \"hr\\\\|HR\\\\|employee\\\\|payroll\")",
+      "Bash(xargs grep -l \"role\\\\|Role\\\\|admin\\\\|Admin\\\\|user\\\\|User.*management\\\\|permission\\\\|Permission\")",
+      "Bash(xargs grep -l \"admin\\\\|Admin\\\\|role.*management\\\\|user.*management\")",
+      "Bash(xargs grep -l \"HR\\\\|hr\\\\|employee\\\\|Employee\")",
+      "Bash(xargs grep -l \"HR\\\\|useHREmployee\\\\|useHRAttendance\\\\|useHRLeave\\\\|useHRPayroll\")",
+      "Bash(cd /F/Freelance/FrontEnd && find src -path \"*types*\" -type f \\\\\\( -name \"*.ts\" \\\\\\) | sort)"
     ]
   }
 }

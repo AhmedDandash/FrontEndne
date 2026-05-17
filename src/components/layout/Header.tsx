@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { Layout, Badge, Dropdown, Avatar, Button } from 'antd';
 import {
   MenuUnfoldOutlined,
@@ -17,8 +16,6 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useAuth } from '@/hooks/useAuth';
 import Image from 'next/image';
-import { useQuery } from '@tanstack/react-query';
-import { UserService } from '@/services/user.service';
 import styles from './Header.module.css';
 
 const { Header: AntHeader } = Layout;
@@ -35,33 +32,9 @@ export default function Header({ collapsed, onToggleSidebar, onToggleMobileDrawe
   const setLanguage = useAuthStore((state) => state.setLanguage);
   const { logout } = useAuth();
 
-  // User info from store
-  const userId = useAuthStore((state) => state.userId);
   const storedUsername = useAuthStore((state) => state.username);
-  const setUsername = useAuthStore((state) => state.setUsername);
 
-  // Fetch user details from API when userId is available
-  const { data: userDetail, isLoading: isUserLoading } = useQuery({
-    queryKey: ['currentUser', userId],
-    queryFn: () => UserService.getById(userId!),
-    enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1,
-  });
-
-  // Cache the fetched name in the store so it survives navigation
-  useEffect(() => {
-    if (userDetail) {
-      const displayName = userDetail.fullName || userDetail.username || null;
-      if (displayName) setUsername(displayName);
-    }
-  }, [userDetail, setUsername]);
-
-  const displayName =
-    userDetail?.fullName ||
-    userDetail?.username ||
-    storedUsername ||
-    (language === 'ar' ? 'المستخدم' : 'User');
+  const displayName = storedUsername || (language === 'ar' ? 'المستخدم' : 'User');
 
   const handleLanguageChange = (lang: 'ar' | 'en') => {
     setLanguage(lang);
@@ -79,7 +52,7 @@ export default function Header({ collapsed, onToggleSidebar, onToggleMobileDrawe
       key: 'profile',
       icon: <UserOutlined />,
       label: language === 'ar' ? 'الملف الشخصي' : 'Profile',
-      onClick: () => router.push('/profile'),
+      onClick: () => router.push('/dashboard'),
     },
     {
       key: 'change-password',
@@ -232,12 +205,7 @@ export default function Header({ collapsed, onToggleSidebar, onToggleMobileDrawe
         >
           <div className={styles.userInfo}>
             <Avatar icon={<UserOutlined />} className={styles.avatar} />
-            {/* Username: shows skeleton while loading, then displays fetched name */}
-            {isUserLoading && userId ? (
-              <span className={`${styles.userNameSkeleton} ${styles.desktopOnly}`} />
-            ) : (
-              <span className={`${styles.userName} ${styles.desktopOnly}`}>{displayName}</span>
-            )}
+            <span className={`${styles.userName} ${styles.desktopOnly}`}>{displayName}</span>
           </div>
         </Dropdown>
       </div>

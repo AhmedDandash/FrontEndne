@@ -276,6 +276,14 @@ export default function Sidebar({
           label: language === 'ar' ? 'الموظفون' : 'Employees',
         },
         {
+          key: '/hr/positions',
+          label: language === 'ar' ? 'المسميات الوظيفية' : 'Positions',
+        },
+        {
+          key: '/hr/departments',
+          label: language === 'ar' ? 'الأقسام' : 'Departments',
+        },
+        {
           key: '/hr/attendance',
           label: language === 'ar' ? 'الحضور والانصراف' : 'Attendance',
         },
@@ -290,6 +298,10 @@ export default function Sidebar({
         {
           key: '/hr/payroll',
           label: language === 'ar' ? 'الرواتب' : 'Payroll',
+        },
+        {
+          key: '/hr/admin-users',
+          label: language === 'ar' ? 'أدوار المستخدمين' : 'User Roles',
         },
       ],
     },
