@@ -146,19 +146,21 @@ export interface AttendanceFilterDto {
   employeeId?: string | null;
   fromDate?: string | null;
   toDate?: string | null;
-  status?: AttendanceStatus | null;
+  status?: AttendanceStatus | number | null;
 }
+
+export type AttendanceStatusCode = 0 | 1 | 2 | 3 | 4 | 5 | number;
 
 export interface AttendanceRecord {
   id?: string | null;
   employeeId?: string | null;
   employeeName?: string | null;
+  attendanceDay?: string | null;
   checkInTime?: string | null;
   checkOutTime?: string | null;
-  date?: string | null;
   lateMinutes?: number | null;
   overtimeMinutes?: number | null;
-  status?: AttendanceStatus | null;
+  status?: AttendanceStatusCode | null;
 }
 
 // ==================== Leave Types ====================

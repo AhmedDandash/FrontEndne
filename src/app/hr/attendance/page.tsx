@@ -31,16 +31,23 @@ import type { AttendanceFilterDto, AttendanceRecord } from '@/types/hr.types';
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
-const STATUS_COLOR: Record<string, string> = {
-  Present: 'success',
-  Absent: 'error',
-  Late: 'warning',
+// Numeric status codes returned by the API
+const STATUS_COLOR: Record<number, string> = {
+  0: 'default',
+  1: 'success',
+  2: 'error',
+  3: 'warning',
+  4: 'blue',
+  5: 'purple',
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  Present: 'حاضر',
-  Absent: 'غائب',
-  Late: 'متأخر',
+const STATUS_LABEL: Record<number, string> = {
+  0: 'غير محدد',
+  1: 'حاضر',
+  2: 'غائب',
+  3: 'متأخر',
+  4: 'إجازة رسمية',
+  5: 'في إجازة',
 };
 
 export default function HRAttendancePage() {
@@ -78,13 +85,8 @@ export default function HRAttendancePage() {
 
   const columns: ColumnsType<AttendanceRecord> = [
     {
-      title: 'اسم الموظف',
-      dataIndex: 'employeeName',
-      render: (v) => v || '—',
-    },
-    {
       title: 'التاريخ',
-      dataIndex: 'date',
+      dataIndex: 'attendanceDay',
       render: (v) => (v ? new Date(v).toLocaleDateString('ar-SA') : '—'),
     },
     {
@@ -131,15 +133,20 @@ export default function HRAttendancePage() {
     {
       title: 'الحالة',
       dataIndex: 'status',
-      render: (v) => (
-        <Tag color={STATUS_COLOR[v] ?? 'default'}>{STATUS_LABEL[v] ?? v ?? '—'}</Tag>
-      ),
+      render: (v: number | null | undefined) => {
+        if (v == null) return <Tag color="default">—</Tag>;
+        return (
+          <Tag color={STATUS_COLOR[v] ?? 'default'}>
+            {STATUS_LABEL[v] ?? `حالة ${v}`}
+          </Tag>
+        );
+      },
     },
   ];
 
-  const presentCount = records.filter((r) => r.status === 'Present').length;
-  const absentCount = records.filter((r) => r.status === 'Absent').length;
-  const lateCount = records.filter((r) => r.status === 'Late').length;
+  const presentCount = records.filter((r) => r.status === 1).length;
+  const absentCount = records.filter((r) => r.status === 2).length;
+  const lateCount = records.filter((r) => r.status === 3).length;
 
   return (
     <div style={{ padding: 24 }}>
@@ -220,9 +227,11 @@ export default function HRAttendancePage() {
                   allowClear
                   placeholder="اختر الحالة"
                   options={[
-                    { value: 'Present', label: 'حاضر' },
-                    { value: 'Absent', label: 'غائب' },
-                    { value: 'Late', label: 'متأخر' },
+                    { value: 1, label: 'حاضر' },
+                    { value: 2, label: 'غائب' },
+                    { value: 3, label: 'متأخر' },
+                    { value: 4, label: 'إجازة رسمية' },
+                    { value: 5, label: 'في إجازة' },
                   ]}
                 />
               </Form.Item>
@@ -272,7 +281,7 @@ export default function HRAttendancePage() {
         <Table<AttendanceRecord>
           dataSource={records}
           columns={columns}
-          rowKey={(r) => r.id ?? `${r.employeeId}-${r.date}`}
+          rowKey={(r) => r.id ?? `${r.employeeId}-${r.attendanceDay}`}
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: false }}
           locale={{ emptyText: 'لا توجد سجلات حضور — استخدم الفلتر للبحث' }}
