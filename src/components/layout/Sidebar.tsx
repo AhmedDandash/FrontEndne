@@ -308,6 +308,10 @@ export default function Sidebar({
           label: language === 'ar' ? 'طلب استئذان' : 'Permission Request',
         },
         {
+          key: '/hr/permission-requests',
+          label: language === 'ar' ? 'سجل طلبات الاستئذان' : 'Permission History',
+        },
+        {
           key: '/hr/resignation-request',
           label: language === 'ar' ? 'طلب استقالة' : 'Resignation Request',
         },

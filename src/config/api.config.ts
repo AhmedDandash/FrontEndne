@@ -351,7 +351,10 @@ export const API_ENDPOINTS = {
   },
 
   HR_PERMISSION_REQUEST: {
+    GET_ALL: '/api/V1/PermissionRequest/GetAll',
     CREATE: '/api/V1/PermissionRequest/Create',
+    APPROVE: (id: string) => `/api/V1/PermissionRequest/Approve/${id}`,
+    REJECT: (id: string) => `/api/V1/PermissionRequest/Reject/${id}`,
   },
 
   HR_RESIGNATION_REQUEST: {

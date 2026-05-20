@@ -241,6 +241,22 @@ export interface CreatePermissionRequestDto {
   reasons: string;
 }
 
+// status: 1=Pending, 2=Approved, 3=Rejected
+export interface PermissionRequestDto {
+  id: string;
+  employeeId?: string | null;
+  employeeName?: string | null;
+  permissionDate?: string | null;
+  permissionType?: number | null;   // 1=ComeLate, 2=PartTime, 3=OutEarly
+  permissionNature?: number | null; // 1=Official, 2=Personal
+  comeLateTime?: string | null;
+  partTimeStart?: string | null;
+  partTimeFinish?: string | null;
+  outEarlyTime?: string | null;
+  reasons?: string | null;
+  status?: number | null;
+}
+
 // ==================== Resignation Request Types ====================
 
 export interface CreateResignationRequestDto {

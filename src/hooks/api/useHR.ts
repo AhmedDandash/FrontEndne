@@ -303,6 +303,47 @@ export function useHRPermissionRequest() {
   };
 }
 
+export function useHRPermissionRequests() {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['hr-permission-requests'],
+    queryFn: () => HRPermissionRequestService.getAll(),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => HRPermissionRequestService.approve(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-permission-requests'] });
+      message.success('تمت الموافقة على طلب الاستئذان');
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.message || 'فشل الموافقة على الطلب');
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: string) => HRPermissionRequestService.reject(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-permission-requests'] });
+      message.success('تم رفض طلب الاستئذان');
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.message || 'فشل رفض الطلب');
+    },
+  });
+
+  return {
+    permissionRequests: query.data ?? [],
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+    approvePermissionRequest: approveMutation.mutateAsync,
+    rejectPermissionRequest: rejectMutation.mutateAsync,
+    isApproving: approveMutation.isPending,
+    isRejecting: rejectMutation.isPending,
+  };
+}
+
 // ─── Resignation Request hooks ────────────────────────────────────────────────
 
 export function useHRResignationRequest() {
