@@ -30,16 +30,17 @@ import type { CustodyRequestDto, CustodyRequestItemDto } from '@/types/hr.types'
 
 const { Title } = Typography;
 
-const STATUS_COLOR: Record<string, string> = {
-  Pending: 'warning',
-  Approved: 'success',
-  Rejected: 'error',
+// 1 = Pending, 2 = Approved, 3 = Rejected
+const STATUS_COLOR: Record<number, string> = {
+  1: 'warning',
+  2: 'success',
+  3: 'error',
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  Pending: 'قيد الانتظار',
-  Approved: 'موافق عليه',
-  Rejected: 'مرفوض',
+const STATUS_LABEL: Record<number, string> = {
+  1: 'قيد الانتظار',
+  2: 'موافق عليه',
+  3: 'مرفوض',
 };
 
 const itemColumns: ColumnsType<CustodyRequestItemDto> = [
@@ -95,15 +96,15 @@ export default function CustodyRequestsPage() {
     isRejecting,
   } = useHRCustodyRequests();
 
-  const pendingCount = custodyRequests.filter((r) => r.status === 'Pending').length;
-  const approvedCount = custodyRequests.filter((r) => r.status === 'Approved').length;
-  const rejectedCount = custodyRequests.filter((r) => r.status === 'Rejected').length;
+  const pendingCount  = custodyRequests.filter((r) => r.status === 1).length;
+  const approvedCount = custodyRequests.filter((r) => r.status === 2).length;
+  const rejectedCount = custodyRequests.filter((r) => r.status === 3).length;
 
   const columns: ColumnsType<CustodyRequestDto> = [
     {
       title: 'الموظف',
       dataIndex: 'employeeName',
-      render: (v) => v || '—',
+      render: (v, record) => v || record.employeeId || '—',
     },
     {
       title: 'التفاصيل',
@@ -121,7 +122,7 @@ export default function CustodyRequestsPage() {
       title: 'عدد الأصناف',
       key: 'itemsCount',
       width: 110,
-      render: (_, record) => record.custodyItems?.length ?? '—',
+      render: (_, record) => record.items?.length ?? 0,
     },
     {
       title: 'تاريخ الطلب',
@@ -133,8 +134,10 @@ export default function CustodyRequestsPage() {
       title: 'الحالة',
       dataIndex: 'status',
       width: 130,
-      render: (v) => (
-        <Tag color={STATUS_COLOR[v] ?? 'default'}>{STATUS_LABEL[v] ?? v ?? '—'}</Tag>
+      render: (v: number) => (
+        <Tag color={STATUS_COLOR[v] ?? 'default'}>
+          {STATUS_LABEL[v] ?? `حالة ${v}`}
+        </Tag>
       ),
     },
     {
@@ -142,7 +145,7 @@ export default function CustodyRequestsPage() {
       key: 'actions',
       width: 130,
       render: (_, record) => {
-        const isPending = record.status === 'Pending';
+        const isPending = record.status === 1;
         return (
           <Space>
             <Tooltip title="عرض التفاصيل">
@@ -200,9 +203,7 @@ export default function CustodyRequestsPage() {
           <InboxOutlined style={{ fontSize: 22, color: '#1677ff' }} />
           <Title level={4} style={{ margin: 0 }}>سجل طلبات العهد</Title>
         </Space>
-        <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-          تحديث
-        </Button>
+        <Button icon={<ReloadOutlined />} onClick={() => refetch()}>تحديث</Button>
       </div>
 
       <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -238,16 +239,9 @@ export default function CustodyRequestsPage() {
       {/* Detail Modal */}
       <Modal
         open={!!detailRecord}
-        title={
-          <Space>
-            <InboxOutlined />
-            تفاصيل طلب العهدة
-          </Space>
-        }
+        title={<Space><InboxOutlined />تفاصيل طلب العهدة</Space>}
         onCancel={() => setDetailRecord(null)}
-        footer={
-          <Button onClick={() => setDetailRecord(null)}>إغلاق</Button>
-        }
+        footer={<Button onClick={() => setDetailRecord(null)}>إغلاق</Button>}
         width={700}
         destroyOnClose
       >
@@ -255,18 +249,18 @@ export default function CustodyRequestsPage() {
           <>
             <Descriptions bordered column={2} size="small" style={{ marginBottom: 16 }}>
               <Descriptions.Item label="الموظف">
-                {detailRecord.employeeName || '—'}
+                {detailRecord.employeeName || detailRecord.employeeId || '—'}
               </Descriptions.Item>
               <Descriptions.Item label="الحالة">
-                <Tag color={STATUS_COLOR[detailRecord.status ?? ''] ?? 'default'}>
-                  {STATUS_LABEL[detailRecord.status ?? ''] ?? detailRecord.status ?? '—'}
+                <Tag color={STATUS_COLOR[detailRecord.status ?? 0] ?? 'default'}>
+                  {STATUS_LABEL[detailRecord.status ?? 0] ?? `حالة ${detailRecord.status}`}
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="تاريخ الطلب">
                 {detailRecord.createdAt ? dayjs(detailRecord.createdAt).format('YYYY/MM/DD') : '—'}
               </Descriptions.Item>
               <Descriptions.Item label="عدد الأصناف">
-                {detailRecord.custodyItems?.length ?? 0}
+                {detailRecord.items?.length ?? 0}
               </Descriptions.Item>
               <Descriptions.Item label="التفاصيل" span={2}>
                 {detailRecord.details || '—'}
@@ -276,11 +270,11 @@ export default function CustodyRequestsPage() {
               </Descriptions.Item>
             </Descriptions>
 
-            {detailRecord.custodyItems && detailRecord.custodyItems.length > 0 && (
+            {detailRecord.items && detailRecord.items.length > 0 && (
               <>
                 <Title level={5} style={{ marginBottom: 8 }}>أصناف العهد</Title>
                 <Table
-                  dataSource={detailRecord.custodyItems}
+                  dataSource={detailRecord.items}
                   columns={itemColumns}
                   rowKey={(r, i) => r.id ?? String(i)}
                   pagination={false}
