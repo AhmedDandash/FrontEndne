@@ -25,7 +25,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { useHRCustodyRequests } from '@/hooks/api/useHR';
+import { useHRCustodyRequests, useHREmployees } from '@/hooks/api/useHR';
 import type { CustodyRequestDto, CustodyRequestItemDto } from '@/types/hr.types';
 
 const { Title } = Typography;
@@ -79,16 +79,20 @@ export default function CustodyRequestsPage() {
     isRejecting,
   } = useHRCustodyRequests();
 
+  const { employees } = useHREmployees({ pageSize: 500 });
+  const employeeMap = Object.fromEntries(
+    employees.map((e) => [e.id, e.nameAr || e.nameEn || e.id])
+  );
+
   const pendingCount  = custodyRequests.filter((r) => r.status === 1).length;
   const approvedCount = custodyRequests.filter((r) => r.status === 2).length;
   const rejectedCount = custodyRequests.filter((r) => r.status === 3).length;
 
   const columns: ColumnsType<CustodyRequestDto> = [
     {
-      title: 'معرف الموظف',
+      title: 'الموظف',
       dataIndex: 'employeeId',
-      ellipsis: true,
-      render: (v) => v || '—',
+      render: (v) => employeeMap[v] ?? v ?? '—',
     },
     {
       title: 'التفاصيل',
@@ -209,8 +213,8 @@ export default function CustodyRequestsPage() {
         {detailRecord && (
           <>
             <Descriptions bordered column={2} size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="معرف الموظف" span={2}>
-                {detailRecord.employeeId || '—'}
+              <Descriptions.Item label="الموظف" span={2}>
+                {detailRecord.employeeId ? (employeeMap[detailRecord.employeeId] ?? detailRecord.employeeId) : '—'}
               </Descriptions.Item>
               <Descriptions.Item label="الحالة">
                 <Tag color={STATUS_COLOR[detailRecord.status ?? 0] ?? 'default'}>
