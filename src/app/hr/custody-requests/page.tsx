@@ -30,18 +30,9 @@ import type { CustodyRequestDto, CustodyRequestItemDto } from '@/types/hr.types'
 
 const { Title } = Typography;
 
-// 1 = Pending, 2 = Approved, 3 = Rejected
-const STATUS_COLOR: Record<number, string> = {
-  1: 'warning',
-  2: 'success',
-  3: 'error',
-};
-
-const STATUS_LABEL: Record<number, string> = {
-  1: 'قيد الانتظار',
-  2: 'موافق عليه',
-  3: 'مرفوض',
-};
+// 1=Pending, 2=Approved, 3=Rejected
+const STATUS_COLOR: Record<number, string> = { 1: 'warning', 2: 'success', 3: 'error' };
+const STATUS_LABEL: Record<number, string> = { 1: 'قيد الانتظار', 2: 'موافق عليه', 3: 'مرفوض' };
 
 const itemColumns: ColumnsType<CustodyRequestItemDto> = [
   {
@@ -71,15 +62,7 @@ const itemColumns: ColumnsType<CustodyRequestItemDto> = [
     dataIndex: 'temporal',
     width: 90,
     render: (v) =>
-      v == null ? '—' : (
-        <Tag color={v ? 'orange' : 'blue'}>{v ? 'مؤقتة' : 'دائمة'}</Tag>
-      ),
-  },
-  {
-    title: 'ملاحظات',
-    dataIndex: 'shortNote',
-    render: (v) => v || '—',
-    ellipsis: true,
+      v == null ? '—' : <Tag color={v ? 'orange' : 'blue'}>{v ? 'مؤقتة' : 'دائمة'}</Tag>,
   },
 ];
 
@@ -102,19 +85,14 @@ export default function CustodyRequestsPage() {
 
   const columns: ColumnsType<CustodyRequestDto> = [
     {
-      title: 'الموظف',
-      dataIndex: 'employeeName',
-      render: (v, record) => v || record.employeeId || '—',
-    },
-    {
-      title: 'التفاصيل',
-      dataIndex: 'details',
+      title: 'معرف الموظف',
+      dataIndex: 'employeeId',
       ellipsis: true,
       render: (v) => v || '—',
     },
     {
-      title: 'الأسباب',
-      dataIndex: 'reasons',
+      title: 'التفاصيل',
+      dataIndex: 'details',
       ellipsis: true,
       render: (v) => v || '—',
     },
@@ -125,19 +103,11 @@ export default function CustodyRequestsPage() {
       render: (_, record) => record.items?.length ?? 0,
     },
     {
-      title: 'تاريخ الطلب',
-      dataIndex: 'createdAt',
-      width: 130,
-      render: (v) => (v ? dayjs(v).format('YYYY/MM/DD') : '—'),
-    },
-    {
       title: 'الحالة',
       dataIndex: 'status',
       width: 130,
       render: (v: number) => (
-        <Tag color={STATUS_COLOR[v] ?? 'default'}>
-          {STATUS_LABEL[v] ?? `حالة ${v}`}
-        </Tag>
+        <Tag color={STATUS_COLOR[v] ?? 'default'}>{STATUS_LABEL[v] ?? `حالة ${v}`}</Tag>
       ),
     },
     {
@@ -149,11 +119,7 @@ export default function CustodyRequestsPage() {
         return (
           <Space>
             <Tooltip title="عرض التفاصيل">
-              <Button
-                type="text"
-                icon={<EyeOutlined />}
-                onClick={() => setDetailRecord(record)}
-              />
+              <Button type="text" icon={<EyeOutlined />} onClick={() => setDetailRecord(record)} />
             </Tooltip>
             {isPending && (
               <>
@@ -180,12 +146,7 @@ export default function CustodyRequestsPage() {
                     cancelText="إلغاء"
                     okButtonProps={{ danger: true }}
                   >
-                    <Button
-                      type="text"
-                      danger
-                      icon={<CloseOutlined />}
-                      loading={isRejecting}
-                    />
+                    <Button type="text" danger icon={<CloseOutlined />} loading={isRejecting} />
                   </Popconfirm>
                 </Tooltip>
               </>
@@ -232,7 +193,7 @@ export default function CustodyRequestsPage() {
           loading={isLoading}
           pagination={{ pageSize: 15, showSizeChanger: false }}
           locale={{ emptyText: 'لا توجد طلبات عهد' }}
-          scroll={{ x: 900 }}
+          scroll={{ x: 700 }}
         />
       </Card>
 
@@ -242,31 +203,25 @@ export default function CustodyRequestsPage() {
         title={<Space><InboxOutlined />تفاصيل طلب العهدة</Space>}
         onCancel={() => setDetailRecord(null)}
         footer={<Button onClick={() => setDetailRecord(null)}>إغلاق</Button>}
-        width={700}
+        width={680}
         destroyOnClose
       >
         {detailRecord && (
           <>
             <Descriptions bordered column={2} size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="الموظف">
-                {detailRecord.employeeName || detailRecord.employeeId || '—'}
+              <Descriptions.Item label="معرف الموظف" span={2}>
+                {detailRecord.employeeId || '—'}
               </Descriptions.Item>
               <Descriptions.Item label="الحالة">
                 <Tag color={STATUS_COLOR[detailRecord.status ?? 0] ?? 'default'}>
                   {STATUS_LABEL[detailRecord.status ?? 0] ?? `حالة ${detailRecord.status}`}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="تاريخ الطلب">
-                {detailRecord.createdAt ? dayjs(detailRecord.createdAt).format('YYYY/MM/DD') : '—'}
-              </Descriptions.Item>
               <Descriptions.Item label="عدد الأصناف">
                 {detailRecord.items?.length ?? 0}
               </Descriptions.Item>
               <Descriptions.Item label="التفاصيل" span={2}>
                 {detailRecord.details || '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="الأسباب" span={2}>
-                {detailRecord.reasons || '—'}
               </Descriptions.Item>
             </Descriptions>
 
