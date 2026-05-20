@@ -22,6 +22,7 @@ import type {
   CreateCustodyRequestDto,
   CustodyTypeDto,
   CreateCustodyTypeDto,
+  CustodyRequestDto,
 } from '@/types/hr.types';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -190,8 +191,21 @@ export class HRResignationRequestService {
 // ─── Custody Request Service ──────────────────────────────────────────────────
 
 export class HRCustodyRequestService {
+  static async getAll(): Promise<CustodyRequestDto[]> {
+    const response = await api.get<any>(API_ENDPOINTS.HR_CUSTODY_REQUEST.GET_ALL);
+    return unwrapList<CustodyRequestDto>(response.data);
+  }
+
   static async create(data: CreateCustodyRequestDto): Promise<void> {
     await api.post(API_ENDPOINTS.HR_CUSTODY_REQUEST.CREATE, data);
+  }
+
+  static async approve(id: string): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_CUSTODY_REQUEST.APPROVE(id), {});
+  }
+
+  static async reject(id: string): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_CUSTODY_REQUEST.REJECT(id), {});
   }
 
   static async getTypes(): Promise<CustodyTypeDto[]> {

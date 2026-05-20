@@ -315,6 +315,10 @@ export default function Sidebar({
           key: '/hr/custody-request',
           label: language === 'ar' ? 'طلب عهدة' : 'Custody Request',
         },
+        {
+          key: '/hr/custody-requests',
+          label: language === 'ar' ? 'سجل طلبات العهد' : 'Custody History',
+        },
       ],
     },
     {

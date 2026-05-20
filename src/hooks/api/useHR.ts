@@ -366,6 +366,47 @@ export function useHRCustodyRequest() {
   };
 }
 
+export function useHRCustodyRequests() {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['hr-custody-requests'],
+    queryFn: () => HRCustodyRequestService.getAll(),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => HRCustodyRequestService.approve(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-custody-requests'] });
+      message.success('تمت الموافقة على طلب العهدة');
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.message || 'فشل الموافقة على الطلب');
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: string) => HRCustodyRequestService.reject(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-custody-requests'] });
+      message.success('تم رفض طلب العهدة');
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.message || 'فشل رفض الطلب');
+    },
+  });
+
+  return {
+    custodyRequests: query.data ?? [],
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+    approveCustodyRequest: approveMutation.mutateAsync,
+    rejectCustodyRequest: rejectMutation.mutateAsync,
+    isApproving: approveMutation.isPending,
+    isRejecting: rejectMutation.isPending,
+  };
+}
+
 // ─── Payroll hooks ────────────────────────────────────────────────────────────
 
 export function useHRPayroll(month: number, year: number) {

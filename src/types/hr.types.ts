@@ -278,6 +278,29 @@ export interface CreateCustodyRequestDto {
   custodyItems: CustodyItemDto[];
 }
 
+export type CustodyRequestStatus = 'Pending' | 'Approved' | 'Rejected' | string;
+
+export interface CustodyRequestItemDto {
+  id?: string | null;
+  custodyTypeId?: string | null;
+  custodyTypeName?: string | null;
+  quantity?: number | null;
+  deliveryDate?: string | null;
+  temporal?: boolean | null;
+  shortNote?: string | null;
+}
+
+export interface CustodyRequestDto {
+  id: string;
+  createdTo?: string | null;
+  employeeName?: string | null;
+  details?: string | null;
+  reasons?: string | null;
+  status?: CustodyRequestStatus | null;
+  createdAt?: string | null;
+  custodyItems?: CustodyRequestItemDto[] | null;
+}
+
 // ==================== Payroll Types ====================
 
 export interface GeneratePayrollDto {

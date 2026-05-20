@@ -359,7 +359,10 @@ export const API_ENDPOINTS = {
   },
 
   HR_CUSTODY_REQUEST: {
+    GET_ALL: '/api/V1/CustodyRequest/GetAll',
     CREATE: '/api/V1/CustodyRequest/Create',
+    APPROVE: (id: string) => `/api/V1/CustodyRequest/Approve/${id}`,
+    REJECT: (id: string) => `/api/V1/CustodyRequest/Reject/${id}`,
     GET_TYPES: '/api/V1/CustodyRequest/Types',
     GET_TYPE: (id: string) => `/api/V1/CustodyRequest/Types/${id}`,
     CREATE_TYPE: '/api/V1/CustodyRequest/Types/Create',
