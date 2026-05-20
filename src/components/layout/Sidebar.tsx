@@ -360,6 +360,10 @@ export default function Sidebar({
           key: '/register',
           label: language === 'ar' ? 'إضافة مسؤول' : 'Add Admin',
         },
+        {
+          key: '/settings/custody-types',
+          label: language === 'ar' ? 'أنواع العهد' : 'Custody Types',
+        },
       ],
     },
     // {
