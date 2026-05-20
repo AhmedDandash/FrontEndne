@@ -312,6 +312,10 @@ export default function Sidebar({
           label: language === 'ar' ? 'طلب استقالة' : 'Resignation Request',
         },
         {
+          key: '/hr/resignation-requests',
+          label: language === 'ar' ? 'سجل طلبات الاستقالة' : 'Resignation History',
+        },
+        {
           key: '/hr/custody-request',
           label: language === 'ar' ? 'طلب عهدة' : 'Custody Request',
         },

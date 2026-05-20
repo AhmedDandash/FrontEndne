@@ -19,6 +19,7 @@ import type {
   PayrollRunDto,
   CreatePermissionRequestDto,
   CreateResignationRequestDto,
+  ResignationRequestDto,
   CreateCustodyRequestDto,
   CustodyTypeDto,
   CreateCustodyTypeDto,
@@ -183,8 +184,21 @@ export class HRPermissionRequestService {
 // ─── Resignation Request Service ─────────────────────────────────────────────
 
 export class HRResignationRequestService {
+  static async getAll(): Promise<ResignationRequestDto[]> {
+    const response = await api.get<any>(API_ENDPOINTS.HR_RESIGNATION_REQUEST.GET_ALL);
+    return unwrapList<ResignationRequestDto>(response.data);
+  }
+
   static async create(data: CreateResignationRequestDto): Promise<void> {
     await api.post(API_ENDPOINTS.HR_RESIGNATION_REQUEST.CREATE, data);
+  }
+
+  static async approve(id: string): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_RESIGNATION_REQUEST.APPROVE(id), {});
+  }
+
+  static async reject(id: string): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_RESIGNATION_REQUEST.REJECT(id), {});
   }
 }
 

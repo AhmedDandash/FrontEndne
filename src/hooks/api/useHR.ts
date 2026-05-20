@@ -10,6 +10,7 @@ import {
   HRResignationRequestService,
   HRCustodyRequestService,
 } from '@/services/hr.service';
+
 import type {
   CreateEmployeeDto,
   UpdateEmployeeDto,
@@ -317,6 +318,47 @@ export function useHRResignationRequest() {
   return {
     createResignationRequest: createMutation.mutateAsync,
     isCreating: createMutation.isPending,
+  };
+}
+
+export function useHRResignationRequests() {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['hr-resignation-requests'],
+    queryFn: () => HRResignationRequestService.getAll(),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => HRResignationRequestService.approve(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-resignation-requests'] });
+      message.success('تمت الموافقة على طلب الاستقالة');
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.message || 'فشل الموافقة على الطلب');
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: string) => HRResignationRequestService.reject(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-resignation-requests'] });
+      message.success('تم رفض طلب الاستقالة');
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.message || 'فشل رفض الطلب');
+    },
+  });
+
+  return {
+    resignationRequests: query.data ?? [],
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+    approveResignationRequest: approveMutation.mutateAsync,
+    rejectResignationRequest: rejectMutation.mutateAsync,
+    isApproving: approveMutation.isPending,
+    isRejecting: rejectMutation.isPending,
   };
 }
 

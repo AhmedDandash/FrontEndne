@@ -250,6 +250,17 @@ export interface CreateResignationRequestDto {
   reasons: string;
 }
 
+// status: 1=Pending, 2=Approved, 3=Rejected
+export interface ResignationRequestDto {
+  id: string;
+  employeeId?: string | null;
+  employeeName?: string | null;
+  resignationDate?: string | null;
+  endDate?: string | null;
+  reasons?: string | null;
+  status?: number | null;
+}
+
 // ==================== Custody Request Types ====================
 
 export interface CustodyTypeDto {

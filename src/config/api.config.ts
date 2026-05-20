@@ -355,7 +355,10 @@ export const API_ENDPOINTS = {
   },
 
   HR_RESIGNATION_REQUEST: {
+    GET_ALL: '/api/V1/ResignationRequest/GetAll',
     CREATE: '/api/V1/ResignationRequest/Create',
+    APPROVE: (id: string) => `/api/V1/ResignationRequest/Approve/${id}`,
+    REJECT: (id: string) => `/api/V1/ResignationRequest/Reject/${id}`,
   },
 
   HR_CUSTODY_REQUEST: {
