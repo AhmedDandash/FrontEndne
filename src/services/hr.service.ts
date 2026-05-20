@@ -17,6 +17,11 @@ import type {
   UpdateLeaveTypeDto,
   GeneratePayrollDto,
   PayrollRunDto,
+  CreatePermissionRequestDto,
+  CreateResignationRequestDto,
+  CreateCustodyRequestDto,
+  CustodyTypeDto,
+  CreateCustodyTypeDto,
 } from '@/types/hr.types';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -163,6 +168,44 @@ export class HRLeaveTypeService {
 
   static async delete(id: string): Promise<void> {
     await api.delete(API_ENDPOINTS.HR_LEAVE_TYPE.DELETE(id));
+  }
+}
+
+// ─── Permission Request Service ──────────────────────────────────────────────
+
+export class HRPermissionRequestService {
+  static async create(data: CreatePermissionRequestDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_PERMISSION_REQUEST.CREATE, data);
+  }
+}
+
+// ─── Resignation Request Service ─────────────────────────────────────────────
+
+export class HRResignationRequestService {
+  static async create(data: CreateResignationRequestDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_RESIGNATION_REQUEST.CREATE, data);
+  }
+}
+
+// ─── Custody Request Service ──────────────────────────────────────────────────
+
+export class HRCustodyRequestService {
+  static async create(data: CreateCustodyRequestDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_CUSTODY_REQUEST.CREATE, data);
+  }
+
+  static async getTypes(): Promise<CustodyTypeDto[]> {
+    const response = await api.get<any>(API_ENDPOINTS.HR_CUSTODY_REQUEST.GET_TYPES);
+    return unwrapList<CustodyTypeDto>(response.data);
+  }
+
+  static async getType(id: string): Promise<CustodyTypeDto> {
+    const response = await api.get<any>(API_ENDPOINTS.HR_CUSTODY_REQUEST.GET_TYPE(id));
+    return unwrap<CustodyTypeDto>(response.data);
+  }
+
+  static async createType(data: CreateCustodyTypeDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_CUSTODY_REQUEST.CREATE_TYPE, data);
   }
 }
 

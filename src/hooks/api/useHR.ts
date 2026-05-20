@@ -6,6 +6,9 @@ import {
   HRLeaveService,
   HRLeaveTypeService,
   HRPayrollService,
+  HRPermissionRequestService,
+  HRResignationRequestService,
+  HRCustodyRequestService,
 } from '@/services/hr.service';
 import type {
   CreateEmployeeDto,
@@ -15,6 +18,10 @@ import type {
   CreateLeaveTypeDto,
   UpdateLeaveTypeDto,
   GeneratePayrollDto,
+  CreatePermissionRequestDto,
+  CreateResignationRequestDto,
+  CreateCustodyRequestDto,
+  CreateCustodyTypeDto,
 } from '@/types/hr.types';
 
 // ─── Query keys ──────────────────────────────────────────────────────────────
@@ -274,6 +281,88 @@ export function useHRLeaveTypes() {
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+  };
+}
+
+// ─── Permission Request hooks ─────────────────────────────────────────────────
+
+export function useHRPermissionRequest() {
+  const createMutation = useMutation({
+    mutationFn: (data: CreatePermissionRequestDto) => HRPermissionRequestService.create(data),
+    onSuccess: () => message.success('تم تقديم طلب الاستئذان بنجاح'),
+    onError: (err: any) => {
+      const d = err?.response?.data;
+      message.error(d?.errors?.[0] || d?.message || 'فشل تقديم طلب الاستئذان');
+    },
+  });
+
+  return {
+    createPermissionRequest: createMutation.mutateAsync,
+    isCreating: createMutation.isPending,
+  };
+}
+
+// ─── Resignation Request hooks ────────────────────────────────────────────────
+
+export function useHRResignationRequest() {
+  const createMutation = useMutation({
+    mutationFn: (data: CreateResignationRequestDto) => HRResignationRequestService.create(data),
+    onSuccess: () => message.success('تم تقديم طلب الاستقالة بنجاح'),
+    onError: (err: any) => {
+      const d = err?.response?.data;
+      message.error(d?.errors?.[0] || d?.message || 'فشل تقديم طلب الاستقالة');
+    },
+  });
+
+  return {
+    createResignationRequest: createMutation.mutateAsync,
+    isCreating: createMutation.isPending,
+  };
+}
+
+// ─── Custody Request hooks ────────────────────────────────────────────────────
+
+export function useHRCustodyTypes() {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['hr-custody-types'],
+    queryFn: () => HRCustodyRequestService.getTypes(),
+  });
+
+  const createTypeMutation = useMutation({
+    mutationFn: (data: CreateCustodyTypeDto) => HRCustodyRequestService.createType(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-custody-types'] });
+      message.success('تم إضافة نوع العهدة بنجاح');
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.message || 'فشل إضافة نوع العهدة');
+    },
+  });
+
+  return {
+    custodyTypes: query.data ?? [],
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+    createCustodyType: createTypeMutation.mutateAsync,
+    isCreatingType: createTypeMutation.isPending,
+  };
+}
+
+export function useHRCustodyRequest() {
+  const createMutation = useMutation({
+    mutationFn: (data: CreateCustodyRequestDto) => HRCustodyRequestService.create(data),
+    onSuccess: () => message.success('تم تقديم طلب العهدة بنجاح'),
+    onError: (err: any) => {
+      const d = err?.response?.data;
+      message.error(d?.errors?.[0] || d?.message || 'فشل تقديم طلب العهدة');
+    },
+  });
+
+  return {
+    createCustodyRequest: createMutation.mutateAsync,
+    isCreating: createMutation.isPending,
   };
 }
 

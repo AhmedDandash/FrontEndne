@@ -350,6 +350,21 @@ export const API_ENDPOINTS = {
     CLOSE: (id: string) => `/api/V1/Payroll/close/${id}`,
   },
 
+  HR_PERMISSION_REQUEST: {
+    CREATE: '/api/V1/PermissionRequest/Create',
+  },
+
+  HR_RESIGNATION_REQUEST: {
+    CREATE: '/api/V1/ResignationRequest/Create',
+  },
+
+  HR_CUSTODY_REQUEST: {
+    CREATE: '/api/V1/CustodyRequest/Create',
+    GET_TYPES: '/api/V1/CustodyRequest/Types',
+    GET_TYPE: (id: string) => `/api/V1/CustodyRequest/Types/${id}`,
+    CREATE_TYPE: '/api/V1/CustodyRequest/Types/Create',
+  },
+
   // ─── Department (/api/V1/Department) ─────────────────────────────────────
   // NOTE: POST uses query params (nameAr, nameEn), not a JSON body.
 

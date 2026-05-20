@@ -303,6 +303,18 @@ export default function Sidebar({
           key: '/hr/admin-users',
           label: language === 'ar' ? 'أدوار المستخدمين' : 'User Roles',
         },
+        {
+          key: '/hr/permission-request',
+          label: language === 'ar' ? 'طلب استئذان' : 'Permission Request',
+        },
+        {
+          key: '/hr/resignation-request',
+          label: language === 'ar' ? 'طلب استقالة' : 'Resignation Request',
+        },
+        {
+          key: '/hr/custody-request',
+          label: language === 'ar' ? 'طلب عهدة' : 'Custody Request',
+        },
       ],
     },
     {

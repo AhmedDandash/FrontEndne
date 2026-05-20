@@ -224,6 +224,60 @@ export interface UpdateLeaveTypeDto {
   isPaid: boolean;
 }
 
+// ==================== Permission Request Types ====================
+
+export type PermissionType = 1 | 2 | 3; // 1=ComeLate, 2=PartTime, 3=OutEarly
+export type PermissionNature = 1 | 2;   // 1=Official, 2=Personal
+
+export interface CreatePermissionRequestDto {
+  createdTo: string;
+  permissionDate: string;
+  permissionType: PermissionType;
+  permissionNature: PermissionNature;
+  comeLateTime?: string | null;
+  partTimeStart?: string | null;
+  partTimeFinish?: string | null;
+  outEarlyTime?: string | null;
+  reasons: string;
+}
+
+// ==================== Resignation Request Types ====================
+
+export interface CreateResignationRequestDto {
+  createdTo: string;
+  resignationDate: string;
+  endDate: string;
+  reasons: string;
+}
+
+// ==================== Custody Request Types ====================
+
+export interface CustodyTypeDto {
+  id: string;
+  nameAr?: string | null;
+  nameEn?: string | null;
+}
+
+export interface CreateCustodyTypeDto {
+  nameAr: string;
+  nameEn: string;
+}
+
+export interface CustodyItemDto {
+  custodyTypeId: string;
+  quantity: number;
+  deliveryDate: string;
+  temporal: boolean;
+  shortNote?: string | null;
+}
+
+export interface CreateCustodyRequestDto {
+  createdTo: string;
+  details: string;
+  reasons: string;
+  custodyItems: CustodyItemDto[];
+}
+
 // ==================== Payroll Types ====================
 
 export interface GeneratePayrollDto {
