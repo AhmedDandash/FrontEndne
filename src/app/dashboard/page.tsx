@@ -227,8 +227,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── Vacation Balance (employees only) ── */}
-      {isEmployee && (
+      {/* ── Vacation Balance ── */}
+      {me && (
         <div style={{ marginBottom: 24 }}>
           <Title level={5} style={{ color: '#003366', marginBottom: 16 }}>
             {isAr ? 'رصيد الإجازات' : 'Vacation Balance'}
