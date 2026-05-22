@@ -330,6 +330,7 @@ export const API_ENDPOINTS = {
     GET_ALL: '/api/V1/Leave',
     CREATE: '/api/V1/Leave',
     GET_BALANCE: (leaveTypeId: string) => `/api/V1/Leave/balance/${leaveTypeId}`,
+    EMPLOYEE_BALANCES: '/api/V1/Leave/employee-balances',
     APPROVE: (requestId: string) => `/api/V1/Leave/${requestId}/approve`,
     REJECT: (requestId: string) => `/api/V1/Leave/${requestId}/reject`,
     CANCEL: (requestId: string) => `/api/V1/Leave/${requestId}/cancel`,

@@ -34,6 +34,8 @@ const QK = {
   attendance: (filter: AttendanceFilterDto) => ['hr-attendance', filter] as const,
   leave: ['hr-leave'] as const,
   leaveBalance: (leaveTypeId: string) => ['hr-leave-balance', leaveTypeId] as const,
+  employeeBalances: (employeeId?: string, leaveTypeId?: string, year?: number, month?: number) =>
+    ['hr-employee-balances', employeeId, leaveTypeId, year, month] as const,
   leaveTypes: ['hr-leave-types'] as const,
   payroll: (month: number, year: number) => ['hr-payroll', month, year] as const,
 };
@@ -226,6 +228,21 @@ export function useHRLeave() {
     isRejecting: rejectMutation.isPending,
     isCancelling: cancelMutation.isPending,
   };
+}
+
+// ─── Employee Leave Balance hook ──────────────────────────────────────────────
+
+export function useEmployeeLeaveBalances(params: {
+  employeeId?: string;
+  leaveTypeId?: string;
+  year?: number;
+  month?: number;
+}) {
+  return useQuery({
+    queryKey: QK.employeeBalances(params.employeeId, params.leaveTypeId, params.year, params.month),
+    queryFn: () => HRLeaveService.getEmployeeBalances(params),
+    enabled: !!params.employeeId,
+  });
 }
 
 // ─── Leave Type hooks ─────────────────────────────────────────────────────────

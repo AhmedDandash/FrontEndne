@@ -224,6 +224,18 @@ export interface UpdateLeaveTypeDto {
   isPaid: boolean;
 }
 
+// ==================== Employee Leave Balance Types ====================
+
+export interface EmployeeLeaveBalanceDto {
+  leaveTypeId?: string | null;
+  leaveTypeName?: string | null;
+  totalDays?: number | null;
+  usedDays?: number | null;
+  remainingDays?: number | null;
+  year?: number | null;
+  month?: number | null;
+}
+
 // ==================== Permission Request Types ====================
 
 export type PermissionType = 1 | 2 | 3; // 1=ComeLate, 2=PartTime, 3=OutEarly

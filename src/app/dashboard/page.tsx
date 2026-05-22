@@ -11,14 +11,16 @@ import {
   IdcardOutlined,
   ShopOutlined,
   WarningOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 import { AuthService } from '@/services/auth.service';
-import { useHRAttendance } from '@/hooks/api/useHR';
+import { useHRAttendance, useEmployeeLeaveBalances } from '@/hooks/api/useHR';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import type { EmployeeLeaveBalanceDto } from '@/types/hr.types';
 
 const { Title, Text } = Typography;
 
@@ -66,6 +68,16 @@ export default function DashboardPage() {
   const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const isAr = language === 'ar';
+
+  const currentYear = now.year();
+  const currentMonth = now.month() + 1;
+  const isEmployee = me?.roles?.includes('Employee');
+
+  const { data: leaveBalances, isLoading: isBalancesLoading } = useEmployeeLeaveBalances({
+    employeeId: me?.id ?? undefined,
+    year: currentYear,
+    month: currentMonth,
+  });
 
   const primaryRole = me?.roles?.[0] ?? 'Admin';
   const heroGradient = ROLE_HERO_GRADIENT[primaryRole] ?? ROLE_HERO_GRADIENT.Admin;
@@ -155,7 +167,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Attendance card (employees only) ── */}
-      {me?.roles?.includes('Employee') && (
+      {isEmployee && (
         <div style={{
           background: '#fff',
           borderRadius: 16,
@@ -212,6 +224,37 @@ export default function DashboardPage() {
               {isAr ? 'تسجيل انصراف' : 'Check Out'}
             </Button>
           </Space>
+        </div>
+      )}
+
+      {/* ── Vacation Balance (employees only) ── */}
+      {isEmployee && (
+        <div style={{ marginBottom: 24 }}>
+          <Title level={5} style={{ color: '#003366', marginBottom: 16 }}>
+            {isAr ? 'رصيد الإجازات' : 'Vacation Balance'}
+          </Title>
+          {isBalancesLoading ? (
+            <Spin />
+          ) : !leaveBalances || leaveBalances.length === 0 ? (
+            <div style={{
+              background: '#fff',
+              borderRadius: 16,
+              padding: '20px 24px',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+              color: '#999',
+              fontSize: 14,
+            }}>
+              {isAr ? 'لا يوجد رصيد إجازات متاح' : 'No leave balance available'}
+            </div>
+          ) : (
+            <Row gutter={[16, 16]}>
+              {leaveBalances.map((bal, idx) => (
+                <Col key={bal.leaveTypeId ?? idx} xs={24} sm={12} md={8} lg={6}>
+                  <LeaveBalanceTile balance={bal} isAr={isAr} />
+                </Col>
+              ))}
+            </Row>
+          )}
         </div>
       )}
 
@@ -280,6 +323,70 @@ function QuickTile({
       <Text strong style={{ fontSize: 13, color: '#1a1a2e' }}>
         {label}
       </Text>
+    </div>
+  );
+}
+
+function LeaveBalanceTile({ balance, isAr }: { balance: EmployeeLeaveBalanceDto; isAr: boolean }) {
+  const total = balance.totalDays ?? 0;
+  const used = balance.usedDays ?? 0;
+  const remaining = balance.remainingDays ?? (total - used);
+  const pct = total > 0 ? Math.round((remaining / total) * 100) : 0;
+
+  const color = pct > 50 ? '#00aa64' : pct > 20 ? '#d97706' : '#dc2626';
+
+  return (
+    <div style={{
+      background: '#fff',
+      borderRadius: 16,
+      padding: '20px 24px',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+      border: `1.5px solid ${color}30`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{
+          width: 38,
+          height: 38,
+          borderRadius: '50%',
+          background: `${color}1a`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 18,
+          color,
+          flexShrink: 0,
+        }}>
+          <CalendarOutlined />
+        </div>
+        <Text strong style={{ fontSize: 14, color: '#1a1a2e' }}>
+          {balance.leaveTypeName ?? (isAr ? 'إجازة' : 'Leave')}
+        </Text>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#003366', lineHeight: 1 }}>{total}</div>
+          <div style={{ fontSize: 11, color: '#999', marginTop: 3 }}>{isAr ? 'الإجمالي' : 'Total'}</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#dc2626', lineHeight: 1 }}>{used}</div>
+          <div style={{ fontSize: 11, color: '#999', marginTop: 3 }}>{isAr ? 'المستخدم' : 'Used'}</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color, lineHeight: 1 }}>{remaining}</div>
+          <div style={{ fontSize: 11, color: '#999', marginTop: 3 }}>{isAr ? 'المتبقي' : 'Remaining'}</div>
+        </div>
+      </div>
+
+      <div style={{ background: '#f0f2f5', borderRadius: 100, height: 6, overflow: 'hidden' }}>
+        <div style={{
+          width: `${pct}%`,
+          height: '100%',
+          background: color,
+          borderRadius: 100,
+          transition: 'width 0.4s ease',
+        }} />
+      </div>
     </div>
   );
 }

@@ -25,6 +25,7 @@ import type {
   CustodyTypeDto,
   CreateCustodyTypeDto,
   CustodyRequestDto,
+  EmployeeLeaveBalanceDto,
 } from '@/types/hr.types';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -145,6 +146,16 @@ export class HRLeaveService {
 
   static async cancel(requestId: string): Promise<void> {
     await api.put(API_ENDPOINTS.HR_LEAVE.CANCEL(requestId));
+  }
+
+  static async getEmployeeBalances(params: {
+    employeeId?: string;
+    leaveTypeId?: string;
+    year?: number;
+    month?: number;
+  }): Promise<EmployeeLeaveBalanceDto[]> {
+    const response = await api.get<any>(API_ENDPOINTS.HR_LEAVE.EMPLOYEE_BALANCES, { params });
+    return unwrapList<EmployeeLeaveBalanceDto>(response.data);
   }
 }
 
