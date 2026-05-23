@@ -656,9 +656,9 @@ export default function HREmployeesPage() {
 }
 
 function LeaveBalanceTile({ balance }: { balance: EmployeeLeaveBalanceDto }) {
-  const total = balance.totalDays ?? 0;
-  const used = balance.usedDays ?? 0;
-  const remaining = balance.remainingDays ?? (total - used);
+  const total = balance.totalBalance ?? 0;
+  const used = balance.usedBalance ?? 0;
+  const remaining = balance.remainingBalance ?? (total - used);
   const pct = total > 0 ? Math.round((remaining / total) * 100) : 0;
   const color = pct > 50 ? '#00aa64' : pct > 20 ? '#d97706' : '#dc2626';
 

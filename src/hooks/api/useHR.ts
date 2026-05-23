@@ -241,6 +241,7 @@ export function useEmployeeLeaveBalances(params: {
   return useQuery({
     queryKey: QK.employeeBalances(params.employeeId, params.leaveTypeId, params.year, params.month),
     queryFn: () => HRLeaveService.getEmployeeBalances(params),
+    enabled: !!params.employeeId,
   });
 }
 

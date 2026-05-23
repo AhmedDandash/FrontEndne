@@ -229,11 +229,9 @@ export interface UpdateLeaveTypeDto {
 export interface EmployeeLeaveBalanceDto {
   leaveTypeId?: string | null;
   leaveTypeName?: string | null;
-  totalDays?: number | null;
-  usedDays?: number | null;
-  remainingDays?: number | null;
-  year?: number | null;
-  month?: number | null;
+  totalBalance?: number | null;
+  usedBalance?: number | null;
+  remainingBalance?: number | null;
 }
 
 // ==================== Permission Request Types ====================
