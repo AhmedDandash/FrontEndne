@@ -433,7 +433,7 @@ export default function HREmployeesPage() {
               <Descriptions.Item label="رقم الآيبان" span={2}>{detailEmployee.iban || '—'}</Descriptions.Item>
             </Descriptions>
 
-            <Divider orientation="right">
+            <Divider orientation="left">
               <Space size={6}>
                 <CalendarOutlined style={{ color: '#1677ff' }} />
                 <span style={{ fontSize: 13, fontWeight: 600 }}>رصيد الإجازات</span>
