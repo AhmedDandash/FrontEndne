@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   Table,
@@ -25,6 +25,7 @@ import {
   CloseOutlined,
   StopOutlined,
   CalendarOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -72,9 +73,31 @@ export default function HRLeavePage() {
 
   const { leaveTypes } = useHRLeaveTypes();
 
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [searchText, setSearchText] = useState('');
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const handleCancel = (id: string) => {
+    setCancellingId(id);
+    return cancelLeave(id).finally(() => setCancellingId(null));
+  };
+
   const pendingCount = leaveRequests.filter((r) => r.status === 'Pending').length;
   const approvedCount = leaveRequests.filter((r) => r.status === 'Approved').length;
   const rejectedCount = leaveRequests.filter((r) => r.status === 'Rejected').length;
+
+  const filteredRequests = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return leaveRequests.filter((r) => {
+      if (statusFilter && r.status !== statusFilter) return false;
+      if (q) {
+        const haystack =
+          `${r.employeeName ?? ''} ${r.leaveTypeName ?? ''} ${r.reason ?? ''}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [leaveRequests, statusFilter, searchText]);
 
   const handleCreate = async () => {
     const values = await form.validateFields();
@@ -174,7 +197,6 @@ export default function HRLeavePage() {
                     type="text"
                     icon={<CheckOutlined />}
                     style={{ color: '#52c41a' }}
-                    loading={isApproving}
                     onClick={() => setActionModal({ type: 'approve', record })}
                   />
                 </Tooltip>
@@ -183,7 +205,6 @@ export default function HRLeavePage() {
                     type="text"
                     danger
                     icon={<CloseOutlined />}
-                    loading={isRejecting}
                     onClick={() => setActionModal({ type: 'reject', record })}
                   />
                 </Tooltip>
@@ -198,7 +219,7 @@ export default function HRLeavePage() {
                       ? 'الإجازة معتمدة. سيتم استعادة الرصيد عند الإلغاء.'
                       : 'هل تريد إلغاء هذا الطلب؟'
                   }
-                  onConfirm={() => cancelLeave(record.id)}
+                  onConfirm={() => handleCancel(record.id)}
                   okText="إلغاء الطلب"
                   cancelText="تراجع"
                   okButtonProps={{ danger: true }}
@@ -207,7 +228,7 @@ export default function HRLeavePage() {
                     type="text"
                     icon={<StopOutlined />}
                     style={{ color: '#faad14' }}
-                    loading={isCancelling}
+                    loading={isCancelling && cancellingId === record.id}
                   />
                 </Popconfirm>
               </Tooltip>
@@ -254,13 +275,46 @@ export default function HRLeavePage() {
       </Row>
 
       <Card>
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Input
+            placeholder="بحث بالموظف أو النوع أو السبب..."
+            allowClear
+            prefix={<SearchOutlined />}
+            style={{ width: 300 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+          <Select
+            placeholder="تصفية بالحالة"
+            allowClear
+            style={{ width: 180 }}
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v)}
+            options={[
+              { value: 'Pending', label: 'قيد الانتظار' },
+              { value: 'Approved', label: 'موافق عليه' },
+              { value: 'Rejected', label: 'مرفوض' },
+              { value: 'Cancelled', label: 'ملغى' },
+            ]}
+          />
+        </Space>
+
         <Table<LeaveRequestDto>
-          dataSource={leaveRequests}
+          dataSource={filteredRequests}
           columns={columns}
           rowKey="id"
           loading={isLoading}
-          pagination={{ pageSize: 15, showSizeChanger: false }}
-          locale={{ emptyText: 'لا توجد طلبات إجازة' }}
+          pagination={{
+            pageSize: 15,
+            showSizeChanger: false,
+            showTotal: (total) => `إجمالي: ${total} طلب`,
+          }}
+          locale={{
+            emptyText:
+              statusFilter || searchText
+                ? 'لا توجد نتائج مطابقة'
+                : 'لا توجد طلبات إجازة',
+          }}
           scroll={{ x: 1200 }}
         />
       </Card>

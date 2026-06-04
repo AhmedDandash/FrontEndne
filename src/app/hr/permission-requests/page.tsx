@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import {
   Card,
   Table,
@@ -12,6 +13,8 @@ import {
   Row,
   Col,
   Statistic,
+  Input,
+  Select,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -19,6 +22,7 @@ import {
   CloseOutlined,
   ClockCircleOutlined,
   ReloadOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useHRPermissionRequests } from '@/hooks/api/useHR';
@@ -51,9 +55,30 @@ export default function PermissionRequestsPage() {
     isRejecting,
   } = useHRPermissionRequests();
 
+  const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
+  const [searchText, setSearchText] = useState('');
+  const [actioningId, setActioningId] = useState<string | null>(null);
+
+  const runAction = (id: string, fn: (id: string) => Promise<unknown>) => {
+    setActioningId(id);
+    return fn(id).finally(() => setActioningId(null));
+  };
+
   const pendingCount  = permissionRequests.filter((r) => r.status === 1).length;
   const approvedCount = permissionRequests.filter((r) => r.status === 2).length;
   const rejectedCount = permissionRequests.filter((r) => r.status === 3).length;
+
+  const filteredRequests = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return permissionRequests.filter((r) => {
+      if (statusFilter != null && r.status !== statusFilter) return false;
+      if (q) {
+        const haystack = `${r.employeeName ?? ''} ${r.reasons ?? ''}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [permissionRequests, statusFilter, searchText]);
 
   const columns: ColumnsType<PermissionRequestDto> = [
     {
@@ -117,7 +142,7 @@ export default function PermissionRequestsPage() {
             <Tooltip title="موافقة">
               <Popconfirm
                 title="تأكيد الموافقة على طلب الاستئذان؟"
-                onConfirm={() => approvePermissionRequest(record.id)}
+                onConfirm={() => runAction(record.id, approvePermissionRequest)}
                 okText="موافقة"
                 cancelText="إلغاء"
               >
@@ -125,19 +150,24 @@ export default function PermissionRequestsPage() {
                   type="text"
                   icon={<CheckOutlined />}
                   style={{ color: '#52c41a' }}
-                  loading={isApproving}
+                  loading={isApproving && actioningId === record.id}
                 />
               </Popconfirm>
             </Tooltip>
             <Tooltip title="رفض">
               <Popconfirm
                 title="تأكيد رفض طلب الاستئذان؟"
-                onConfirm={() => rejectPermissionRequest(record.id)}
+                onConfirm={() => runAction(record.id, rejectPermissionRequest)}
                 okText="رفض"
                 cancelText="إلغاء"
                 okButtonProps={{ danger: true }}
               >
-                <Button type="text" danger icon={<CloseOutlined />} loading={isRejecting} />
+                <Button
+                  type="text"
+                  danger
+                  icon={<CloseOutlined />}
+                  loading={isRejecting && actioningId === record.id}
+                />
               </Popconfirm>
             </Tooltip>
           </Space>
@@ -175,13 +205,45 @@ export default function PermissionRequestsPage() {
       </Row>
 
       <Card>
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Input
+            placeholder="بحث بالاسم أو السبب..."
+            allowClear
+            prefix={<SearchOutlined />}
+            style={{ width: 280 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+          <Select
+            placeholder="تصفية بالحالة"
+            allowClear
+            style={{ width: 180 }}
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v)}
+            options={[
+              { value: 1, label: 'قيد الانتظار' },
+              { value: 2, label: 'موافق عليه' },
+              { value: 3, label: 'مرفوض' },
+            ]}
+          />
+        </Space>
+
         <Table<PermissionRequestDto>
-          dataSource={permissionRequests}
+          dataSource={filteredRequests}
           columns={columns}
           rowKey="id"
           loading={isLoading}
-          pagination={{ pageSize: 15, showSizeChanger: false }}
-          locale={{ emptyText: 'لا توجد طلبات استئذان' }}
+          pagination={{
+            pageSize: 15,
+            showSizeChanger: false,
+            showTotal: (total) => `إجمالي: ${total} طلب`,
+          }}
+          locale={{
+            emptyText:
+              statusFilter != null || searchText
+                ? 'لا توجد نتائج مطابقة'
+                : 'لا توجد طلبات استئذان',
+          }}
           scroll={{ x: 900 }}
         />
       </Card>

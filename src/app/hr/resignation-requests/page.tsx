@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import {
   Card,
   Table,
@@ -12,6 +13,8 @@ import {
   Row,
   Col,
   Statistic,
+  Input,
+  Select,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -19,6 +22,7 @@ import {
   CloseOutlined,
   FileTextOutlined,
   ReloadOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useHRResignationRequests } from '@/hooks/api/useHR';
@@ -41,9 +45,30 @@ export default function ResignationRequestsPage() {
     isRejecting,
   } = useHRResignationRequests();
 
+  const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
+  const [searchText, setSearchText] = useState('');
+  const [actioningId, setActioningId] = useState<string | null>(null);
+
+  const runAction = (id: string, fn: (id: string) => Promise<unknown>) => {
+    setActioningId(id);
+    return fn(id).finally(() => setActioningId(null));
+  };
+
   const pendingCount  = resignationRequests.filter((r) => r.status === 1).length;
   const approvedCount = resignationRequests.filter((r) => r.status === 2).length;
   const rejectedCount = resignationRequests.filter((r) => r.status === 3).length;
+
+  const filteredRequests = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return resignationRequests.filter((r) => {
+      if (statusFilter != null && r.status !== statusFilter) return false;
+      if (q) {
+        const haystack = `${r.employeeName ?? ''} ${r.reasons ?? ''}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [resignationRequests, statusFilter, searchText]);
 
   const columns: ColumnsType<ResignationRequestDto> = [
     {
@@ -89,7 +114,7 @@ export default function ResignationRequestsPage() {
             <Tooltip title="موافقة">
               <Popconfirm
                 title="تأكيد الموافقة على طلب الاستقالة؟"
-                onConfirm={() => approveResignationRequest(record.id)}
+                onConfirm={() => runAction(record.id, approveResignationRequest)}
                 okText="موافقة"
                 cancelText="إلغاء"
               >
@@ -97,19 +122,24 @@ export default function ResignationRequestsPage() {
                   type="text"
                   icon={<CheckOutlined />}
                   style={{ color: '#52c41a' }}
-                  loading={isApproving}
+                  loading={isApproving && actioningId === record.id}
                 />
               </Popconfirm>
             </Tooltip>
             <Tooltip title="رفض">
               <Popconfirm
                 title="تأكيد رفض طلب الاستقالة؟"
-                onConfirm={() => rejectResignationRequest(record.id)}
+                onConfirm={() => runAction(record.id, rejectResignationRequest)}
                 okText="رفض"
                 cancelText="إلغاء"
                 okButtonProps={{ danger: true }}
               >
-                <Button type="text" danger icon={<CloseOutlined />} loading={isRejecting} />
+                <Button
+                  type="text"
+                  danger
+                  icon={<CloseOutlined />}
+                  loading={isRejecting && actioningId === record.id}
+                />
               </Popconfirm>
             </Tooltip>
           </Space>
@@ -147,13 +177,45 @@ export default function ResignationRequestsPage() {
       </Row>
 
       <Card>
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Input
+            placeholder="بحث بالاسم أو السبب..."
+            allowClear
+            prefix={<SearchOutlined />}
+            style={{ width: 280 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+          <Select
+            placeholder="تصفية بالحالة"
+            allowClear
+            style={{ width: 180 }}
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v)}
+            options={[
+              { value: 1, label: 'قيد الانتظار' },
+              { value: 2, label: 'موافق عليه' },
+              { value: 3, label: 'مرفوض' },
+            ]}
+          />
+        </Space>
+
         <Table<ResignationRequestDto>
-          dataSource={resignationRequests}
+          dataSource={filteredRequests}
           columns={columns}
           rowKey="id"
           loading={isLoading}
-          pagination={{ pageSize: 15, showSizeChanger: false }}
-          locale={{ emptyText: 'لا توجد طلبات استقالة' }}
+          pagination={{
+            pageSize: 15,
+            showSizeChanger: false,
+            showTotal: (total) => `إجمالي: ${total} طلب`,
+          }}
+          locale={{
+            emptyText:
+              statusFilter != null || searchText
+                ? 'لا توجد نتائج مطابقة'
+                : 'لا توجد طلبات استقالة',
+          }}
           scroll={{ x: 800 }}
         />
       </Card>

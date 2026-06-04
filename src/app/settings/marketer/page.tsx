@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Button,
   Card,
@@ -21,6 +21,7 @@ import {
   DeleteOutlined,
   TeamOutlined,
   ReloadOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -51,6 +52,8 @@ const TR: Record<string, Record<'ar' | 'en', string>> = {
   noData:       { ar: 'لا توجد بيانات',             en: 'No data found' },
   required:     { ar: 'هذا الحقل مطلوب',            en: 'This field is required' },
   total:        { ar: 'الإجمالي',                   en: 'Total' },
+  search:       { ar: 'بحث بالاسم...',              en: 'Search by name...' },
+  noResults:    { ar: 'لا توجد نتائج مطابقة',        en: 'No matching results' },
 };
 
 function useT() {
@@ -173,9 +176,18 @@ export default function MarketerSettingsPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing]     = useState<Marketer | null>(null);
+  const [searchText, setSearchText] = useState('');
 
   const { data: marketers, isLoading, refetch } = useMarketers();
   const deleteMutation = useDeleteMarketer();
+
+  const filtered = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    if (!q) return marketers ?? [];
+    return (marketers ?? []).filter((m) =>
+      `${m.nameAr ?? ''} ${m.nameEn ?? ''}`.toLowerCase().includes(q)
+    );
+  }, [marketers, searchText]);
 
   const openAdd  = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (m: Marketer) => { setEditing(m); setModalOpen(true); };
@@ -286,14 +298,25 @@ export default function MarketerSettingsPage() {
         ) : !marketers?.length ? (
           <Empty description={t('noData')} />
         ) : (
-          <Table
-            dataSource={marketers}
-            columns={columns}
-            rowKey="id"
-            pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${t('total')}: ${total}` }}
-            size="middle"
-            bordered
-          />
+          <>
+            <Input
+              allowClear
+              prefix={<SearchOutlined />}
+              placeholder={t('search')}
+              style={{ width: 320, marginBottom: 16 }}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+            <Table
+              dataSource={filtered}
+              columns={columns}
+              rowKey="id"
+              pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${t('total')}: ${total}` }}
+              locale={{ emptyText: <Empty description={t('noResults')} /> }}
+              size="middle"
+              bordered
+            />
+          </>
         )}
       </Card>
 

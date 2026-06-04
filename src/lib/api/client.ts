@@ -46,27 +46,24 @@ class ApiClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
+        const isDev = process.env.NEXT_PUBLIC_ENV === 'development';
+
         // Add auth token from localStorage/sessionStorage
         if (typeof window !== 'undefined') {
           const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-            console.log('🔐 Adding token to request:', {
-              url: config.url,
-              token: token.substring(0, 20) + '...',
-              hasAuth: !!config.headers.Authorization,
-            });
-          } else {
+          } else if (isDev) {
             console.warn('⚠️ No token found for request:', config.url);
           }
         }
 
-        // Log request in development
-        if (process.env.NEXT_PUBLIC_ENV === 'development') {
+        // Log request metadata in development only — never log token values or
+        // request bodies (they may contain passwords / PII).
+        if (isDev) {
           console.log('🚀 API Request:', {
             method: config.method?.toUpperCase(),
             url: config.url,
-            data: config.data,
             hasAuth: !!config.headers?.Authorization,
           });
         }

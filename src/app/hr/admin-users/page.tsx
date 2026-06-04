@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   Table,
@@ -12,11 +12,13 @@ import {
   Tag,
   Typography,
   Divider,
+  Input,
 } from 'antd';
 import {
   PlusCircleOutlined,
   MinusCircleOutlined,
   TeamOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAdminUsers, useAdminRoles } from '@/hooks/api/useAdmin';
@@ -35,6 +37,18 @@ export default function AdminUsersPage() {
 
   const { data: roles = [] } = useAdminRoles();
   const roleOptions = roles.map((r) => ({ value: r, label: r }));
+
+  const [searchText, setSearchText] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string | undefined>(undefined);
+
+  const filteredUsers = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return (users ?? []).filter((u) => {
+      if (q && !(u.email ?? '').toLowerCase().includes(q)) return false;
+      if (roleFilter && !(u.roles ?? []).includes(roleFilter)) return false;
+      return true;
+    });
+  }, [users, searchText, roleFilter]);
 
   const openRoleAction = (type: 'assign' | 'remove', user: AdminUser) => {
     roleForm.resetFields();
@@ -112,13 +126,39 @@ export default function AdminUsersPage() {
       </Space>
 
       <Card>
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Input
+            placeholder="بحث بالبريد الإلكتروني..."
+            allowClear
+            prefix={<SearchOutlined />}
+            style={{ width: 300 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+          <Select
+            placeholder="تصفية بالدور"
+            allowClear
+            style={{ width: 200 }}
+            value={roleFilter}
+            onChange={(v) => setRoleFilter(v)}
+            options={roleOptions}
+          />
+        </Space>
+
         <Table<AdminUser>
-          dataSource={users}
+          dataSource={filteredUsers}
           columns={columns}
           rowKey="id"
           loading={isLoading}
-          pagination={{ pageSize: 20, showSizeChanger: false }}
-          locale={{ emptyText: 'لا يوجد مستخدمون' }}
+          pagination={{
+            pageSize: 20,
+            showSizeChanger: false,
+            showTotal: (total) => `إجمالي: ${total} مستخدم`,
+          }}
+          locale={{
+            emptyText:
+              searchText || roleFilter ? 'لا توجد نتائج مطابقة' : 'لا يوجد مستخدمون',
+          }}
           scroll={{ x: 500 }}
         />
       </Card>

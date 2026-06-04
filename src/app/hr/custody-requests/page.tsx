@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   Table,
@@ -15,6 +15,8 @@ import {
   Row,
   Col,
   Statistic,
+  Input,
+  Select,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -23,6 +25,7 @@ import {
   EyeOutlined,
   InboxOutlined,
   ReloadOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useHRCustodyRequests, useHREmployees } from '@/hooks/api/useHR';
@@ -84,9 +87,31 @@ export default function CustodyRequestsPage() {
     employees.map((e) => [e.id, e.nameAr || e.nameEn || e.id])
   );
 
+  const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
+  const [searchText, setSearchText] = useState('');
+  const [actioningId, setActioningId] = useState<string | null>(null);
+
+  const runAction = (id: string, fn: (id: string) => Promise<unknown>) => {
+    setActioningId(id);
+    return fn(id).finally(() => setActioningId(null));
+  };
+
   const pendingCount  = custodyRequests.filter((r) => r.status === 1).length;
   const approvedCount = custodyRequests.filter((r) => r.status === 2).length;
   const rejectedCount = custodyRequests.filter((r) => r.status === 3).length;
+
+  const filteredRequests = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return custodyRequests.filter((r) => {
+      if (statusFilter != null && r.status !== statusFilter) return false;
+      if (q) {
+        const employeeName = r.employeeId ? (employeeMap[r.employeeId] ?? '') : '';
+        const haystack = `${employeeName} ${r.details ?? ''}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [custodyRequests, statusFilter, searchText, employeeMap]);
 
   const columns: ColumnsType<CustodyRequestDto> = [
     {
@@ -130,7 +155,7 @@ export default function CustodyRequestsPage() {
                 <Tooltip title="موافقة">
                   <Popconfirm
                     title="تأكيد الموافقة على طلب العهدة؟"
-                    onConfirm={() => approveCustodyRequest(record.id)}
+                    onConfirm={() => runAction(record.id, approveCustodyRequest)}
                     okText="موافقة"
                     cancelText="إلغاء"
                   >
@@ -138,19 +163,24 @@ export default function CustodyRequestsPage() {
                       type="text"
                       icon={<CheckOutlined />}
                       style={{ color: '#52c41a' }}
-                      loading={isApproving}
+                      loading={isApproving && actioningId === record.id}
                     />
                   </Popconfirm>
                 </Tooltip>
                 <Tooltip title="رفض">
                   <Popconfirm
                     title="تأكيد رفض طلب العهدة؟"
-                    onConfirm={() => rejectCustodyRequest(record.id)}
+                    onConfirm={() => runAction(record.id, rejectCustodyRequest)}
                     okText="رفض"
                     cancelText="إلغاء"
                     okButtonProps={{ danger: true }}
                   >
-                    <Button type="text" danger icon={<CloseOutlined />} loading={isRejecting} />
+                    <Button
+                      type="text"
+                      danger
+                      icon={<CloseOutlined />}
+                      loading={isRejecting && actioningId === record.id}
+                    />
                   </Popconfirm>
                 </Tooltip>
               </>
@@ -190,13 +220,45 @@ export default function CustodyRequestsPage() {
       </Row>
 
       <Card>
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Input
+            placeholder="بحث بالموظف أو التفاصيل..."
+            allowClear
+            prefix={<SearchOutlined />}
+            style={{ width: 280 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+          <Select
+            placeholder="تصفية بالحالة"
+            allowClear
+            style={{ width: 180 }}
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v)}
+            options={[
+              { value: 1, label: 'قيد الانتظار' },
+              { value: 2, label: 'موافق عليه' },
+              { value: 3, label: 'مرفوض' },
+            ]}
+          />
+        </Space>
+
         <Table<CustodyRequestDto>
-          dataSource={custodyRequests}
+          dataSource={filteredRequests}
           columns={columns}
           rowKey="id"
           loading={isLoading}
-          pagination={{ pageSize: 15, showSizeChanger: false }}
-          locale={{ emptyText: 'لا توجد طلبات عهد' }}
+          pagination={{
+            pageSize: 15,
+            showSizeChanger: false,
+            showTotal: (total) => `إجمالي: ${total} طلب`,
+          }}
+          locale={{
+            emptyText:
+              statusFilter != null || searchText
+                ? 'لا توجد نتائج مطابقة'
+                : 'لا توجد طلبات عهد',
+          }}
           scroll={{ x: 700 }}
         />
       </Card>
