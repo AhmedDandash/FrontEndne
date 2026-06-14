@@ -1,0 +1,238 @@
+.page {
+  padding-block: 24px;
+  padding-inline: 24px;
+  min-block-size: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+}
+
+/* ── Header (shared platform pattern) ───────────────────────── */
+.pageHeader {
+  background: linear-gradient(135deg, #003366 0%, #00478c 100%);
+  border-radius: 12px;
+  padding-block: 28px;
+  padding-inline: 32px;
+  margin-block-end: 20px;
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.15);
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerIcon {
+  font-size: 36px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: white;
+}
+
+.pageTitle {
+  margin: 0 0 4px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+}
+
+.pageSubtitle {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.refreshBtn {
+  border: 2px solid rgba(255, 255, 255, 0.6) !important;
+  color: white !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+.refreshBtn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: white !important;
+}
+
+.addBtn {
+  background: white !important;
+  color: #003366 !important;
+  border-color: white !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+}
+
+.addBtn:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* ── Account-type legend ────────────────────────────────────── */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+  background: white;
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-block-end: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.legendDot {
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legendCode {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* ── Cards ──────────────────────────────────────────────────── */
+.treeCard,
+.detailsCard {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.detailsCard {
+  position: sticky;
+  top: 16px;
+}
+
+.countTag {
+  margin-inline-start: 4px !important;
+  font-weight: 700;
+}
+
+.search {
+  margin-block-end: 16px;
+  border-radius: 8px;
+}
+
+.spinWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-block-size: 240px;
+}
+
+/* ── Tree ───────────────────────────────────────────────────── */
+.treeWrapper {
+  max-block-size: 620px;
+  overflow: auto;
+  padding-inline-end: 4px;
+}
+
+.tree :global(.ant-tree-node-content-wrapper) {
+  inline-size: 100%;
+}
+
+.nodeTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.nodeCode {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.3px;
+  min-inline-size: 64px;
+}
+
+.codeMatch {
+  background: #fff1b8;
+  border-radius: 4px;
+  padding-inline: 4px;
+}
+
+.nodeName {
+  color: #1f2937;
+  font-size: 13.5px;
+}
+
+.highlight {
+  background: #ffe58f;
+  border-radius: 3px;
+  padding-inline: 2px;
+  font-weight: 600;
+}
+
+/* ── Details panel ──────────────────────────────────────────── */
+.details {
+  margin-block-end: 16px;
+}
+
+.detailCode {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.detailsAction {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 992px) {
+  .detailsCard {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding-block: 16px;
+    padding-inline: 16px;
+  }
+
+  .pageHeader {
+    padding-block: 20px;
+    padding-inline: 20px;
+  }
+
+  .pageTitle {
+    font-size: 18px;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .treeWrapper {
+    max-block-size: 460px;
+  }
+}

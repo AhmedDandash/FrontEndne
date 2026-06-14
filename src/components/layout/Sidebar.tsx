@@ -12,6 +12,7 @@ import {
   ShopOutlined,
   HomeOutlined,
   IdcardOutlined,
+  BankOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useRouter, usePathname } from 'next/navigation';
@@ -326,6 +327,25 @@ export default function Sidebar({
         {
           key: '/hr/custody-requests',
           label: language === 'ar' ? 'سجل طلبات العهد' : 'Custody History',
+        },
+      ],
+    },
+    {
+      key: 'accounting',
+      icon: <BankOutlined />,
+      label: language === 'ar' ? 'المحاسبة' : 'Accounting',
+      children: [
+        {
+          key: '/accounting/chart-of-accounts',
+          label: language === 'ar' ? 'شجرة الحسابات' : 'Chart of Accounts',
+        },
+        {
+          key: '/accounting/account-settings',
+          label: language === 'ar' ? 'إعدادات الحسابات' : 'Account Settings',
+        },
+        {
+          key: '/accounting/restriction-types',
+          label: language === 'ar' ? 'أنواع القيود' : 'Restriction Types',
         },
       ],
     },

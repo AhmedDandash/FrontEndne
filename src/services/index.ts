@@ -22,6 +22,8 @@ export { MediationContractOfferService } from './mediation-contract-offer.servic
 export { MediationContractService } from './mediation-contract.service';
 export { ContractCreationRequirementService } from './contract-creation-requirement.service';
 export { NationalityFollowUpService } from './nationality-followup.service';
+export { AccountService } from './account.service';
+export { RestrictionTypeService } from './restriction-type.service';
 export {
   HREmployeeService,
   HRAttendanceService,

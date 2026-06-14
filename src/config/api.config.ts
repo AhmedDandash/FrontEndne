@@ -427,4 +427,34 @@ export const API_ENDPOINTS = {
     EXIT_AND_REENTRY: (workerId: string) => `/api/V1/Worker/${workerId}/ExitAndReEntry`,
     EXIT_HOUSING: (workerId: string) => `/api/V1/Worker/${workerId}/ExitHousing`,
   },
+
+  // ─── Accounting: Chart of Accounts — /api/V1/account/* ────────────────────
+  // Account code first digit → type: 1=Asset 2=Liability 3=Equity
+  // 4=Revenue 5=OpEx 6=AdminEx. All IDs are GUIDs.
+  ACCOUNT: {
+    // GET full hierarchical account tree (nested children)
+    FULL_TREE: '/api/V1/account/full-tree-structure',
+    // GET sub-tree rooted at a parent account
+    SUBTREE: (parentId: string) => `/api/V1/account/subtree/${parentId}`,
+    // POST create a new account (parent becomes a non-leaf node automatically)
+    CREATE: '/api/V1/account/create-account',
+    // PUT update an account's display name
+    UPDATE: (accountId: string) => `/api/V1/account/update-account/${accountId}`,
+    // PUT update income-statement / P&L side + trial-balance grouping flag
+    REPORTING: (accountId: string) => `/api/V1/account/reporting/${accountId}`,
+    // DELETE a leaf account (fails if it has children or financial movements)
+    DELETE: (accountId: string) => `/api/V1/account/delete-account/${accountId}`,
+    // GET paginated account list with report-side settings
+    SETTINGS: '/api/V1/account/settings',
+  },
+
+  // ─── Accounting: Restriction (journal entry) Types — /api/V1/restrictiontype/* ──
+  // NOTE: POST (create) currently returns 501 Not Implemented server-side.
+  RESTRICTION_TYPE: {
+    GET_ALL: '/api/V1/restrictiontype',
+    GET_BY_ID: (id: string) => `/api/V1/restrictiontype/${id}`,
+    CREATE: '/api/V1/restrictiontype',
+    UPDATE: (id: string) => `/api/V1/restrictiontype/${id}`,
+    DELETE: (id: string) => `/api/V1/restrictiontype/${id}`,
+  },
 } as const;
