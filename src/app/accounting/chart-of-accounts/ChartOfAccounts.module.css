@@ -271,9 +271,9 @@
 
 .detailStats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
-  margin-block-end: 20px;
+  margin-block-end: 16px;
 }
 
 .statItem {
@@ -281,7 +281,7 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 12px 8px;
+  padding: 14px 8px;
   border-radius: 10px;
   background: #f8fafc;
   border: 1px solid #eef2f7;
@@ -289,21 +289,89 @@
 }
 
 .statLabel {
-  font-size: 12px;
+  font-size: 11px;
   color: #6b7280;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .statValue {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   color: #003366;
+  line-height: 1;
 }
 
-.detailsActions {
+/* ── Children sub-list ──────────────────────────────────────── */
+.childList {
+  border: 1px solid #eef2f7;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-block-end: 4px;
+}
+
+.childListHeader {
   display: flex;
-  width: 100%;
-  margin-block-start: 4px;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #f1f5f9;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-block-end: 1px solid #eef2f7;
+}
+
+.childItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  font-size: 13px;
+  border-block-end: 1px solid #f8fafc;
+}
+
+.childItem:last-child {
+  border-block-end: none;
+}
+
+.childItem:hover {
+  background: #f8fafc;
+}
+
+.childCode {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 12px;
+  min-inline-size: 48px;
+}
+
+.childName {
+  color: #374151;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Vertical action buttons ────────────────────────────────── */
+.detailActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detailActionBtn {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  text-align: start !important;
+  justify-content: flex-start !important;
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */

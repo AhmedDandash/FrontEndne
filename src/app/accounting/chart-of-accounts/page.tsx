@@ -14,14 +14,14 @@ import {
   Col,
   Tooltip,
   Space,
+  Divider,
   Modal,
 } from 'antd';
-import type { DataNode, EventDataNode } from 'antd/es/tree';
+import type { DataNode } from 'antd/es/tree';
 import {
   BankOutlined,
   ReloadOutlined,
   SettingOutlined,
-  ShrinkOutlined,
   ApartmentOutlined,
   FileOutlined,
   FolderOutlined,
@@ -31,6 +31,7 @@ import {
   SlidersOutlined,
   DeleteOutlined,
   ExclamationCircleFilled,
+  NodeIndexOutlined,
 } from '@ant-design/icons';
 import { useAccountTree } from '@/hooks/api/useAccounts';
 import { getAccountType, ACCOUNT_TYPES } from '@/types/accounting.types';
@@ -88,7 +89,7 @@ export default function ChartOfAccountsPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
 
-  const { tree, isLoading, isFetching, refetch, loadChildren } = useAccountTree();
+  const { tree, isLoading, isFetching, refetch } = useAccountTree();
 
   // Shared create / rename / reporting modals + delete mutation (also used by Settings).
   const {
@@ -109,30 +110,15 @@ export default function ChartOfAccountsPage() {
 
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
-  /**
-   * Lazy-load a node's children the first time it is expanded.
-   * Children already present (cached) are not re-fetched.
-   */
-  const onLoadData = async (node: EventDataNode<DataNode>): Promise<void> => {
-    const id = String(node.key);
-    const existing = maps.nodeMap.get(id);
-    if (existing && (existing.children?.length ?? 0) > 0) return;
-    await loadChildren(id);
-  };
-
-  // A full refetch (mutation invalidation or the Refresh button) re-fetches the
-  // roots only — every lazily-loaded subtree is dropped. Collapse to a clean
-  // root view rather than leaving stale "expanded but empty" branches behind.
-  // (Subtree loads use setQueryData and never toggle isFetching, so normal
-  // browsing is unaffected.)
-  const wasFetching = useRef(false);
+  // Auto-expand all branch nodes once the full tree has loaded.
+  const didAutoExpand = useRef(false);
   useEffect(() => {
-    if (wasFetching.current && !isFetching) {
-      setExpandedKeys([]);
+    if (!isLoading && maps.branchKeys.length && !didAutoExpand.current) {
+      didAutoExpand.current = true;
+      setExpandedKeys(maps.branchKeys);
       setAutoExpandParent(false);
     }
-    wasFetching.current = isFetching;
-  }, [isFetching]);
+  }, [isLoading, maps.branchKeys]);
 
   /** Confirm + delete a leaf account. */
   const confirmDelete = (node: AccountTreeNode) => {
@@ -162,7 +148,7 @@ export default function ChartOfAccountsPage() {
     const render = (nodes: AccountTreeNode[]): DataNode[] =>
       nodes.map((node) => {
         const children = node.children ?? [];
-        const loaded = children.length > 0;
+        const hasChildren = children.length > 0;
         const type = getAccountType(node.code);
         const leaf = node.isLeaf;
 
@@ -247,9 +233,8 @@ export default function ChartOfAccountsPage() {
         return {
           key: node.id,
           title,
-          isLeaf: leaf,
-          icon: leaf ? <FileOutlined /> : <FolderOutlined />,
-          children: loaded ? render(children) : undefined,
+          icon: hasChildren ? <FolderOutlined /> : <FileOutlined />,
+          children: hasChildren ? render(children) : undefined,
         };
       });
 
@@ -286,11 +271,6 @@ export default function ChartOfAccountsPage() {
     setAutoExpandParent(false);
   };
 
-  const collapseAll = () => {
-    setExpandedKeys([]);
-    setAutoExpandParent(false);
-  };
-
   const onSelect = (keys: React.Key[]) => {
     const id = keys[0] as string | undefined;
     setSelectedId(id ?? null);
@@ -303,7 +283,6 @@ export default function ChartOfAccountsPage() {
 
   const selected = selectedId ? maps.nodeMap.get(selectedId) ?? null : null;
   const selectedType = selected ? getAccountType(selected.code) : null;
-  const selectedChildrenLoaded = (selected?.children?.length ?? 0) > 0;
   const selectedChildrenCount = selected?.children?.length ?? 0;
   const selectedIsLeaf = selected ? isLeaf(selected.id) : false;
 
@@ -378,16 +357,6 @@ export default function ChartOfAccountsPage() {
                 )}
               </Space>
             }
-            extra={
-              <Button
-                size="small"
-                icon={<ShrinkOutlined />}
-                onClick={collapseAll}
-                disabled={expandedKeys.length === 0}
-              >
-                {t('طي الكل', 'Collapse all')}
-              </Button>
-            }
           >
             <Input
               allowClear
@@ -412,7 +381,6 @@ export default function ChartOfAccountsPage() {
                   showIcon
                   blockNode
                   treeData={treeData}
-                  loadData={onLoadData}
                   expandedKeys={expandedKeys}
                   autoExpandParent={autoExpandParent}
                   selectedKeys={selectedId ? [selectedId] : []}
@@ -443,7 +411,7 @@ export default function ChartOfAccountsPage() {
               />
             ) : (
               <>
-                {/* Hero — code badge + name + classification tags */}
+                {/* ── Hero: code pill + name + classification ── */}
                 <div className={styles.detailHero}>
                   <span
                     className={styles.detailHeroCode}
@@ -457,110 +425,130 @@ export default function ChartOfAccountsPage() {
                     </div>
                     <div className={styles.detailHeroTags}>
                       {selectedType && (
-                        <Tag color={selectedType.color} style={{ fontFamily: 'inherit', margin: 0 }}>
+                        <Tag color={selectedType.color} style={{ margin: 0 }}>
                           {isAr ? selectedType.ar : selectedType.en}
                         </Tag>
                       )}
                       {selected.isLeaf ? (
                         <Tag icon={<FileOutlined />} style={{ margin: 0 }}>
-                          {t('حساب فرعي', 'Leaf account')}
+                          {t('قابل للترحيل', 'Postable')}
                         </Tag>
                       ) : (
                         <Tag icon={<FolderOutlined />} color="processing" style={{ margin: 0 }}>
-                          {t('حساب رئيسي', 'Parent account')}
+                          {t('حساب رئيسي', 'Header')}
                         </Tag>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Stats — level, kind, direct children */}
+                {/* ── Stats grid ── */}
                 <div className={styles.detailStats}>
                   <div className={styles.statItem}>
                     <span className={styles.statLabel}>{t('المستوى', 'Level')}</span>
                     <span className={styles.statValue}>{selected.level}</span>
                   </div>
                   <div className={styles.statItem}>
-                    <span className={styles.statLabel}>{t('التصنيف', 'Kind')}</span>
-                    <span className={styles.statValue}>
-                      {selected.isLeaf ? t('فرعي', 'Leaf') : t('رئيسي', 'Parent')}
-                    </span>
-                  </div>
-                  <div className={styles.statItem}>
-                    <span className={styles.statLabel}>{t('عدد الفروع', 'Children')}</span>
-                    <span className={styles.statValue}>
-                      {selected.isLeaf ? (
-                        0
-                      ) : selectedChildrenLoaded ? (
-                        selectedChildrenCount
-                      ) : (
-                        <Tooltip
-                          title={t(
-                            'وسّع الحساب لتحميل الفروع',
-                            'Expand the account to load its children'
-                          )}
-                        >
-                          <span style={{ cursor: 'help' }}>—</span>
-                        </Tooltip>
-                      )}
-                    </span>
+                    <span className={styles.statLabel}>{t('الفروع المباشرة', 'Sub-accounts')}</span>
+                    <span className={styles.statValue}>{selectedChildrenCount}</span>
                   </div>
                 </div>
 
-                {/* Inline management actions for the selected account */}
-                <Space direction="vertical" size={8} className={styles.detailsActions}>
-                  <Space wrap>
-                    <Button
-                      type="primary"
-                      ghost
-                      icon={<PlusOutlined />}
-                      onClick={() => openCreate(selected.id)}
-                    >
-                      {t('حساب فرعي', 'Add sub-account')}
-                    </Button>
-                    <Button
-                      icon={<EditOutlined />}
-                      onClick={() =>
-                        openEditName({ id: selected.id, code: selected.code, name: selected.name })
-                      }
-                    >
-                      {t('تعديل الاسم', 'Edit name')}
-                    </Button>
-                    <Button
-                      icon={<SlidersOutlined />}
-                      onClick={() =>
-                        openReporting({ id: selected.id, code: selected.code, name: selected.name })
-                      }
-                    >
-                      {t('التقارير', 'Reporting')}
-                    </Button>
-                    <Tooltip
-                      title={
-                        selectedIsLeaf
-                          ? ''
-                          : t('لا يمكن حذف حساب له فروع', 'Cannot delete an account with sub-accounts')
-                      }
-                    >
-                      <Button
-                        danger
-                        icon={<DeleteOutlined />}
-                        disabled={!selectedIsLeaf}
-                        onClick={() => confirmDelete(selected)}
-                      >
-                        {t('حذف', 'Delete')}
-                      </Button>
-                    </Tooltip>
-                  </Space>
+                {/* ── Sub-account list (parent nodes only) ── */}
+                {!selected.isLeaf && selectedChildrenCount > 0 && (
+                  <div className={styles.childList}>
+                    <div className={styles.childListHeader}>
+                      <NodeIndexOutlined style={{ fontSize: 12 }} />
+                      {t('الفروع', 'Sub-accounts')}
+                    </div>
+                    {(selected.children ?? []).map((ch) => {
+                      const chType = getAccountType(ch.code);
+                      return (
+                        <div
+                          key={ch.id}
+                          className={styles.childItem}
+                          onClick={() => setSelectedId(ch.id)}
+                        >
+                          <span
+                            className={styles.childCode}
+                            style={chType ? { color: chType.color } : undefined}
+                          >
+                            {ch.code}
+                          </span>
+                          <span className={styles.childName}>{ch.name}</span>
+                          {ch.isLeaf ? (
+                            <FileOutlined style={{ fontSize: 11, color: '#9ca3af', marginInlineStart: 'auto' }} />
+                          ) : (
+                            <FolderOutlined style={{ fontSize: 11, color: '#9ca3af', marginInlineStart: 'auto' }} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
+                <Divider style={{ margin: '16px 0 12px' }} />
+
+                {/* ── Action buttons ── */}
+                <div className={styles.detailActions}>
+                  <Button
+                    block
+                    type="primary"
+                    ghost
+                    icon={<PlusOutlined />}
+                    onClick={() => openCreate(selected.id)}
+                    className={styles.detailActionBtn}
+                  >
+                    {t('إضافة حساب فرعي', 'Add sub-account')}
+                  </Button>
+                  <Button
+                    block
+                    icon={<EditOutlined />}
+                    onClick={() =>
+                      openEditName({ id: selected.id, code: selected.code, name: selected.name })
+                    }
+                    className={styles.detailActionBtn}
+                  >
+                    {t('تعديل الاسم', 'Edit name')}
+                  </Button>
+                  <Button
+                    block
+                    icon={<SlidersOutlined />}
+                    onClick={() =>
+                      openReporting({ id: selected.id, code: selected.code, name: selected.name })
+                    }
+                    className={styles.detailActionBtn}
+                  >
+                    {t('إعدادات التقارير', 'Reporting settings')}
+                  </Button>
+                  <Tooltip
+                    title={
+                      !selectedIsLeaf
+                        ? t('لا يمكن حذف حساب له فروع', 'Cannot delete an account with sub-accounts')
+                        : ''
+                    }
+                  >
+                    <Button
+                      block
+                      danger
+                      icon={<DeleteOutlined />}
+                      disabled={!selectedIsLeaf}
+                      onClick={() => confirmDelete(selected)}
+                      className={styles.detailActionBtn}
+                    >
+                      {t('حذف الحساب', 'Delete account')}
+                    </Button>
+                  </Tooltip>
                   <Button
                     block
                     type="link"
                     icon={<SettingOutlined />}
                     onClick={() => goToSettings(selected.code)}
+                    style={{ marginTop: 4 }}
                   >
                     {t('عرض في إعدادات الحسابات', 'Open in Account Settings')}
                   </Button>
-                </Space>
+                </div>
               </>
             )}
           </Card>
