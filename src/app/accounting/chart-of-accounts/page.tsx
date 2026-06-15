@@ -12,18 +12,16 @@ import {
   Empty,
   Row,
   Col,
-  Descriptions,
   Tooltip,
   Space,
   Modal,
 } from 'antd';
-import type { DataNode } from 'antd/es/tree';
+import type { DataNode, EventDataNode } from 'antd/es/tree';
 import {
   BankOutlined,
   ReloadOutlined,
   SettingOutlined,
   ShrinkOutlined,
-  ArrowsAltOutlined,
   ApartmentOutlined,
   FileOutlined,
   FolderOutlined,
@@ -90,7 +88,7 @@ export default function ChartOfAccountsPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
 
-  const { tree, isLoading, isFetching, refetch } = useAccountTree();
+  const { tree, isLoading, isFetching, refetch, loadChildren } = useAccountTree();
 
   // Shared create / rename / reporting modals + delete mutation (also used by Settings).
   const {
@@ -111,15 +109,30 @@ export default function ChartOfAccountsPage() {
 
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
-  // Reveal the full breakdown on first load by expanding all branch nodes.
-  const didAutoExpand = useRef(false);
+  /**
+   * Lazy-load a node's children the first time it is expanded.
+   * Children already present (cached) are not re-fetched.
+   */
+  const onLoadData = async (node: EventDataNode<DataNode>): Promise<void> => {
+    const id = String(node.key);
+    const existing = maps.nodeMap.get(id);
+    if (existing && (existing.children?.length ?? 0) > 0) return;
+    await loadChildren(id);
+  };
+
+  // A full refetch (mutation invalidation or the Refresh button) re-fetches the
+  // roots only — every lazily-loaded subtree is dropped. Collapse to a clean
+  // root view rather than leaving stale "expanded but empty" branches behind.
+  // (Subtree loads use setQueryData and never toggle isFetching, so normal
+  // browsing is unaffected.)
+  const wasFetching = useRef(false);
   useEffect(() => {
-    if (!isLoading && maps.branchKeys.length && !didAutoExpand.current) {
-      didAutoExpand.current = true;
-      setExpandedKeys(maps.branchKeys);
+    if (wasFetching.current && !isFetching) {
+      setExpandedKeys([]);
       setAutoExpandParent(false);
     }
-  }, [isLoading, maps.branchKeys]);
+    wasFetching.current = isFetching;
+  }, [isFetching]);
 
   /** Confirm + delete a leaf account. */
   const confirmDelete = (node: AccountTreeNode) => {
@@ -149,9 +162,9 @@ export default function ChartOfAccountsPage() {
     const render = (nodes: AccountTreeNode[]): DataNode[] =>
       nodes.map((node) => {
         const children = node.children ?? [];
-        const hasChildren = children.length > 0;
+        const loaded = children.length > 0;
         const type = getAccountType(node.code);
-        const leaf = !hasChildren;
+        const leaf = node.isLeaf;
 
         const nameLower = node.name.toLowerCase();
         const codeLower = node.code.toLowerCase();
@@ -234,8 +247,9 @@ export default function ChartOfAccountsPage() {
         return {
           key: node.id,
           title,
-          icon: hasChildren ? <FolderOutlined /> : <FileOutlined />,
-          children: hasChildren ? render(children) : undefined,
+          isLeaf: leaf,
+          icon: leaf ? <FileOutlined /> : <FolderOutlined />,
+          children: loaded ? render(children) : undefined,
         };
       });
 
@@ -272,11 +286,6 @@ export default function ChartOfAccountsPage() {
     setAutoExpandParent(false);
   };
 
-  const expandAll = () => {
-    setExpandedKeys(maps.branchKeys);
-    setAutoExpandParent(false);
-  };
-
   const collapseAll = () => {
     setExpandedKeys([]);
     setAutoExpandParent(false);
@@ -294,6 +303,7 @@ export default function ChartOfAccountsPage() {
 
   const selected = selectedId ? maps.nodeMap.get(selectedId) ?? null : null;
   const selectedType = selected ? getAccountType(selected.code) : null;
+  const selectedChildrenLoaded = (selected?.children?.length ?? 0) > 0;
   const selectedChildrenCount = selected?.children?.length ?? 0;
   const selectedIsLeaf = selected ? isLeaf(selected.id) : false;
 
@@ -369,18 +379,14 @@ export default function ChartOfAccountsPage() {
               </Space>
             }
             extra={
-              <Space size={4}>
-                <Tooltip title={t('توسيع الكل', 'Expand all')}>
-                  <Button size="small" icon={<ArrowsAltOutlined />} onClick={expandAll}>
-                    {t('توسيع', 'Expand')}
-                  </Button>
-                </Tooltip>
-                <Tooltip title={t('طي الكل', 'Collapse all')}>
-                  <Button size="small" icon={<ShrinkOutlined />} onClick={collapseAll}>
-                    {t('طي', 'Collapse')}
-                  </Button>
-                </Tooltip>
-              </Space>
+              <Button
+                size="small"
+                icon={<ShrinkOutlined />}
+                onClick={collapseAll}
+                disabled={expandedKeys.length === 0}
+              >
+                {t('طي الكل', 'Collapse all')}
+              </Button>
             }
           >
             <Input
@@ -406,6 +412,7 @@ export default function ChartOfAccountsPage() {
                   showIcon
                   blockNode
                   treeData={treeData}
+                  loadData={onLoadData}
                   expandedKeys={expandedKeys}
                   autoExpandParent={autoExpandParent}
                   selectedKeys={selectedId ? [selectedId] : []}
@@ -436,49 +443,69 @@ export default function ChartOfAccountsPage() {
               />
             ) : (
               <>
-                <Descriptions
-                  column={1}
-                  bordered
-                  size="middle"
-                  className={styles.details}
-                  labelStyle={{ width: 140, fontWeight: 600 }}
-                >
-                  <Descriptions.Item label={t('رقم الحساب', 'Account Code')}>
-                    <span
-                      className={styles.detailCode}
-                      style={selectedType ? { color: selectedType.color } : undefined}
-                    >
-                      {selected.code}
+                {/* Hero — code badge + name + classification tags */}
+                <div className={styles.detailHero}>
+                  <span
+                    className={styles.detailHeroCode}
+                    style={selectedType ? { background: selectedType.color } : undefined}
+                  >
+                    {selected.code}
+                  </span>
+                  <div className={styles.detailHeroBody}>
+                    <div className={styles.detailHeroName} title={selected.name}>
+                      {selected.name}
+                    </div>
+                    <div className={styles.detailHeroTags}>
+                      {selectedType && (
+                        <Tag color={selectedType.color} style={{ fontFamily: 'inherit', margin: 0 }}>
+                          {isAr ? selectedType.ar : selectedType.en}
+                        </Tag>
+                      )}
+                      {selected.isLeaf ? (
+                        <Tag icon={<FileOutlined />} style={{ margin: 0 }}>
+                          {t('حساب فرعي', 'Leaf account')}
+                        </Tag>
+                      ) : (
+                        <Tag icon={<FolderOutlined />} color="processing" style={{ margin: 0 }}>
+                          {t('حساب رئيسي', 'Parent account')}
+                        </Tag>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats — level, kind, direct children */}
+                <div className={styles.detailStats}>
+                  <div className={styles.statItem}>
+                    <span className={styles.statLabel}>{t('المستوى', 'Level')}</span>
+                    <span className={styles.statValue}>{selected.level}</span>
+                  </div>
+                  <div className={styles.statItem}>
+                    <span className={styles.statLabel}>{t('التصنيف', 'Kind')}</span>
+                    <span className={styles.statValue}>
+                      {selected.isLeaf ? t('فرعي', 'Leaf') : t('رئيسي', 'Parent')}
                     </span>
-                  </Descriptions.Item>
-                  <Descriptions.Item label={t('اسم الحساب', 'Account Name')}>
-                    {selected.name}
-                  </Descriptions.Item>
-                  <Descriptions.Item label={t('النوع', 'Type')}>
-                    {selectedType ? (
-                      <Tag color={selectedType.color} style={{ fontFamily: 'inherit' }}>
-                        {isAr ? selectedType.ar : selectedType.en}
-                      </Tag>
-                    ) : (
-                      '—'
-                    )}
-                  </Descriptions.Item>
-                  <Descriptions.Item label={t('المستوى', 'Level')}>
-                    {selected.level}
-                  </Descriptions.Item>
-                  <Descriptions.Item label={t('التصنيف', 'Kind')}>
-                    {selected.isLeaf ? (
-                      <Tag icon={<FileOutlined />}>{t('حساب فرعي', 'Leaf account')}</Tag>
-                    ) : (
-                      <Tag icon={<FolderOutlined />} color="processing">
-                        {t('حساب رئيسي', 'Parent account')}
-                      </Tag>
-                    )}
-                  </Descriptions.Item>
-                  <Descriptions.Item label={t('عدد الفروع', 'Direct children')}>
-                    {selectedChildrenCount}
-                  </Descriptions.Item>
-                </Descriptions>
+                  </div>
+                  <div className={styles.statItem}>
+                    <span className={styles.statLabel}>{t('عدد الفروع', 'Children')}</span>
+                    <span className={styles.statValue}>
+                      {selected.isLeaf ? (
+                        0
+                      ) : selectedChildrenLoaded ? (
+                        selectedChildrenCount
+                      ) : (
+                        <Tooltip
+                          title={t(
+                            'وسّع الحساب لتحميل الفروع',
+                            'Expand the account to load its children'
+                          )}
+                        >
+                          <span style={{ cursor: 'help' }}>—</span>
+                        </Tooltip>
+                      )}
+                    </span>
+                  </div>
+                </div>
 
                 {/* Inline management actions for the selected account */}
                 <Space direction="vertical" size={8} className={styles.detailsActions}>
