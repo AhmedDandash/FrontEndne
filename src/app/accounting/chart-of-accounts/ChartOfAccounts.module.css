@@ -157,18 +157,44 @@
 }
 
 .nodeTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.nodeMain {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  min-width: 0;
+}
+
+.nodeActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.nodeTitle:hover .nodeActions,
+.nodeActions:focus-within {
+  opacity: 1;
 }
 
 .nodeCode {
   font-family: 'Courier New', monospace;
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 12px;
   letter-spacing: 0.3px;
-  min-inline-size: 64px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  white-space: nowrap;
 }
 
 .codeMatch {
@@ -203,6 +229,12 @@
 .detailsAction {
   border-radius: 8px !important;
   font-weight: 600 !important;
+}
+
+.detailsActions {
+  display: flex;
+  width: 100%;
+  margin-block-start: 4px;
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */

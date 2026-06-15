@@ -85,8 +85,10 @@ export default function RestrictionTypesPage() {
     isLoading,
     isFetching,
     refetch,
+    createType,
     updateType,
     deleteType,
+    isCreating,
     isUpdating,
     isDeleting,
   } = useRestrictionTypes();
@@ -118,11 +120,18 @@ export default function RestrictionTypesPage() {
     });
   }, [restrictionTypes, search, modeFilter, statusFilter]);
 
-  // ── Edit modal ──────────────────────────────────────────────
+  // ── Create / Edit modal (shared) ────────────────────────────
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<RestrictionType | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [form] = Form.useForm();
+
+  const openCreate = () => {
+    setEditing(null);
+    form.resetFields();
+    form.setFieldsValue({ isManual: true, isActive: true });
+    setEditOpen(true);
+  };
 
   const openEdit = (record: RestrictionType) => {
     setEditing(record);
@@ -143,23 +152,28 @@ export default function RestrictionTypesPage() {
     setEditOpen(true);
   };
 
-  const submitEdit = async () => {
-    if (!editing) return;
-    const values = await form.validateFields();
-    await updateType({
-      id: editing.id,
-      data: {
-        accountingEvent: values.accountingEvent ?? null,
-        nameAr: values.nameAr?.trim() || null,
-        name: values.name?.trim() || null,
-        isManual: !!values.isManual,
-        isActive: !!values.isActive,
-        defaultDebitAccountId: values.defaultDebitAccountId ?? null,
-        defaultCreditAccountId: values.defaultCreditAccountId ?? null,
-      },
-    });
+  const closeModal = () => {
     setEditOpen(false);
     setEditing(null);
+  };
+
+  const submitModal = async () => {
+    const values = await form.validateFields();
+    const data: RestrictionTypeCreateDto = {
+      accountingEvent: values.accountingEvent ?? null,
+      nameAr: values.nameAr?.trim() || null,
+      name: values.name?.trim() || null,
+      isManual: !!values.isManual,
+      isActive: !!values.isActive,
+      defaultDebitAccountId: values.defaultDebitAccountId ?? null,
+      defaultCreditAccountId: values.defaultCreditAccountId ?? null,
+    };
+    if (editing) {
+      await updateType({ id: editing.id, data });
+    } else {
+      await createType(data);
+    }
+    closeModal();
   };
 
   const onToggleActive = async (record: RestrictionType, checked: boolean) => {
@@ -305,16 +319,14 @@ export default function RestrictionTypesPage() {
             >
               {t('تحديث', 'Refresh')}
             </Button>
-            <Tooltip
-              title={t(
-                'إضافة الأنواع غير متاحة حالياً من الخادم (501)',
-                'Creating types is not yet available on the server (501)'
-              )}
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreate}
+              className={styles.addBtn}
             >
-              <Button type="primary" icon={<PlusOutlined />} disabled className={styles.addBtn}>
-                {t('إضافة نوع', 'Add Type')}
-              </Button>
-            </Tooltip>
+              {t('إضافة نوع', 'Add Type')}
+            </Button>
           </div>
         </div>
       </div>
@@ -376,15 +388,17 @@ export default function RestrictionTypesPage() {
         open={editOpen}
         title={
           <Space>
-            <EditOutlined />
-            {t('تعديل نوع القيد', 'Edit Restriction Type')}
+            {editing ? <EditOutlined /> : <PlusOutlined />}
+            {editing
+              ? t('تعديل نوع القيد', 'Edit Restriction Type')
+              : t('إضافة نوع قيد', 'Add Restriction Type')}
           </Space>
         }
-        onOk={submitEdit}
-        onCancel={() => setEditOpen(false)}
-        okText={t('حفظ', 'Save')}
+        onOk={submitModal}
+        onCancel={closeModal}
+        okText={editing ? t('حفظ', 'Save') : t('إضافة', 'Add')}
         cancelText={t('إلغاء', 'Cancel')}
-        confirmLoading={isUpdating}
+        confirmLoading={editing ? isUpdating : isCreating}
         width={560}
         destroyOnHidden
       >
@@ -397,7 +411,13 @@ export default function RestrictionTypesPage() {
             <Input size="large" dir="rtl" placeholder={t('مثال: قيد المبيعات', 'e.g. قيد المبيعات')} />
           </Form.Item>
 
-          <Form.Item name="name" label={t('الاسم بالإنجليزية', 'English Name')}>
+          <Form.Item
+            name="name"
+            label={t('الاسم بالإنجليزية', 'English Name')}
+            rules={[
+              { required: true, message: t('الاسم بالإنجليزية مطلوب', 'English name is required') },
+            ]}
+          >
             <Input size="large" dir="ltr" placeholder="e.g. Sales Entry" />
           </Form.Item>
 

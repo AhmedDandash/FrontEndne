@@ -10,7 +10,6 @@ const RESTRICTION_TYPES_KEY = 'restriction-types';
  *
  * The list endpoint returns everything in one call (no server-side paging /
  * filtering), so search & filters are applied client-side on the page.
- * `create` is wired for when the backend lifts the 501.
  */
 export function useRestrictionTypes() {
   const queryClient = useQueryClient();
@@ -30,14 +29,7 @@ export function useRestrictionTypes() {
       message.success('تمت إضافة نوع القيد بنجاح / Restriction type created');
     },
     onError: (err: any) => {
-      const status = err.response?.status;
-      if (status === 501) {
-        message.warning(
-          'إضافة أنواع القيود غير متاحة حالياً من الخادم / Creating types is not yet available on the server'
-        );
-      } else {
-        message.error(err.response?.data?.message || 'فشل الإضافة / Failed to create');
-      }
+      message.error(err.response?.data?.message || 'فشل الإضافة / Failed to create');
     },
   });
 

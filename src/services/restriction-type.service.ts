@@ -7,9 +7,6 @@ import type { RestrictionType, RestrictionTypeCreateDto } from '@/types/accounti
  *
  * Backend wraps payloads in the ApiResponse envelope and may serialise arrays
  * as `{ $values: [] }`; both are normalised here.
- *
- * NOTE: POST /restrictiontype currently returns 501 (CreateAsync not yet
- * implemented). `create` is kept for when the backend enables it.
  */
 export class RestrictionTypeService {
   private static unwrap<T>(payload: any): T {
@@ -48,7 +45,7 @@ export class RestrictionTypeService {
     return this.unwrap<RestrictionType>(response.data);
   }
 
-  /** POST /restrictiontype — currently 501 server-side. */
+  /** POST /restrictiontype — create a new restriction type. */
   static async create(data: RestrictionTypeCreateDto): Promise<RestrictionType> {
     const response = await api.post<any>(API_ENDPOINTS.RESTRICTION_TYPE.CREATE, this.toBody(data));
     return this.unwrap<RestrictionType>(response.data);

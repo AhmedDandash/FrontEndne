@@ -13,8 +13,8 @@
 ### 1.1 Features implemented
 | Feature | Page | Operations |
 |---|---|---|
-| **Chart of Accounts** | `/accounting/chart-of-accounts` | View hierarchy (tree), expand/collapse all, search (code/name, highlights + auto-expands ancestors), select node → details panel, account-type legend, deep-link to Settings |
-| **Account Settings** | `/accounting/account-settings` | Paginated/searchable list; **Create** account; **Rename**; **Reporting settings** (income-statement side, P&L side, trial-balance grouping); **Delete** (leaf-only, guarded); live account-type hint; deep-link prefill via `?searchTerm=` |
+| **Chart of Accounts** *(primary surface)* | `/accounting/chart-of-accounts` | Full **tree** (`full-tree-structure`) with expand/collapse all, search (highlights + auto-expands ancestors), account-type legend, details panel; **inline CRUD on every node** — add sub-account, rename, reporting settings, delete (leaf-only) — plus **Add Root Account**. Mirrors the original `/Accounts` page where the tree is the management surface. |
+| **Account Settings** *(edit/delete/add list)* | `/accounting/account-settings` | Paginated/searchable flat list (`/account/settings`); same **Create / Rename / Reporting / Delete** operations via the **shared `AccountModals`** component; deep-link prefill via `?searchTerm=`. |
 | **Restriction Types** | `/accounting/restriction-types` | List + client search/filter (mode, status); **Edit** (name/event/accounts/flags); **inline active toggle**; **Delete**; Create **disabled** (backend 501) |
 
 ### 1.2 Pages created
@@ -45,8 +45,8 @@ src/components/layout/Sidebar.tsx # "Accounting" menu group + 3 children
 **Account Controller — `/api/V1/account`**
 | Method | Path | UI | Status |
 |---|---|---|---|
-| GET | `/full-tree-structure` | Chart, Settings (parent picker), Restriction (account pickers) | ✅ |
-| GET | `/subtree/{parentId}` | — (in service, not yet wired) | ✅ available |
+| GET | `/full-tree-structure` | Chart (roots), Settings (parent picker), Restriction (account pickers) | ✅ |
+| GET | `/subtree/{parentId}` | `getFullTree()` loads each non-leaf node's children to assemble the full nested tree | ✅ wired |
 | GET | `/settings` (paged) | Account Settings list | ✅ |
 | POST | `/create-account` | Settings → Add Account | ✅ |
 | PUT | `/update-account/{id}` | Settings → Edit name | ✅ |
@@ -58,7 +58,7 @@ src/components/layout/Sidebar.tsx # "Accounting" menu group + 3 children
 |---|---|---|---|
 | GET | `/` | Restriction Types list | ✅ |
 | GET | `/{id}` | — (in service; UI edits from row data) | ✅ available |
-| POST | `/` | Add button **disabled** | ⚠️ backend 501 |
+| POST | `/` | Add Restriction Type modal | ✅ (backend now implemented) |
 | PUT | `/{id}` | Edit + inline active toggle | ✅ |
 | DELETE | `/{id}` | Delete | ✅ |
 
@@ -71,7 +71,7 @@ src/components/layout/Sidebar.tsx # "Accounting" menu group + 3 children
 2. **Account type by leading code digit** (1 Asset · 2 Liability · 3 Equity · 4 Revenue · 5 OpEx · 6 AdminEx) — color-coded tags + legend; per the PDF code convention.
 3. **Leaf-only delete** enforced client-side (disabled + tooltip) to mirror the backend rule and avoid futile calls.
 4. **Create code validation**: digits-only, must start with the parent code, must be longer than the parent — inferred from the PDF.
-5. **Restriction create disabled** with an explanatory tooltip because the server returns **501**; the mutation is wired so it activates the moment the backend ships it.
+5. **Restriction create** is wired through the shared create/edit modal. (The endpoint previously returned **501**; it is now implemented server-side and verified working — POST returns 200 and persists. The backend requires **both** `Name` and `NameAr`, so English name is a required field.)
 6. **`accountingEvent` required only when event-driven** (`isManual=false`); clearable for manual entries.
 7. **Inline active toggle** uses `PUT` with the full DTO (no dedicated toggle endpoint exists).
 8. **Default debit/credit pickers** are searchable selects sourced from the chart of accounts; the table resolves IDs to `code — name` via a tree-built map.
@@ -92,8 +92,9 @@ The legacy accounting menu (`accounting.txt`) contains many screens **not presen
 - ZATCA tax invoices, Fixed assets (classification / management / balance), Worker salaries, Contract instalments
 
 ### 2.2 Blockers / missing backend functionality
-- **`POST /restrictiontype` → 501 Not Implemented.** Create UI is intentionally disabled.
+- ~~`POST /restrictiontype` → 501 Not Implemented.~~ **Resolved** — endpoint is implemented and verified; create UI is live.
 - **`GET /restrictiontype` has no server-side search/filter/paging** — handled client-side (fine for small lists; revisit at scale).
+- **`POST /restrictiontype` returns a plain success string** (`"تم الانشاء بنجاح ."`) rather than the created entity, so the client can't optimistically use the new row — it relies on query invalidation + refetch (which works).
 - **No query-error surface from the API envelope** beyond the global 401 interceptor; GET failures currently fall back to empty states.
 
 ### 2.3 Assumptions made
@@ -110,7 +111,7 @@ The legacy accounting menu (`accounting.txt`) contains many screens **not presen
 
 ### 3.1 Suggested next development tasks
 1. **Query-error UI** (Ant `Result`/`Alert` + retry) on all three pages for GET failures.
-2. **Flip Restriction "Create" live** once the backend lifts the 501 (hook already supports `createType`).
+2. ~~Flip Restriction "Create" live~~ — **done** (create modal wired to the now-working endpoint).
 3. **Build the remaining reports/vouchers screens** as their endpoints are published (section 2.1).
 4. **Wire `subtree` lazy-loading** if the chart grows large enough to affect first-paint.
 
