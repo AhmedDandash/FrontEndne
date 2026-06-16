@@ -47,7 +47,12 @@ export default function Sidebar({
     if (pathParts.length > 0) {
       setSelectedKeys([pathname]);
       if (pathParts.length > 1) {
-        setOpenKeys([pathParts[0]]);
+        const keys = [pathParts[0]];
+        // Open nested groups (e.g. Accounting → Ledger & Reports).
+        if (pathParts[0] === 'accounting' && pathParts[1] === 'ledger') {
+          keys.push('ledger-reports');
+        }
+        setOpenKeys(keys);
       }
     }
   }, [pathname]);
@@ -336,6 +341,10 @@ export default function Sidebar({
       label: language === 'ar' ? 'المحاسبة' : 'Accounting',
       children: [
         {
+          key: '/accounting/journal-entries',
+          label: language === 'ar' ? 'قيود اليومية' : 'Journal Entries',
+        },
+        {
           key: '/accounting/chart-of-accounts',
           label: language === 'ar' ? 'شجرة الحسابات' : 'Chart of Accounts',
         },
@@ -346,6 +355,44 @@ export default function Sidebar({
         {
           key: '/accounting/restriction-types',
           label: language === 'ar' ? 'أنواع القيود' : 'Restriction Types',
+        },
+        {
+          key: 'ledger-reports',
+          label: language === 'ar' ? 'دفتر الأستاذ والتقارير' : 'Ledger & Reports',
+          children: [
+            {
+              key: '/accounting/ledger/general-ledger',
+              label: language === 'ar' ? 'دفتر الأستاذ العام' : 'General Ledger',
+            },
+            {
+              key: '/accounting/ledger/agent-ledger',
+              label: language === 'ar' ? 'كشف حساب الوكيل' : 'Agent Ledger',
+            },
+            {
+              key: '/accounting/ledger/customer-ledger',
+              label: language === 'ar' ? 'كشف حساب العميل' : 'Customer Ledger',
+            },
+            {
+              key: '/accounting/ledger/worker-ledger',
+              label: language === 'ar' ? 'كشف حساب العامل' : 'Worker Ledger',
+            },
+            {
+              key: '/accounting/ledger/trial-balance',
+              label: language === 'ar' ? 'ميزان المراجعة' : 'Trial Balance',
+            },
+            {
+              key: '/accounting/ledger/income-statement',
+              label: language === 'ar' ? 'قائمة الدخل' : 'Income Statement',
+            },
+            {
+              key: '/accounting/ledger/balance-sheet',
+              label: language === 'ar' ? 'الميزانية العمومية' : 'Balance Sheet',
+            },
+            {
+              key: '/accounting/ledger/vat-report',
+              label: language === 'ar' ? 'تقرير ضريبة القيمة المضافة' : 'VAT Report',
+            },
+          ],
         },
       ],
     },

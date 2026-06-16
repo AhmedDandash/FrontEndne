@@ -1,0 +1,199 @@
+.page {
+  padding-block: 24px;
+  padding-inline: 24px;
+  min-block-size: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+}
+
+/* ── Header (shared platform pattern) ───────────────────────── */
+.pageHeader {
+  background: linear-gradient(135deg, #003366 0%, #00478c 100%);
+  border-radius: 12px;
+  padding-block: 28px;
+  padding-inline: 32px;
+  margin-block-end: 20px;
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.15);
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerIcon {
+  font-size: 36px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: white;
+}
+
+.pageTitle {
+  margin: 0 0 4px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+}
+
+.pageSubtitle {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.refreshBtn {
+  border: 2px solid rgba(255, 255, 255, 0.6) !important;
+  color: white !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+.refreshBtn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: white !important;
+}
+
+/* ── Filter bar ─────────────────────────────────────────────── */
+.tableCard {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-block-end: 16px;
+}
+
+/* ── Summary metric cards ───────────────────────────────────── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-block-end: 16px;
+}
+
+.metricCard {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.metricCard.debit {
+  border-inline-start: 3px solid #1677ff;
+}
+.metricCard.credit {
+  border-inline-start: 3px solid #fa8c16;
+}
+.metricCard.balance {
+  border-inline-start: 3px solid #52c41a;
+}
+.metricCard.warn {
+  border-inline-start: 3px solid #cf1322;
+}
+
+.metricLabel {
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+.metricValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-block-start: 2px;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── Table cells ────────────────────────────────────────────── */
+.code {
+  font-family: 'Courier New', monospace;
+  color: #1677ff;
+}
+
+.entryNumber {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: #1677ff;
+}
+
+.amount {
+  font-family: 'Courier New', monospace;
+  font-size: 12.5px;
+  color: #1f2937;
+}
+
+.negative {
+  color: #cf1322;
+}
+
+.muted {
+  color: #9ca3af;
+}
+
+.accountName {
+  color: #1f2937;
+}
+
+.accountSub {
+  display: block;
+  font-size: 11.5px;
+  color: #9ca3af;
+}
+
+/* ── Section blocks (balance sheet) ─────────────────────────── */
+.sectionCard {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.sectionTotal {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+}
+
+/* ── Empty / prompt state ───────────────────────────────────── */
+.promptState {
+  text-align: center;
+  padding-block: 48px;
+  color: #6b7280;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page {
+    padding-block: 16px;
+    padding-inline: 16px;
+  }
+  .pageHeader {
+    padding-block: 20px;
+    padding-inline: 20px;
+  }
+  .pageTitle {
+    font-size: 18px;
+  }
+  .headerActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

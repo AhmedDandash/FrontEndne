@@ -457,4 +457,35 @@ export const API_ENDPOINTS = {
     UPDATE: (id: string) => `/api/V1/restrictiontype/${id}`,
     DELETE: (id: string) => `/api/V1/restrictiontype/${id}`,
   },
+
+  // ─── Accounting: Journal Entries — /api/V1/JournalEntries/* ───────────────
+  // Manual double-entry accounting. Created as Draft; debits must equal credits.
+  // Only Draft entries can be updated or deleted. All IDs are GUIDs.
+  JOURNAL_ENTRIES: {
+    GET_ALL: '/api/V1/JournalEntries',
+    GET_BY_ID: (id: string) => `/api/V1/JournalEntries/${id}`,
+    CREATE: '/api/V1/JournalEntries',
+    UPDATE: (id: string) => `/api/V1/JournalEntries/${id}`,
+    DELETE: (id: string) => `/api/V1/JournalEntries/${id}`,
+  },
+
+  // ─── Accounting: Posting / Unposting — /api/V1/Posting/* ──────────────────
+  // Posting commits a Draft entry to the ledger; unposting reverses it to Draft.
+  POSTING: {
+    POST: (journalId: string) => `/api/V1/Posting/${journalId}`,
+    UNPOST: (id: string) => `/api/V1/Posting/${id}/unpost`,
+  },
+
+  // ─── Accounting: Ledger & Reports — /api/V1/Ledger/* ──────────────────────
+  // Read-only reports. All return ONLY Posted data and accept from/to (ISO 8601).
+  LEDGER: {
+    GENERAL: '/api/V1/Ledger/general-ledger',
+    AGENT: '/api/V1/Ledger/agent-ledger',
+    CUSTOMER: '/api/V1/Ledger/customer-ledger',
+    WORKER: '/api/V1/Ledger/worker-ledger',
+    TRIAL_BALANCE: '/api/V1/Ledger/trial-balance',
+    INCOME_STATEMENT: '/api/V1/Ledger/income-statement',
+    BALANCE_SHEET: '/api/V1/Ledger/balance-sheet',
+    VAT_REPORT: '/api/V1/Ledger/vat-report',
+  },
 } as const;

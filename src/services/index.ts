@@ -24,6 +24,8 @@ export { ContractCreationRequirementService } from './contract-creation-requirem
 export { NationalityFollowUpService } from './nationality-followup.service';
 export { AccountService } from './account.service';
 export { RestrictionTypeService } from './restriction-type.service';
+export { JournalEntryService } from './journal-entry.service';
+export { LedgerService } from './ledger.service';
 export {
   HREmployeeService,
   HRAttendanceService,
