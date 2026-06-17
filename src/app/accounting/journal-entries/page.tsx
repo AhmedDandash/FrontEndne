@@ -150,8 +150,13 @@ export default function JournalEntriesPage() {
       title: t('الوصف', 'Description'),
       dataIndex: 'description',
       key: 'description',
-      ellipsis: true,
-      render: (v: string) => <span className={styles.description}>{v || '—'}</span>,
+      width: 240,
+      ellipsis: { showTitle: false },
+      render: (v: string) => (
+        <Tooltip title={v || undefined} placement="topLeft">
+          <span className={styles.description}>{v || '—'}</span>
+        </Tooltip>
+      ),
     },
     {
       title: t('النوع', 'Type'),
@@ -439,7 +444,7 @@ export default function JournalEntriesPage() {
           loading={isLoading || isFetching}
           size="middle"
           bordered
-          scroll={{ x: 1100 }}
+          scroll={{ x: 1300 }}
           pagination={{
             current: pageNumber,
             pageSize,
