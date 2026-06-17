@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { Card, Table, Input, DatePicker, Button, Empty, Spin, Alert, Tag } from 'antd';
+import { Card, Table, Select, DatePicker, Empty, Spin, Alert, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Dayjs } from 'dayjs';
-import { SearchOutlined } from '@ant-design/icons';
-import { usePartyLedger } from '@/hooks/api/useLedger';
+import { usePartyLedger, usePartyOptions } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import type { PartyKind, PartyLedgerLine } from '@/types/ledger.types';
 import { LedgerHeader } from './LedgerHeader';
@@ -28,16 +27,15 @@ export function PartyLedgerView({ kind, icon, title, subtitle, idLabel }: PartyL
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
-  const [idInput, setIdInput] = useState('');
-  const [activeId, setActiveId] = useState<string | undefined>();
+  const [selectedId, setSelectedId] = useState<string | undefined>();
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
 
-  const { data, isLoading, isFetching, refetch, error } = usePartyLedger(kind, activeId, {
+  const { data: partyOptions = [], isLoading: optionsLoading } = usePartyOptions(kind);
+
+  const { data, isLoading, isFetching, refetch, error } = usePartyLedger(kind, selectedId, {
     from: range?.[0]?.startOf('day').toISOString(),
     to: range?.[1]?.endOf('day').toISOString(),
   });
-
-  const runReport = () => setActiveId(idInput.trim() || undefined);
 
   const columns: ColumnsType<PartyLedgerLine> = [
     { title: t('التاريخ', 'Date'), dataIndex: 'date', key: 'date', width: 105, render: fmtDate },
@@ -99,33 +97,33 @@ export function PartyLedgerView({ kind, icon, title, subtitle, idLabel }: PartyL
         title={title}
         subtitle={subtitle}
         isFetching={isFetching}
-        onRefresh={activeId ? () => refetch() : undefined}
+        onRefresh={selectedId ? () => refetch() : undefined}
         refreshLabel={t('تحديث', 'Refresh')}
       />
 
       <Card className={styles.tableCard}>
         <div className={styles.filters}>
-          <Input
+          <Select
+            showSearch
             allowClear
             size="large"
+            loading={optionsLoading}
             style={{ flex: '1 1 320px', maxWidth: 460 }}
-            prefix={<SearchOutlined />}
             placeholder={idLabel}
-            value={idInput}
-            onChange={(e) => setIdInput(e.target.value)}
-            onPressEnter={runReport}
+            value={selectedId}
+            onChange={(v) => setSelectedId(v)}
+            optionFilterProp="label"
+            options={partyOptions}
+            notFoundContent={optionsLoading ? <Spin size="small" /> : undefined}
           />
           <RangePicker
             value={range as any}
             onChange={(v) => setRange(v as any)}
             placeholder={[t('من', 'From'), t('إلى', 'To')]}
           />
-          <Button type="primary" size="large" onClick={runReport} disabled={!idInput.trim()}>
-            {t('عرض', 'Run')}
-          </Button>
         </div>
 
-        {!activeId ? (
+        {!selectedId ? (
           <div className={styles.promptState}>
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={idLabel} />
           </div>

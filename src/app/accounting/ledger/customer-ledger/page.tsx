@@ -16,7 +16,7 @@ export default function CustomerLedgerPage() {
         'حركات الحسابات المرتبطة بعميل محدد خلال فترة',
         'Account movements linked to a specific customer over a period'
       )}
-      idLabel={t('أدخل معرّف العميل (GUID)', 'Enter customer ID (GUID)')}
+      idLabel={t('اختر العميل', 'Select a customer')}
     />
   );
 }

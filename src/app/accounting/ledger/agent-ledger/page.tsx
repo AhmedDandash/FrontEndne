@@ -16,7 +16,7 @@ export default function AgentLedgerPage() {
         'حركات الحسابات المرتبطة بوكيل محدد خلال فترة',
         'Account movements linked to a specific agent over a period'
       )}
-      idLabel={t('أدخل معرّف الوكيل (GUID)', 'Enter agent ID (GUID)')}
+      idLabel={t('اختر الوكيل', 'Select an agent')}
     />
   );
 }

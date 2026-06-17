@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { LedgerService } from '@/services/ledger.service';
+import { CustomerService } from '@/services/customer.service';
+import { AgentService } from '@/services/agent.service';
+import { RecruitmentRequestService } from '@/services/recruitment-request.service';
 import type {
   GeneralLedgerQuery,
   TrialBalanceQuery,
@@ -11,6 +14,47 @@ import type {
 } from '@/types/ledger.types';
 
 const LEDGER_KEY = 'ledger';
+
+export interface PartyOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Lookup options (GUID + display name) for the party-ledger pickers.
+ *
+ * The live V1 API returns GUID ids for Customer / Agent / Worker (the local
+ * `Agent.id: number` type is stale), and those GUIDs are exactly what the
+ * ledger endpoints expect — so a single selection feeds the report directly.
+ * Items are typed loosely because the runtime field names lead the stale types.
+ */
+export function usePartyOptions(kind: PartyKind) {
+  return useQuery<PartyOption[]>({
+    queryKey: [LEDGER_KEY, 'party-options', kind],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      if (kind === 'agent') {
+        const agents = (await AgentService.getAll()) as any[];
+        return agents.map((a) => ({
+          value: String(a.id),
+          label: a.agentNameAr || a.agentNameEn || String(a.id),
+        }));
+      }
+      if (kind === 'customer') {
+        const customers = (await CustomerService.getAll()) as any[];
+        return customers.map((c) => ({
+          value: String(c.id),
+          label: c.arabicName || c.englishName || String(c.id),
+        }));
+      }
+      const workers = (await RecruitmentRequestService.getWorkers()) as any[];
+      return workers.map((w) => ({
+        value: String(w.id),
+        label: w.fullNameAr || w.fullNameEn || w.referenceNo || String(w.id),
+      }));
+    },
+  });
+}
 
 /** 3.1 General Ledger — requires an accountId (query disabled until set). */
 export function useGeneralLedger(query: Partial<GeneralLedgerQuery>) {

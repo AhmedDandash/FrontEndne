@@ -16,7 +16,7 @@ export default function WorkerLedgerPage() {
         'حركات الحسابات المرتبطة بعامل محدد خلال فترة',
         'Account movements linked to a specific worker over a period'
       )}
-      idLabel={t('أدخل معرّف العامل (GUID)', 'Enter worker ID (GUID)')}
+      idLabel={t('اختر العامل', 'Select a worker')}
     />
   );
 }
