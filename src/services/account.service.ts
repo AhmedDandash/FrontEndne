@@ -50,33 +50,15 @@ export class AccountService {
   // ==================== Reads ====================
 
   /**
-   * GET /account/full-tree-structure → roots, then recursively fills every
-   * non-leaf node's children via GET /account/subtree/{id}, returning a fully
-   * nested tree in a single awaited call.
+   * GET /account/full-tree-structure — returns the root accounts, each with a
+   * correct `isLeaf` flag and no children. Children are loaded lazily, one
+   * level at a time, via `getSubtree` when the user expands a node in the UI.
    */
   static async getFullTree(): Promise<AccountTreeNode[]> {
     const response = await api.get<any>(API_ENDPOINTS.ACCOUNT.FULL_TREE);
     const payload = response.data;
     const root = payload?.data ?? payload?.value ?? payload;
-    const roots = this.normalizeTree(root);
-    await this.loadChildrenDeep(roots);
-    return roots;
-  }
-
-  /** Recursively fetch children for every non-leaf node (parallel per level). */
-  private static async loadChildrenDeep(nodes: AccountTreeNode[], depth = 0): Promise<void> {
-    if (depth > 12) return;
-    await Promise.all(
-      nodes.map(async (node) => {
-        if (node.isLeaf) return;
-        let children = node.children ?? [];
-        if (children.length === 0) {
-          children = await this.getSubtree(node.id);
-          node.children = children;
-        }
-        await this.loadChildrenDeep(children, depth + 1);
-      })
-    );
+    return this.normalizeTree(root);
   }
 
   /** GET /account/subtree/{parentId} — direct children of the given parent. */

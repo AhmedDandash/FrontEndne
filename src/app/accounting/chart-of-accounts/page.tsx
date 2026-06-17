@@ -17,7 +17,8 @@ import {
   Divider,
   Modal,
 } from 'antd';
-import type { DataNode } from 'antd/es/tree';
+import type { DataNode, EventDataNode } from 'antd/es/tree';
+import type { AntTreeNodeProps } from 'antd/es/tree';
 import {
   BankOutlined,
   ReloadOutlined,
@@ -32,6 +33,8 @@ import {
   DeleteOutlined,
   ExclamationCircleFilled,
   NodeIndexOutlined,
+  PlusSquareOutlined,
+  MinusSquareOutlined,
 } from '@ant-design/icons';
 import { useAccountTree } from '@/hooks/api/useAccounts';
 import { getAccountType, ACCOUNT_TYPES } from '@/types/accounting.types';
@@ -89,7 +92,7 @@ export default function ChartOfAccountsPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
 
-  const { tree, isLoading, isFetching, refetch } = useAccountTree();
+  const { tree, isLoading, isFetching, refetch, loadChildren } = useAccountTree();
 
   // Shared create / rename / reporting modals + delete mutation (also used by Settings).
   const {
@@ -110,15 +113,34 @@ export default function ChartOfAccountsPage() {
 
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
-  // Auto-expand all branch nodes once the full tree has loaded.
-  const didAutoExpand = useRef(false);
+  /**
+   * Lazy-load flow: the tree starts at the roots returned by
+   * `full-tree-structure`. Every node with `isLeaf === false` renders a `+`
+   * switcher; clicking it calls `loadChildren(id)` to fetch that node's direct
+   * children (GET /account/subtree/{id}). Each child carries its own `isLeaf`
+   * flag, so the process repeats down the branch until leaf nodes are reached.
+   * Already-loaded nodes are not re-fetched.
+   */
+  const onLoadData = async (node: EventDataNode<DataNode>): Promise<void> => {
+    const id = String(node.key);
+    const existing = maps.nodeMap.get(id);
+    if (existing && (existing.children?.length ?? 0) > 0) return;
+    await loadChildren(id);
+  };
+
+  // A full refetch (mutation invalidation or the Refresh button) re-fetches the
+  // roots only, dropping every lazily-loaded subtree. Collapse to a clean root
+  // view rather than leaving stale "expanded but empty" branches behind.
+  // (Subtree loads use setQueryData and never toggle isFetching, so normal
+  // browsing is unaffected.)
+  const wasFetching = useRef(false);
   useEffect(() => {
-    if (!isLoading && maps.branchKeys.length && !didAutoExpand.current) {
-      didAutoExpand.current = true;
-      setExpandedKeys(maps.branchKeys);
+    if (wasFetching.current && !isFetching) {
+      setExpandedKeys([]);
       setAutoExpandParent(false);
     }
-  }, [isLoading, maps.branchKeys]);
+    wasFetching.current = isFetching;
+  }, [isFetching]);
 
   /** Confirm + delete a leaf account. */
   const confirmDelete = (node: AccountTreeNode) => {
@@ -148,7 +170,7 @@ export default function ChartOfAccountsPage() {
     const render = (nodes: AccountTreeNode[]): DataNode[] =>
       nodes.map((node) => {
         const children = node.children ?? [];
-        const hasChildren = children.length > 0;
+        const loaded = children.length > 0;
         const type = getAccountType(node.code);
         const leaf = node.isLeaf;
 
@@ -233,8 +255,9 @@ export default function ChartOfAccountsPage() {
         return {
           key: node.id,
           title,
-          icon: hasChildren ? <FolderOutlined /> : <FileOutlined />,
-          children: hasChildren ? render(children) : undefined,
+          isLeaf: leaf,
+          icon: leaf ? <FileOutlined /> : <FolderOutlined />,
+          children: loaded ? render(children) : undefined,
         };
       });
 
@@ -284,6 +307,7 @@ export default function ChartOfAccountsPage() {
   const selected = selectedId ? maps.nodeMap.get(selectedId) ?? null : null;
   const selectedType = selected ? getAccountType(selected.code) : null;
   const selectedChildrenCount = selected?.children?.length ?? 0;
+  const selectedChildrenLoaded = selectedChildrenCount > 0;
   const selectedIsLeaf = selected ? isLeaf(selected.id) : false;
 
   return (
@@ -381,6 +405,16 @@ export default function ChartOfAccountsPage() {
                   showIcon
                   blockNode
                   treeData={treeData}
+                  loadData={onLoadData}
+                  switcherIcon={({ isLeaf: nodeIsLeaf, expanded, loading }: AntTreeNodeProps) => {
+                    if (loading) return undefined;
+                    if (nodeIsLeaf) return null;
+                    return expanded ? (
+                      <MinusSquareOutlined className={styles.switcher} />
+                    ) : (
+                      <PlusSquareOutlined className={styles.switcher} />
+                    );
+                  }}
                   expandedKeys={expandedKeys}
                   autoExpandParent={autoExpandParent}
                   selectedKeys={selectedId ? [selectedId] : []}
@@ -450,7 +484,22 @@ export default function ChartOfAccountsPage() {
                   </div>
                   <div className={styles.statItem}>
                     <span className={styles.statLabel}>{t('الفروع المباشرة', 'Sub-accounts')}</span>
-                    <span className={styles.statValue}>{selectedChildrenCount}</span>
+                    <span className={styles.statValue}>
+                      {selected.isLeaf ? (
+                        0
+                      ) : selectedChildrenLoaded ? (
+                        selectedChildrenCount
+                      ) : (
+                        <Tooltip
+                          title={t(
+                            'وسّع الحساب من الشجرة لتحميل فروعه',
+                            'Expand the account in the tree to load its sub-accounts'
+                          )}
+                        >
+                          <span style={{ cursor: 'help' }}>—</span>
+                        </Tooltip>
+                      )}
+                    </span>
                   </div>
                 </div>
 

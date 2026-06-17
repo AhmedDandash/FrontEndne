@@ -156,6 +156,12 @@
   inline-size: 100%;
 }
 
+/* Lazy-load expand/collapse switcher (+ / −) */
+.switcher {
+  font-size: 15px;
+  color: #003366;
+}
+
 .nodeTitle {
   display: flex;
   align-items: center;
