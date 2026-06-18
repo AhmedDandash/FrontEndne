@@ -8,7 +8,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Modal, Button, Form, Input, InputNumber, DatePicker } from 'antd';
+import { Modal, Button, Form, Input, InputNumber, DatePicker, Select } from 'antd';
 import { FileDoneOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useCreateReceiptVoucher } from '@/hooks/api/useReceiptVouchers';
@@ -36,7 +36,14 @@ export default function ReceiptVoucherModal({
   // Reset to defaults whenever the modal opens.
   useEffect(() => {
     if (!open) return;
-    form.setFieldsValue({ voucherNumber: undefined, voucherDate: dayjs(), amount: undefined, notes: undefined });
+    form.setFieldsValue({
+      voucherNumber: undefined,
+      voucherDate: dayjs(),
+      amount: undefined,
+      paymentMethod: 1,
+      bankFees: undefined,
+      notes: undefined,
+    });
   }, [open, form]);
 
   const handleOk = async () => {
@@ -47,6 +54,9 @@ export default function ReceiptVoucherModal({
         voucherNumber: values.voucherNumber || null,
         voucherDate: values.voucherDate.toISOString(),
         amount: values.amount,
+        // VAT is computed server-side from `amount`; we never send it.
+        paymentMethod: values.paymentMethod ?? null,
+        bankFees: values.paymentMethod === 1 ? null : values.bankFees ?? null,
         notes: values.notes || null,
         employmentOperatingContractId: contractId,
       };
@@ -88,7 +98,12 @@ export default function ReceiptVoucherModal({
       width={460}
       destroyOnClose
     >
-      <Form form={form} layout="vertical" dir={isRtl ? 'rtl' : 'ltr'} initialValues={{ voucherDate: dayjs() }}>
+      <Form
+        form={form}
+        layout="vertical"
+        dir={isRtl ? 'rtl' : 'ltr'}
+        initialValues={{ voucherDate: dayjs(), paymentMethod: 1 }}
+      >
         <Form.Item name="voucherNumber" label={isRtl ? 'رقم السند' : 'Voucher Number'}>
           <Input placeholder={isRtl ? 'اختياري' : 'Optional'} />
         </Form.Item>
@@ -101,10 +116,38 @@ export default function ReceiptVoucherModal({
         </Form.Item>
         <Form.Item
           name="amount"
-          label={isRtl ? 'المبلغ' : 'Amount'}
+          label={isRtl ? 'المبلغ (شامل الضريبة)' : 'Amount (VAT inclusive)'}
           rules={[{ required: true, message: isRtl ? 'مطلوب' : 'Required' }]}
+          extra={isRtl ? 'يتم احتساب ضريبة القيمة المضافة تلقائيًا' : 'VAT is calculated automatically'}
         >
           <InputNumber style={{ width: '100%' }} min={0.01} addonAfter={isRtl ? 'ريال' : 'SAR'} placeholder="0.00" />
+        </Form.Item>
+        <Form.Item
+          name="paymentMethod"
+          label={isRtl ? 'طريقة الدفع' : 'Payment Method'}
+          rules={[{ required: true, message: isRtl ? 'مطلوب' : 'Required' }]}
+        >
+          <Select
+            options={[
+              { value: 1, label: isRtl ? 'نقدًا' : 'Cash' },
+              { value: 2, label: isRtl ? 'تحويل بنكي' : 'Bank Transfer' },
+              { value: 3, label: isRtl ? 'بطاقة' : 'Card' },
+            ]}
+          />
+        </Form.Item>
+        <Form.Item noStyle shouldUpdate={(prev, cur) => prev.paymentMethod !== cur.paymentMethod}>
+          {({ getFieldValue }) =>
+            getFieldValue('paymentMethod') !== 1 ? (
+              <Form.Item name="bankFees" label={isRtl ? 'رسوم بنكية' : 'Bank Fees'}>
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  addonAfter={isRtl ? 'ريال' : 'SAR'}
+                  placeholder={isRtl ? 'اختياري' : 'Optional'}
+                />
+              </Form.Item>
+            ) : null
+          }
         </Form.Item>
         <Form.Item name="notes" label={isRtl ? 'ملاحظات' : 'Notes'}>
           <Input.TextArea rows={2} placeholder={isRtl ? 'ملاحظات (اختياري)' : 'Notes (optional)'} />

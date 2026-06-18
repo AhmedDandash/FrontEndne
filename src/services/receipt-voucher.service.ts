@@ -27,7 +27,9 @@ export class ReceiptVoucherService {
 
   /**
    * POST /api/ReceiptVoucher
-   * Body: { voucherNumber, voucherDate, amount, notes, employmentOperatingContractId (uuid) }
+   * Body: { voucherNumber, voucherDate, amount, notes, employmentOperatingContractId (uuid),
+   *         paymentMethod?, vatAmount?, bankFees? }
+   * VAT is computed server-side from `amount` when `vatAmount` is omitted.
    */
   static async create(data: CreateReceiptVoucherDto): Promise<ReceiptVoucher> {
     const response = await api.post<any>(API_ENDPOINTS.RECEIPT_VOUCHER.CREATE, data);

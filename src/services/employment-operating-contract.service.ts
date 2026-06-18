@@ -170,12 +170,15 @@ export class EmploymentOperatingContractService {
 
   /**
    * GET /api/EmploymentOperatingContract/{id}/print-receipt-form
-   * Returns complete contract data (customer, worker, pricing, dates) for print UI.
+   * Returns `{ message, contract }`; we normalise to `{ message, contract }`
+   * regardless of whether the API wraps it in the standard envelope.
    */
   static async printReceiptForm(id: number | string): Promise<ContractPrintReceiptData> {
     const response = await api.get<any>(
       API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.PRINT_RECEIPT_FORM(id)
     );
-    return unwrap<ContractPrintReceiptData>(response.data);
+    const payload = unwrap<any>(response.data);
+    const contract = payload?.contract ?? payload;
+    return { message: payload?.message ?? null, contract };
   }
 }

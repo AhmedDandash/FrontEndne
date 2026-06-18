@@ -306,6 +306,14 @@ export default function RentContractsPage() {
     setPrintModal({ open: true, title: `#${contract.contractNumber}` });
     try {
       const data = await printReceiptForm(contract.id);
+      // The endpoint returns only the contract (GUID FKs, no lookup names);
+      // merge the names we already resolved into the card's view model.
+      data.display = {
+        customerName: isRtl ? contract.customerNameAr : contract.customerName,
+        customerPhone: contract.customerPhone,
+        nationalityName: isRtl ? contract.nationalityAr : contract.nationality,
+        jobName: isRtl ? contract.professionAr : contract.profession,
+      };
       setPrintData(data);
     } catch {
       // hook surfaces the error toast; keep the modal open with an empty state

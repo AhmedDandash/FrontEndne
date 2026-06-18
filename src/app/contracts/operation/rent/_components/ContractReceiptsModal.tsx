@@ -53,7 +53,24 @@ export default function ContractReceiptsModal({
 
   const total = rows.reduce((sum, v) => sum + (v.amount || 0), 0);
 
+  const paymentLabel = (v: number | null | undefined) => {
+    const map: Record<number, { ar: string; en: string }> = {
+      1: { ar: 'نقدًا', en: 'Cash' },
+      2: { ar: 'تحويل بنكي', en: 'Bank' },
+      3: { ar: 'بطاقة', en: 'Card' },
+    };
+    if (!v || !map[v]) return '—';
+    return isRtl ? map[v].ar : map[v].en;
+  };
+
   const columns: ColumnsType<ReceiptVoucher> = [
+    {
+      title: isRtl ? '#' : '#',
+      dataIndex: 'voucherSerialNumber',
+      key: 'voucherSerialNumber',
+      width: 56,
+      render: (v: number) => (v != null ? v : '—'),
+    },
     {
       title: isRtl ? 'رقم السند' : 'Voucher No.',
       dataIndex: 'voucherNumber',
@@ -67,11 +84,24 @@ export default function ContractReceiptsModal({
       render: (v: string) => (v ? formatDate(v, isRtl) : '—'),
     },
     {
+      title: isRtl ? 'طريقة الدفع' : 'Method',
+      dataIndex: 'paymentMethod',
+      key: 'paymentMethod',
+      render: (v: number) => paymentLabel(v),
+    },
+    {
       title: isRtl ? 'المبلغ' : 'Amount',
       dataIndex: 'amount',
       key: 'amount',
       align: 'right',
       render: (v: number) => formatCurrency(v || 0, isRtl),
+    },
+    {
+      title: isRtl ? 'ض.ق.م' : 'VAT',
+      dataIndex: 'vatAmount',
+      key: 'vatAmount',
+      align: 'right',
+      render: (v: number) => (v != null ? formatCurrency(v, isRtl) : '—'),
     },
     {
       title: isRtl ? 'ملاحظات' : 'Notes',

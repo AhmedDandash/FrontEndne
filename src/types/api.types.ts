@@ -826,14 +826,22 @@ export interface CustomerRefundDto {
   description?: string | null;
 }
 
-/** GET /api/EmploymentOperatingContract/{id}/print-receipt-form */
+/**
+ * GET /api/EmploymentOperatingContract/{id}/print-receipt-form
+ * The endpoint returns `{ message, contract }` where `contract` is the full
+ * EmploymentOperatingContract. Lookup names (customer/nationality/job) are not
+ * included, so the client merges them into `display` before rendering.
+ */
 export interface ContractPrintReceiptData {
-  customerData?: Record<string, any> | null;
-  workerData?: Record<string, any> | null;
-  priceDetails?: Record<string, any> | null;
-  duration?: number | null;
-  contractStartDate?: string | null;
-  contractEndDate?: string | null;
+  message?: string | null;
+  contract: EmploymentOperatingContract;
+  /** Resolved display names merged client-side from the lookups */
+  display?: {
+    customerName?: string;
+    customerPhone?: string;
+    nationalityName?: string;
+    jobName?: string;
+  };
 }
 
 // ==================== Complaint Types ====================
@@ -1406,12 +1414,20 @@ export interface UpdateMarketerDto {
 // ==================== Receipt Voucher Types ====================
 export interface ReceiptVoucher {
   id: number | string;
+  /** Per-contract running serial (assigned by the backend) */
+  voucherSerialNumber?: number | null;
   voucherNumber?: string | null;
   voucherDate?: string | null;
   amount?: number | null;
   notes?: string | null;
   /** UUID string */
   employmentOperatingContractId?: string | null;
+  /** 1=Cash, 2=Bank, 3=Card */
+  paymentMethod?: number | null;
+  /** VAT portion of `amount` — computed by the backend (15% inclusive) */
+  vatAmount?: number | null;
+  bankFees?: number | null;
+  journalEntryId?: number | string | null;
   createdAt?: string | null;
 }
 
@@ -1422,6 +1438,12 @@ export interface CreateReceiptVoucherDto {
   notes?: string | null;
   /** UUID string */
   employmentOperatingContractId: string;
+  /** 1=Cash, 2=Bank, 3=Card */
+  paymentMethod?: number | null;
+  /** Optional — backend computes VAT from `amount` when omitted */
+  vatAmount?: number | null;
+  /** Bank transfer fees, when paid by bank/card */
+  bankFees?: number | null;
 }
 
 export interface UpdateReceiptVoucherDto {
