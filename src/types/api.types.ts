@@ -796,9 +796,30 @@ export interface RenewContractDto {
   newEndDate: string;
 }
 
-/** POST /api/EmploymentOperatingContract/{id}/terminate */
+/**
+ * POST /api/EmploymentOperatingContract/{id}/terminate
+ * Creates a Draft credit note (revenue reversal). When `refundAmount` > 0 the
+ * credit note also credits Customer Payable; the cash is paid out separately via
+ * the customer-refund endpoint.
+ */
 export interface TerminateContractDto {
-  note: string;
+  /** Termination reason / notes */
+  note?: string | null;
+  /** Amount owed back to the customer (defaults to 0) */
+  refundAmount?: number | null;
+}
+
+/**
+ * POST /api/EmploymentOperatingContract/{id}/customer-refund
+ * Records the cash refund payment to the customer after termination.
+ */
+export interface CustomerRefundDto {
+  /** Cash refund amount — required */
+  amount: number;
+  /** 1=Cash, 2=Bank, 3=Card (default 1) */
+  paymentMethod?: number | null;
+  /** Journal description */
+  description?: string | null;
 }
 
 /** GET /api/EmploymentOperatingContract/{id}/print-receipt-form */

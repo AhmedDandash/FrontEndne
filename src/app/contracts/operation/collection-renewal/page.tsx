@@ -45,7 +45,9 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
+import { unwrapList } from '@/utils/api-response';
 import type { EmploymentOperatingContract } from '@/types/api.types';
+import RenewModal from '../rent/_components/RenewModal';
 import styles from './CollectionRenewal.module.css';
 
 interface RentalContract {
@@ -85,26 +87,18 @@ export default function CollectionRenewalPage() {
   const isRTL = language === 'ar';
 
   // Fetch contracts from API
-  const { contracts: apiContracts, isLoading } = useEmploymentOperatingContracts();
+  const { contracts: apiContracts, isLoading, renewContract, isRenewing } =
+    useEmploymentOperatingContracts();
 
-  // Safely extract data from API response (handles wrapped responses)
-  const contractsData = useMemo((): EmploymentOperatingContract[] => {
-    console.log('API Response:', apiContracts);
-    if (!apiContracts) return [];
-    if (Array.isArray(apiContracts)) return apiContracts;
-    if (
-      typeof apiContracts === 'object' &&
-      'data' in apiContracts &&
-      Array.isArray((apiContracts as any).data)
-    ) {
-      return (apiContracts as any).data;
-    }
-    return [];
-  }, [apiContracts]);
+  // Safely extract data from API response (handles every known wrapper shape)
+  const contractsData = useMemo(
+    (): EmploymentOperatingContract[] => unwrapList<EmploymentOperatingContract>(apiContracts),
+    [apiContracts]
+  );
 
   // Map API data to internal RentalContract format
   const contracts = useMemo((): RentalContract[] => {
-    const mapped = contractsData.map((contract): RentalContract => {
+    return contractsData.map((contract): RentalContract => {
       const startDate = contract.contractStartDate || new Date().toISOString();
       const endDate = contract.contractEndDate || new Date().toISOString();
       const daysRemaining = Math.floor(
@@ -118,15 +112,15 @@ export default function CollectionRenewalPage() {
 
       return {
         id: String(contract.id),
-        contractId:1,
-        contractNumber: 760,
+        contractId: Number(contract.id) || 0,
+        contractNumber: Number(contract.contractNumber) || 0,
         branchName: 'Sigma Competences Recruitment Office',
         branchNameAr: 'سيقما الكفاءات للإستقدام',
         customerName: contract.customerNameAr || 'Unknown',
         customerNameAr: contract.customerNameAr || 'غير معروف',
         customerPhone: contract.mobile || '05xxxxxxxx',
         customerId: contract.customerIdentiy || String(contract.customerId || 0),
-        customerUuid: `uuid-${contract.id}`,
+        customerUuid: String(contract.id),
         signDate: startDate.split('T')[0],
         startDate: startDate.split('T')[0],
         endDate: endDate.split('T')[0],
@@ -140,9 +134,6 @@ export default function CollectionRenewalPage() {
         workerNationalityAr: undefined,
       };
     });
-    console.log('Mapped Contracts Count:', mapped.length);
-    console.log('Mapped Contracts Sample:', mapped.slice(0, 2));
-    return mapped;
   }, [contractsData]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -151,6 +142,7 @@ export default function CollectionRenewalPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedContract, setSelectedContract] = useState<RentalContract | null>(null);
   const [viewMode, setViewMode] = useState<string>('cards');
+  const [renewTarget, setRenewTarget] = useState<RentalContract | null>(null);
 
   // Calculate stats
   const stats: ContractStats = useMemo(() => {
@@ -254,7 +246,14 @@ export default function CollectionRenewalPage() {
   };
 
   const handleRenewContract = (contract: RentalContract) => {
-    console.log('Renewing contract:', contract.contractNumber);
+    setRenewTarget(contract);
+  };
+
+  const handleRenewSubmit = (newEndDate: string) => {
+    if (!renewTarget) return;
+    renewContract({ id: renewTarget.id, newEndDate });
+    setRenewTarget(null);
+    setSelectedContract(null);
   };
 
   const handleViewContract = (contract: RentalContract) => {
@@ -790,6 +789,15 @@ export default function CollectionRenewalPage() {
           </div>
         )}
       </Modal>
+
+      {/* Renew Modal (shared with the rent contracts page) */}
+      <RenewModal
+        open={!!renewTarget}
+        isRtl={isRTL}
+        loading={isRenewing}
+        onCancel={() => setRenewTarget(null)}
+        onSubmit={handleRenewSubmit}
+      />
     </div>
   );
 }

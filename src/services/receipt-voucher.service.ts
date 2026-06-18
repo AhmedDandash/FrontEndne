@@ -5,6 +5,7 @@
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { unwrap, unwrapList } from '@/utils/api-response';
 import type { ReceiptVoucher, CreateReceiptVoucherDto, UpdateReceiptVoucherDto } from '@/types/api.types';
 
 export class ReceiptVoucherService {
@@ -13,20 +14,15 @@ export class ReceiptVoucherService {
    */
   static async getAll(params?: Record<string, any>): Promise<ReceiptVoucher[]> {
     const response = await api.get<any>(API_ENDPOINTS.RECEIPT_VOUCHER.GET_ALL, { params });
-
-    if (Array.isArray(response.data)) return response.data;
-    if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;
-    if (response.data?.result && Array.isArray(response.data.result)) return response.data.result;
-    if (response.data?.items && Array.isArray(response.data.items)) return response.data.items;
-    return [];
+    return unwrapList<ReceiptVoucher>(response.data);
   }
 
   /**
    * GET /api/ReceiptVoucher/{id}
    */
   static async getById(id: number | string): Promise<ReceiptVoucher> {
-    const response = await api.get<ReceiptVoucher>(API_ENDPOINTS.RECEIPT_VOUCHER.GET_BY_ID(id));
-    return response.data;
+    const response = await api.get<any>(API_ENDPOINTS.RECEIPT_VOUCHER.GET_BY_ID(id));
+    return unwrap<ReceiptVoucher>(response.data);
   }
 
   /**
@@ -34,16 +30,16 @@ export class ReceiptVoucherService {
    * Body: { voucherNumber, voucherDate, amount, notes, employmentOperatingContractId (uuid) }
    */
   static async create(data: CreateReceiptVoucherDto): Promise<ReceiptVoucher> {
-    const response = await api.post<ReceiptVoucher>(API_ENDPOINTS.RECEIPT_VOUCHER.CREATE, data);
-    return response.data;
+    const response = await api.post<any>(API_ENDPOINTS.RECEIPT_VOUCHER.CREATE, data);
+    return unwrap<ReceiptVoucher>(response.data);
   }
 
   /**
    * PUT /api/ReceiptVoucher/{id}
    */
   static async update(id: number | string, data: UpdateReceiptVoucherDto): Promise<ReceiptVoucher> {
-    const response = await api.put<ReceiptVoucher>(API_ENDPOINTS.RECEIPT_VOUCHER.UPDATE(id), data);
-    return response.data;
+    const response = await api.put<any>(API_ENDPOINTS.RECEIPT_VOUCHER.UPDATE(id), data);
+    return unwrap<ReceiptVoucher>(response.data);
   }
 
   /**

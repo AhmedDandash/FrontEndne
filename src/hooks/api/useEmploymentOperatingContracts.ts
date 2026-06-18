@@ -2,9 +2,11 @@
  * useEmploymentOperatingContracts Hook
  * Migrated to new API contract.
  *
- * Breaking changes from old hook:
- *  - endContract removed → use signContract / startExecution / renewContract / terminateContract
- *  - New mutations: signContract, startExecution, renewContract, terminateContract, printReceiptForm
+ * Lifecycle mutations:
+ *  signContract → startExecution → renewContract / terminateContract → recordCustomerRefund
+ *
+ * Error handling is delegated to the shared `getApiErrorMessage` helper so every
+ * mutation surfaces server validation messages consistently (bilingual fallback).
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,9 +15,12 @@ import {
   EmploymentOperatingContractService,
   type GetContractsParams,
 } from '@/services/employment-operating-contract.service';
+import { getApiErrorMessage } from '@/utils/api-error';
 import type {
   CreateEmploymentOperatingContractDto,
   UpdateEmploymentOperatingContractDto,
+  TerminateContractDto,
+  CustomerRefundDto,
 } from '@/types/api.types';
 
 const QUERY_KEY = 'employment-operating-contracts';
@@ -24,6 +29,7 @@ export function useEmploymentOperatingContracts(
   params?: GetContractsParams | Record<string, any>
 ) {
   const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
 
   const {
     data: contracts,
@@ -48,41 +54,32 @@ export function useEmploymentOperatingContracts(
     mutationFn: (data: CreateEmploymentOperatingContractDto) =>
       EmploymentOperatingContractService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      invalidate();
       message.success('تمت إضافة العقد بنجاح / Contract created successfully');
     },
-    onError: (error: any) => {
-      message.error(
-        error.response?.data?.message || 'فشل إضافة العقد / Failed to create contract'
-      );
-    },
+    onError: (error) =>
+      message.error(getApiErrorMessage(error, 'فشل إضافة العقد / Failed to create contract')),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: UpdateEmploymentOperatingContractDto }) =>
       EmploymentOperatingContractService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      invalidate();
       message.success('تم تحديث العقد بنجاح / Contract updated successfully');
     },
-    onError: (error: any) => {
-      message.error(
-        error.response?.data?.message || 'فشل تحديث العقد / Failed to update contract'
-      );
-    },
+    onError: (error) =>
+      message.error(getApiErrorMessage(error, 'فشل تحديث العقد / Failed to update contract')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number | string) => EmploymentOperatingContractService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      invalidate();
       message.success('تم حذف العقد بنجاح / Contract deleted successfully');
     },
-    onError: (error: any) => {
-      message.error(
-        error.response?.data?.message || 'فشل حذف العقد / Failed to delete contract'
-      );
-    },
+    onError: (error) =>
+      message.error(getApiErrorMessage(error, 'فشل حذف العقد / Failed to delete contract')),
   });
 
   // ─── Lifecycle Transitions ─────────────────────────────────────────────────
@@ -91,26 +88,22 @@ export function useEmploymentOperatingContracts(
   const signMutation = useMutation({
     mutationFn: (id: number | string) => EmploymentOperatingContractService.sign(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      invalidate();
       message.success('تم توقيع العقد / Contract signed');
     },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'فشل توقيع العقد / Failed to sign contract');
-    },
+    onError: (error) =>
+      message.error(getApiErrorMessage(error, 'فشل توقيع العقد / Failed to sign contract')),
   });
 
   /** Signed → Executing (worker goes to customer) */
   const startExecutionMutation = useMutation({
     mutationFn: (id: number | string) => EmploymentOperatingContractService.startExecution(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      invalidate();
       message.success('بدأ تنفيذ العقد / Contract execution started');
     },
-    onError: (error: any) => {
-      message.error(
-        error.response?.data?.message || 'فشل بدء التنفيذ / Failed to start execution'
-      );
-    },
+    onError: (error) =>
+      message.error(getApiErrorMessage(error, 'فشل بدء التنفيذ / Failed to start execution')),
   });
 
   /**
@@ -121,42 +114,47 @@ export function useEmploymentOperatingContracts(
     mutationFn: ({ id, newEndDate }: { id: number | string; newEndDate: string }) =>
       EmploymentOperatingContractService.renew(id, newEndDate),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      invalidate();
       message.success('تم تجديد العقد / Contract renewed');
     },
-    onError: (error: any) => {
-      message.error(
-        error.response?.data?.message || 'فشل تجديد العقد / Failed to renew contract'
-      );
-    },
+    onError: (error) =>
+      message.error(getApiErrorMessage(error, 'فشل تجديد العقد / Failed to renew contract')),
   });
 
   /**
-   * Executing → Finished (worker returns to accommodation)
-   * Body: raw note string
+   * Executing → Finished (worker returns to accommodation).
+   * Creates a Draft credit note; cash refund (if any) is paid out separately.
    */
   const terminateMutation = useMutation({
-    mutationFn: ({ id, note }: { id: number | string; note: string }) =>
-      EmploymentOperatingContractService.terminate(id, note),
+    mutationFn: ({ id, data }: { id: number | string; data: TerminateContractDto }) =>
+      EmploymentOperatingContractService.terminate(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      invalidate();
       message.success('تم إنهاء العقد / Contract terminated');
     },
-    onError: (error: any) => {
-      message.error(
-        error.response?.data?.message || 'فشل إنهاء العقد / Failed to terminate contract'
-      );
+    onError: (error) =>
+      message.error(getApiErrorMessage(error, 'فشل إنهاء العقد / Failed to terminate contract')),
+  });
+
+  /** Pay the customer back their refund after termination */
+  const customerRefundMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: CustomerRefundDto }) =>
+      EmploymentOperatingContractService.recordCustomerRefund(id, data),
+    onSuccess: () => {
+      invalidate();
+      message.success('تم تسجيل استرداد العميل / Customer refund recorded');
     },
+    onError: (error) =>
+      message.error(getApiErrorMessage(error, 'فشل تسجيل الاسترداد / Failed to record refund')),
   });
 
   /** Fetch print receipt form data */
   const printReceiptFormMutation = useMutation({
     mutationFn: (id: number | string) => EmploymentOperatingContractService.printReceiptForm(id),
-    onError: (error: any) => {
+    onError: (error) =>
       message.error(
-        error.response?.data?.message || 'فشل جلب بيانات الطباعة / Failed to fetch print data'
-      );
-    },
+        getApiErrorMessage(error, 'فشل جلب بيانات الطباعة / Failed to fetch print data')
+      ),
   });
 
   return {
@@ -177,10 +175,12 @@ export function useEmploymentOperatingContracts(
     startExecution: startExecutionMutation.mutate,
     renewContract: renewMutation.mutate,
     terminateContract: terminateMutation.mutate,
+    recordCustomerRefund: customerRefundMutation.mutate,
     printReceiptForm: printReceiptFormMutation.mutateAsync,
     isSigning: signMutation.isPending,
     isStartingExecution: startExecutionMutation.isPending,
     isRenewing: renewMutation.isPending,
     isTerminating: terminateMutation.isPending,
+    isRefunding: customerRefundMutation.isPending,
   };
 }

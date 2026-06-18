@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { ReceiptVoucherService } from '@/services/receipt-voucher.service';
+import { getApiErrorMessage } from '@/utils/api-error';
 import type { CreateReceiptVoucherDto, UpdateReceiptVoucherDto } from '@/types/api.types';
 
 const QUERY_KEY = ['receipt-vouchers'];
@@ -33,8 +34,8 @@ export function useCreateReceiptVoucher() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       message.success('تمت إضافة سند القبض بنجاح / Receipt voucher created successfully');
     },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل إضافة سند القبض / Failed to create receipt voucher');
+    onError: (err) => {
+      message.error(getApiErrorMessage(err, 'فشل إضافة سند القبض / Failed to create receipt voucher'));
     },
   });
 }
@@ -48,8 +49,8 @@ export function useUpdateReceiptVoucher() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       message.success('تم تحديث سند القبض بنجاح / Receipt voucher updated successfully');
     },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل تحديث سند القبض / Failed to update receipt voucher');
+    onError: (err) => {
+      message.error(getApiErrorMessage(err, 'فشل تحديث سند القبض / Failed to update receipt voucher'));
     },
   });
 }
@@ -62,8 +63,8 @@ export function useDeleteReceiptVoucher() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       message.success('تم حذف سند القبض بنجاح / Receipt voucher deleted successfully');
     },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل حذف سند القبض / Failed to delete receipt voucher');
+    onError: (err) => {
+      message.error(getApiErrorMessage(err, 'فشل حذف سند القبض / Failed to delete receipt voucher'));
     },
   });
 }

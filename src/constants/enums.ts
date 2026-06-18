@@ -448,3 +448,21 @@ export const PAYMENT_MEANS_CODE_TYPE = [
   { value: 6, labelAr: 'شبكة', labelEn: 'Network (POS)' },
 ] as const;
 
+// ==================== Operating Contract Payment Method ====================
+// طريقة دفع عقد التشغيل — used by the contract create/edit form.
+// Maps to the payment account on the generated receipt journal (Cash → 101, Bank/Card → 102).
+export const OPERATING_PAYMENT_METHOD = [
+  { value: 1, labelAr: 'نقدي', labelEn: 'Cash' },
+  { value: 2, labelAr: 'شبكة', labelEn: 'Card/Network' },
+  { value: 3, labelAr: 'تحويل بنكي', labelEn: 'Bank Transfer' },
+] as const;
+
+// ==================== Customer Refund Payment Method ====================
+// طريقة سداد استرداد العميل — POST /EmploymentOperatingContract/{id}/customer-refund
+// Per Operating Contract spec: 1=Cash, 2=Bank, 3=Card (default 1).
+export const REFUND_PAYMENT_METHOD = [
+  { value: 1, labelAr: 'نقدي', labelEn: 'Cash' },
+  { value: 2, labelAr: 'بنك', labelEn: 'Bank' },
+  { value: 3, labelAr: 'شبكة', labelEn: 'Card' },
+] as const;
+

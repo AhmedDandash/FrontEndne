@@ -133,6 +133,9 @@ export const API_ENDPOINTS = {
       `/api/EmploymentOperatingContract/${id}/start-execution`,
     RENEW: (id: number | string) => `/api/EmploymentOperatingContract/${id}/renew`,
     TERMINATE: (id: number | string) => `/api/EmploymentOperatingContract/${id}/terminate`,
+    // POST /{id}/customer-refund — cash returned to customer after termination
+    CUSTOMER_REFUND: (id: number | string) =>
+      `/api/EmploymentOperatingContract/${id}/customer-refund`,
     PRINT_RECEIPT_FORM: (id: number | string) =>
       `/api/EmploymentOperatingContract/${id}/print-receipt-form`,
   },

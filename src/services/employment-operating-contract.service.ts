@@ -6,17 +6,23 @@
  *  - EndContract removed → replaced by sign / start-execution / renew / terminate
  *  - New lifecycle: Draft → sign() → Signed → start-execution() → Executing
  *                   → renew() (extends end date) OR terminate() → Finished
- *  - New: printReceiptForm() for fetching print data
+ *  - terminate() now takes a { note, refundAmount } DTO (was a raw string)
+ *  - recordCustomerRefund(): pays cash back to the customer after termination
+ *  - printReceiptForm() for fetching print data
  *  - GET params renamed: SearchWorkerName, WorkerPhone, IdentityNumber, ContractStatus, etc.
+ *
+ * Response unwrapping is delegated to the shared `@/utils/api-response` helpers.
  */
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { unwrap, unwrapList } from '@/utils/api-response';
 import type {
   EmploymentOperatingContract,
   CreateEmploymentOperatingContractDto,
   UpdateEmploymentOperatingContractDto,
-
+  TerminateContractDto,
+  CustomerRefundDto,
   ContractPrintReceiptData,
 } from '@/types/api.types';
 
@@ -46,31 +52,17 @@ export class EmploymentOperatingContractService {
     const response = await api.get<any>(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.GET_ALL, {
       params: mergedParams,
     });
-    const d = response.data;
-
-    // flat array
-    if (Array.isArray(d)) return d;
-    // { success, data: { items: [...] } }  ← confirmed API shape
-    if (Array.isArray(d?.data?.items)) return d.data.items;
-    // { data: [...] }
-    if (Array.isArray(d?.data)) return d.data;
-    // { items: [...] }
-    if (Array.isArray(d?.items)) return d.items;
-    // { result: [...] }
-    if (Array.isArray(d?.result)) return d.result;
-
-    console.warn('[EmploymentOperatingContractService] Unexpected response shape:', d);
-    return [];
+    return unwrapList<EmploymentOperatingContract>(response.data);
   }
 
   /**
    * GET /api/EmploymentOperatingContract/{id}
    */
   static async getById(id: number | string): Promise<EmploymentOperatingContract> {
-    const response = await api.get<EmploymentOperatingContract>(
+    const response = await api.get<any>(
       API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.GET_BY_ID(id)
     );
-    return response.data;
+    return unwrap<EmploymentOperatingContract>(response.data);
   }
 
   /**
@@ -79,11 +71,11 @@ export class EmploymentOperatingContractService {
   static async create(
     data: CreateEmploymentOperatingContractDto
   ): Promise<EmploymentOperatingContract> {
-    const response = await api.post<EmploymentOperatingContract>(
+    const response = await api.post<any>(
       API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.CREATE,
       data
     );
-    return response.data;
+    return unwrap<EmploymentOperatingContract>(response.data);
   }
 
   /**
@@ -93,11 +85,11 @@ export class EmploymentOperatingContractService {
     id: number | string,
     data: UpdateEmploymentOperatingContractDto
   ): Promise<EmploymentOperatingContract> {
-    const response = await api.put<EmploymentOperatingContract>(
+    const response = await api.put<any>(
       API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.UPDATE(id),
       data
     );
-    return response.data;
+    return unwrap<EmploymentOperatingContract>(response.data);
   }
 
   /**
@@ -141,12 +133,32 @@ export class EmploymentOperatingContractService {
   /**
    * POST /api/EmploymentOperatingContract/{id}/terminate
    * Transition: Executing → Finished.
-   * Backend automatically sets WorkerStatus → 3 (InAccommodation) and IsFinish → true.
-   * Body: raw string note e.g. "Termination reason"
+   * Backend automatically sets WorkerStatus → 3 (InAccommodation) and IsFinish → true,
+   * and generates a Draft credit note (revenue reversal). When `refundAmount` > 0 the
+   * credit note also credits Customer Payable.
+   * Body: { note?, refundAmount? }
    */
-  static async terminate(id: number | string, note: string): Promise<void> {
-    await api.post(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.TERMINATE(id), JSON.stringify(note), {
-      headers: { 'Content-Type': 'application/json' },
+  static async terminate(id: number | string, data: TerminateContractDto): Promise<void> {
+    await api.post(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.TERMINATE(id), {
+      note: data.note ?? null,
+      refundAmount: data.refundAmount ?? 0,
+    });
+  }
+
+  /**
+   * POST /api/EmploymentOperatingContract/{id}/customer-refund
+   * Records the cash refund paid back to the customer after termination.
+   * Call this once the business is ready to pay out the `refundAmount` set on terminate.
+   * Body: { amount, paymentMethod?, description? }
+   */
+  static async recordCustomerRefund(
+    id: number | string,
+    data: CustomerRefundDto
+  ): Promise<void> {
+    await api.post(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.CUSTOMER_REFUND(id), {
+      amount: data.amount,
+      paymentMethod: data.paymentMethod ?? 1,
+      description: data.description ?? null,
     });
   }
 
@@ -155,9 +167,9 @@ export class EmploymentOperatingContractService {
    * Returns complete contract data (customer, worker, pricing, dates) for print UI.
    */
   static async printReceiptForm(id: number | string): Promise<ContractPrintReceiptData> {
-    const response = await api.get<ContractPrintReceiptData>(
+    const response = await api.get<any>(
       API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.PRINT_RECEIPT_FORM(id)
     );
-    return response.data;
+    return unwrap<ContractPrintReceiptData>(response.data);
   }
 }
