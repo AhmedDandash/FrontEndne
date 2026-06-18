@@ -108,6 +108,10 @@ export default function Sidebar({
           key: '/applicants/available',
           label: language === 'ar' ? 'العمال المتاحون' : 'Available Workers',
         },
+        {
+          key: '/applicants/followup',
+          label: language === 'ar' ? 'متابعة العمال' : 'Workers Follow-up',
+        },
       ],
     },
     {
