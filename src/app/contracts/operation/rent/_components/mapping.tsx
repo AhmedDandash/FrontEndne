@@ -26,6 +26,30 @@ interface NameMap {
   (id: string | number | null | undefined): { ar: string; en: string };
 }
 
+interface CustomerMap {
+  (id: string | number | null | undefined): { ar: string; en: string; phone: string };
+}
+
+/** Build a UUID → customer-name/phone resolver from the customers lookup. */
+export function buildCustomerResolver(customers: any[]): CustomerMap {
+  const map = new Map<string, { ar: string; en: string; phone: string }>();
+  customers.forEach((c: any) => {
+    const primaryPhone =
+      Array.isArray(c.phones) && c.phones.length
+        ? (c.phones.find((p: any) => p.isPrimary) || c.phones[0]).phoneNumber
+        : c.mobile || c.phone || '';
+    map.set(String(c.id), {
+      ar: c.arabicName || c.englishName || `#${c.id}`,
+      en: c.englishName || c.arabicName || `#${c.id}`,
+      phone: primaryPhone || '',
+    });
+  });
+  return (id) => {
+    if (!id) return { ar: 'غير معروف', en: 'Unknown', phone: '' };
+    return map.get(String(id)) || { ar: 'غير معروف', en: 'Unknown', phone: '' };
+  };
+}
+
 /** Build a UUID → nationality-name resolver from the nationalities lookup. */
 export function buildNationalityResolver(nationalities: any[]): NameMap {
   const map = new Map<string, { ar: string; en: string }>();
@@ -63,53 +87,79 @@ const STATUS_KEY_BY_NUMBER: Record<number, ContractStatusKey> = {
   4: 'finished',
 };
 
+/**
+ * Derive the contract status from the fields the list endpoint actually returns.
+ *
+ * The API does NOT expose a numeric `contractStatus` (confirmed against the live
+ * endpoint — neither the list nor the detail response carries it). The only
+ * lifecycle signal available is `isFinish`:
+ *   - isFinish === true  → Finished (4)
+ *   - isFinish === false → Executing (3)  (activated, not yet finished)
+ *   - isFinish == null   → Draft (1)      (created, never activated)
+ * `contractStatus` is honoured first if a future API version starts returning it.
+ */
+function deriveStatus(contract: EmploymentOperatingContract): number {
+  if (contract.contractStatus) return contract.contractStatus;
+  if (contract.isFinish === true) return 4;
+  if (contract.isFinish === false) return 3;
+  return 1;
+}
+
 /** Project a single API contract into the display view model. */
 export function mapContract(
   contract: EmploymentOperatingContract,
   resolveNationality: NameMap,
-  resolveJob: NameMap
+  resolveJob: NameMap,
+  resolveCustomer?: CustomerMap
 ): RentContract {
-  const startDate = contract.contractStartDate || new Date().toISOString();
-  const endDate = contract.contractEndDate || new Date().toISOString();
-  const daysRemaining = Math.max(
-    0,
-    Math.floor((new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  );
+  const startDate = contract.contractStartDate || '';
+  const endDate = contract.contractEndDate || '';
+  const daysRemaining = endDate
+    ? Math.max(0, Math.floor((new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
-  const cs = contract.contractStatus || 1;
+  const cs = deriveStatus(contract);
   const status = STATUS_KEY_BY_NUMBER[cs] ?? 'draft';
 
-  const monthlyRent = contract.cost || 0;
-  const monthsActive = Math.max(
-    1,
-    Math.floor((Date.now() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24 * 30))
-  );
-  const totalCollected = monthlyRent * monthsActive;
+  // The list endpoint carries the contract value but no collection figures.
+  const monthlyRent = contract.cost ?? contract.offerPrice ?? 0;
+  const totalCollected = 0;
+  const remainingAmount = monthlyRent;
 
-  const natName = resolveNationality(contract.nationalityId);
+  const natName = contract.nationalityName
+    ? { ar: contract.nationalityName, en: contract.nationalityName }
+    : resolveNationality(contract.nationalityId);
   const jobName = contract.jobName
     ? { ar: contract.jobName, en: contract.jobName }
     : resolveJob(contract.jobId as any);
+  const cust = resolveCustomer
+    ? resolveCustomer(contract.customerId)
+    : {
+        ar: contract.customerNameAr || 'غير معروف',
+        en: contract.customerNameAr || 'Unknown',
+        phone: contract.mobile || '',
+      };
+
+  // Worker name comes from the contract's own worker fields, falling back to a dash.
+  const workerEn = contract.workerNameEn || contract.workerNameAr || '—';
+  const workerAr = contract.workerNameAr || contract.workerNameEn || '—';
 
   return {
     id: String(contract.id),
-    customerId: Number(contract.customerId) || 0,
-    contractNumber: `R${2024000 + Number(contract.id)}`,
-    customerName: contract.customerNameAr || 'Unknown',
-    customerNameAr: contract.customerNameAr || 'غير معروف',
-    customerPhone: contract.mobile || '05xxxxxxxx',
+    customerId: contract.customerId != null ? String(contract.customerId) : '',
+    contractNumber: contract.contractNumber != null ? String(contract.contractNumber) : String(contract.id),
+    customerName: cust.en,
+    customerNameAr: cust.ar,
+    customerPhone: cust.phone || '—',
     status,
     contractStatus: cs,
     startDate,
     endDate,
     monthlyRent,
     totalCollected,
-    remainingAmount: Math.max(
-      0,
-      (contract.totalCostWithTax || contract.cost || 0) - totalCollected
-    ),
-    workerName: jobName.en,
-    workerNameAr: jobName.ar,
+    remainingAmount,
+    workerName: workerEn,
+    workerNameAr: workerAr,
     nationality: natName.en,
     nationalityAr: natName.ar,
     nationalityId: contract.nationalityId || '',
@@ -118,7 +168,7 @@ export function mapContract(
     branch: 'Sigma Recruitment Office',
     branchAr: 'سيجما الكفاءات للاستقدام',
     daysRemaining,
-    createdAt: contract.createdAt || new Date().toISOString(),
+    createdAt: contract.createdAt || '',
     notes: contract.noteFinish || '',
   };
 }

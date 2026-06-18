@@ -10,7 +10,8 @@ export type ContractStatusKey = 'draft' | 'signed' | 'executing' | 'finished';
 /** UI view model — a flattened, display-ready projection of EmploymentOperatingContract. */
 export interface RentContract {
   id: string;
-  customerId: number;
+  /** Customer UUID (GUID) — never coerce to number */
+  customerId: string;
   contractNumber: string;
   customerName: string;
   customerNameAr: string;

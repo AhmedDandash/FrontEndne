@@ -233,7 +233,7 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
 
             <div className={styles.tagsSection}>
               <Badge status={statusMeta.color as any} text={statusMeta.label} />
-              {contract.contractStatus === 3 && contract.daysRemaining < 30 && (
+              {contract.contractStatus === 3 && !!contract.endDate && contract.daysRemaining < 30 && (
                 <Tag color="warning" icon={<ClockCircleOutlined />}>
                   {contract.daysRemaining} {t.daysLeft}
                 </Tag>

@@ -47,8 +47,14 @@ export class EmploymentOperatingContractService {
   static async getAll(
     params?: GetContractsParams | Record<string, any>
   ): Promise<EmploymentOperatingContract[]> {
-    // Always fetch all items — API defaults to pageSize=1 which hides data
-    const mergedParams = { PageSize: 9999, PageNumber: 1, ...params };
+    // Always fetch every item — the API defaults to a tiny page size which hides data.
+    // Spread caller params first, then force the pagination keys so a caller passing
+    // `PageSize: undefined` (or omitting it) can never shrink the page back down.
+    const mergedParams: Record<string, any> = {
+      ...params,
+      PageNumber: (params as any)?.PageNumber ?? 1,
+      PageSize: (params as any)?.PageSize ?? 9999,
+    };
     const response = await api.get<any>(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.GET_ALL, {
       params: mergedParams,
     });

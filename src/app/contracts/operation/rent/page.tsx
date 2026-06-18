@@ -28,7 +28,12 @@ import type {
 } from '@/types/api.types';
 
 import type { RentContract } from './_components/types';
-import { buildNationalityResolver, buildJobResolver, mapContract } from './_components/mapping';
+import {
+  buildNationalityResolver,
+  buildJobResolver,
+  buildCustomerResolver,
+  mapContract,
+} from './_components/mapping';
 import { formatCurrency } from './_components/format';
 import ContractCard from './_components/ContractCard';
 import ContractFormModal from './_components/ContractFormModal';
@@ -114,8 +119,11 @@ export default function RentContractsPage() {
   const allContracts = useMemo((): RentContract[] => {
     const resolveNationality = buildNationalityResolver(nationalities as any[]);
     const resolveJob = buildJobResolver(jobs as any[]);
-    return contractsData.map((c) => mapContract(c, resolveNationality, resolveJob));
-  }, [contractsData, nationalities, jobs]);
+    const resolveCustomer = buildCustomerResolver(customers as any[]);
+    return contractsData.map((c) =>
+      mapContract(c, resolveNationality, resolveJob, resolveCustomer)
+    );
+  }, [contractsData, nationalities, jobs, customers]);
 
   const t = {
     pageTitle: isRtl ? 'عقود العاملات المقيمة ' : 'Operation Contracts',
@@ -139,7 +147,7 @@ export default function RentContractsPage() {
 
   const filteredContracts = useMemo(() => {
     return allContracts.filter((contract) => {
-      if (customerId && contract.customerId !== Number(customerId)) return false;
+      if (customerId && String(contract.customerId) !== String(customerId)) return false;
       const searchLower = searchText.toLowerCase();
       const matchesSearch =
         !searchText ||
@@ -152,7 +160,8 @@ export default function RentContractsPage() {
       const matchesNationality = nationalityFilter === 'all' || contract.nationalityId === String(nationalityFilter);
       const matchesDate =
         !dateRange ||
-        (new Date(contract.startDate) >= dateRange[0].toDate() &&
+        (!!contract.startDate &&
+          new Date(contract.startDate) >= dateRange[0].toDate() &&
           new Date(contract.startDate) <= dateRange[1].toDate());
       return matchesSearch && matchesStatus && matchesNationality && matchesDate;
     });
@@ -162,8 +171,11 @@ export default function RentContractsPage() {
     () => ({
       total: allContracts.length,
       executing: allContracts.filter((c) => c.status === 'executing').length,
-      expiring: allContracts.filter((c) => c.daysRemaining < 30 && c.status === 'executing').length,
-      revenue: allContracts.reduce((sum, c) => sum + c.totalCollected, 0),
+      expiring: allContracts.filter(
+        (c) => !!c.endDate && c.daysRemaining < 30 && c.status === 'executing'
+      ).length,
+      // List endpoint carries no collection data — total contracted value is the honest figure.
+      revenue: allContracts.reduce((sum, c) => sum + c.monthlyRent, 0),
     }),
     [allContracts]
   );

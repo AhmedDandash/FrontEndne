@@ -3,7 +3,9 @@
  */
 
 export function formatDate(dateString: string, isRtl: boolean): string {
+  if (!dateString) return '—';
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '—';
   return date.toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', {
     year: 'numeric',
     month: 'short',

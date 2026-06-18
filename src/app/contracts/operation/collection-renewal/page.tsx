@@ -45,7 +45,9 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
+import { useCustomers } from '@/hooks/api/useCustomers';
 import { unwrapList } from '@/utils/api-response';
+import { buildCustomerResolver } from '../rent/_components/mapping';
 import type { EmploymentOperatingContract } from '@/types/api.types';
 import RenewModal from '../rent/_components/RenewModal';
 import styles from './CollectionRenewal.module.css';
@@ -90,6 +92,8 @@ export default function CollectionRenewalPage() {
   const { contracts: apiContracts, isLoading, renewContract, isRenewing } =
     useEmploymentOperatingContracts();
 
+  const { customers = [] } = useCustomers();
+
   // Safely extract data from API response (handles every known wrapper shape)
   const contractsData = useMemo(
     (): EmploymentOperatingContract[] => unwrapList<EmploymentOperatingContract>(apiContracts),
@@ -98,43 +102,52 @@ export default function CollectionRenewalPage() {
 
   // Map API data to internal RentalContract format
   const contracts = useMemo((): RentalContract[] => {
+    const resolveCustomer = buildCustomerResolver(customers as any[]);
     return contractsData.map((contract): RentalContract => {
-      const startDate = contract.contractStartDate || new Date().toISOString();
-      const endDate = contract.contractEndDate || new Date().toISOString();
-      const daysRemaining = Math.floor(
-        (new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      );
+      const startDate = contract.contractStartDate || '';
+      const endDate = contract.contractEndDate || '';
+      // Only contracts with a real end date can have a meaningful remaining-days value.
+      const daysRemaining = endDate
+        ? Math.floor((new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        : 0;
 
-      // Determine status based on days remaining
+      // Determine status based on days remaining (only when an end date exists).
       let status: RentalContract['status'] = 'valid';
-      if (daysRemaining < 0) status = 'expired';
-      else if (daysRemaining <= 14) status = 'expiring-soon';
+      if (endDate) {
+        if (daysRemaining < 0) status = 'expired';
+        else if (daysRemaining <= 14) status = 'expiring-soon';
+      }
+
+      const cust = resolveCustomer(contract.customerId);
+      const workerName = contract.workerNameEn || contract.workerNameAr || undefined;
+      const workerNameAr = contract.workerNameAr || contract.workerNameEn || undefined;
 
       return {
         id: String(contract.id),
-        contractId: Number(contract.id) || 0,
+        contractId: Number(contract.contractNumber) || 0,
         contractNumber: Number(contract.contractNumber) || 0,
         branchName: 'Sigma Competences Recruitment Office',
         branchNameAr: 'سيقما الكفاءات للإستقدام',
-        customerName: contract.customerNameAr || 'Unknown',
-        customerNameAr: contract.customerNameAr || 'غير معروف',
-        customerPhone: contract.mobile || '05xxxxxxxx',
-        customerId: contract.customerIdentiy || String(contract.customerId || 0),
-        customerUuid: String(contract.id),
-        signDate: startDate.split('T')[0],
-        startDate: startDate.split('T')[0],
-        endDate: endDate.split('T')[0],
+        customerName: cust.en,
+        customerNameAr: cust.ar,
+        customerPhone: cust.phone || '—',
+        customerId: contract.customerIdentiy || String(contract.customerId || ''),
+        customerUuid: String(contract.customerId || ''),
+        signDate: startDate ? startDate.split('T')[0] : '',
+        startDate: startDate ? startDate.split('T')[0] : '',
+        endDate: endDate ? endDate.split('T')[0] : '',
         remainingDays: daysRemaining,
         status,
-        totalAmount: contract.totalCostWithTax || contract.cost || 0,
-        paidAmount: contract.cost || 0,
-        workerName: contract.jobName || undefined,
-        workerNameAr: contract.jobName || undefined,
+        totalAmount: contract.totalCostWithTax || contract.cost || contract.offerPrice || 0,
+        // List endpoint carries no collection data; don't fabricate a paid amount.
+        paidAmount: 0,
+        workerName,
+        workerNameAr,
         workerNationality: undefined,
         workerNationalityAr: undefined,
       };
     });
-  }, [contractsData]);
+  }, [contractsData, customers]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -236,7 +249,9 @@ export default function CollectionRenewalPage() {
   };
 
   const formatFullDate = (dateStr: string) => {
+    if (!dateStr) return '—';
     const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return '—';
     return new Intl.DateTimeFormat(isRTL ? 'ar-SA' : 'en-US', {
       weekday: 'long',
       year: 'numeric',
