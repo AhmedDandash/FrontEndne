@@ -52,8 +52,12 @@ export default function Sidebar({
         if (pathParts[0] === 'accounting' && pathParts[1] === 'ledger') {
           keys.push('ledger-reports');
         }
-        if (pathParts[0] === 'contracts' && pathParts[1] === 'operation') {
-          keys[0] = 'contracts-operation';
+        if (pathParts[0] === 'contracts') {
+          if (pathParts[1] === 'operation') {
+            keys.push('contracts-operation');
+          } else {
+            keys.push('contracts-mediation');
+          }
         }
         setOpenKeys(keys);
       }
@@ -134,29 +138,11 @@ export default function Sidebar({
       label: language === 'ar' ? 'العملاء' : 'Customers',
     },
     {
-      key: 'contracts-operation',
-      icon: <FileTextOutlined />,
-      label: language === 'ar' ? 'عقود العاملات المقيمة' : 'Operation Contracts',
-      children: [
-        {
-          key: '/contracts/operation/rent',
-          label: language === 'ar' ? 'عقود العاملات المقيمة' : 'Operation Contracts',
-        },
-        {
-          key: '/contracts/operation/collection-renewal',
-          label: language === 'ar' ? 'التحصيل والتجديد' : 'Collection & Renewal Operations',
-        },
-        {
-          key: '/contracts/operation/rent-prices-offers',
-          label: language === 'ar' ? 'أسعار وعروض التشغيل' : 'Rent Prices & Offers',
-        },
-      ],
-    },
-    {
       key: 'contracts',
       icon: <FileTextOutlined />,
       label: language === 'ar' ? 'العقود' : 'Contracts',
       children: [
+        /* ───── Mediation contracts ───── */
         {
           key: 'contracts-mediation',
           label: language === 'ar' ? 'عقود الاستقدام ' : 'Mediation',
@@ -176,6 +162,25 @@ export default function Sidebar({
             {
               key: '/contracts/mediationrequests',
               label: language === 'ar' ? 'طلب عقد توسط' : 'Mediation Requests',
+            },
+          ],
+        },
+        /* ───── Operation contracts ───── */
+        {
+          key: 'contracts-operation',
+          label: language === 'ar' ? 'عقود العاملات المقيمة' : 'Operation Contracts',
+          children: [
+            {
+              key: '/contracts/operation/rent',
+              label: language === 'ar' ? 'عقود العاملات المقيمة' : 'Operation Contracts',
+            },
+            {
+              key: '/contracts/operation/collection-renewal',
+              label: language === 'ar' ? 'التحصيل والتجديد' : 'Collection & Renewal Operations',
+            },
+            {
+              key: '/contracts/operation/rent-prices-offers',
+              label: language === 'ar' ? 'أسعار وعروض التشغيل' : 'Rent Prices & Offers',
             },
           ],
         },
