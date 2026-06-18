@@ -1,7 +1,11 @@
 /**
  * Per-contract receipt vouchers manager.
- * Lists the vouchers recorded against a contract and exposes add / edit / delete.
- * Connects the previously-unused ReceiptVoucher GET / PUT / DELETE endpoints to a screen.
+ * Lists the vouchers recorded against a contract and exposes add (create).
+ * Connects the ReceiptVoucher GET / POST endpoints to a screen.
+ *
+ * NOTE: the live backend exposes only GET + POST for ReceiptVoucher
+ * (PUT and DELETE /api/ReceiptVoucher/{id} return 405 Method Not Allowed),
+ * so edit/delete are intentionally not offered here.
  *
  * GET is filtered server-side by employmentOperatingContractId; we also filter
  * client-side as a safety net in case the API ignores the query param.
@@ -9,10 +13,10 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Modal, Button, Table, Empty, Popconfirm, Space, Tooltip } from 'antd';
+import { Modal, Button, Table, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, EditOutlined, DeleteOutlined, FileDoneOutlined } from '@ant-design/icons';
-import { useReceiptVouchers, useDeleteReceiptVoucher } from '@/hooks/api/useReceiptVouchers';
+import { PlusOutlined, FileDoneOutlined } from '@ant-design/icons';
+import { useReceiptVouchers } from '@/hooks/api/useReceiptVouchers';
 import type { ReceiptVoucher } from '@/types/api.types';
 import { formatDate, formatCurrency } from './format';
 import ReceiptVoucherModal from './ReceiptVoucherModal';
@@ -32,15 +36,11 @@ export default function ContractReceiptsModal({
   contractLabel,
   onClose,
 }: Props) {
-  const [formModal, setFormModal] = useState<{ open: boolean; voucher: ReceiptVoucher | null }>({
-    open: false,
-    voucher: null,
-  });
+  const [formOpen, setFormOpen] = useState(false);
 
   const { data: vouchers = [], isLoading } = useReceiptVouchers(
     contractId ? { employmentOperatingContractId: contractId } : undefined
   );
-  const { mutate: deleteVoucher, isPending: isDeleting } = useDeleteReceiptVoucher();
 
   // Safety-net client filter (in case the API ignores the contract query param).
   const rows = useMemo(
@@ -80,32 +80,6 @@ export default function ContractReceiptsModal({
       ellipsis: true,
       render: (v: string) => v || '—',
     },
-    {
-      title: isRtl ? 'إجراءات' : 'Actions',
-      key: 'actions',
-      width: 90,
-      render: (_, record) => (
-        <Space size={2}>
-          <Tooltip title={isRtl ? 'تعديل' : 'Edit'}>
-            <Button
-              size="small"
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => setFormModal({ open: true, voucher: record })}
-            />
-          </Tooltip>
-          <Popconfirm
-            title={isRtl ? 'حذف السند؟' : 'Delete this voucher?'}
-            okText={isRtl ? 'حذف' : 'Delete'}
-            cancelText={isRtl ? 'إلغاء' : 'Cancel'}
-            okButtonProps={{ danger: true, loading: isDeleting }}
-            onConfirm={() => deleteVoucher(record.id)}
-          >
-            <Button size="small" type="text" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
-      ),
-    },
   ];
 
   return (
@@ -128,7 +102,7 @@ export default function ContractReceiptsModal({
             key="add"
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => setFormModal({ open: true, voucher: null })}
+            onClick={() => setFormOpen(true)}
           >
             {isRtl ? 'سند جديد' : 'New Voucher'}
           </Button>,
@@ -157,12 +131,11 @@ export default function ContractReceiptsModal({
       </Modal>
 
       <ReceiptVoucherModal
-        open={formModal.open}
+        open={formOpen}
         isRtl={isRtl}
         contractId={contractId}
         contractLabel={contractLabel}
-        voucher={formModal.voucher}
-        onClose={() => setFormModal({ open: false, voucher: null })}
+        onClose={() => setFormOpen(false)}
       />
     </>
   );

@@ -43,6 +43,7 @@ import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperat
 import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import RentOfferSelector from '@/components/contracts/RentOfferSelector';
+import WorkerSelect from '@/components/contracts/WorkerSelect';
 import type {
   Customer,
   CustomerPhoneDto,
@@ -324,16 +325,12 @@ export default function CustomersPage() {
       // Clean and format data - convert empty strings to null
       const cleanData: any = {};
 
-      // Number fields that should be null if empty or converted to number
+      // Numeric fields — coerced to Number (null when empty)
       const numberFields = [
-        'customerId',
         'marketerId',
         'contractCategory',
-        'offerId',
         'operationType',
         'paymentMethod',
-        'nationalityId',
-        'jobId',
         'duration',
         'previousExperience',
         'offerPrice',
@@ -343,7 +340,11 @@ export default function CustomersPage() {
         'insurance',
       ];
 
-      // String fields
+      // GUID / string-id fields — MUST NOT be Number()-coerced (they are UUIDs;
+      // Number('<uuid>') → NaN → null, which silently dropped nationality/job).
+      const idFields = ['offerId', 'nationalityId', 'jobId', 'workerId'];
+
+      // Plain string fields
       const stringFields = ['workerNameEn', 'workerNameAr', 'workerPhone', 'customerAddress'];
 
       // Date fields
@@ -358,6 +359,14 @@ export default function CustomersPage() {
             const num = Number(values[field]);
             cleanData[field] = isNaN(num) ? null : num;
           }
+        }
+      });
+
+      // Process id fields (pass through as-is, null when empty)
+      idFields.forEach((field) => {
+        if (field in values) {
+          cleanData[field] =
+            values[field] === '' || values[field] === undefined ? null : values[field];
         }
       });
 
@@ -387,8 +396,6 @@ export default function CustomersPage() {
         ...cleanData,
         customerId: selectedCustomerForContract?.id || null,
       };
-
-      console.log('Submitting contract data:', JSON.stringify(contractData, null, 2));
 
       createContract(contractData);
 
@@ -430,13 +437,13 @@ export default function CustomersPage() {
         key: 'rent',
         label: language === 'ar' ? 'عقود التشغيل' : 'Operation Contracts',
         icon: <FileTextOutlined />,
-        onClick: () => router.push(`/operation/rent?customerId=${customer.id}`),
+        onClick: () => router.push(`/contracts/operation/rent?customerId=${customer.id}`),
       },
       {
         key: 'statement',
         label: language === 'ar' ? 'كشف الحساب' : 'Account Statement',
         icon: <DollarOutlined />,
-        onClick: () => console.log('View account statement:', customer.id),
+        onClick: () => router.push(`/contracts/operation/rent?customerId=${customer.id}`),
       },
       { type: 'divider' },
       {
@@ -1159,6 +1166,13 @@ export default function CustomersPage() {
           <Divider plain style={{ fontWeight: 600, textAlign: 'left' }}>
             {language === 'ar' ? 'معلومات العامل' : 'Worker Information'}
           </Divider>
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item label={language === 'ar' ? 'العامل' : 'Worker'} name="workerId">
+                <WorkerSelect isRtl={language === 'ar'} />
+              </Form.Item>
+            </Col>
+          </Row>
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item

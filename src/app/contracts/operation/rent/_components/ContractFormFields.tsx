@@ -7,6 +7,7 @@
 import React from 'react';
 import { Row, Col, Form, Input, InputNumber, Select, DatePicker } from 'antd';
 import { OPERATING_PAYMENT_METHOD, toSelectOptions } from '@/constants/enums';
+import WorkerSelect from '@/components/contracts/WorkerSelect';
 
 interface Props {
   isRtl: boolean;
@@ -107,6 +108,14 @@ export default function ContractFormFields({ isRtl, customers, jobs, nationaliti
         <Col xs={24} sm={12}>
           <Form.Item name="contractEndDate" label={isRtl ? 'تاريخ النهاية' : 'End Date'}>
             <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 0]}>
+        <Col xs={24}>
+          <Form.Item name="workerId" label={isRtl ? 'العامل' : 'Worker'}>
+            <WorkerSelect isRtl={isRtl} />
           </Form.Item>
         </Col>
       </Row>

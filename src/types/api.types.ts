@@ -755,6 +755,8 @@ export interface CreateEmploymentOperatingContractDto {
   contractEndDate?: string | null;
   previousExperience?: number | null;
   offerPrice?: number | null;
+  /** UUID string per swagger — links the contract to an existing worker record */
+  workerId?: string | null;
   laborManagement?: number | null;
   workerNameEn?: string | null;
   workerNameAr?: string | null;
@@ -781,6 +783,8 @@ export interface UpdateEmploymentOperatingContractDto {
   contractEndDate?: string | null;
   previousExperience?: number | null;
   offerPrice?: number | null;
+  /** UUID string per swagger — links the contract to an existing worker record */
+  workerId?: string | null;
   laborManagement?: number | null;
   workerNameEn?: string | null;
   workerNameAr?: string | null;

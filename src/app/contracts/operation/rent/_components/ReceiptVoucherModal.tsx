@@ -1,10 +1,9 @@
 /**
- * Receipt voucher create / edit modal.
- * POST /api/ReceiptVoucher (create) and PUT /api/ReceiptVoucher/{id} (edit),
- * linked to the contract via employmentOperatingContractId.
+ * Receipt voucher create modal.
+ * POST /api/ReceiptVoucher, linked to the contract via employmentOperatingContractId.
  *
- * The ReceiptVoucher service/hooks existed but had no entry point in the
- * Operations UI; this modal (with ContractReceiptsModal) is that entry point.
+ * The live backend only supports GET + POST for ReceiptVoucher (PUT/DELETE return
+ * 405), so this modal creates vouchers only — there is no edit flow.
  */
 'use client';
 
@@ -12,8 +11,7 @@ import React, { useEffect } from 'react';
 import { Modal, Button, Form, Input, InputNumber, DatePicker } from 'antd';
 import { FileDoneOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { useCreateReceiptVoucher, useUpdateReceiptVoucher } from '@/hooks/api/useReceiptVouchers';
-import type { ReceiptVoucher } from '@/types/api.types';
+import { useCreateReceiptVoucher } from '@/hooks/api/useReceiptVouchers';
 
 interface Props {
   open: boolean;
@@ -22,8 +20,6 @@ interface Props {
   contractId: string | null;
   /** Display label (contract number) shown in the header */
   contractLabel?: string;
-  /** When set, the modal edits this voucher instead of creating a new one. */
-  voucher?: ReceiptVoucher | null;
   onClose: () => void;
 }
 
@@ -32,28 +28,16 @@ export default function ReceiptVoucherModal({
   isRtl,
   contractId,
   contractLabel,
-  voucher,
   onClose,
 }: Props) {
   const [form] = Form.useForm();
-  const isEdit = !!voucher;
   const { mutate: createVoucher, isPending: isCreating } = useCreateReceiptVoucher();
-  const { mutate: updateVoucher, isPending: isUpdating } = useUpdateReceiptVoucher();
 
-  // Pre-fill when editing; reset when creating.
+  // Reset to defaults whenever the modal opens.
   useEffect(() => {
     if (!open) return;
-    if (voucher) {
-      form.setFieldsValue({
-        voucherNumber: voucher.voucherNumber ?? undefined,
-        voucherDate: voucher.voucherDate ? dayjs(voucher.voucherDate) : dayjs(),
-        amount: voucher.amount ?? undefined,
-        notes: voucher.notes ?? undefined,
-      });
-    } else {
-      form.setFieldsValue({ voucherNumber: undefined, voucherDate: dayjs(), amount: undefined, notes: undefined });
-    }
-  }, [open, voucher, form]);
+    form.setFieldsValue({ voucherNumber: undefined, voucherDate: dayjs(), amount: undefined, notes: undefined });
+  }, [open, form]);
 
   const handleOk = async () => {
     if (!contractId) return;
@@ -66,15 +50,12 @@ export default function ReceiptVoucherModal({
         notes: values.notes || null,
         employmentOperatingContractId: contractId,
       };
-      const onSuccess = () => {
-        form.resetFields();
-        onClose();
-      };
-      if (isEdit && voucher) {
-        updateVoucher({ id: voucher.id, data: payload }, { onSuccess });
-      } else {
-        createVoucher(payload, { onSuccess });
-      }
+      createVoucher(payload, {
+        onSuccess: () => {
+          form.resetFields();
+          onClose();
+        },
+      });
     } catch {
       /* validation errors shown inline */
     }
@@ -90,7 +71,7 @@ export default function ReceiptVoucherModal({
       title={
         <span>
           <FileDoneOutlined style={{ marginInlineEnd: 8 }} />
-          {isEdit ? (isRtl ? 'تعديل سند القبض' : 'Edit Receipt Voucher') : isRtl ? 'سند قبض جديد' : 'New Receipt Voucher'}
+          {isRtl ? 'سند قبض جديد' : 'New Receipt Voucher'}
           {contractLabel ? ` — ${contractLabel}` : ''}
         </span>
       }
@@ -100,7 +81,7 @@ export default function ReceiptVoucherModal({
         <Button key="cancel" onClick={close}>
           {isRtl ? 'إلغاء' : 'Cancel'}
         </Button>,
-        <Button key="submit" type="primary" loading={isCreating || isUpdating} onClick={handleOk}>
+        <Button key="submit" type="primary" loading={isCreating} onClick={handleOk}>
           {isRtl ? 'حفظ السند' : 'Save Voucher'}
         </Button>,
       ]}

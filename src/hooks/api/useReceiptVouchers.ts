@@ -40,6 +40,11 @@ export function useCreateReceiptVoucher() {
   });
 }
 
+/**
+ * @deprecated The live backend does not expose PUT /api/ReceiptVoucher/{id}
+ * (returns 405 Method Not Allowed). Kept for forward-compat only; not wired
+ * into the UI. Receipt vouchers are create-only.
+ */
 export function useUpdateReceiptVoucher() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -55,6 +60,11 @@ export function useUpdateReceiptVoucher() {
   });
 }
 
+/**
+ * @deprecated The live backend does not expose DELETE /api/ReceiptVoucher/{id}
+ * (returns 405 Method Not Allowed). Kept for forward-compat only; not wired
+ * into the UI. Receipt vouchers are create-only.
+ */
 export function useDeleteReceiptVoucher() {
   const queryClient = useQueryClient();
   return useMutation({
