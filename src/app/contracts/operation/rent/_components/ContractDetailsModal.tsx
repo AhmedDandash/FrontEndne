@@ -27,8 +27,8 @@ export default function ContractDetailsModal({ contract, open, isRtl, onClose }:
     startDate: isRtl ? 'تاريخ البداية' : 'Start Date',
     endDate: isRtl ? 'تاريخ النهاية' : 'End Date',
     monthlyRent: isRtl ? 'التكلفة' : 'Cost',
-    collected: isRtl ? 'المحصل' : 'Collected',
-    remaining: isRtl ? 'المتبقي' : 'Remaining',
+    profession: isRtl ? 'المهنة' : 'Profession',
+    phone: isRtl ? 'الهاتف' : 'Phone',
   };
 
   return (
@@ -87,23 +87,23 @@ export default function ContractDetailsModal({ contract, open, isRtl, onClose }:
             </Col>
             <Col span={8}>
               <div className={styles.modalSection}>
-                <h4>{t.monthlyRent}</h4>
-                <p className={styles.modalValue}>{formatCurrency(contract.monthlyRent, isRtl)}</p>
+                <h4>{t.profession}</h4>
+                <p className={styles.modalValue}>{isRtl ? contract.professionAr : contract.profession}</p>
               </div>
             </Col>
             <Col span={8}>
               <div className={styles.modalSection}>
-                <h4>{t.collected}</h4>
-                <p className={styles.modalValue} style={{ color: '#52c41a' }}>
-                  {formatCurrency(contract.totalCollected, isRtl)}
+                <h4>{t.phone}</h4>
+                <p className={styles.modalValue} dir="ltr" style={{ textAlign: isRtl ? 'right' : 'left' }}>
+                  {contract.customerPhone}
                 </p>
               </div>
             </Col>
             <Col span={8}>
               <div className={styles.modalSection}>
-                <h4>{t.remaining}</h4>
-                <p className={styles.modalValue} style={{ color: '#faad14' }}>
-                  {formatCurrency(contract.remainingAmount, isRtl)}
+                <h4>{t.monthlyRent}</h4>
+                <p className={styles.modalValue} style={{ color: '#003366' }}>
+                  {formatCurrency(contract.monthlyRent, isRtl)}
                 </p>
               </div>
             </Col>

@@ -5,11 +5,10 @@
  * that were previously inlined as ~120 lines inside page.tsx. Keeping the
  * projection here lets the page component focus on orchestration.
  *
- * NOTE: `contractNumber`, `totalCollected` and `remainingAmount` are derived/
- * placeholder values carried over verbatim from the original implementation —
- * the list endpoint does not yet return real collection figures. They are
- * preserved (not "fixed") so this refactor stays behaviour-neutral; replacing
- * them with real receipt-voucher totals is tracked as follow-up work.
+ * NOTE: the list endpoint returns the contract value (`cost`) but no collection
+ * figures, so the view model surfaces only `monthlyRent` (the contract value).
+ * Collected/remaining are intentionally not modelled — real figures would need
+ * per-contract receipt-voucher totals (tracked as follow-up work).
  */
 import React from 'react';
 import {
@@ -121,10 +120,10 @@ export function mapContract(
   const cs = deriveStatus(contract);
   const status = STATUS_KEY_BY_NUMBER[cs] ?? 'draft';
 
-  // The list endpoint carries the contract value but no collection figures.
+  // The list endpoint carries the contract value but no collection figures,
+  // so only the contract value (cost) is surfaced — collected/remaining are
+  // intentionally not modelled here (they would be fabricated zeros).
   const monthlyRent = contract.cost ?? contract.offerPrice ?? 0;
-  const totalCollected = 0;
-  const remainingAmount = monthlyRent;
 
   const natName = contract.nationalityName
     ? { ar: contract.nationalityName, en: contract.nationalityName }
@@ -156,8 +155,6 @@ export function mapContract(
     startDate,
     endDate,
     monthlyRent,
-    totalCollected,
-    remainingAmount,
     workerName: workerEn,
     workerNameAr: workerAr,
     nationality: natName.en,

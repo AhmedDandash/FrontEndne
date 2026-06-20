@@ -12,7 +12,6 @@ import {
   Col,
   Tooltip,
   Statistic,
-  Progress,
   Modal,
   Divider,
   Avatar,
@@ -63,13 +62,11 @@ interface RentalContract {
   customerPhone: string;
   customerId: string;
   customerUuid: string;
-  signDate: string;
   startDate: string;
   endDate: string;
   remainingDays: number;
   status: 'valid' | 'expiring-soon' | 'expired';
   totalAmount: number;
-  paidAmount: number;
   workerName?: string;
   workerNameAr?: string;
   workerNationality?: string;
@@ -81,7 +78,12 @@ interface ContractStats {
   valid: number;
   expiringSoon: number;
   expired: number;
-  collectionRate: number;
+}
+
+/** A phone is dialable only if it has enough digits to form a real number. */
+function isValidPhone(phone?: string): boolean {
+  if (!phone) return false;
+  return phone.replace(/[^0-9]/g, '').length >= 9;
 }
 
 export default function CollectionRenewalPage() {
@@ -133,14 +135,11 @@ export default function CollectionRenewalPage() {
         customerPhone: cust.phone || '—',
         customerId: contract.customerIdentiy || String(contract.customerId || ''),
         customerUuid: String(contract.customerId || ''),
-        signDate: startDate ? startDate.split('T')[0] : '',
         startDate: startDate ? startDate.split('T')[0] : '',
         endDate: endDate ? endDate.split('T')[0] : '',
         remainingDays: daysRemaining,
         status,
         totalAmount: contract.totalCostWithTax || contract.cost || contract.offerPrice || 0,
-        // List endpoint carries no collection data; don't fabricate a paid amount.
-        paidAmount: 0,
         workerName,
         workerNameAr,
         workerNationality: undefined,
@@ -162,15 +161,12 @@ export default function CollectionRenewalPage() {
     const valid = contracts.filter((c) => c.status === 'valid').length;
     const expiringSoon = contracts.filter((c) => c.status === 'expiring-soon').length;
     const expired = contracts.filter((c) => c.status === 'expired').length;
-    const totalPaid = contracts.reduce((sum, c) => sum + c.paidAmount, 0);
-    const totalAmount = contracts.reduce((sum, c) => sum + c.totalAmount, 0);
 
     return {
       total: contracts.length,
       valid,
       expiringSoon,
       expired,
-      collectionRate: totalAmount > 0 ? Math.round((totalPaid / totalAmount) * 100) : 0,
     };
   }, [contracts]);
 
@@ -240,7 +236,9 @@ export default function CollectionRenewalPage() {
   };
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '—';
     const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return '—';
     return new Intl.DateTimeFormat(isRTL ? 'ar-SA' : 'en-US', {
       year: 'numeric',
       month: 'short',
@@ -352,38 +350,6 @@ export default function CollectionRenewalPage() {
         </Col>
       </Row>
 
-      {/* Collection Rate Card */}
-      <Card className={styles.collectionCard}>
-        <Row gutter={[24, 16]} align="middle">
-          <Col xs={24} md={8}>
-            <div className={styles.collectionInfo}>
-              <RiseOutlined className={styles.collectionIcon} />
-              <div>
-                <h3>{isRTL ? 'معدل التحصيل' : 'Collection Rate'}</h3>
-                <p>
-                  {isRTL
-                    ? 'نسبة المبالغ المحصلة من إجمالي العقود'
-                    : 'Percentage of collected amounts from total contracts'}
-                </p>
-              </div>
-            </div>
-          </Col>
-          <Col xs={24} md={16}>
-            <div className={styles.progressWrapper}>
-              <Progress
-                percent={stats.collectionRate}
-                strokeColor={{
-                  '0%': '#003366',
-                  '100%': '#52c41a',
-                }}
-                strokeWidth={20}
-                format={(percent) => <span className={styles.progressText}>{percent}%</span>}
-              />
-            </div>
-          </Col>
-        </Row>
-      </Card>
-
       {/* Filter Section */}
       <Card className={styles.filterCard}>
         <div className={styles.filterContent}>
@@ -477,16 +443,22 @@ export default function CollectionRenewalPage() {
                         {isRTL ? contract.customerNameAr : contract.customerName}
                       </h4>
                       <div className={styles.customerMeta}>
-                        <Tooltip title={isRTL ? 'واتساب' : 'WhatsApp'}>
-                          <a
-                            href={`https://wa.me/966${contract.customerPhone.substring(1)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.whatsappLink}
-                          >
+                        {isValidPhone(contract.customerPhone) ? (
+                          <Tooltip title={isRTL ? 'واتساب' : 'WhatsApp'}>
+                            <a
+                              href={`https://wa.me/966${contract.customerPhone.replace(/[^0-9]/g, '').replace(/^0/, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.whatsappLink}
+                            >
+                              <WhatsAppOutlined /> {contract.customerPhone}
+                            </a>
+                          </Tooltip>
+                        ) : (
+                          <span className={styles.customerId}>
                             <WhatsAppOutlined /> {contract.customerPhone}
-                          </a>
-                        </Tooltip>
+                          </span>
+                        )}
                         <span className={styles.customerId}>
                           <IdcardOutlined /> {contract.customerId}
                         </span>
@@ -496,15 +468,6 @@ export default function CollectionRenewalPage() {
 
                   {/* Contract Dates */}
                   <div className={styles.datesGrid}>
-                    <div className={styles.dateItem}>
-                      <CalendarOutlined className={styles.dateIcon} />
-                      <div>
-                        <span className={styles.dateLabel}>
-                          {isRTL ? 'تاريخ التوقيع' : 'Sign Date'}
-                        </span>
-                        <span className={styles.dateValue}>{formatDate(contract.signDate)}</span>
-                      </div>
-                    </div>
                     <div className={styles.dateItem}>
                       <FieldTimeOutlined className={styles.dateIcon} />
                       <div>
@@ -716,14 +679,6 @@ export default function CollectionRenewalPage() {
               <div className={styles.detailGrid}>
                 <div className={styles.detailItem}>
                   <span className={styles.detailLabel}>
-                    {isRTL ? 'تاريخ التوقيع' : 'Sign Date'}
-                  </span>
-                  <span className={styles.detailValue}>
-                    {formatFullDate(selectedContract.signDate)}
-                  </span>
-                </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>
                     {isRTL ? 'تاريخ البداية' : 'Start Date'}
                   </span>
                   <span className={styles.detailValue}>
@@ -767,39 +722,13 @@ export default function CollectionRenewalPage() {
               <div className={styles.financialInfo}>
                 <div className={styles.amountCard}>
                   <span className={styles.amountLabel}>
-                    {isRTL ? 'إجمالي العقد' : 'Total Amount'}
+                    {isRTL ? 'قيمة العقد' : 'Contract Value'}
                   </span>
                   <span className={styles.amountValue}>
                     {selectedContract.totalAmount.toLocaleString()} {isRTL ? 'ريال' : 'SAR'}
                   </span>
                 </div>
-                <div className={styles.amountCard}>
-                  <span className={styles.amountLabel}>
-                    {isRTL ? 'المبلغ المحصل' : 'Paid Amount'}
-                  </span>
-                  <span className={styles.amountValue}>
-                    {selectedContract.paidAmount.toLocaleString()} {isRTL ? 'ريال' : 'SAR'}
-                  </span>
-                </div>
-                <div className={styles.amountCard}>
-                  <span className={styles.amountLabel}>{isRTL ? 'المتبقي' : 'Remaining'}</span>
-                  <span
-                    className={`${styles.amountValue} ${selectedContract.totalAmount - selectedContract.paidAmount > 0 ? styles.errorText : styles.successText}`}
-                  >
-                    {(selectedContract.totalAmount - selectedContract.paidAmount).toLocaleString()}{' '}
-                    {isRTL ? 'ريال' : 'SAR'}
-                  </span>
-                </div>
               </div>
-              <Progress
-                percent={Math.round(
-                  (selectedContract.paidAmount / selectedContract.totalAmount) * 100
-                )}
-                status={
-                  selectedContract.paidAmount >= selectedContract.totalAmount ? 'success' : 'active'
-                }
-                strokeColor="#52c41a"
-              />
             </div>
           </div>
         )}

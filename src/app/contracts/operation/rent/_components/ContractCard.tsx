@@ -9,7 +9,7 @@
 'use client';
 
 import React from 'react';
-import { Card, Col, Button, Tag, Avatar, Badge, Dropdown, Progress, Space, Popconfirm } from 'antd';
+import { Card, Col, Button, Tag, Avatar, Badge, Dropdown, Space, Popconfirm } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   FileTextOutlined,
@@ -83,14 +83,10 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
     nationality: isRtl ? 'الجنسية' : 'Nationality',
     profession: isRtl ? 'المهنة' : 'Profession',
     monthlyRent: isRtl ? 'التكلفة' : 'Cost',
-    collected: isRtl ? 'المحصل' : 'Collected',
-    remaining: isRtl ? 'المتبقي' : 'Remaining',
     daysLeft: isRtl ? 'الأيام المتبقية' : 'Days Left',
   };
 
   const statusMeta = getStatusMeta(contract.status, isRtl);
-  const totalAmount = contract.totalCollected + contract.remainingAmount;
-  const collectionProgress = totalAmount > 0 ? (contract.totalCollected / totalAmount) * 100 : 0;
 
   const menuItems: MenuProps['items'] = [
     { key: 'view', label: t.viewDetails, icon: <EyeOutlined />, onClick: () => actions.onView(contract) },
@@ -283,21 +279,6 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
               <div className={styles.rentHeader}>
                 <span className={styles.rentLabel}>{t.monthlyRent}</span>
                 <span className={styles.rentAmount}>{formatCurrency(contract.monthlyRent, isRtl)}</span>
-              </div>
-              <Progress percent={collectionProgress} showInfo={false} strokeColor={{ '0%': '#003366', '100%': '#0056b3' }} />
-              <div className={styles.rentAmounts}>
-                <div className={styles.amountItem}>
-                  <span className={styles.amountLabel}>{t.collected}</span>
-                  <span className={styles.amountValue} style={{ color: '#52c41a' }}>
-                    {formatCurrency(contract.totalCollected, isRtl)}
-                  </span>
-                </div>
-                <div className={styles.amountItem}>
-                  <span className={styles.amountLabel}>{t.remaining}</span>
-                  <span className={styles.amountValue} style={{ color: '#faad14' }}>
-                    {formatCurrency(contract.remainingAmount, isRtl)}
-                  </span>
-                </div>
               </div>
             </div>
 

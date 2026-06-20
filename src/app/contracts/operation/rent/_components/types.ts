@@ -23,8 +23,6 @@ export interface RentContract {
   startDate: string;
   endDate: string;
   monthlyRent: number;
-  totalCollected: number;
-  remainingAmount: number;
   workerName: string;
   workerNameAr: string;
   nationality: string;
