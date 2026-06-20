@@ -439,6 +439,43 @@
   padding-inline: 0;
 }
 
+/* ── Status-aware action row (Details + primary lifecycle action + More) ── */
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionsRow :global(.ant-btn) {
+  block-size: 38px;
+  border-radius: 8px !important;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.detailsBtn {
+  flex: 1 1 auto;
+  min-inline-size: 120px;
+}
+
+.primaryActionBtn {
+  flex: 1 1 auto;
+  min-inline-size: 150px;
+}
+
+/* Brand navy for the forward lifecycle action; the danger (warranty) variant
+   keeps Ant Design's red. */
+.primaryActionBtn:global(.ant-btn-primary):not(:global(.ant-btn-dangerous)) {
+  background: #003366;
+  border-color: #003366;
+}
+
+.primaryActionBtn:global(.ant-btn-primary):not(:global(.ant-btn-dangerous)):hover {
+  background: #00478c !important;
+  border-color: #00478c !important;
+}
+
 .actionBtn {
   display: flex;
   align-items: center;

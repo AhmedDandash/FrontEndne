@@ -41,6 +41,7 @@ import type { CreateMediationContractDto, MediationContractOffer } from '@/types
 import {
   MEDIATION_CONTRACT_TYPE,
   ARRIVAL_DESTINATIONS,
+  VISA_TYPE,
   toSelectOptions,
 } from '@/constants/enums';
 import OfferSelector from '@/components/contracts/OfferSelector';
@@ -142,6 +143,9 @@ export default function AddMediationContractPage() {
     // Visa step
     visaNumber: isRtl ? 'رقم التأشيرة' : 'Visa Number',
     visaDate: isRtl ? 'تاريخ التأشيرة' : 'Visa Date',
+    visaType: isRtl ? 'نوع التأشيرة' : 'Visa Type',
+    visaDateHijri: isRtl ? 'تاريخ التأشيرة (هجري)' : 'Visa Date (Hijri)',
+    comprehensiveVisa: isRtl ? 'تأشيرة تأهيل شامل' : 'Comprehensive Qualification Visa',
     arrivalDestination: isRtl ? 'وجهة الوصول' : 'Arrival Destination',
     // Costs step
     localCost: isRtl ? 'التكلفة المحلية' : 'Local Cost (SAR)',
@@ -219,9 +223,13 @@ export default function AddMediationContractPage() {
         musanedContractNumber: vals.musanedContractNumber ?? null,
         marketerId: vals.marketerId ? String(vals.marketerId) : null,
         contractCategory: vals.contractCategory ? Number(vals.contractCategory) : null,
+        musanedDocumentationNumber: vals.musanedDocumentationNumber ?? null,
         offerId: vals.offerId ? String(vals.offerId) : null,
         visaNumber: vals.visaNumber ?? null,
         visaDate: vals.visaDate ?? null,
+        visaType: vals.visaType ? Number(vals.visaType) : null,
+        visaDateHijri: vals.visaDateHijri ?? null,
+        isComprehensiveQualificationVisa: vals.isComprehensiveQualificationVisa ?? null,
         arrivalDestinationId: vals.arrivalDestinationId ? Number(vals.arrivalDestinationId) : null,
         otherCosts: vals.otherCosts ? Number(vals.otherCosts) : null,
         managerDiscount: vals.managerDiscount ? Number(vals.managerDiscount) : null,
@@ -310,6 +318,11 @@ export default function AddMediationContractPage() {
         <Col xs={24} md={12}>
           <Form.Item name="musanedContractNumber" label={t.musanedNumber}>
             <Input size="large" placeholder={isRtl ? 'رقم مساند' : 'Musaned contract number'} />
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={12}>
+          <Form.Item name="musanedDocumentationNumber" label={t.documentationNumber}>
+            <Input size="large" placeholder={isRtl ? 'رقم التوثيق' : 'Documentation number'} />
           </Form.Item>
         </Col>
         <Col xs={24} md={12}>
@@ -446,6 +459,30 @@ export default function AddMediationContractPage() {
       <Col xs={24} md={12}>
         <Form.Item name="visaDate" label={t.visaDate}>
           <Input size="large" type="date" />
+        </Form.Item>
+      </Col>
+      <Col xs={24} md={12}>
+        <Form.Item name="visaType" label={t.visaType}>
+          <Select
+            size="large"
+            allowClear
+            placeholder={t.visaType}
+            options={toSelectOptions([...VISA_TYPE], language)}
+          />
+        </Form.Item>
+      </Col>
+      <Col xs={24} md={12}>
+        <Form.Item name="visaDateHijri" label={t.visaDateHijri}>
+          <Input size="large" placeholder={isRtl ? '1447/01/01' : '1447/01/01'} />
+        </Form.Item>
+      </Col>
+      <Col xs={24} md={12}>
+        <Form.Item
+          name="isComprehensiveQualificationVisa"
+          label={t.comprehensiveVisa}
+          valuePropName="checked"
+        >
+          <Switch checkedChildren={isRtl ? 'نعم' : 'Yes'} unCheckedChildren={isRtl ? 'لا' : 'No'} />
         </Form.Item>
       </Col>
       <Col xs={24} md={12}>

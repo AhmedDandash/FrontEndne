@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { MediationContractService } from '@/services/mediation-contract.service';
+import { getApiErrorMessage } from '@/utils/api-error';
 import type {
   MediationContractDetail,
   CreateMediationContractDto,
@@ -19,7 +20,22 @@ import type {
 
 const QUERY_KEY = 'mediation-contracts';
 
-export function useMediationContracts(params?: { pageNumber?: number; pageSize?: number }) {
+export interface MediationContractListParams {
+  pageNumber?: number;
+  pageSize?: number;
+  // Optional server-side filters
+  statusId?: number;
+  contractNumber?: number;
+  musanedContractNumber?: string;
+  workerPassportNumber?: string;
+  customerNationalId?: string;
+  nationalityId?: string;
+  workerType?: number;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export function useMediationContracts(params?: MediationContractListParams) {
   const queryClient = useQueryClient();
 
   const {
@@ -30,8 +46,17 @@ export function useMediationContracts(params?: { pageNumber?: number; pageSize?:
   } = useQuery({
     queryKey: [QUERY_KEY, 'list', params],
     queryFn: () => MediationContractService.getAll({
-      PageNumber: params?.pageNumber ?? 1,
+      Page: params?.pageNumber ?? 1,
       PageSize: params?.pageSize ?? 10,
+      StatusId: params?.statusId,
+      ContractNumber: params?.contractNumber,
+      MusanedContractNumber: params?.musanedContractNumber,
+      WorkerPassportNumber: params?.workerPassportNumber,
+      CustomerNationalId: params?.customerNationalId,
+      NationalityId: params?.nationalityId,
+      WorkerType: params?.workerType,
+      DateFrom: params?.dateFrom,
+      DateTo: params?.dateTo,
     }),
   });
 
@@ -45,7 +70,7 @@ export function useMediationContracts(params?: { pageNumber?: number; pageSize?:
       message.success('تمت إضافة عقد الوساطة بنجاح / Mediation contract created successfully');
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'فشل إضافة العقد / Failed to create contract');
+      message.error(getApiErrorMessage(error, 'فشل إضافة العقد / Failed to create contract'));
     },
   });
 
@@ -56,7 +81,7 @@ export function useMediationContracts(params?: { pageNumber?: number; pageSize?:
       message.success('تم إلغاء العقد بنجاح / Contract cancelled successfully');
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'فشل إلغاء العقد / Failed to cancel contract');
+      message.error(getApiErrorMessage(error, 'فشل إلغاء العقد / Failed to cancel contract'));
     },
   });
 
@@ -67,7 +92,7 @@ export function useMediationContracts(params?: { pageNumber?: number; pageSize?:
       message.success('تم توقيع العقد بنجاح / Contract signed successfully');
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'فشل توقيع العقد / Failed to sign contract');
+      message.error(getApiErrorMessage(error, 'فشل توقيع العقد / Failed to sign contract'));
     },
   });
 
@@ -79,7 +104,7 @@ export function useMediationContracts(params?: { pageNumber?: number; pageSize?:
     },
     onError: (error: any) => {
       message.error(
-        error.response?.data?.message || 'فشل إصدار النموذج / Failed to generate delivery form'
+        getApiErrorMessage(error, 'فشل إصدار النموذج / Failed to generate delivery form')
       );
     },
   });
@@ -94,7 +119,7 @@ export function useMediationContracts(params?: { pageNumber?: number; pageSize?:
     },
     onError: (error: any) => {
       message.error(
-        error.response?.data?.message || 'فشل تأكيد الاستلام / Failed to confirm delivery'
+        getApiErrorMessage(error, 'فشل تأكيد الاستلام / Failed to confirm delivery')
       );
     },
   });
@@ -109,7 +134,7 @@ export function useMediationContracts(params?: { pageNumber?: number; pageSize?:
     },
     onError: (error: any) => {
       message.error(
-        error.response?.data?.message || 'فشل تسجيل الإرجاع / Failed to record warranty return'
+        getApiErrorMessage(error, 'فشل تسجيل الإرجاع / Failed to record warranty return')
       );
     },
   });
@@ -122,7 +147,7 @@ export function useMediationContracts(params?: { pageNumber?: number; pageSize?:
     },
     onError: (error: any) => {
       message.error(
-        error.response?.data?.message || 'فشل تحديث الحالة / Failed to update status'
+        getApiErrorMessage(error, 'فشل تحديث الحالة / Failed to update status')
       );
     },
   });
@@ -158,10 +183,7 @@ export function useMediationContract(id?: string | null) {
   });
 }
 
-export function useContractStatusHistory(contractId?: string) {
-  return useQuery({
-    queryKey: ['mediation-contract-status-history', contractId],
-    queryFn: () => MediationContractService.getStatusHistory(contractId!),
-    enabled: !!contractId,
-  });
-}
+// NOTE: a dedicated status-history hook was removed — the contract detail
+// response (`useMediationContract`) already embeds `statusHistories`, so a
+// separate call would duplicate that data. The endpoint remains catalogued in
+// api.config (MEDIATION_CONTRACT.STATUS_HISTORY) for any future standalone view.

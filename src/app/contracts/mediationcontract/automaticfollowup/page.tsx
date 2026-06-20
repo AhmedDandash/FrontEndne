@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useMediationFollowUpDashboard } from '@/hooks/api/useMediationFollowUp';
+import { MEDIATION_CONTRACT_STATUS, toSelectOptions } from '@/constants/enums';
 import type {
   MediationFollowUpDashboardParams,
   MediationFollowUpDashboardRow,
@@ -110,6 +111,16 @@ export default function AutomaticFollowUpPage() {
   const rows = data?.rows ?? [];
   const total = data?.total ?? 0;
 
+  // The dashboard endpoint ignores `StatusId` server-side, so contract-status
+  // filtering is applied client-side on the loaded page by matching statusName.
+  const displayedRows = useMemo(() => {
+    if (statusId == null) return rows;
+    const label = (
+      MEDIATION_CONTRACT_STATUS.find((s) => s.value === statusId)?.labelEn || ''
+    ).toLowerCase();
+    return rows.filter((r) => (r.statusName || '').toLowerCase() === label);
+  }, [rows, statusId]);
+
   const handleSearch = useCallback(() => {
     const params: MediationFollowUpDashboardParams = {
       Page: 1,
@@ -119,14 +130,15 @@ export default function AutomaticFollowUpPage() {
     if (musanedNumber) params.MusanedContractNumber = musanedNumber;
     if (passportNumber) params.WorkerPassportNumber = passportNumber;
     if (nationalId) params.CustomerNationalId = nationalId;
-    if (statusId != null) params.StatusId = statusId;
+    // NOTE: StatusId is intentionally NOT sent — the dashboard ignores it.
+    // Status is filtered client-side via `displayedRows`.
     if (workerType != null) params.WorkerType = workerType;
     if (dateRange) {
       params.DateFrom = dateRange[0];
       params.DateTo = dateRange[1];
     }
     setAppliedParams(params);
-  }, [contractNumber, musanedNumber, passportNumber, nationalId, statusId, workerType, dateRange]);
+  }, [contractNumber, musanedNumber, passportNumber, nationalId, workerType, dateRange]);
 
   const handleReset = useCallback(() => {
     setContractNumber(null);
@@ -346,12 +358,7 @@ export default function AutomaticFollowUpPage() {
             value={statusId}
             onChange={(v) => setStatusId(v ?? null)}
             style={{ width: '100%' }}
-            options={[
-              { value: 1, label: isRTL ? 'قيد الانتظار' : 'Pending' },
-              { value: 2, label: isRTL ? 'مكتمل' : 'Completed' },
-              { value: 3, label: isRTL ? 'فشل' : 'Failed' },
-              { value: 4, label: isRTL ? 'متجاوز' : 'Skipped' },
-            ]}
+            options={toSelectOptions([...MEDIATION_CONTRACT_STATUS], language)}
           />
           <Select
             placeholder={t('selectWorkerType')}
@@ -385,13 +392,13 @@ export default function AutomaticFollowUpPage() {
 
       {/* ── Cards Grid ── */}
       <Spin spinning={isLoading}>
-        {rows.length === 0 && !isLoading ? (
+        {displayedRows.length === 0 && !isLoading ? (
           <Card className={styles.tableCard}>
             <Empty description={t('noData')} />
           </Card>
         ) : (
           <div className={styles.cardsGrid}>
-            {rows.map(renderCard)}
+            {displayedRows.map(renderCard)}
           </div>
         )}
       </Spin>

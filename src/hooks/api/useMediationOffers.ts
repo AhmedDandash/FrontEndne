@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MediationContractOfferService } from '@/services/mediation-contract-offer.service';
+import { getApiErrorMessage } from '@/utils/api-error';
 import type {
   MediationContractOffer,
   CreateMediationContractOfferDto,
@@ -34,7 +35,7 @@ export const useCreateMediationOffer = () => {
       message.success('تمت إضافة العرض بنجاح / Offer created successfully');
     },
     onError: (error: any) => {
-      message.error(error?.response?.data?.message || 'فشل إضافة العرض / Failed to create offer');
+      message.error(getApiErrorMessage(error, 'فشل إضافة العرض / Failed to create offer'));
     },
   });
 };
@@ -49,7 +50,7 @@ export const useUpdateMediationOffer = () => {
       message.success('تم تحديث العرض بنجاح / Offer updated successfully');
     },
     onError: (error: any) => {
-      message.error(error?.response?.data?.message || 'فشل تحديث العرض / Failed to update offer');
+      message.error(getApiErrorMessage(error, 'فشل تحديث العرض / Failed to update offer'));
     },
   });
 };
@@ -64,7 +65,7 @@ export const useDeleteMediationOffer = () => {
       message.success('تم حذف العرض بنجاح / Offer deleted successfully');
     },
     onError: (error: any) => {
-      message.error(error?.response?.data?.message || 'فشل حذف العرض / Failed to delete offer');
+      message.error(getApiErrorMessage(error, 'فشل حذف العرض / Failed to delete offer'));
     },
   });
 };
@@ -79,7 +80,7 @@ export const useToggleMediationOffer = () => {
     },
     onError: (error: any) => {
       message.error(
-        error?.response?.data?.message || 'فشل تغيير حالة العرض / Failed to toggle offer status'
+        getApiErrorMessage(error, 'فشل تغيير حالة العرض / Failed to toggle offer status')
       );
     },
   });

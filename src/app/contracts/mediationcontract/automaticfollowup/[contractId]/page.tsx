@@ -13,8 +13,10 @@ import {
   Descriptions,
   Steps,
   Card,
+  Dropdown,
   message,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -24,12 +26,15 @@ import {
   EyeOutlined,
   EditOutlined,
   ReloadOutlined,
+  FlagOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import {
   useMediationFollowUpItems,
   useMediationFollowUpItem,
   useUpdateFollowUpDescription,
+  useCompleteFollowUpItem,
 } from '@/hooks/api/useMediationFollowUp';
 import { InputDescriptionModal } from '@/components/followup/InputDescriptionModal';
 import {
@@ -77,6 +82,14 @@ function useT(language: string) {
       inputDescription: { ar: 'البيانات المدخلة', en: 'Input Data' },
       loading: { ar: 'جاري التحميل...', en: 'Loading...' },
       dataSaved: { ar: 'تم حفظ بيانات المرحلة بنجاح', en: 'Stage data saved successfully' },
+      setResult: { ar: 'تحديث النتيجة', en: 'Set Result' },
+      markCompleted: { ar: 'وضع كمكتمل', en: 'Mark Completed' },
+      markFailed: { ar: 'وضع كفاشل', en: 'Mark Failed' },
+      markSkipped: { ar: 'وضع كمتجاوز', en: 'Mark Skipped' },
+      confirmSetResult: {
+        ar: 'تأكيد تغيير نتيجة هذه المرحلة؟',
+        en: 'Confirm changing this stage result?',
+      },
     };
     return (key: string) => map[key]?.[language] ?? map[key]?.['en'] ?? key;
   }, [language]);
@@ -124,6 +137,7 @@ export default function ContractFollowUpDetailPage() {
   const { data: detailItem, isLoading: detailLoading } = useMediationFollowUpItem(detailItemId);
 
   const updateDescMutation = useUpdateFollowUpDescription(contractId);
+  const completeMutation = useCompleteFollowUpItem(contractId);
 
   const sortedItems = useMemo(
     () => [...items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
@@ -149,6 +163,34 @@ export default function ContractFollowUpDetailPage() {
     setInputFormItem(null);
     message.success(t('dataSaved'));
     refetch();
+  };
+
+  // Set an explicit stage result via ContractFollowUp/CompleteItem.
+  // result: 2 = Completed, 3 = Failed, 4 = Skipped. (Failed/Skipped cannot be
+  // produced by the Fill-Form/update-description path, which only auto-completes.)
+  const handleSetResult = (item: MediationFollowUpItem, result: 2 | 3 | 4) => {
+    if (!item.id) return;
+    const labelMap: Record<number, string> = {
+      2: t('statusCompleted'),
+      3: t('statusFailed'),
+      4: t('statusSkipped'),
+    };
+    Modal.confirm({
+      title: t('confirmSetResult'),
+      content: `${labelMap[result] ?? ''} — ${isRTL ? item.statusNameAr : item.statusNameEn}`,
+      okText: t('save'),
+      cancelText: t('cancel'),
+      okButtonProps: result === 3 ? { danger: true } : undefined,
+      onOk: async () => {
+        await completeMutation.mutateAsync({
+          contractFollowUpItemId: item.id!,
+          completedAt: new Date().toISOString(),
+          notes: null,
+          result,
+        });
+        refetch();
+      },
+    });
   };
 
 
@@ -210,6 +252,8 @@ export default function ContractFollowUpDetailPage() {
             t={t}
             onViewDetail={openDetail}
             onFillForm={openInputForm}
+            onSetResult={handleSetResult}
+            isSettingResult={completeMutation.isPending}
           />
         ))}
       </div>
@@ -313,6 +357,8 @@ function ItemCard({
   t,
   onViewDetail,
   onFillForm,
+  onSetResult,
+  isSettingResult,
 }: {
   item: MediationFollowUpItem;
   idx: number;
@@ -320,6 +366,8 @@ function ItemCard({
   t: (k: string) => string;
   onViewDetail: (item: MediationFollowUpItem) => void;
   onFillForm: (item: MediationFollowUpItem) => void;
+  onSetResult: (item: MediationFollowUpItem, result: 2 | 3 | 4) => void;
+  isSettingResult: boolean;
 }) {
   const name = isRTL
     ? item.statusNameAr || item.statusNameEn
@@ -330,6 +378,16 @@ function ItemCard({
   const isSettled = item.result != null && item.result !== 1;
 
   const inputStatusLabel = getInputDescriptionStatusLabel(item);
+
+  // Stage-result menu (CompleteItem): Completed / Failed / Skipped.
+  const resultMenu: MenuProps = {
+    items: [
+      { key: '2', icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />, label: t('markCompleted') },
+      { key: '3', icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />, label: t('markFailed') },
+      { key: '4', icon: <MinusCircleOutlined style={{ color: '#8c8c8c' }} />, label: t('markSkipped') },
+    ],
+    onClick: ({ key }) => onSetResult(item, Number(key) as 2 | 3 | 4),
+  };
 
   return (
     <Card
@@ -407,6 +465,22 @@ function ItemCard({
             {t('fillForm')}
           </Button>
         </Tooltip>
+
+        {/* Explicit result (Completed / Failed / Skipped) — only while the stage
+            is still open and its dependency is satisfied. */}
+        {!isSettled && (
+          <Tooltip title={dependencyOk ? '' : t('cannotCompleteMsg')}>
+            <Dropdown
+              menu={resultMenu}
+              trigger={['click']}
+              disabled={!dependencyOk || isSettingResult}
+            >
+              <Button size="small" icon={<FlagOutlined />} loading={isSettingResult}>
+                {t('setResult')} <DownOutlined />
+              </Button>
+            </Dropdown>
+          </Tooltip>
+        )}
       </div>
     </Card>
   );

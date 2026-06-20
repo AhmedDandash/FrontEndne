@@ -1116,6 +1116,9 @@ export interface CreateMediationContractDto {
   contractCategory?: number | null;
   visaNumber?: string | null;
   visaDate?: string | null;
+  visaType?: number | null;
+  visaDateHijri?: string | null;
+  isComprehensiveQualificationVisa?: boolean | null;
   arrivalDestinationId?: number | null;
   otherCosts?: number | null;
   managerDiscount?: number | null;

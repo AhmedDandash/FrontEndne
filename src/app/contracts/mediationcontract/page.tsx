@@ -27,7 +27,9 @@ import {
   Alert,
   Image,
   Pagination,
+  Dropdown,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   FileTextOutlined,
   SearchOutlined,
@@ -52,6 +54,7 @@ import {
   FilePdfOutlined,
   DownloadOutlined,
   WarningOutlined,
+  MoreOutlined,
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
@@ -140,7 +143,11 @@ export default function MediationContractsPage() {
     isSigningDelivery,
     isReturning,
     isUpdatingStatus,
-  } = useMediationContracts({ pageNumber: currentPage, pageSize });
+  } = useMediationContracts({
+    pageNumber: currentPage,
+    pageSize,
+    statusId: statusFilter === 'all' ? undefined : Number(statusFilter),
+  });
 
   const { mutateAsync: createComplaint, isPending: isCreatingComplaint } = useCreateComplaint();
 
@@ -221,6 +228,12 @@ export default function MediationContractsPage() {
     changedBy: language === 'ar' ? 'بواسطة' : 'Changed By',
     note: language === 'ar' ? 'ملاحظة' : 'Note',
     addComplaint: language === 'ar' ? 'إضافة شكوى' : 'Add Complaint',
+    // Concise labels for the status-aware primary action + "More" menu
+    more: language === 'ar' ? 'إجراءات' : 'Actions',
+    actionSign: language === 'ar' ? 'توقيع العقد' : 'Sign Contract',
+    actionDelivery: language === 'ar' ? 'إصدار نموذج الاستلام' : 'Generate Delivery Form',
+    actionConfirm: language === 'ar' ? 'تأكيد الاستلام' : 'Confirm Delivery',
+    actionWarranty: language === 'ar' ? 'إرجاع ضمن الضمان' : 'Warranty Return',
     complaintSource: language === 'ar' ? 'مصدر الشكوى' : 'Complaint Source',
     complaintPriority: language === 'ar' ? 'الأولوية' : 'Priority',
     complaintNotes: language === 'ar' ? 'ملاحظات الشكوى' : 'Complaint Notes',
@@ -249,13 +262,16 @@ export default function MediationContractsPage() {
     }
   };
 
+  // Status codes verified live: 1=Draft, 2=Signed, 11=DeliveryFormIssued,
+  // 13=Delivered, 16=Returned, 17=Cancelled.
   const getStatusConfig = (statusId: number | null | undefined) => {
     const configs: Record<number, { color: string; label: string; icon: React.ReactNode }> = {
       1: { color: 'processing', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 1, language), icon: <ClockCircleOutlined /> },
-      2: { color: 'warning', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 2, language), icon: <ClockCircleOutlined /> },
-      3: { color: 'success', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 3, language), icon: <CheckCircleOutlined /> },
-      4: { color: 'error', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 4, language), icon: <ExclamationCircleOutlined /> },
-      5: { color: 'default', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 5, language), icon: <ClockCircleOutlined /> },
+      2: { color: 'success', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 2, language), icon: <CheckCircleOutlined /> },
+      11: { color: 'warning', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 11, language), icon: <ClockCircleOutlined /> },
+      13: { color: 'success', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 13, language), icon: <CheckCircleOutlined /> },
+      16: { color: 'warning', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 16, language), icon: <ExclamationCircleOutlined /> },
+      17: { color: 'error', label: getEnumLabel([...MEDIATION_CONTRACT_STATUS], 17, language), icon: <CloseCircleOutlined /> },
     };
     return configs[statusId ?? 0] || { color: 'default', label: language === 'ar' ? 'غير محدد' : 'Unknown', icon: <ClockCircleOutlined /> };
   };
@@ -264,44 +280,54 @@ export default function MediationContractsPage() {
     const name = (statusName || '').toLowerCase();
     if (name === 'draft') return { color: 'processing', label: language === 'ar' ? 'مسودة' : 'Draft' };
     if (name === 'signed') return { color: 'success', label: language === 'ar' ? 'موقّع' : 'Signed' };
+    if (name === 'deliveryformissued') return { color: 'warning', label: language === 'ar' ? 'صدر نموذج الاستلام' : 'Delivery Form Issued' };
     if (name === 'delivered') return { color: 'success', label: language === 'ar' ? 'مُسلَّم' : 'Delivered' };
     if (name === 'cancelled' || name === 'canceled') return { color: 'error', label: language === 'ar' ? 'ملغي' : 'Cancelled' };
     if (name === 'returned') return { color: 'warning', label: language === 'ar' ? 'مُرجَع' : 'Returned' };
     return { color: 'default', label: statusName || (language === 'ar' ? 'غير محدد' : 'Unknown') };
   };
 
-  const getTypeTag = (contractType: number | null | undefined) => {
-    const configs: Record<number, { color: string; label: string }> = {
-      1: { color: 'blue', label: getEnumLabel([...MEDIATION_CONTRACT_TYPE], 1, language) },
-      2: { color: 'green', label: getEnumLabel([...MEDIATION_CONTRACT_TYPE], 2, language) },
-    };
-    return configs[contractType ?? 0] || { color: 'default', label: language === 'ar' ? 'غير محدد' : 'Unknown' };
+  // The API returns only `contractTypeName` (string), never a numeric code, so
+  // map by name. Known values: "New", "Transfer" (and "0" = unset).
+  const getTypeTag = (typeName: string | null | undefined) => {
+    const name = (typeName || '').toLowerCase();
+    if (name === 'new') return { color: 'blue', label: language === 'ar' ? 'جديد' : 'New' };
+    if (name === 'transfer') return { color: 'green', label: language === 'ar' ? 'نقل خدمات' : 'Transfer' };
+    return { color: 'default', label: typeName && typeName !== '0' ? typeName : (language === 'ar' ? 'غير محدد' : 'Unknown') };
   };
 
-  // Filter contracts
+  // Status is filtered server-side (via StatusId on the query). Search + type
+  // are refined client-side on the returned page. The list response exposes
+  // only `contractTypeName` (string) and `contractNumber` — there are no
+  // numeric contractType/statusId fields to compare against.
   const filteredContracts = useMemo(() => {
     if (!contracts) return [];
+    const typeLabelEn = (
+      MEDIATION_CONTRACT_TYPE.find((t) => String(t.value) === typeFilter)?.labelEn || ''
+    ).toLowerCase();
     return contracts.filter((contract) => {
       const searchLower = searchText.toLowerCase();
       const matchesSearch =
         !searchText ||
-        String(contract.id).includes(searchText) ||
+        String(contract.contractNumber ?? '').includes(searchText) ||
         (contract.musanedContractNumber || '').includes(searchText) ||
         (contract.customerName || '').toLowerCase().includes(searchLower) ||
         (contract.customerNameAr || '').includes(searchText);
-      const matchesType = typeFilter === 'all' || contract.contractType === Number(typeFilter);
-      const matchesStatus = statusFilter === 'all' || contract.statusId === Number(statusFilter);
-      return matchesSearch && matchesType && matchesStatus;
+      const matchesType =
+        typeFilter === 'all' ||
+        (contract.contractTypeName || '').toLowerCase() === typeLabelEn;
+      return matchesSearch && matchesType;
     });
-  }, [contracts, searchText, typeFilter, statusFilter]);
+  }, [contracts, searchText, typeFilter]);
 
   // Statistics (active/pending/revenue reflect current page only due to server-side pagination)
   const stats = useMemo(() => {
     const all = contracts || [];
+    const nameOf = (c: MediationContract) => (c.statusName || '').toLowerCase();
     return {
       total: serverTotal,
-      active: all.filter((c) => c.statusId === 2).length,
-      pending: all.filter((c) => c.statusId === 5 || c.statusId === 1).length,
+      active: all.filter((c) => ['signed', 'deliveryformissued', 'delivered'].includes(nameOf(c))).length,
+      pending: all.filter((c) => nameOf(c) === 'draft').length,
       revenue: all.reduce((sum, c) => sum + (c.totalCost || 0), 0),
     };
   }, [contracts, serverTotal]);
@@ -446,11 +472,101 @@ export default function MediationContractsPage() {
     const statusConfig = contract.statusName
       ? getStatusConfigFromName(contract.statusName)
       : getStatusConfig(contract.statusId);
-    const typeTag = getTypeTag(contract.contractType);
+    const typeTag = getTypeTag(contract.contractTypeName ?? null);
     const customerDisplay =
       language === 'ar'
         ? contract.customerNameAr || contract.customerName || `${t.customer} #${contract.customerId}`
         : contract.customerName || contract.customerNameAr || `${t.customer} #${contract.customerId}`;
+
+    // ── Status-aware actions ──────────────────────────────────────────────
+    // Only the lifecycle action valid for the current status is offered as the
+    // primary button; the rest live in a "More" menu. Verified status flow:
+    // Draft → Signed → DeliveryFormIssued → Delivered → Returned; Cancelled.
+    const statusKey = (contract.statusName || '').toLowerCase();
+    const isTerminal = ['cancelled', 'canceled', 'returned'].includes(statusKey);
+    const selectAnd = (fn: () => void) => () => {
+      setSelectedContract(contract);
+      fn();
+    };
+
+    let primaryAction:
+      | { label: string; icon: React.ReactNode; onClick: () => void; danger?: boolean }
+      | null = null;
+    if (statusKey === 'draft') {
+      primaryAction = {
+        label: t.actionSign,
+        icon: <EditOutlined />,
+        onClick: selectAnd(() => {
+          signForm.resetFields();
+          signForm.setFieldValue('musanedContractNumber', contract.musanedContractNumber);
+          setShowSignModal(true);
+        }),
+      };
+    } else if (statusKey === 'signed') {
+      primaryAction = {
+        label: t.actionDelivery,
+        icon: <SendOutlined />,
+        onClick: selectAnd(() => {
+          deliveryForm.resetFields();
+          setShowDeliveryModal(true);
+        }),
+      };
+    } else if (statusKey === 'deliveryformissued') {
+      primaryAction = {
+        label: t.actionConfirm,
+        icon: <CarOutlined />,
+        onClick: selectAnd(() => {
+          deliverySignForm.resetFields();
+          setShowDeliverySignModal(true);
+        }),
+      };
+    } else if (statusKey === 'delivered') {
+      primaryAction = {
+        label: t.actionWarranty,
+        icon: <RollbackOutlined />,
+        danger: true,
+        onClick: selectAnd(() => {
+          warrantyReturnForm.resetFields();
+          setShowWarrantyReturnModal(true);
+        }),
+      };
+    }
+
+    const moreItems: MenuProps['items'] = [
+      {
+        key: 'status',
+        icon: <FileProtectOutlined />,
+        label: t.updateStatus,
+        onClick: selectAnd(() => {
+          updateStatusForm.resetFields();
+          setShowUpdateStatusModal(true);
+        }),
+      },
+      {
+        key: 'complaint',
+        icon: <WarningOutlined />,
+        label: t.addComplaint,
+        onClick: selectAnd(() => {
+          complaintForm.resetFields();
+          setShowComplaintModal(true);
+        }),
+      },
+      ...(!isTerminal
+        ? [
+            { type: 'divider' as const },
+            {
+              key: 'cancel',
+              icon: <CloseCircleOutlined />,
+              danger: true,
+              label: t.cancelContract,
+              onClick: selectAnd(() => {
+                cancelForm.resetFields();
+                setShowCancelModal(true);
+              }),
+            },
+          ]
+        : []),
+    ];
 
     return (
       <Col xs={24} key={contract.id}>
@@ -461,7 +577,7 @@ export default function MediationContractsPage() {
               <div className={styles.cardHeader}>
                 <div className={styles.contractNumber}>
                   <FileTextOutlined className={styles.contractIcon} />
-                  <span>#{contract.id}</span>
+                  <span>#{contract.contractNumber ?? contract.id}</span>
                   {contract.musanedContractNumber && (
                     <Tag color="geekblue" style={{ marginInlineStart: 8 }}>
                       {t.musanedNumber}: {contract.musanedContractNumber}
@@ -579,113 +695,30 @@ export default function MediationContractsPage() {
             </div>
           </div>
 
-          {/* Action Buttons — PDF-defined actions only */}
+          {/* Status-aware actions: Details + valid lifecycle action + More menu */}
           <div className={styles.cardBottom}>
-            <div className={styles.actionsList}>
+            <div className={styles.actionsRow}>
               <Button
-                type="link"
                 icon={<EyeOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  setShowDetailsModal(true);
-                }}
+                className={styles.detailsBtn}
+                onClick={selectAnd(() => setShowDetailsModal(true))}
               >
                 {t.contractDetails}
               </Button>
-              <Button
-                type="link"
-                icon={<CloseCircleOutlined />}
-                className={[styles.actionBtn, styles.dangerBtn].join(' ')}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  cancelForm.resetFields();
-                  setShowCancelModal(true);
-                }}
-              >
-                {t.cancelContract}
-              </Button>
-              <Button
-                type="link"
-                icon={<EditOutlined />}
-                className={[styles.actionBtn, styles.successBtn].join(' ')}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  signForm.resetFields();
-                  signForm.setFieldValue('musanedContractNumber', contract.musanedContractNumber);
-                  setShowSignModal(true);
-                }}
-              >
-                {t.signContract}
-              </Button>
-              <Button
-                type="link"
-                icon={<SendOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  deliveryForm.resetFields();
-                  setShowDeliveryModal(true);
-                }}
-              >
-                {t.generateDelivery}
-              </Button>
-              <Button
-                type="link"
-                icon={<CarOutlined />}
-                className={[styles.actionBtn, styles.successBtn].join(' ')}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  deliverySignForm.resetFields();
-                  setShowDeliverySignModal(true);
-                }}
-              >
-                {t.confirmDelivery}
-              </Button>
-              <Button
-                type="link"
-                icon={<RollbackOutlined />}
-                className={[styles.actionBtn, styles.dangerBtn].join(' ')}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  warrantyReturnForm.resetFields();
-                  setShowWarrantyReturnModal(true);
-                }}
-              >
-                {t.warrantyReturn}
-              </Button>
-              <Button
-                type="link"
-                icon={<FileProtectOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  updateStatusForm.resetFields();
-                  setShowUpdateStatusModal(true);
-                }}
-              >
-                {t.updateStatus}
-              </Button>
-              <Button
-                type="link"
-                icon={<WarningOutlined />}
-                className={[styles.actionBtn, styles.dangerBtn].join(' ')}
-                block
-                onClick={() => {
-                  setSelectedContract(contract);
-                  complaintForm.resetFields();
-                  setShowComplaintModal(true);
-                }}
-              >
-                {t.addComplaint}
-              </Button>
+              {primaryAction && (
+                <Button
+                  type="primary"
+                  danger={primaryAction.danger}
+                  icon={primaryAction.icon}
+                  onClick={primaryAction.onClick}
+                  className={styles.primaryActionBtn}
+                >
+                  {primaryAction.label}
+                </Button>
+              )}
+              <Dropdown menu={{ items: moreItems }} trigger={['click']} placement="bottomRight">
+                <Button icon={<MoreOutlined />}>{t.more}</Button>
+              </Dropdown>
             </div>
           </div>
         </Card>
@@ -1121,9 +1154,15 @@ export default function MediationContractsPage() {
                           {
                             title: language === 'ar' ? 'النتيجة' : 'Result',
                             dataIndex: 'resultName',
-                            render: (v: string) => (
-                              <Tag color={v === 'Pending' ? 'orange' : v === 'Done' ? 'green' : 'default'}>{v || '-'}</Tag>
-                            ),
+                            render: (v: string) => {
+                              // Result enum: Pending / Completed / Failed / Skipped
+                              const color =
+                                v === 'Completed' ? 'green'
+                                : v === 'Failed' ? 'red'
+                                : v === 'Pending' ? 'orange'
+                                : 'default';
+                              return <Tag color={color}>{v || '-'}</Tag>;
+                            },
                           },
                           {
                             title: language === 'ar' ? 'أقصى أيام' : 'Max Days',

@@ -368,19 +368,25 @@ export const OPERATING_CONTRACT_STATUS = [
 
 // ==================== Mediation Contract Status ====================
 // حالة عقد الوساطة
+// Codes verified live against the Sigma API (status-history of a full lifecycle).
+// Codes are SPARSE — there may be intermediate statuses not yet observed.
 export const MEDIATION_CONTRACT_STATUS = [
-  { value: 1, labelAr: 'جديد', labelEn: 'New' },
-  { value: 2, labelAr: 'قيد التنفيذ', labelEn: 'In Progress' },
-  { value: 3, labelAr: 'مكتمل', labelEn: 'Completed' },
-  { value: 4, labelAr: 'ملغى', labelEn: 'Cancelled' },
-  { value: 5, labelAr: 'معلق', labelEn: 'Pending' },
+  { value: 1, labelAr: 'مسودة', labelEn: 'Draft' },
+  { value: 2, labelAr: 'موقّع', labelEn: 'Signed' },
+  { value: 11, labelAr: 'صدر نموذج الاستلام', labelEn: 'Delivery Form Issued' },
+  { value: 13, labelAr: 'مُسلَّم', labelEn: 'Delivered' },
+  { value: 16, labelAr: 'مُرجَع', labelEn: 'Returned' },
+  { value: 17, labelAr: 'ملغى', labelEn: 'Cancelled' },
 ] as const;
 
 // ==================== Mediation Contract Type ====================
 // نوع عقد الوساطة
+// value 1 = New (verified live). value 2 = Transfer is INFERRED: only "New" and
+// "Transfer" appear in real data and 1=New is confirmed, but the Transfer code
+// was not directly verified. Confirm with backend before relying on it.
 export const MEDIATION_CONTRACT_TYPE = [
-  { value: 1, labelAr: 'عقد مساند', labelEn: 'Musaned Contract' },
-  { value: 2, labelAr: 'عقد تفويض', labelEn: 'Delegation Contract' },
+  { value: 1, labelAr: 'جديد', labelEn: 'New' },
+  { value: 2, labelAr: 'نقل خدمات', labelEn: 'Transfer' },
 ] as const;
 
 // ==================== Visa Type ====================

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { MediationFollowUpService } from '@/services/mediation-followup.service';
+import { getApiErrorMessage } from '@/utils/api-error';
 import type {
   MediationFollowUpDashboardParams,
   MediationFollowUpItem,
@@ -59,7 +60,7 @@ export function useUpdateFollowUpDescription(contractId?: string | null) {
     },
     onError: (error: any) => {
       message.error(
-        error.response?.data?.message || 'فشل تحديث المرحلة / Failed to update stage'
+        getApiErrorMessage(error, 'فشل تحديث المرحلة / Failed to update stage')
       );
     },
   });
@@ -88,7 +89,7 @@ export function useCompleteFollowUpItem(contractId?: string | null) {
     },
     onError: (error: any) => {
       message.error(
-        error.response?.data?.message || 'فشل إتمام المرحلة / Failed to complete stage'
+        getApiErrorMessage(error, 'فشل إتمام المرحلة / Failed to complete stage')
       );
     },
   });

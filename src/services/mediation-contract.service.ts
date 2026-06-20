@@ -10,7 +10,6 @@ import type {
   DeliveryFormSignDto,
   WarrantyReturnDto,
   UpdateContractStatusDto,
-  ContractStatusHistory,
 } from '@/types/api.types';
 
 export class MediationContractService {
@@ -65,11 +64,47 @@ export class MediationContractService {
   }
 
   static async getAll(params?: {
-    PageNumber?: number;
+    // NOTE: the API paginates with `Page` (NOT `PageNumber`). Sending the wrong
+    // name is silently ignored server-side and always returns page 1.
+    Page?: number;
     PageSize?: number;
+    // Optional server-side filters supported by the endpoint.
+    StatusId?: number;
+    ContractNumber?: number;
+    MusanedContractNumber?: string;
+    WorkerPassportNumber?: string;
+    CustomerNationalId?: string;
+    NationalityId?: string;
+    WorkerType?: number;
+    DateFrom?: string;
+    DateTo?: string;
   }): Promise<{ contracts: MediationContract[]; total: number }> {
+    const query: Record<string, any> = {
+      Page: params?.Page ?? 1,
+      PageSize: params?.PageSize ?? 10,
+    };
+    // Forward optional filters, dropping null/empty values.
+    if (params) {
+      (
+        [
+          'StatusId',
+          'ContractNumber',
+          'MusanedContractNumber',
+          'WorkerPassportNumber',
+          'CustomerNationalId',
+          'NationalityId',
+          'WorkerType',
+          'DateFrom',
+          'DateTo',
+        ] as const
+      ).forEach((key) => {
+        const value = params[key];
+        if (value != null && value !== '') query[key] = value;
+      });
+    }
+
     const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT.GET_ALL, {
-      params: { PageSize: params?.PageSize ?? 10, PageNumber: params?.PageNumber ?? 1 },
+      params: query,
     });
     const payload = response.data;
     const contracts = this.unwrapList<MediationContract>(payload);
@@ -105,6 +140,10 @@ export class MediationContractService {
     if (data.marketerId) append('MarketerId', data.marketerId);
     if (data.visaNumber) append('VisaNumber', data.visaNumber);
     if (data.visaDate) append('VisaDate', data.visaDate);
+    if (data.visaType != null) append('VisaType', Number(data.visaType));
+    if (data.visaDateHijri) append('VisaDateHijri', data.visaDateHijri);
+    if (data.isComprehensiveQualificationVisa != null)
+      append('IsComprehensiveQualificationVisa', data.isComprehensiveQualificationVisa);
     if (data.arrivalDestinationId != null) append('ArrivalDestinationId', Number(data.arrivalDestinationId));
     if (data.otherCosts != null) append('OtherCosts', Number(data.otherCosts));
     if (data.managerDiscount != null) append('ManagerDiscount', Number(data.managerDiscount));
@@ -181,12 +220,5 @@ export class MediationContractService {
       notes: data.notes || null,
     });
     return this.unwrap<any>(response.data);
-  }
-
-  static async getStatusHistory(contractId: string): Promise<ContractStatusHistory[]> {
-    const response = await api.get<any>(
-      API_ENDPOINTS.MEDIATION_CONTRACT.STATUS_HISTORY(contractId)
-    );
-    return this.unwrapList<ContractStatusHistory>(response.data);
   }
 }
