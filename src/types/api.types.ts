@@ -1679,3 +1679,212 @@ export interface CreateTransferContractDto {
   notes?: string | null;
 }
 
+// ==================== Accounting Document Types ====================
+// Base route: /api/Accounting/{Controller}
+// Controllers: ReceiptVoucher, PaymentVoucher, CreditNote, DebitNote
+// PaymentMethodType: 1=Cash, 2=Bank, 3=Card
+
+/** Shared filter params for all accounting document list endpoints. */
+export interface AccountingDocumentFilterDto {
+  customerId?: string | null;
+  agentId?: string | null;
+  contractId?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+}
+
+// ── Receipt Voucher ──────────────────────────────────────────────────────────
+
+export interface ReceiptVoucherDetail {
+  id: string;
+  voucherSerialNumber?: number | null;
+  voucherNumber?: string | null;
+  voucherDate?: string | null;
+  amount: number;
+  notes?: string | null;
+  employmentOperatingContractId?: string | null;
+  customerId?: string | null;
+  /** 1=Cash, 2=Bank, 3=Card */
+  paymentMethod?: number | null;
+  vatAmount?: number | null;
+  bankFees?: number | null;
+  journalEntryId?: string | null;
+  accountingDocumentId?: string | null;
+  createdAt?: string | null;
+}
+
+export interface CreateReceiptVoucherNewDto {
+  voucherNumber?: string | null;
+  voucherDate: string;
+  amount: number;
+  notes?: string | null;
+  employmentOperatingContractId: string;
+  /** 1=Cash, 2=Bank, 3=Card */
+  paymentMethod?: number | null;
+  vatAmount?: number | null;
+  bankFees?: number | null;
+}
+
+// ── Payment Voucher ──────────────────────────────────────────────────────────
+
+export interface PaymentVoucher {
+  id: string;
+  voucherNumber?: string | null;
+  voucherDate?: string | null;
+  amount: number;
+  notes?: string | null;
+  /** 1=Cash, 2=Bank, 3=Card */
+  paymentMethod?: number | null;
+  payeeId?: string | null;
+  payeeType?: string | null;
+  customerId?: string | null;
+  sourceContractId?: string | null;
+  sourceContractType?: string | null;
+  journalEntryId?: string | null;
+  accountingDocumentId?: string | null;
+  createdAt?: string | null;
+}
+
+export interface CreatePaymentVoucherDto {
+  voucherNumber?: string | null;
+  voucherDate: string;
+  amount: number;
+  notes?: string | null;
+  /** 1=Cash, 2=Bank, 3=Card */
+  paymentMethod?: number | null;
+  payeeId?: string | null;
+  /** e.g. "Agent" */
+  payeeType?: string | null;
+  customerId?: string | null;
+  sourceContractId?: string | null;
+  sourceContractType?: string | null;
+}
+
+// ── Credit Note ──────────────────────────────────────────────────────────────
+
+export interface CreditNote {
+  id: string;
+  creditNoteNumber?: string | null;
+  creditNoteDate?: string | null;
+  amount: number;
+  vatAmount?: number | null;
+  reason?: string | null;
+  notes?: string | null;
+  customerId?: string | null;
+  sourceContractId?: string | null;
+  sourceContractType?: string | null;
+  journalEntryId?: string | null;
+  accountingDocumentId?: string | null;
+  createdAt?: string | null;
+}
+
+export interface CreateCreditNoteDto {
+  creditNoteNumber?: string | null;
+  creditNoteDate: string;
+  amount: number;
+  vatAmount?: number | null;
+  reason?: string | null;
+  notes?: string | null;
+  customerId: string;
+  sourceContractId?: string | null;
+  sourceContractType?: string | null;
+}
+
+// ── Debit Note ───────────────────────────────────────────────────────────────
+
+export interface DebitNote {
+  id: string;
+  debitNoteNumber?: string | null;
+  debitNoteDate?: string | null;
+  amount: number;
+  vatAmount?: number | null;
+  reason?: string | null;
+  agentId?: string | null;
+  sourceContractId?: string | null;
+  sourceContractType?: string | null;
+  journalEntryId?: string | null;
+  accountingDocumentId?: string | null;
+  createdAt?: string | null;
+}
+
+export interface CreateDebitNoteDto {
+  debitNoteNumber?: string | null;
+  debitNoteDate: string;
+  amount: number;
+  vatAmount?: number | null;
+  reason?: string | null;
+  agentId: string;
+  sourceContractId?: string | null;
+  sourceContractType?: string | null;
+}
+
+// ── Accounting Document Trace ────────────────────────────────────────────────
+
+export interface AccountingDocumentTraceJournalLine {
+  accountId?: string | null;
+  accountCode?: string | null;
+  accountName?: string | null;
+  debit: number;
+  credit: number;
+  description?: string | null;
+}
+
+export interface AccountingDocumentTraceJournal {
+  id?: string | null;
+  entryNumber?: string | null;
+  date?: string | null;
+  description?: string | null;
+  /** 0=Draft, 1=Posted, 2=PendingApproval, 3=Cancelled */
+  status?: number | null;
+  sourceId?: string | null;
+  customerId?: string | null;
+  agentId?: string | null;
+  lines?: AccountingDocumentTraceJournalLine[];
+}
+
+export interface AccountingDocumentTraceDocument {
+  id?: string | null;
+  /** 1=ReceiptVoucher, 2=PaymentVoucher, 3=CreditNote, 4=DebitNote */
+  documentType?: number | null;
+  documentNumber?: string | null;
+  documentDate?: string | null;
+  amount?: number | null;
+  journalEntryId?: string | null;
+  accountingDocumentId?: string | null;
+  customerId?: string | null;
+  agentId?: string | null;
+  contractId?: string | null;
+  contractType?: string | null;
+  /** 0=Draft, 1=Posted, 2=PendingApproval, 3=Cancelled */
+  journalStatus?: number | null;
+}
+
+export interface AccountingDocumentTrace {
+  /** 1=ReceiptVoucher, 2=PaymentVoucher, 3=CreditNote, 4=DebitNote */
+  documentType?: number | null;
+  documentEntityId?: string | null;
+  document?: AccountingDocumentTraceDocument | null;
+  journalEntry?: AccountingDocumentTraceJournal | null;
+  ledgerEntries?: unknown[];
+}
+
+// ==================== Period Closing Types ====================
+
+export interface PeriodClosingStatusDto {
+  year: number;
+  month: number;
+}
+
+export interface ClosePeriodDto {
+  year: number;
+  month: number;
+}
+
+export interface PeriodClosingResult {
+  year?: number | null;
+  month?: number | null;
+  closingJournalEntryId?: string | null;
+  netIncomeTransferred?: number | null;
+  isClosed?: boolean | null;
+}
+

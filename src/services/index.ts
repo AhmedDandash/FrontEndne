@@ -33,3 +33,7 @@ export {
   HRLeaveTypeService,
   HRPayrollService,
 } from './hr.service';
+export { PaymentVoucherService } from './payment-voucher.service';
+export { CreditNoteService } from './credit-note.service';
+export { DebitNoteService } from './debit-note.service';
+export { PeriodClosingService } from './period-closing.service';

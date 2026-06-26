@@ -224,13 +224,46 @@ export const API_ENDPOINTS = {
     DELETE: (id: number | string) => `/api/V1/Marketer/${id}`,
   },
 
-  // Receipt Voucher — /api/ReceiptVoucher
+  // ─── Accounting Documents — /api/Accounting/* ─────────────────────────────
+  // All documents follow the same shape: GET list/by-id/trace, POST create.
+  // Filters: customerId, agentId, contractId, dateFrom, dateTo.
+
+  // Receipt Voucher — /api/Accounting/ReceiptVoucher
   RECEIPT_VOUCHER: {
-    GET_ALL: '/api/ReceiptVoucher',
-    GET_BY_ID: (id: number | string) => `/api/ReceiptVoucher/${id}`,
-    CREATE: '/api/ReceiptVoucher',
-    UPDATE: (id: number | string) => `/api/ReceiptVoucher/${id}`,
-    DELETE: (id: number | string) => `/api/ReceiptVoucher/${id}`,
+    GET_ALL: '/api/Accounting/ReceiptVoucher',
+    GET_BY_ID: (id: string) => `/api/Accounting/ReceiptVoucher/${id}`,
+    TRACE: (id: string) => `/api/Accounting/ReceiptVoucher/${id}/trace`,
+    CREATE: '/api/Accounting/ReceiptVoucher',
+  },
+
+  // Payment Voucher — /api/Accounting/PaymentVoucher
+  PAYMENT_VOUCHER: {
+    GET_ALL: '/api/Accounting/PaymentVoucher',
+    GET_BY_ID: (id: string) => `/api/Accounting/PaymentVoucher/${id}`,
+    TRACE: (id: string) => `/api/Accounting/PaymentVoucher/${id}/trace`,
+    CREATE: '/api/Accounting/PaymentVoucher',
+  },
+
+  // Credit Note — /api/Accounting/CreditNote
+  CREDIT_NOTE: {
+    GET_ALL: '/api/Accounting/CreditNote',
+    GET_BY_ID: (id: string) => `/api/Accounting/CreditNote/${id}`,
+    TRACE: (id: string) => `/api/Accounting/CreditNote/${id}/trace`,
+    CREATE: '/api/Accounting/CreditNote',
+  },
+
+  // Debit Note — /api/Accounting/DebitNote
+  DEBIT_NOTE: {
+    GET_ALL: '/api/Accounting/DebitNote',
+    GET_BY_ID: (id: string) => `/api/Accounting/DebitNote/${id}`,
+    TRACE: (id: string) => `/api/Accounting/DebitNote/${id}/trace`,
+    CREATE: '/api/Accounting/DebitNote',
+  },
+
+  // ─── Period Closing — /api/V1/PeriodClosing/* ──────────────────────────────
+  PERIOD_CLOSING: {
+    CLOSE: '/api/V1/PeriodClosing/close',
+    STATUS: '/api/V1/PeriodClosing/status',
   },
 
   // Transfer Contract — /api/TransferContract

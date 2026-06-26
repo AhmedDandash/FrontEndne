@@ -1,53 +1,38 @@
-/**
- * Receipt Voucher Service
- * New module in new API contract: /api/ReceiptVoucher
- */
-
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
 import { unwrap, unwrapList } from '@/utils/api-response';
-import type { ReceiptVoucher, CreateReceiptVoucherDto, UpdateReceiptVoucherDto } from '@/types/api.types';
+import type {
+  ReceiptVoucherDetail,
+  CreateReceiptVoucherNewDto,
+  AccountingDocumentFilterDto,
+  AccountingDocumentTrace,
+} from '@/types/api.types';
 
 export class ReceiptVoucherService {
-  /**
-   * GET /api/ReceiptVoucher
-   */
-  static async getAll(params?: Record<string, any>): Promise<ReceiptVoucher[]> {
-    const response = await api.get<any>(API_ENDPOINTS.RECEIPT_VOUCHER.GET_ALL, { params });
-    return unwrapList<ReceiptVoucher>(response.data);
+  static async getAll(filters: AccountingDocumentFilterDto = {}): Promise<ReceiptVoucherDetail[]> {
+    const response = await api.get<any>(API_ENDPOINTS.RECEIPT_VOUCHER.GET_ALL, {
+      params: {
+        contractId: filters.contractId || undefined,
+        customerId: filters.customerId || undefined,
+        dateFrom: filters.dateFrom || undefined,
+        dateTo: filters.dateTo || undefined,
+      },
+    });
+    return unwrapList<ReceiptVoucherDetail>(response.data);
   }
 
-  /**
-   * GET /api/ReceiptVoucher/{id}
-   */
-  static async getById(id: number | string): Promise<ReceiptVoucher> {
+  static async getById(id: string): Promise<ReceiptVoucherDetail> {
     const response = await api.get<any>(API_ENDPOINTS.RECEIPT_VOUCHER.GET_BY_ID(id));
-    return unwrap<ReceiptVoucher>(response.data);
+    return unwrap<ReceiptVoucherDetail>(response.data);
   }
 
-  /**
-   * POST /api/ReceiptVoucher
-   * Body: { voucherNumber, voucherDate, amount, notes, employmentOperatingContractId (uuid),
-   *         paymentMethod?, vatAmount?, bankFees? }
-   * VAT is computed server-side from `amount` when `vatAmount` is omitted.
-   */
-  static async create(data: CreateReceiptVoucherDto): Promise<ReceiptVoucher> {
+  static async getTrace(id: string): Promise<AccountingDocumentTrace> {
+    const response = await api.get<any>(API_ENDPOINTS.RECEIPT_VOUCHER.TRACE(id));
+    return unwrap<AccountingDocumentTrace>(response.data);
+  }
+
+  static async create(data: CreateReceiptVoucherNewDto): Promise<ReceiptVoucherDetail> {
     const response = await api.post<any>(API_ENDPOINTS.RECEIPT_VOUCHER.CREATE, data);
-    return unwrap<ReceiptVoucher>(response.data);
-  }
-
-  /**
-   * PUT /api/ReceiptVoucher/{id}
-   */
-  static async update(id: number | string, data: UpdateReceiptVoucherDto): Promise<ReceiptVoucher> {
-    const response = await api.put<any>(API_ENDPOINTS.RECEIPT_VOUCHER.UPDATE(id), data);
-    return unwrap<ReceiptVoucher>(response.data);
-  }
-
-  /**
-   * DELETE /api/ReceiptVoucher/{id}
-   */
-  static async delete(id: number | string): Promise<void> {
-    await api.delete(API_ENDPOINTS.RECEIPT_VOUCHER.DELETE(id));
+    return unwrap<ReceiptVoucherDetail>(response.data);
   }
 }

@@ -1,0 +1,248 @@
+.page {
+  padding-block: 24px;
+  padding-inline: 24px;
+  min-block-size: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.pageHeader {
+  background: linear-gradient(135deg, #003366 0%, #00478c 100%);
+  border-radius: 12px;
+  padding-block: 28px;
+  padding-inline: 32px;
+  margin-block-end: 20px;
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.15);
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerIcon {
+  font-size: 36px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: white;
+}
+
+.pageTitle {
+  margin: 0 0 4px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+}
+
+.pageSubtitle {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.refreshBtn {
+  border: 2px solid rgba(255, 255, 255, 0.6) !important;
+  color: white !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+.refreshBtn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: white !important;
+}
+
+.addBtn {
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+}
+
+/* ── Metrics ─────────────────────────────────────────────────── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-block-end: 16px;
+}
+
+.metricCard {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.metricCard.total {
+  border-inline-start: 3px solid #1677ff;
+}
+.metricCard.draft {
+  border-inline-start: 3px solid #fa8c16;
+}
+.metricCard.posted {
+  border-inline-start: 3px solid #52c41a;
+}
+
+.metricLabel {
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+.metricValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-block-start: 2px;
+}
+
+/* ── Filters + table ─────────────────────────────────────────── */
+.tableCard {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-block-end: 16px;
+}
+
+.filterSelect {
+  min-inline-size: 180px;
+}
+
+.filterDate {
+  min-inline-size: 240px;
+}
+
+/* ── Table cells ─────────────────────────────────────────────── */
+.docNumber {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: #1677ff;
+  cursor: pointer;
+}
+
+.amount {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.muted {
+  color: #9ca3af;
+}
+
+/* ── Detail drawer ───────────────────────────────────────────── */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-block-end: 16px;
+}
+
+.factItem {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.factLabel {
+  font-size: 12px;
+  color: #6b7280;
+  margin-block-end: 2px;
+}
+
+.factValue {
+  font-size: 14px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* ── Period closing specific ─────────────────────────────────── */
+.periodCard {
+  max-inline-size: 560px;
+  margin: 0 auto;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.periodSelectors {
+  display: flex;
+  gap: 12px;
+  margin-block-end: 20px;
+  flex-wrap: wrap;
+}
+
+.periodStatus {
+  padding: 16px;
+  border-radius: 8px;
+  margin-block-end: 16px;
+}
+
+.periodStatus.closed {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+
+.periodStatus.open {
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 992px) {
+  .metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding-block: 16px;
+    padding-inline: 16px;
+  }
+
+  .pageHeader {
+    padding-block: 20px;
+    padding-inline: 20px;
+  }
+
+  .pageTitle {
+    font-size: 18px;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .filterSelect,
+  .filterDate {
+    inline-size: 100%;
+  }
+
+  .facts {
+    grid-template-columns: 1fr;
+  }
+}

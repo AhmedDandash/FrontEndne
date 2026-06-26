@@ -39,7 +39,7 @@ export default function ContractReceiptsModal({
   const [formOpen, setFormOpen] = useState(false);
 
   const { data: vouchers = [], isLoading } = useReceiptVouchers(
-    contractId ? { employmentOperatingContractId: contractId } : undefined
+    contractId ? { contractId } : undefined
   );
 
   // Safety-net client filter (in case the API ignores the contract query param).

@@ -52,6 +52,12 @@ export default function Sidebar({
         if (pathParts[0] === 'accounting' && pathParts[1] === 'ledger') {
           keys.push('ledger-reports');
         }
+        if (
+          pathParts[0] === 'accounting' &&
+          ['receipt-vouchers', 'payment-vouchers', 'credit-notes', 'debit-notes'].includes(pathParts[1])
+        ) {
+          keys.push('accounting-documents');
+        }
         if (pathParts[0] === 'contracts') {
           if (pathParts[1] === 'operation') {
             keys.push('contracts-operation');
@@ -363,6 +369,32 @@ export default function Sidebar({
         {
           key: '/accounting/restriction-types',
           label: language === 'ar' ? 'أنواع القيود' : 'Restriction Types',
+        },
+        {
+          key: 'accounting-documents',
+          label: language === 'ar' ? 'المستندات المحاسبية' : 'Accounting Documents',
+          children: [
+            {
+              key: '/accounting/receipt-vouchers',
+              label: language === 'ar' ? 'سندات القبض' : 'Receipt Vouchers',
+            },
+            {
+              key: '/accounting/payment-vouchers',
+              label: language === 'ar' ? 'سندات الصرف' : 'Payment Vouchers',
+            },
+            {
+              key: '/accounting/credit-notes',
+              label: language === 'ar' ? 'إشعارات الدائن' : 'Credit Notes',
+            },
+            {
+              key: '/accounting/debit-notes',
+              label: language === 'ar' ? 'إشعارات المدين' : 'Debit Notes',
+            },
+          ],
+        },
+        {
+          key: '/accounting/period-closing',
+          label: language === 'ar' ? 'إغلاق الفترة المحاسبية' : 'Period Closing',
         },
         {
           key: 'ledger-reports',

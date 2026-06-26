@@ -1,24 +1,19 @@
-/**
- * Receipt Voucher Hooks
- * React Query hooks for Receipt Voucher CRUD — /api/ReceiptVoucher
- */
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { ReceiptVoucherService } from '@/services/receipt-voucher.service';
 import { getApiErrorMessage } from '@/utils/api-error';
-import type { CreateReceiptVoucherDto, UpdateReceiptVoucherDto } from '@/types/api.types';
+import type { AccountingDocumentFilterDto, CreateReceiptVoucherNewDto } from '@/types/api.types';
 
 const QUERY_KEY = ['receipt-vouchers'];
 
-export function useReceiptVouchers(params?: Record<string, any>) {
+export function useReceiptVouchers(filters?: AccountingDocumentFilterDto) {
   return useQuery({
-    queryKey: [...QUERY_KEY, params],
-    queryFn: () => ReceiptVoucherService.getAll(params),
+    queryKey: [...QUERY_KEY, filters],
+    queryFn: () => ReceiptVoucherService.getAll(filters),
   });
 }
 
-export function useReceiptVoucher(id: number | string | undefined) {
+export function useReceiptVoucher(id: string | undefined) {
   return useQuery({
     queryKey: [...QUERY_KEY, id],
     queryFn: () => ReceiptVoucherService.getById(id!),
@@ -26,55 +21,24 @@ export function useReceiptVoucher(id: number | string | undefined) {
   });
 }
 
+export function useReceiptVoucherTrace(id: string | undefined) {
+  return useQuery({
+    queryKey: [...QUERY_KEY, id, 'trace'],
+    queryFn: () => ReceiptVoucherService.getTrace(id!),
+    enabled: !!id,
+  });
+}
+
 export function useCreateReceiptVoucher() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateReceiptVoucherDto) => ReceiptVoucherService.create(data),
+    mutationFn: (data: CreateReceiptVoucherNewDto) => ReceiptVoucherService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       message.success('تمت إضافة سند القبض بنجاح / Receipt voucher created successfully');
     },
     onError: (err) => {
       message.error(getApiErrorMessage(err, 'فشل إضافة سند القبض / Failed to create receipt voucher'));
-    },
-  });
-}
-
-/**
- * @deprecated The live backend does not expose PUT /api/ReceiptVoucher/{id}
- * (returns 405 Method Not Allowed). Kept for forward-compat only; not wired
- * into the UI. Receipt vouchers are create-only.
- */
-export function useUpdateReceiptVoucher() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: UpdateReceiptVoucherDto }) =>
-      ReceiptVoucherService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      message.success('تم تحديث سند القبض بنجاح / Receipt voucher updated successfully');
-    },
-    onError: (err) => {
-      message.error(getApiErrorMessage(err, 'فشل تحديث سند القبض / Failed to update receipt voucher'));
-    },
-  });
-}
-
-/**
- * @deprecated The live backend does not expose DELETE /api/ReceiptVoucher/{id}
- * (returns 405 Method Not Allowed). Kept for forward-compat only; not wired
- * into the UI. Receipt vouchers are create-only.
- */
-export function useDeleteReceiptVoucher() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number | string) => ReceiptVoucherService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      message.success('تم حذف سند القبض بنجاح / Receipt voucher deleted successfully');
-    },
-    onError: (err) => {
-      message.error(getApiErrorMessage(err, 'فشل حذف سند القبض / Failed to delete receipt voucher'));
     },
   });
 }
