@@ -40,7 +40,7 @@ export default function DebitNotesPage() {
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   const [agentId, setAgentId] = useState<string | undefined>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
 
   const { data: notes = [], isLoading, isFetching, refetch } = useDebitNotes({
     agentId,
@@ -197,7 +197,7 @@ export default function DebitNotesPage() {
             value={agentId} onChange={setAgentId}
             options={(agents as any[]).map((a: any) => ({ value: a.id, label: (isAr ? a.agentNameAr || a.agentNameEn : a.agentNameEn || a.agentNameAr) || String(a.id) }))}
           />
-          <RangePicker size="large" className={styles.filterDate} onChange={(d) => setRange(d as any)} />
+          <RangePicker size="large" className={styles.filterDate} value={range} onChange={(d) => setRange(d as any)} />
         </div>
 
         <Table<DebitNote>

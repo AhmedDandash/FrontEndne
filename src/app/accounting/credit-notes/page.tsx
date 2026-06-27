@@ -40,7 +40,7 @@ export default function CreditNotesPage() {
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   const [customerId, setCustomerId] = useState<string | undefined>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
 
   const { data: notes = [], isLoading, isFetching, refetch } = useCreditNotes({
     customerId,
@@ -198,7 +198,7 @@ export default function CreditNotesPage() {
             value={customerId} onChange={setCustomerId}
             options={(customers as any[]).map((c: any) => ({ value: c.id, label: (isAr ? c.arabicName || c.englishName : c.englishName || c.arabicName) || String(c.id) }))}
           />
-          <RangePicker size="large" className={styles.filterDate} onChange={(d) => setRange(d as any)} />
+          <RangePicker size="large" className={styles.filterDate} value={range} onChange={(d) => setRange(d as any)} />
         </div>
 
         <Table<CreditNote>
