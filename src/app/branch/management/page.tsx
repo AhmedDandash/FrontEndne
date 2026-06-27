@@ -772,7 +772,12 @@ export default function BranchPage() {
                   },
                 ]}
               >
-                <InputNumber style={{ width: '100%' }} step={0.000001} placeholder="24.7136" />
+                <InputNumber
+                  style={{ width: '100%' }}
+                  step={0.000001}
+                  placeholder="24.7136"
+                  disabled
+                />
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -789,7 +794,12 @@ export default function BranchPage() {
                   },
                 ]}
               >
-                <InputNumber style={{ width: '100%' }} step={0.000001} placeholder="46.6753" />
+                <InputNumber
+                  style={{ width: '100%' }}
+                  step={0.000001}
+                  placeholder="46.6753"
+                  disabled
+                />
               </Form.Item>
             </Col>
             <Col span={8}>
