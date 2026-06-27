@@ -45,11 +45,13 @@ import {
   IdcardOutlined,
   CalendarOutlined,
   AimOutlined,
+  PushpinOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useBranches } from '@/hooks/api/useBranches';
 import type { Branch, BranchDto } from '@/types/api.types';
 import { getCurrentPosition, GeolocationError, geolocationErrorMessage } from '@/utils/geolocation';
+import LocationPicker from '@/components/branch/LocationPicker';
 import styles from './Branch.module.css';
 
 export default function BranchPage() {
@@ -60,6 +62,7 @@ export default function BranchPage() {
   const [selectedMainBranch, setSelectedMainBranch] = useState<number>(1);
   const [viewingBranchId, setViewingBranchId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
   const [form] = Form.useForm();
 
   // Use the real API hooks
@@ -173,6 +176,14 @@ export default function BranchPage() {
     } finally {
       setLocating(false);
     }
+  };
+
+  const handleMapLocationSelected = (latitude: number, longitude: number) => {
+    form.setFieldsValue({
+      latitude: Number(latitude.toFixed(6)),
+      longitude: Number(longitude.toFixed(6)),
+    });
+    message.success(language === 'ar' ? 'تم تحديد الموقع من الخريطة' : 'Location selected from map');
   };
 
   // API returns only top-level branches (parentBranchId === null) with subBranches nested
@@ -798,11 +809,26 @@ export default function BranchPage() {
               </Form.Item>
             </Col>
           </Row>
-          <Button icon={<AimOutlined />} onClick={handleUseMyLocation} loading={locating}>
-            {t('useMyLocation')}
-          </Button>
+          <Space>
+            <Button icon={<AimOutlined />} onClick={handleUseMyLocation} loading={locating}>
+              {t('useMyLocation')}
+            </Button>
+            <Button icon={<PushpinOutlined />} onClick={() => setShowMapPicker(true)}>
+              {language === 'ar' ? 'اختر من الخريطة' : 'Select from Map'}
+            </Button>
+          </Space>
         </Form>
       </Modal>
+
+      {/* Location Picker Modal */}
+      <LocationPicker
+        open={showMapPicker}
+        onClose={() => setShowMapPicker(false)}
+        onConfirm={handleMapLocationSelected}
+        initialLat={form.getFieldValue('latitude') || 24.7136}
+        initialLng={form.getFieldValue('longitude') || 46.6753}
+        language={language as 'ar' | 'en'}
+      />
 
       {/* Branch Detail Modal */}
       <Modal

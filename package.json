@@ -20,6 +20,7 @@
     "classnames": "^2.3.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
+    "leaflet": "^1.9.4",
     "next": "^14.2.0",
     "nodemailer": "^8.0.7",
     "pdfmake": "^0.3.7",
@@ -32,6 +33,7 @@
     "zustand": "^4.4.0"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
