@@ -13,6 +13,7 @@ import {
   HomeOutlined,
   IdcardOutlined,
   BankOutlined,
+  FieldTimeOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useRouter, usePathname } from 'next/navigation';
@@ -135,6 +136,21 @@ export default function Sidebar({
         {
           key: '/housing/applicants',
           label: language === 'ar' ? 'العمال بالسكن' : 'Housing Applicants',
+        },
+      ],
+    },
+    {
+      key: 'hourly-workers',
+      icon: <FieldTimeOutlined />,
+      label: language === 'ar' ? 'العمالة بالساعة' : 'Hourly Workers',
+      children: [
+        {
+          key: '/hourly-workers',
+          label: language === 'ar' ? 'قائمة العمال' : 'Workers Pool',
+        },
+        {
+          key: '/hourly-workers/requests',
+          label: language === 'ar' ? 'طلبات العمل' : 'Service Requests',
         },
       ],
     },
@@ -451,10 +467,6 @@ export default function Sidebar({
       icon: <SettingOutlined />,
       label: language === 'ar' ? 'الإعدادات' : 'Settings',
       children: [
-        {
-          key: '/settings/general',
-          label: language === 'ar' ? 'الإعدادات العامة' : 'General Settings',
-        },
         // { key: '/settings/users', label: language === 'ar' ? 'المستخدمين' : 'Users' },
         // {
         //   key: '/settings/privileges',

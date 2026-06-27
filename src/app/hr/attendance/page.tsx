@@ -23,6 +23,7 @@ import {
   ClockCircleOutlined,
   LoginOutlined,
   LogoutOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useHRAttendance, useHREmployees } from '@/hooks/api/useHR';
@@ -49,6 +50,34 @@ const STATUS_LABEL: Record<number, string> = {
   4: 'إجازة رسمية',
   5: 'في إجازة',
 };
+
+// Render a geolocation audit cell: coordinates as a maps link + distance tag.
+function renderLocation(
+  lat?: number | null,
+  lng?: number | null,
+  distance?: number | null
+) {
+  if (lat == null || lng == null) {
+    return <span style={{ color: '#bbb' }}>—</span>;
+  }
+  return (
+    <Space direction="vertical" size={2}>
+      <a
+        href={`https://www.google.com/maps?q=${lat},${lng}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ fontSize: 12 }}
+      >
+        <EnvironmentOutlined /> {lat.toFixed(5)}, {lng.toFixed(5)}
+      </a>
+      {distance != null && (
+        <Tag color="geekblue" style={{ marginInlineEnd: 0 }}>
+          {Math.round(distance)} م من الفرع
+        </Tag>
+      )}
+    </Space>
+  );
+}
 
 export default function HRAttendancePage() {
   const [form] = Form.useForm();
@@ -103,6 +132,13 @@ export default function HRAttendancePage() {
         ),
     },
     {
+      title: 'موقع الحضور',
+      key: 'checkInLocation',
+      width: 180,
+      render: (_, r) =>
+        renderLocation(r.employeeLatitude, r.employeeLongitude, r.distanceFromBranchMeters),
+    },
+    {
       title: 'وقت الانصراف',
       dataIndex: 'checkOutTime',
       render: (v) =>
@@ -113,6 +149,17 @@ export default function HRAttendancePage() {
           </Space>
         ) : (
           '—'
+        ),
+    },
+    {
+      title: 'موقع الانصراف',
+      key: 'checkOutLocation',
+      width: 180,
+      render: (_, r) =>
+        renderLocation(
+          r.checkOutEmployeeLatitude,
+          r.checkOutEmployeeLongitude,
+          r.checkOutDistanceFromBranchMeters
         ),
     },
     {
@@ -168,7 +215,9 @@ export default function HRAttendancePage() {
           <Alert
             type="info"
             showIcon
-            message="يتم تحديد الموظف تلقائياً من رمز المصادقة (JWT). لا حاجة لاختيار الموظف."
+            icon={<EnvironmentOutlined />}
+            message="يتم تحديد الموظف تلقائياً من رمز المصادقة (JWT)، ويُطلب إذن الوصول إلى موقعك عند التسجيل."
+            description="يجب أن تكون داخل النطاق الجغرافي المسموح لفرعك. سيُرفض التسجيل إذا تم رفض إذن الموقع أو كنت خارج النطاق."
             style={{ marginBottom: 8 }}
           />
           <Space>
@@ -285,7 +334,7 @@ export default function HRAttendancePage() {
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: false }}
           locale={{ emptyText: 'لا توجد سجلات حضور — استخدم الفلتر للبحث' }}
-          scroll={{ x: 800 }}
+          scroll={{ x: 1160 }}
         />
       </Card>
     </div>

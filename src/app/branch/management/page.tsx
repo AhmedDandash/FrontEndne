@@ -21,6 +21,7 @@ import {
   Select,
   Descriptions,
   Divider,
+  InputNumber,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -43,10 +44,12 @@ import {
   GlobalOutlined,
   IdcardOutlined,
   CalendarOutlined,
+  AimOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useBranches } from '@/hooks/api/useBranches';
 import type { Branch, BranchDto } from '@/types/api.types';
+import { getCurrentPosition, GeolocationError, geolocationErrorMessage } from '@/utils/geolocation';
 import styles from './Branch.module.css';
 
 export default function BranchPage() {
@@ -56,6 +59,7 @@ export default function BranchPage() {
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [selectedMainBranch, setSelectedMainBranch] = useState<number>(1);
   const [viewingBranchId, setViewingBranchId] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
   const [form] = Form.useForm();
 
   // Use the real API hooks
@@ -131,8 +135,44 @@ export default function BranchPage() {
       createdDate: { ar: 'تاريخ الإنشاء', en: 'Created Date' },
       createdBy: { ar: 'أنشئ بواسطة', en: 'Created By' },
       parentBranchLabel: { ar: 'الفرع الأصلي', en: 'Parent Branch' },
+      geofenceSection: { ar: 'النطاق الجغرافي للحضور', en: 'Attendance Geofence' },
+      geofenceHint: {
+        ar: 'يُستخدم للتحقق من موقع الموظف عند تسجيل الحضور والانصراف. الفروع بدون إحداثيات تمنع تسجيل حضور موظفيها.',
+        en: 'Used to validate employee location on check-in/out. Branches without coordinates block their employees from attendance.',
+      },
+      latitude: { ar: 'خط العرض', en: 'Latitude' },
+      longitude: { ar: 'خط الطول', en: 'Longitude' },
+      allowedRadius: { ar: 'نطاق الحضور المسموح (متر)', en: 'Allowed Attendance Radius (m)' },
+      useMyLocation: { ar: 'استخدام موقعي الحالي', en: 'Use My Current Location' },
+      locationFilled: { ar: 'تم تعبئة الإحداثيات من موقعك الحالي', en: 'Coordinates filled from your current location' },
+      geofenceNotConfigured: {
+        ar: 'لم يتم ضبط النطاق الجغرافي — حضور موظفي هذا الفرع متوقف',
+        en: 'Geofence not configured — attendance is blocked for this branch',
+      },
     };
     return translations[key]?.[language] || key;
+  };
+
+  const handleUseMyLocation = async () => {
+    setLocating(true);
+    try {
+      const { latitude, longitude } = await getCurrentPosition();
+      form.setFieldsValue({
+        latitude: Number(latitude.toFixed(6)),
+        longitude: Number(longitude.toFixed(6)),
+      });
+      message.success(t('locationFilled'));
+    } catch (e) {
+      message.error(
+        e instanceof GeolocationError
+          ? geolocationErrorMessage(e)
+          : language === 'ar'
+            ? 'تعذّر تحديد الموقع'
+            : 'Could not determine location'
+      );
+    } finally {
+      setLocating(false);
+    }
   };
 
   // API returns only top-level branches (parentBranchId === null) with subBranches nested
@@ -178,6 +218,9 @@ export default function BranchPage() {
       taxNumber: branch.taxNumber,
       mainBranch: mainBranchVal,
       parentBranchId: branch.parentBranchId ?? undefined,
+      latitude: branch.latitude ?? undefined,
+      longitude: branch.longitude ?? undefined,
+      allowedRadiusMeters: branch.allowedRadiusMeters ?? undefined,
     });
     setIsModalVisible(true);
   };
@@ -692,6 +735,72 @@ export default function BranchPage() {
               </Form.Item>
             </Col>
           </Row>
+
+          {/* ── Attendance Geofence ── */}
+          <Divider titlePlacement="start" style={{ marginTop: 8 }}>
+            <Space>
+              <AimOutlined />
+              {t('geofenceSection')}
+            </Space>
+          </Divider>
+          <p style={{ color: '#888', fontSize: 12, marginTop: -4, marginBottom: 12 }}>
+            {t('geofenceHint')}
+          </p>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item
+                name="latitude"
+                label={t('latitude')}
+                rules={[
+                  { required: true, message: language === 'ar' ? 'مطلوب' : 'Required' },
+                  {
+                    type: 'number',
+                    min: -90,
+                    max: 90,
+                    message: language === 'ar' ? 'بين -90 و 90' : 'Between -90 and 90',
+                  },
+                ]}
+              >
+                <InputNumber style={{ width: '100%' }} step={0.000001} placeholder="24.7136" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="longitude"
+                label={t('longitude')}
+                rules={[
+                  { required: true, message: language === 'ar' ? 'مطلوب' : 'Required' },
+                  {
+                    type: 'number',
+                    min: -180,
+                    max: 180,
+                    message: language === 'ar' ? 'بين -180 و 180' : 'Between -180 and 180',
+                  },
+                ]}
+              >
+                <InputNumber style={{ width: '100%' }} step={0.000001} placeholder="46.6753" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="allowedRadiusMeters"
+                label={t('allowedRadius')}
+                rules={[
+                  { required: true, message: language === 'ar' ? 'مطلوب' : 'Required' },
+                  {
+                    type: 'number',
+                    min: 1,
+                    message: language === 'ar' ? 'أكبر من صفر' : 'Must be greater than 0',
+                  },
+                ]}
+              >
+                <InputNumber style={{ width: '100%' }} min={1} precision={0} placeholder="150" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Button icon={<AimOutlined />} onClick={handleUseMyLocation} loading={locating}>
+            {t('useMyLocation')}
+          </Button>
         </Form>
       </Modal>
 
@@ -890,6 +999,50 @@ export default function BranchPage() {
               {viewBranchData.philippineEmbassyBranch && (
                 <Descriptions.Item label={t('embassyBranch')} span={1}>
                   {viewBranchData.philippineEmbassyBranch}
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+
+            {/* Attendance Geofence */}
+            <Descriptions
+              title={
+                <Space>
+                  <AimOutlined />
+                  {t('geofenceSection')}
+                </Space>
+              }
+              bordered
+              size="small"
+              column={2}
+              style={{ marginBottom: 24 }}
+            >
+              <Descriptions.Item label={t('latitude')} span={1}>
+                {viewBranchData.latitude ?? '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('longitude')} span={1}>
+                {viewBranchData.longitude ?? '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('allowedRadius')} span={2}>
+                {viewBranchData.allowedRadiusMeters != null
+                  ? `${viewBranchData.allowedRadiusMeters} ${language === 'ar' ? 'متر' : 'm'}`
+                  : '—'}
+              </Descriptions.Item>
+              {viewBranchData.latitude != null && viewBranchData.longitude != null ? (
+                <Descriptions.Item label=" " span={2}>
+                  <a
+                    href={`https://www.google.com/maps?q=${viewBranchData.latitude},${viewBranchData.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <EnvironmentOutlined style={{ marginInlineEnd: 4 }} />
+                    {language === 'ar' ? 'عرض على الخريطة' : 'View on map'}
+                  </a>
+                </Descriptions.Item>
+              ) : (
+                <Descriptions.Item span={2}>
+                  <Tag color="warning" icon={<ExclamationCircleOutlined />}>
+                    {t('geofenceNotConfigured')}
+                  </Tag>
                 </Descriptions.Item>
               )}
             </Descriptions>

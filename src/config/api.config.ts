@@ -524,4 +524,32 @@ export const API_ENDPOINTS = {
     BALANCE_SHEET: '/api/V1/Ledger/balance-sheet',
     VAT_REPORT: '/api/V1/Ledger/vat-report',
   },
+
+  // ─── Hourly Workers — /api/V1/HourlyWorkers/* ─────────────────────────────
+  // Worker pool. Note: Activate/Deactivate are POST with NO body — pass {} so a
+  // Content-Length:0 header is sent (the server returns 411 otherwise).
+  HOURLY_WORKERS: {
+    GET_ALL: '/api/V1/HourlyWorkers',
+    GET_BY_ID: (id: string) => `/api/V1/HourlyWorkers/${id}`,
+    CREATE: '/api/V1/HourlyWorkers',
+    UPDATE: (id: string) => `/api/V1/HourlyWorkers/${id}`,
+    DELETE: (id: string) => `/api/V1/HourlyWorkers/${id}`,
+    ACTIVATE: (id: string) => `/api/V1/HourlyWorkers/${id}/Activate`,
+    DEACTIVATE: (id: string) => `/api/V1/HourlyWorkers/${id}/Deactivate`,
+  },
+
+  // ─── Hourly Worker Requests — /api/V1/HourlyWorkerRequests/* ──────────────
+  // Requests originate from mobile (no create endpoint). Dashboard reviews,
+  // assigns one worker, and drives the lifecycle. All action POSTs take {} body
+  // except Assign ({workerId}) and Reject ({notes?}).
+  HOURLY_WORKER_REQUESTS: {
+    GET_ALL: '/api/V1/HourlyWorkerRequests',
+    GET_BY_ID: (id: string) => `/api/V1/HourlyWorkerRequests/${id}`,
+    APPROVE: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Approve`,
+    REJECT: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Reject`,
+    ASSIGN: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Assign`,
+    IN_PROGRESS: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/InProgress`,
+    COMPLETE: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Complete`,
+    CANCEL: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Cancel`,
+  },
 } as const;

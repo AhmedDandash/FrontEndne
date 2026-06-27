@@ -96,6 +96,10 @@ export interface Branch {
   createdAt?: string | null;
   createdDate?: string | null;
   createdBy?: string | null;
+  // ── Geofencing (BranchDetailsDto) ──
+  latitude?: number | null;
+  longitude?: number | null;
+  allowedRadiusMeters?: number | null;
 }
 
 export interface BranchDto {
@@ -134,6 +138,10 @@ export interface BranchDto {
   zaka_DistrictAr?: string | null;
   zaka_BuildingNumber?: string | null;
   zaka_StreetAr?: string | null;
+  // ── Geofencing (required for attendance validation) ──
+  latitude?: number | null;
+  longitude?: number | null;
+  allowedRadiusMeters?: number | null;
 }
 
 // ==================== Privilege/Role Types ====================

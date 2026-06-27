@@ -24,6 +24,18 @@ import type {
   CreateCustodyRequestDto,
   CreateCustodyTypeDto,
 } from '@/types/hr.types';
+import { getCurrentPosition, GeolocationError, geolocationErrorMessage } from '@/utils/geolocation';
+
+/**
+ * Build a user-facing message for a check-in/out failure. Location-permission
+ * problems get a geolocation-specific message; otherwise surface the backend's
+ * own error string (e.g. the geofence "Distance: 320m, allowed: 150m" message).
+ */
+function attendanceErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof GeolocationError) return geolocationErrorMessage(err);
+  const d = (err as any)?.response?.data;
+  return d?.errors?.[0] || d?.message || fallback;
+}
 
 // ─── Query keys ──────────────────────────────────────────────────────────────
 
@@ -131,21 +143,23 @@ export function useHRAttendance(_filter: AttendanceFilterDto) {
   });
 
   const checkInMutation = useMutation({
-    mutationFn: () => HRAttendanceService.checkIn(),
-    onSuccess: () => message.success('تم تسجيل الحضور بنجاح'),
-    onError: (err: any) => {
-      const d = err?.response?.data;
-      message.error(d?.errors?.[0] || d?.message || 'فشل تسجيل الحضور');
+    // Acquire device GPS first, then post coordinates. If location permission is
+    // denied / unavailable, the request is never sent (backend would reject it).
+    mutationFn: async () => {
+      const location = await getCurrentPosition();
+      return HRAttendanceService.checkIn(location);
     },
+    onSuccess: () => message.success('تم تسجيل الحضور بنجاح'),
+    onError: (err) => message.error(attendanceErrorMessage(err, 'فشل تسجيل الحضور')),
   });
 
   const checkOutMutation = useMutation({
-    mutationFn: () => HRAttendanceService.checkOut(),
-    onSuccess: () => message.success('تم تسجيل الانصراف بنجاح'),
-    onError: (err: any) => {
-      const d = err?.response?.data;
-      message.error(d?.errors?.[0] || d?.message || 'فشل تسجيل الانصراف');
+    mutationFn: async () => {
+      const location = await getCurrentPosition();
+      return HRAttendanceService.checkOut(location);
     },
+    onSuccess: () => message.success('تم تسجيل الانصراف بنجاح'),
+    onError: (err) => message.error(attendanceErrorMessage(err, 'فشل تسجيل الانصراف')),
   });
 
   return {

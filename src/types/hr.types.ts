@@ -149,6 +149,12 @@ export interface AttendanceFilterDto {
   status?: AttendanceStatus | number | null;
 }
 
+/** Body required by CheckIn / CheckOut (geofencing). */
+export interface AttendanceLocationDto {
+  latitude: number;
+  longitude: number;
+}
+
 export type AttendanceStatusCode = 0 | 1 | 2 | 3 | 4 | 5 | number;
 
 export interface AttendanceRecord {
@@ -161,6 +167,13 @@ export interface AttendanceRecord {
   lateMinutes?: number | null;
   overtimeMinutes?: number | null;
   status?: AttendanceStatusCode | null;
+  // ── Geolocation audit fields ──
+  employeeLatitude?: number | null;
+  employeeLongitude?: number | null;
+  distanceFromBranchMeters?: number | null;
+  checkOutEmployeeLatitude?: number | null;
+  checkOutEmployeeLongitude?: number | null;
+  checkOutDistanceFromBranchMeters?: number | null;
 }
 
 // ==================== Leave Types ====================

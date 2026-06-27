@@ -7,6 +7,7 @@ import type {
   CreateEmployeeDto,
   UpdateEmployeeDto,
   AttendanceFilterDto,
+  AttendanceLocationDto,
   AttendanceRecord,
   CreateLeaveRequestDto,
   ApproveLeaveDto,
@@ -104,12 +105,14 @@ export class HREmployeeService {
 // ─── Attendance Service ──────────────────────────────────────────────────────
 
 export class HRAttendanceService {
-  static async checkIn(): Promise<void> {
-    await api.post(API_ENDPOINTS.HR_ATTENDANCE.CHECK_IN, {});
+  // Backend requires a JSON body with GPS coordinates (a bodyless POST returns
+  // HTTP 411); geofencing is validated server-side against the assigned branch.
+  static async checkIn(location: AttendanceLocationDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_ATTENDANCE.CHECK_IN, location);
   }
 
-  static async checkOut(): Promise<void> {
-    await api.post(API_ENDPOINTS.HR_ATTENDANCE.CHECK_OUT, {});
+  static async checkOut(location: AttendanceLocationDto): Promise<void> {
+    await api.post(API_ENDPOINTS.HR_ATTENDANCE.CHECK_OUT, location);
   }
 
   static async filter(dto: AttendanceFilterDto): Promise<AttendanceRecord[]> {
