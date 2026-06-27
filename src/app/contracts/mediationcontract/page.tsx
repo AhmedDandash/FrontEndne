@@ -911,7 +911,7 @@ export default function MediationContractsPage() {
               }
               options={(Array.isArray(allCustomers) ? allCustomers : []).map((c: any) => ({
                 value: c.id,
-                label: language === 'ar' ? c.arabicName || c.name || `#${c.id}` : c.name || c.arabicName || `#${c.id}`,
+                label: language === 'ar' ? c.arabicName || c.englishName || `#${c.id}` : c.englishName || c.arabicName || `#${c.id}`,
               }))}
               style={{ width: '100%' }}
             />

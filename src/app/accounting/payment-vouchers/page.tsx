@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import dayjs from 'dayjs';
 import {
   Card,
   Table,
@@ -47,7 +48,7 @@ export default function PaymentVouchersPage() {
   // ── Filters ─────────────────────────────────────────────────
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [agentId, setAgentId] = useState<string | undefined>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
 
   const { data: vouchers = [], isLoading, isFetching, refetch } = usePaymentVouchers({
     customerId,
@@ -206,16 +207,16 @@ export default function PaymentVouchersPage() {
             placeholder={t('فلتر بالعميل', 'Filter by customer')}
             className={styles.filterSelect}
             value={customerId} onChange={setCustomerId}
-            options={(customers as any[]).map((c: any) => ({ value: c.id, label: c.name || c.nameAr || c.id }))}
+            options={(customers as any[]).map((c: any) => ({ value: c.id, label: (isAr ? c.arabicName || c.englishName : c.englishName || c.arabicName) || String(c.id) }))}
           />
           <Select
             allowClear showSearch optionFilterProp="label" size="large"
             placeholder={t('فلتر بالوكيل', 'Filter by agent')}
             className={styles.filterSelect}
             value={agentId} onChange={setAgentId}
-            options={(agents as any[]).map((a: any) => ({ value: a.id, label: a.name || a.nameAr || a.id }))}
+            options={(agents as any[]).map((a: any) => ({ value: a.id, label: (isAr ? a.agentNameAr || a.agentNameEn : a.agentNameEn || a.agentNameAr) || String(a.id) }))}
           />
-          <RangePicker size="large" className={styles.filterDate} onChange={(d) => setRange(d as any)} />
+          <RangePicker size="large" className={styles.filterDate} value={range} onChange={(d) => setRange(d as any)} />
         </div>
 
         <Table<PaymentVoucher>
@@ -314,13 +315,13 @@ export default function PaymentVouchersPage() {
           <Form.Item name="payeeId" label={t('الوكيل (المستفيد)', 'Agent (Payee)')}>
             <Select size="large" allowClear showSearch optionFilterProp="label"
               placeholder={t('اختر الوكيل', 'Select agent')}
-              options={(agents as any[]).map((a: any) => ({ value: a.id, label: a.name || a.nameAr || a.id }))}
+              options={(agents as any[]).map((a: any) => ({ value: a.id, label: (isAr ? a.agentNameAr || a.agentNameEn : a.agentNameEn || a.agentNameAr) || String(a.id) }))}
             />
           </Form.Item>
           <Form.Item name="customerId" label={t('العميل', 'Customer')}>
             <Select size="large" allowClear showSearch optionFilterProp="label"
               placeholder={t('اختر العميل', 'Select customer')}
-              options={(customers as any[]).map((c: any) => ({ value: c.id, label: c.name || c.nameAr || c.id }))}
+              options={(customers as any[]).map((c: any) => ({ value: c.id, label: (isAr ? c.arabicName || c.englishName : c.englishName || c.arabicName) || String(c.id) }))}
             />
           </Form.Item>
           <Form.Item name="sourceContractId" label={t('معرف العقد المصدر', 'Source Contract ID')}>

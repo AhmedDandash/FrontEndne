@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import dayjs from 'dayjs';
 import {
   Card,
   Table,
@@ -194,7 +195,7 @@ export default function DebitNotesPage() {
             placeholder={t('فلتر بالوكيل', 'Filter by agent')}
             className={styles.filterSelect}
             value={agentId} onChange={setAgentId}
-            options={(agents as any[]).map((a: any) => ({ value: a.id, label: a.name || a.nameAr || a.id }))}
+            options={(agents as any[]).map((a: any) => ({ value: a.id, label: (isAr ? a.agentNameAr || a.agentNameEn : a.agentNameEn || a.agentNameAr) || String(a.id) }))}
           />
           <RangePicker size="large" className={styles.filterDate} onChange={(d) => setRange(d as any)} />
         </div>
@@ -277,7 +278,7 @@ export default function DebitNotesPage() {
           <Form.Item name="agentId" label={t('الوكيل', 'Agent')} rules={[{ required: true, message: t('الوكيل مطلوب', 'Agent is required') }]}>
             <Select size="large" showSearch optionFilterProp="label"
               placeholder={t('اختر الوكيل', 'Select agent')}
-              options={(agents as any[]).map((a: any) => ({ value: a.id, label: a.name || a.nameAr || a.id }))}
+              options={(agents as any[]).map((a: any) => ({ value: a.id, label: (isAr ? a.agentNameAr || a.agentNameEn : a.agentNameEn || a.agentNameAr) || String(a.id) }))}
             />
           </Form.Item>
           <Form.Item name="amount" label={t('المبلغ', 'Amount')} rules={[{ required: true, message: t('المبلغ مطلوب', 'Amount is required') }]}>

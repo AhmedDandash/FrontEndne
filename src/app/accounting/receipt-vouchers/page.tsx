@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import dayjs from 'dayjs';
 import {
   Card,
   Table,
@@ -46,7 +47,7 @@ export default function ReceiptVouchersPage() {
   // ── Filters ─────────────────────────────────────────────────
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [contractId, setContractId] = useState<string | undefined>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
 
   const { data: vouchers = [], isLoading, isFetching, refetch } = useReceiptVouchers({
     customerId,
@@ -219,7 +220,7 @@ export default function ReceiptVouchersPage() {
             onChange={setCustomerId}
             options={(customers as any[]).map((c: any) => ({
               value: c.id,
-              label: c.name || c.nameAr || c.id,
+              label: (isAr ? c.arabicName || c.englishName : c.englishName || c.arabicName) || String(c.id),
             }))}
           />
           <Select
@@ -239,6 +240,7 @@ export default function ReceiptVouchersPage() {
           <RangePicker
             size="large"
             className={styles.filterDate}
+            value={range}
             onChange={(dates) => setRange(dates as [Dayjs | null, Dayjs | null] | null)}
           />
         </div>
