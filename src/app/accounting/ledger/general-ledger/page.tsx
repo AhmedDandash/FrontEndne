@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, Table, DatePicker, Empty, Spin, Alert } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { ProfileOutlined } from '@ant-design/icons';
 import { useGeneralLedger } from '@/hooks/api/useLedger';
@@ -21,7 +22,7 @@ export default function GeneralLedgerPage() {
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   const [accountId, setAccountId] = useState<string | undefined>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
 
   const { data, isLoading, isFetching, refetch, error } = useGeneralLedger({
     accountId,

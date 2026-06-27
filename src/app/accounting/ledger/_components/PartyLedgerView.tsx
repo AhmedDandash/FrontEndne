@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { Card, Table, Select, DatePicker, Empty, Spin, Alert, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { usePartyLedger, usePartyOptions } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
@@ -28,7 +29,7 @@ export function PartyLedgerView({ kind, icon, title, subtitle, idLabel }: PartyL
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   const [selectedId, setSelectedId] = useState<string | undefined>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
 
   const { data: partyOptions = [], isLoading: optionsLoading } = usePartyOptions(kind);
 

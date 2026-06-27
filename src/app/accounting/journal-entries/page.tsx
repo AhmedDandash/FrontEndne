@@ -14,6 +14,7 @@ import {
   DatePicker,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import {
   BookOutlined,
@@ -55,7 +56,7 @@ export default function JournalEntriesPage() {
   const [status, setStatus] = useState<JournalEntryStatus | undefined>();
   const [source, setSource] = useState<JournalEntrySource | undefined>();
   const [restrictionTypeId, setRestrictionTypeId] = useState<string | undefined>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -99,7 +100,7 @@ export default function JournalEntriesPage() {
     setStatus(undefined);
     setSource(undefined);
     setRestrictionTypeId(undefined);
-    setRange(null);
+    setRange([dayjs().subtract(1, 'month'), dayjs()]);
     setPageNumber(1);
   };
 

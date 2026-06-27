@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, Table, DatePicker } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { LineChartOutlined } from '@ant-design/icons';
 import { useIncomeStatement } from '@/hooks/api/useLedger';
@@ -19,7 +20,7 @@ export default function IncomeStatementPage() {
   const isAr = useAuthStore((s) => s.language) !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
