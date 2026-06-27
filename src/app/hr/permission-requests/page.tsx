@@ -189,17 +189,17 @@ export default function PermissionRequestsPage() {
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col xs={8}>
           <Card size="small">
-            <Statistic title="قيد الانتظار" value={pendingCount} valueStyle={{ color: '#faad14' }} />
+            <Statistic title="قيد الانتظار" value={pendingCount} styles={{ content: { color: '#faad14' } }} />
           </Card>
         </Col>
         <Col xs={8}>
           <Card size="small">
-            <Statistic title="موافق عليها" value={approvedCount} valueStyle={{ color: '#52c41a' }} />
+            <Statistic title="موافق عليها" value={approvedCount} styles={{ content: { color: '#52c41a' } }} />
           </Card>
         </Col>
         <Col xs={8}>
           <Card size="small">
-            <Statistic title="مرفوضة" value={rejectedCount} valueStyle={{ color: '#ff4d4f' }} />
+            <Statistic title="مرفوضة" value={rejectedCount} styles={{ content: { color: '#ff4d4f' } }} />
           </Card>
         </Col>
       </Row>

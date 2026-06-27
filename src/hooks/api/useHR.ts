@@ -25,6 +25,7 @@ import type {
   CreateCustodyTypeDto,
 } from '@/types/hr.types';
 import { getCurrentPosition, GeolocationError, geolocationErrorMessage } from '@/utils/geolocation';
+import { extractApiError } from '@/lib/api/unwrap';
 
 /**
  * Build a user-facing message for a check-in/out failure. Location-permission
@@ -33,8 +34,7 @@ import { getCurrentPosition, GeolocationError, geolocationErrorMessage } from '@
  */
 function attendanceErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof GeolocationError) return geolocationErrorMessage(err);
-  const d = (err as any)?.response?.data;
-  return d?.errors?.[0] || d?.message || fallback;
+  return extractApiError(err, fallback);
 }
 
 // ─── Query keys ──────────────────────────────────────────────────────────────
@@ -72,8 +72,8 @@ export function useHREmployees(params?: {
       queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
       message.success('تم إضافة الموظف بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إضافة الموظف');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إضافة الموظف'));
     },
   });
 
@@ -84,8 +84,8 @@ export function useHREmployees(params?: {
       queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
       message.success('تم تحديث بيانات الموظف بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل تحديث الموظف');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل تحديث الموظف'));
     },
   });
 
@@ -95,8 +95,8 @@ export function useHREmployees(params?: {
       queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
       message.success('تم تعطيل الموظف بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل تعطيل الموظف');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل تعطيل الموظف'));
     },
   });
 
@@ -105,8 +105,8 @@ export function useHREmployees(params?: {
     onSuccess: () => {
       message.success('تمت إعادة تعيين كلمة المرور بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إعادة تعيين كلمة المرور');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إعادة تعيين كلمة المرور'));
     },
   });
 
@@ -137,9 +137,23 @@ export function useHREmployee(id: string) {
 
 // ─── Attendance hooks ─────────────────────────────────────────────────────────
 
-export function useHRAttendance(_filter: AttendanceFilterDto) {
-  const filterMutation = useMutation({
-    mutationFn: (dto: AttendanceFilterDto) => HRAttendanceService.filter(dto),
+/**
+ * Attendance records are fetched with a proper cached `useQuery` (keyed by the
+ * filter) rather than a fire-and-forget mutation, so results survive re-renders
+ * and are invalidated automatically after a check-in / check-out.
+ *
+ * Pass `enabled = false` to defer the first fetch until the user searches.
+ *
+ * NOTE: the backend only honours the `employeeId` filter server-side; `status`
+ * and date-range filters are applied client-side by the page.
+ */
+export function useHRAttendance(filter: AttendanceFilterDto, enabled = true) {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: QK.attendance(filter),
+    queryFn: () => HRAttendanceService.filter(filter),
+    enabled,
   });
 
   const checkInMutation = useMutation({
@@ -149,7 +163,10 @@ export function useHRAttendance(_filter: AttendanceFilterDto) {
       const location = await getCurrentPosition();
       return HRAttendanceService.checkIn(location);
     },
-    onSuccess: () => message.success('تم تسجيل الحضور بنجاح'),
+    onSuccess: () => {
+      message.success('تم تسجيل الحضور بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['hr-attendance'] });
+    },
     onError: (err) => message.error(attendanceErrorMessage(err, 'فشل تسجيل الحضور')),
   });
 
@@ -158,14 +175,17 @@ export function useHRAttendance(_filter: AttendanceFilterDto) {
       const location = await getCurrentPosition();
       return HRAttendanceService.checkOut(location);
     },
-    onSuccess: () => message.success('تم تسجيل الانصراف بنجاح'),
+    onSuccess: () => {
+      message.success('تم تسجيل الانصراف بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['hr-attendance'] });
+    },
     onError: (err) => message.error(attendanceErrorMessage(err, 'فشل تسجيل الانصراف')),
   });
 
   return {
-    records: filterMutation.data ?? [],
-    isLoading: filterMutation.isPending,
-    filterAttendance: filterMutation.mutateAsync,
+    records: query.data ?? [],
+    isLoading: query.isFetching,
+    refetch: query.refetch,
     checkIn: checkInMutation.mutateAsync,
     checkOut: checkOutMutation.mutateAsync,
     isCheckingIn: checkInMutation.isPending,
@@ -189,8 +209,8 @@ export function useHRLeave() {
       queryClient.invalidateQueries({ queryKey: QK.leave });
       message.success('تم إنشاء طلب الإجازة بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إنشاء طلب الإجازة');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إنشاء طلب الإجازة'));
     },
   });
 
@@ -201,8 +221,8 @@ export function useHRLeave() {
       queryClient.invalidateQueries({ queryKey: QK.leave });
       message.success('تمت الموافقة على الإجازة');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل الموافقة على الإجازة');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل الموافقة على الإجازة'));
     },
   });
 
@@ -213,8 +233,8 @@ export function useHRLeave() {
       queryClient.invalidateQueries({ queryKey: QK.leave });
       message.success('تم رفض الإجازة');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل رفض الإجازة');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل رفض الإجازة'));
     },
   });
 
@@ -224,8 +244,8 @@ export function useHRLeave() {
       queryClient.invalidateQueries({ queryKey: QK.leave });
       message.success('تم إلغاء طلب الإجازة');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إلغاء الإجازة');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إلغاء الإجازة'));
     },
   });
 
@@ -275,8 +295,8 @@ export function useHRLeaveTypes() {
       queryClient.invalidateQueries({ queryKey: QK.leaveTypes });
       message.success('تم إضافة نوع الإجازة بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إضافة نوع الإجازة');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إضافة نوع الإجازة'));
     },
   });
 
@@ -287,8 +307,8 @@ export function useHRLeaveTypes() {
       queryClient.invalidateQueries({ queryKey: QK.leaveTypes });
       message.success('تم تحديث نوع الإجازة بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل تحديث نوع الإجازة');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل تحديث نوع الإجازة'));
     },
   });
 
@@ -298,8 +318,8 @@ export function useHRLeaveTypes() {
       queryClient.invalidateQueries({ queryKey: QK.leaveTypes });
       message.success('تم حذف نوع الإجازة بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل حذف نوع الإجازة');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل حذف نوع الإجازة'));
     },
   });
 
@@ -322,10 +342,7 @@ export function useHRPermissionRequest() {
   const createMutation = useMutation({
     mutationFn: (data: CreatePermissionRequestDto) => HRPermissionRequestService.create(data),
     onSuccess: () => message.success('تم تقديم طلب الاستئذان بنجاح'),
-    onError: (err: any) => {
-      const d = err?.response?.data;
-      message.error(d?.errors?.[0] || d?.message || 'فشل تقديم طلب الاستئذان');
-    },
+    onError: (err) => message.error(extractApiError(err, 'فشل تقديم طلب الاستئذان')),
   });
 
   return {
@@ -348,8 +365,8 @@ export function useHRPermissionRequests() {
       queryClient.invalidateQueries({ queryKey: ['hr-permission-requests'] });
       message.success('تمت الموافقة على طلب الاستئذان');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل الموافقة على الطلب');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل الموافقة على الطلب'));
     },
   });
 
@@ -359,8 +376,8 @@ export function useHRPermissionRequests() {
       queryClient.invalidateQueries({ queryKey: ['hr-permission-requests'] });
       message.success('تم رفض طلب الاستئذان');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل رفض الطلب');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل رفض الطلب'));
     },
   });
 
@@ -381,10 +398,7 @@ export function useHRResignationRequest() {
   const createMutation = useMutation({
     mutationFn: (data: CreateResignationRequestDto) => HRResignationRequestService.create(data),
     onSuccess: () => message.success('تم تقديم طلب الاستقالة بنجاح'),
-    onError: (err: any) => {
-      const d = err?.response?.data;
-      message.error(d?.errors?.[0] || d?.message || 'فشل تقديم طلب الاستقالة');
-    },
+    onError: (err) => message.error(extractApiError(err, 'فشل تقديم طلب الاستقالة')),
   });
 
   return {
@@ -407,8 +421,8 @@ export function useHRResignationRequests() {
       queryClient.invalidateQueries({ queryKey: ['hr-resignation-requests'] });
       message.success('تمت الموافقة على طلب الاستقالة');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل الموافقة على الطلب');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل الموافقة على الطلب'));
     },
   });
 
@@ -418,8 +432,8 @@ export function useHRResignationRequests() {
       queryClient.invalidateQueries({ queryKey: ['hr-resignation-requests'] });
       message.success('تم رفض طلب الاستقالة');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل رفض الطلب');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل رفض الطلب'));
     },
   });
 
@@ -450,8 +464,8 @@ export function useHRCustodyTypes() {
       queryClient.invalidateQueries({ queryKey: ['hr-custody-types'] });
       message.success('تم إضافة نوع العهدة بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إضافة نوع العهدة');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إضافة نوع العهدة'));
     },
   });
 
@@ -468,10 +482,7 @@ export function useHRCustodyRequest() {
   const createMutation = useMutation({
     mutationFn: (data: CreateCustodyRequestDto) => HRCustodyRequestService.create(data),
     onSuccess: () => message.success('تم تقديم طلب العهدة بنجاح'),
-    onError: (err: any) => {
-      const d = err?.response?.data;
-      message.error(d?.errors?.[0] || d?.message || 'فشل تقديم طلب العهدة');
-    },
+    onError: (err) => message.error(extractApiError(err, 'فشل تقديم طلب العهدة')),
   });
 
   return {
@@ -494,8 +505,8 @@ export function useHRCustodyRequests() {
       queryClient.invalidateQueries({ queryKey: ['hr-custody-requests'] });
       message.success('تمت الموافقة على طلب العهدة');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل الموافقة على الطلب');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل الموافقة على الطلب'));
     },
   });
 
@@ -505,8 +516,8 @@ export function useHRCustodyRequests() {
       queryClient.invalidateQueries({ queryKey: ['hr-custody-requests'] });
       message.success('تم رفض طلب العهدة');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل رفض الطلب');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل رفض الطلب'));
     },
   });
 
@@ -539,8 +550,8 @@ export function useHRPayroll(month: number, year: number) {
       queryClient.invalidateQueries({ queryKey: QK.payroll(vars.month, vars.year) });
       message.success('تم إنشاء كشف الرواتب بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إنشاء كشف الرواتب');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إنشاء كشف الرواتب'));
     },
   });
 
@@ -550,8 +561,8 @@ export function useHRPayroll(month: number, year: number) {
       queryClient.invalidateQueries({ queryKey: QK.payroll(month, year) });
       message.success('تم إغلاق كشف الرواتب');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إغلاق كشف الرواتب');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إغلاق كشف الرواتب'));
     },
   });
 
@@ -565,8 +576,8 @@ export function useHRPayroll(month: number, year: number) {
       a.click();
       URL.revokeObjectURL(url);
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل تصدير كشف الرواتب');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل تصدير كشف الرواتب'));
     },
   });
 

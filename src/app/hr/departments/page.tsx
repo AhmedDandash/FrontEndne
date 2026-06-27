@@ -104,7 +104,7 @@ export default function HRDepartmentsPage() {
         okText="إضافة"
         cancelText="إلغاء"
         width={460}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 12 }}>
           <Form.Item

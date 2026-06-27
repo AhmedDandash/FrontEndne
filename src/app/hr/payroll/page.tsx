@@ -254,7 +254,7 @@ export default function HRPayrollPage() {
               <Statistic
                 title="إجمالي صافي الرواتب"
                 value={formatSAR(totalNetSalary)}
-                valueStyle={{ color: '#1677ff', fontSize: 16 }}
+                styles={{ content: { color: '#1677ff', fontSize: 16 } }}
               />
             </Card>
           </Col>
@@ -263,7 +263,7 @@ export default function HRPayrollPage() {
               <Statistic
                 title="إجمالي الإضافي"
                 value={formatSAR(totalOvertime)}
-                valueStyle={{ color: '#52c41a', fontSize: 16 }}
+                styles={{ content: { color: '#52c41a', fontSize: 16 } }}
               />
             </Card>
           </Col>
@@ -272,7 +272,7 @@ export default function HRPayrollPage() {
               <Statistic
                 title="إجمالي الخصومات"
                 value={formatSAR(totalDeductions)}
-                valueStyle={{ color: '#ff4d4f', fontSize: 16 }}
+                styles={{ content: { color: '#ff4d4f', fontSize: 16 } }}
               />
             </Card>
           </Col>
@@ -283,7 +283,7 @@ export default function HRPayrollPage() {
         {isError ? (
           <Alert
             type="info"
-            message="لا يوجد كشف رواتب"
+            title="لا يوجد كشف رواتب"
             description={`لم يتم إنشاء كشف رواتب لشهر ${MONTHS.find((m) => m.value === selectedMonth)?.label} ${selectedYear} بعد. استخدم زر "إنشاء كشف رواتب" لإنشائه.`}
             showIcon
           />
@@ -291,7 +291,7 @@ export default function HRPayrollPage() {
           <Table<PayrollEmployeeDto>
             dataSource={employees}
             columns={columns}
-            rowKey={(r) => r.employeeId ?? r.employeeName ?? Math.random().toString()}
+            rowKey={(r, index) => r.employeeId ?? r.employeeName ?? `row-${index}`}
             loading={isLoading}
             pagination={{ pageSize: 20, showSizeChanger: false }}
             locale={{ emptyText: <Empty description="اختر شهراً وسنة لعرض كشف الرواتب" /> }}
@@ -341,11 +341,11 @@ export default function HRPayrollPage() {
         okText="إنشاء"
         cancelText="إلغاء"
         width={400}
-        destroyOnClose
+        destroyOnHidden
       >
         <Alert
           type="info"
-          message="سيتم احتساب الرواتب لجميع الموظفين النشطين بناءً على سجلات الحضور والإجازات المعتمدة."
+          title="سيتم احتساب الرواتب لجميع الموظفين النشطين بناءً على سجلات الحضور والإجازات المعتمدة."
           style={{ marginBottom: 16 }}
         />
         <Form form={genForm} layout="vertical">

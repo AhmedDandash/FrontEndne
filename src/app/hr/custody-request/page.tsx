@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Card,
   Form,
@@ -20,6 +20,7 @@ import {
   Space,
   Tooltip,
   Divider,
+  message,
 } from 'antd';
 import {
   SendOutlined,
@@ -40,14 +41,13 @@ interface ItemRow extends CustodyItemDto {
   _key: number;
 }
 
-let rowCounter = 0;
-
 export default function CustodyRequestPage() {
   const [form] = Form.useForm();
   const [typeForm] = Form.useForm();
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeDto | null>(null);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [addTypeModalOpen, setAddTypeModalOpen] = useState(false);
+  const rowCounter = useRef(0);
 
   const { employees, isLoading: isLoadingEmployees } = useHREmployees({ pageSize: 200 });
   const { custodyTypes, isLoading: isLoadingTypes, createCustodyType, isCreatingType } = useHRCustodyTypes();
@@ -59,11 +59,11 @@ export default function CustodyRequestPage() {
   };
 
   const addItem = () => {
-    rowCounter++;
+    rowCounter.current += 1;
     setItems((prev) => [
       ...prev,
       {
-        _key: rowCounter,
+        _key: rowCounter.current,
         custodyTypeId: '',
         quantity: 1,
         deliveryDate: dayjs().toISOString(),
@@ -94,13 +94,13 @@ export default function CustodyRequestPage() {
     const values = await form.validateFields();
 
     if (items.length === 0) {
-      import('antd').then(({ message }) => message.error('يرجى إضافة صنف عهدة واحد على الأقل'));
+      message.error('يرجى إضافة صنف عهدة واحد على الأقل');
       return;
     }
 
     const invalidItem = items.find((i) => !i.custodyTypeId || i.quantity < 1);
     if (invalidItem) {
-      import('antd').then(({ message }) => message.error('يرجى تكملة بيانات جميع أصناف العهد'));
+      message.error('يرجى تكملة بيانات جميع أصناف العهد');
       return;
     }
 
@@ -230,7 +230,7 @@ export default function CustodyRequestPage() {
           <Col xs={24} md={8}>
             <Card
               title={<span style={{ color: '#fff' }}>بيانات الموظف</span>}
-              headStyle={{ background: '#4da6e8', border: 'none' }}
+              styles={{ header: { background: '#4da6e8', border: 'none' } }}
               style={{ height: '100%' }}
             >
               <div style={{ marginBottom: 8, fontWeight: 500 }}>من أجل</div>
@@ -241,7 +241,7 @@ export default function CustodyRequestPage() {
               >
                 <Select
                   showSearch
-                  placeholder="اسم الكيال"
+                  placeholder="اختر الموظف"
                   loading={isLoadingEmployees}
                   onChange={handleEmployeeChange}
                   optionFilterProp="label"
@@ -272,7 +272,7 @@ export default function CustodyRequestPage() {
           <Col xs={24} md={16}>
             <Card
               title={<span style={{ color: '#fff' }}>أصناف العهد</span>}
-              headStyle={{ background: '#4da6e8', border: 'none' }}
+              styles={{ header: { background: '#4da6e8', border: 'none' } }}
               extra={
                 <Tooltip title="إضافة صنف">
                   <Button
@@ -354,7 +354,7 @@ export default function CustodyRequestPage() {
         okText="إضافة"
         cancelText="إلغاء"
         width={420}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={typeForm} layout="vertical" style={{ marginTop: 12 }}>
           <Form.Item

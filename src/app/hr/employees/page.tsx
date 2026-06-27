@@ -131,7 +131,10 @@ export default function HREmployeesPage() {
         mobileNumber: n(values.mobileNumber),
         jobId: n(values.jobId),
         departmentId: n(values.departmentId),
-        branchId: n(values.branchId),
+        // The list/detail responses omit branchId, so it can't be pre-filled on
+        // edit. Only send it when the user actively picks one — otherwise leave
+        // it out so the backend keeps the employee's existing branch.
+        ...(values.branchId ? { branchId: values.branchId } : {}),
         nationalityId: n(values.nationalityId),
         hiringDate: values.hiringDate ? values.hiringDate.format('YYYY-MM-DD') : null,
         basicSalary: n(values.basicSalary),
@@ -204,7 +207,7 @@ export default function HREmployeesPage() {
       title: 'الاسم',
       key: 'name',
       render: (_, r) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <span style={{ fontWeight: 500 }}>{r.nameAr || '—'}</span>
           {r.nameEn && <span style={{ color: '#888', fontSize: 12 }}>{r.nameEn}</span>}
         </Space>
@@ -347,7 +350,7 @@ export default function HREmployeesPage() {
         }
         footer={null}
         width={720}
-        destroyOnClose
+        destroyOnHidden
         styles={{ body: { maxHeight: '70vh', overflowY: 'auto', paddingTop: 8 } }}
       >
         {isLoadingDetail ? (
@@ -472,7 +475,7 @@ export default function HREmployeesPage() {
         okText={editing ? 'حفظ التعديلات' : 'إضافة الموظف'}
         cancelText="إلغاء"
         width={800}
-        destroyOnClose
+        destroyOnHidden
         styles={{ body: { maxHeight: '70vh', overflowY: 'auto', paddingTop: 8 } }}
       >
         <Form form={form} layout="vertical">
@@ -503,13 +506,17 @@ export default function HREmployeesPage() {
                   { required: !editing, message: 'البريد الإلكتروني مطلوب' },
                   { type: 'email', message: 'بريد إلكتروني غير صحيح' },
                 ]}
-                extra={!editing ? 'يُستخدم البريد الإلكتروني لتسجيل الدخول، وليس اسم المستخدم' : undefined}
               >
                 <Input placeholder="employee@company.com" disabled={!!editing} />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item name="userName" label="اسم المستخدم (للدخول)">
+              <Form.Item
+                name="userName"
+                label="اسم المستخدم (للدخول)"
+                rules={editing ? undefined : [{ required: true, message: 'اسم المستخدم مطلوب' }]}
+                extra={!editing ? 'يُستخدم اسم المستخدم لتسجيل دخول الموظف' : undefined}
+              >
                 <Input placeholder="username" disabled={!!editing} />
               </Form.Item>
             </Col>
@@ -544,7 +551,12 @@ export default function HREmployeesPage() {
           </Divider>
           <Row gutter={16}>
             <Col xs={24} sm={12}>
-              <Form.Item name="branchId" label="الفرع">
+              <Form.Item
+                name="branchId"
+                label="الفرع"
+                rules={editing ? undefined : [{ required: true, message: 'الفرع مطلوب' }]}
+                extra={editing ? 'اتركه فارغاً للإبقاء على الفرع الحالي' : undefined}
+              >
                 <Select
                   allowClear
                   showSearch

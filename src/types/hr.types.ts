@@ -27,8 +27,14 @@ export interface AssignRoleDto {
 
 export interface AdminUser {
   id: string;
+  // Backend returns `fullName` (not `userName`); keep userName optional for
+  // backward-compatibility with any callers that still reference it.
+  fullName?: string | null;
   userName?: string | null;
   email?: string | null;
+  phoneNumber?: string | null;
+  branchId?: string | null;
+  branchName?: string | null;
   roles?: string[] | null;
 }
 
@@ -178,13 +184,24 @@ export interface AttendanceRecord {
 
 // ==================== Leave Types ====================
 
-export type LeaveRequestStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled' | string;
+// Backend returns leave status as a NUMERIC enum (verified live):
+//   0 = Pending, 1 = Approved, 2 = Rejected, 3 = Cancelled
+// NOTE: this is 0-based, unlike Permission/Resignation/Custody which are 1-based.
+export const LeaveStatus = {
+  Pending: 0,
+  Approved: 1,
+  Rejected: 2,
+  Cancelled: 3,
+} as const;
+
+export type LeaveRequestStatus = number;
 
 export interface CreateLeaveRequestDto {
   leaveTypeId: string;
   fromDate: string;
   toDate: string;
-  reason?: string | null;
+  // Backend requires `reason` (verified live — returns 400 if missing).
+  reason: string;
 }
 
 export interface ApproveLeaveDto {

@@ -29,25 +29,28 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useHRLeave, useHRLeaveTypes } from '@/hooks/api/useHR';
+import { useHRLeave, useHRLeaveTypes, useHREmployees } from '@/hooks/api/useHR';
+import { LeaveStatus } from '@/types/hr.types';
 import type { LeaveRequestDto, CreateLeaveRequestDto } from '@/types/hr.types';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
 
-const STATUS_COLOR: Record<string, string> = {
-  Pending: 'warning',
-  Approved: 'success',
-  Rejected: 'error',
-  Cancelled: 'default',
+// Backend returns leave status as a NUMERIC enum (0=Pending, 1=Approved,
+// 2=Rejected, 3=Cancelled).
+const STATUS_COLOR: Record<number, string> = {
+  [LeaveStatus.Pending]: 'warning',
+  [LeaveStatus.Approved]: 'success',
+  [LeaveStatus.Rejected]: 'error',
+  [LeaveStatus.Cancelled]: 'default',
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  Pending: 'قيد الانتظار',
-  Approved: 'موافق عليه',
-  Rejected: 'مرفوض',
-  Cancelled: 'ملغى',
+const STATUS_LABEL: Record<number, string> = {
+  [LeaveStatus.Pending]: 'قيد الانتظار',
+  [LeaveStatus.Approved]: 'موافق عليه',
+  [LeaveStatus.Rejected]: 'مرفوض',
+  [LeaveStatus.Cancelled]: 'ملغى',
 };
 
 type ActionType = 'approve' | 'reject';
@@ -72,8 +75,25 @@ export default function HRLeavePage() {
   } = useHRLeave();
 
   const { leaveTypes } = useHRLeaveTypes();
+  const { employees } = useHREmployees({ pageSize: 200 });
 
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  // The list endpoint returns employeeName / leaveTypeName as null, so resolve
+  // both client-side from the lookup collections.
+  const leaveTypeNameById = useMemo(
+    () => Object.fromEntries(leaveTypes.map((lt) => [lt.id, lt.name])),
+    [leaveTypes]
+  );
+  const employeeNameById = useMemo(
+    () => Object.fromEntries(employees.map((e) => [e.id, e.nameAr || e.nameEn || e.id])),
+    [employees]
+  );
+
+  const resolveEmployeeName = (r: LeaveRequestDto) =>
+    r.employeeName || (r.employeeId ? employeeNameById[r.employeeId] : undefined) || '—';
+  const resolveLeaveTypeName = (r: LeaveRequestDto) =>
+    r.leaveTypeName || (r.leaveTypeId ? leaveTypeNameById[r.leaveTypeId] : undefined) || '—';
+
+  const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
   const [searchText, setSearchText] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
@@ -82,22 +102,23 @@ export default function HRLeavePage() {
     return cancelLeave(id).finally(() => setCancellingId(null));
   };
 
-  const pendingCount = leaveRequests.filter((r) => r.status === 'Pending').length;
-  const approvedCount = leaveRequests.filter((r) => r.status === 'Approved').length;
-  const rejectedCount = leaveRequests.filter((r) => r.status === 'Rejected').length;
+  const pendingCount = leaveRequests.filter((r) => r.status === LeaveStatus.Pending).length;
+  const approvedCount = leaveRequests.filter((r) => r.status === LeaveStatus.Approved).length;
+  const rejectedCount = leaveRequests.filter((r) => r.status === LeaveStatus.Rejected).length;
 
   const filteredRequests = useMemo(() => {
     const q = searchText.trim().toLowerCase();
     return leaveRequests.filter((r) => {
-      if (statusFilter && r.status !== statusFilter) return false;
+      if (statusFilter != null && r.status !== statusFilter) return false;
       if (q) {
         const haystack =
-          `${r.employeeName ?? ''} ${r.leaveTypeName ?? ''} ${r.reason ?? ''}`.toLowerCase();
+          `${resolveEmployeeName(r)} ${resolveLeaveTypeName(r)} ${r.reason ?? ''}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
     });
-  }, [leaveRequests, statusFilter, searchText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaveRequests, statusFilter, searchText, employeeNameById, leaveTypeNameById]);
 
   const handleCreate = async () => {
     const values = await form.validateFields();
@@ -133,12 +154,12 @@ export default function HRLeavePage() {
     {
       title: 'الموظف',
       dataIndex: 'employeeName',
-      render: (v) => v || '—',
+      render: (_, r) => resolveEmployeeName(r),
     },
     {
       title: 'نوع الإجازة',
       dataIndex: 'leaveTypeName',
-      render: (v) => v || '—',
+      render: (_, r) => resolveLeaveTypeName(r),
     },
     {
       title: 'من تاريخ',
@@ -166,9 +187,12 @@ export default function HRLeavePage() {
       title: 'الحالة',
       dataIndex: 'status',
       width: 130,
-      render: (v) => (
-        <Tag color={STATUS_COLOR[v] ?? 'default'}>{STATUS_LABEL[v] ?? v ?? '—'}</Tag>
-      ),
+      render: (v: number | null | undefined) =>
+        v == null ? (
+          <Tag color="default">—</Tag>
+        ) : (
+          <Tag color={STATUS_COLOR[v] ?? 'default'}>{STATUS_LABEL[v] ?? `حالة ${v}`}</Tag>
+        ),
     },
     {
       title: 'تاريخ الموافقة',
@@ -186,8 +210,8 @@ export default function HRLeavePage() {
       key: 'actions',
       width: 140,
       render: (_, record) => {
-        const isPending = record.status === 'Pending';
-        const isApproved = record.status === 'Approved';
+        const isPending = record.status === LeaveStatus.Pending;
+        const isApproved = record.status === LeaveStatus.Approved;
         return (
           <Space>
             {isPending && (
@@ -259,17 +283,17 @@ export default function HRLeavePage() {
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col xs={8}>
           <Card size="small">
-            <Statistic title="قيد الانتظار" value={pendingCount} valueStyle={{ color: '#faad14' }} />
+            <Statistic title="قيد الانتظار" value={pendingCount} styles={{ content: { color: '#faad14' } }} />
           </Card>
         </Col>
         <Col xs={8}>
           <Card size="small">
-            <Statistic title="معتمدة" value={approvedCount} valueStyle={{ color: '#52c41a' }} />
+            <Statistic title="معتمدة" value={approvedCount} styles={{ content: { color: '#52c41a' } }} />
           </Card>
         </Col>
         <Col xs={8}>
           <Card size="small">
-            <Statistic title="مرفوضة" value={rejectedCount} valueStyle={{ color: '#ff4d4f' }} />
+            <Statistic title="مرفوضة" value={rejectedCount} styles={{ content: { color: '#ff4d4f' } }} />
           </Card>
         </Col>
       </Row>
@@ -291,10 +315,10 @@ export default function HRLeavePage() {
             value={statusFilter}
             onChange={(v) => setStatusFilter(v)}
             options={[
-              { value: 'Pending', label: 'قيد الانتظار' },
-              { value: 'Approved', label: 'موافق عليه' },
-              { value: 'Rejected', label: 'مرفوض' },
-              { value: 'Cancelled', label: 'ملغى' },
+              { value: LeaveStatus.Pending, label: 'قيد الانتظار' },
+              { value: LeaveStatus.Approved, label: 'موافق عليه' },
+              { value: LeaveStatus.Rejected, label: 'مرفوض' },
+              { value: LeaveStatus.Cancelled, label: 'ملغى' },
             ]}
           />
         </Space>
@@ -311,7 +335,7 @@ export default function HRLeavePage() {
           }}
           locale={{
             emptyText:
-              statusFilter || searchText
+              statusFilter != null || searchText
                 ? 'لا توجد نتائج مطابقة'
                 : 'لا توجد طلبات إجازة',
           }}
@@ -332,7 +356,7 @@ export default function HRLeavePage() {
         okText="تقديم الطلب"
         cancelText="إلغاء"
         width={500}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 12 }}>
           <Form.Item
@@ -362,7 +386,11 @@ export default function HRLeavePage() {
             />
           </Form.Item>
 
-          <Form.Item name="reason" label="سبب الإجازة (اختياري)">
+          <Form.Item
+            name="reason"
+            label="سبب الإجازة"
+            rules={[{ required: true, message: 'يرجى كتابة سبب الإجازة' }]}
+          >
             <TextArea rows={3} maxLength={500} showCount placeholder="اكتب سبب الإجازة..." />
           </Form.Item>
         </Form>
@@ -379,11 +407,11 @@ export default function HRLeavePage() {
         okButtonProps={actionModal?.type === 'reject' ? { danger: true } : undefined}
         cancelText="إلغاء"
         width={480}
-        destroyOnClose
+        destroyOnHidden
       >
         {actionModal && (
           <div style={{ marginBottom: 12, color: '#555' }}>
-            <strong>الموظف:</strong> {actionModal.record.employeeName || '—'}&nbsp;&nbsp;
+            <strong>الموظف:</strong> {resolveEmployeeName(actionModal.record)}&nbsp;&nbsp;
             <strong>الفترة:</strong>{' '}
             {actionModal.record.fromDate ? dayjs(actionModal.record.fromDate).format('YYYY/MM/DD') : '—'}
             {' — '}

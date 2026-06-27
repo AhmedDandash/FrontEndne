@@ -1,5 +1,6 @@
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { unwrapList } from '@/lib/api/unwrap';
 import type {
   EmployeePosition,
   EmployeePositionCreateDto,
@@ -7,25 +8,6 @@ import type {
   AssignRoleDto,
   AdminUser,
 } from '@/types/hr.types';
-
-function unwrapList<T>(payload: any): T[] {
-  const candidates = [
-    payload,
-    payload?.data,
-    payload?.data?.value,
-    payload?.value,
-    payload?.data?.items,
-    payload?.value?.items,
-    payload?.items,
-    payload?.result,
-    payload?.data?.result,
-  ];
-  for (const c of candidates) {
-    if (Array.isArray(c)) return c as T[];
-    if (Array.isArray(c?.$values)) return c.$values as T[];
-  }
-  return [];
-}
 
 // ─── Position Service (Position = Job in HR module) ──────────────────────────
 

@@ -1,5 +1,6 @@
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { unwrap, unwrapList } from '@/lib/api/unwrap';
 import type {
   EmployeeDto,
   EmployeeCurrentDto,
@@ -29,31 +30,6 @@ import type {
   EmployeeLeaveBalanceDto,
 } from '@/types/hr.types';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function unwrap<T>(payload: any): T {
-  return (payload?.data?.value ?? payload?.value ?? payload?.data ?? payload) as T;
-}
-
-function unwrapList<T>(payload: any): T[] {
-  const candidates = [
-    payload,
-    payload?.data,
-    payload?.data?.value,
-    payload?.value,
-    payload?.data?.items,
-    payload?.value?.items,
-    payload?.items,
-    payload?.data?.result,
-    payload?.result,
-  ];
-  for (const c of candidates) {
-    if (Array.isArray(c)) return c as T[];
-    if (Array.isArray(c?.$values)) return c.$values as T[];
-  }
-  return [];
-}
-
 // ─── Employee Service ────────────────────────────────────────────────────────
 
 export class HREmployeeService {
@@ -75,7 +51,8 @@ export class HREmployeeService {
     return {
       items,
       totalCount: meta?.totalCount ?? meta?.total ?? items.length,
-      page: meta?.page ?? params?.page ?? 1,
+      // Backend echoes the page as `pageNumber` (not `page`).
+      page: meta?.pageNumber ?? meta?.page ?? params?.page ?? 1,
       pageSize: meta?.pageSize ?? params?.pageSize ?? 10,
     };
   }
@@ -148,7 +125,9 @@ export class HRLeaveService {
   }
 
   static async cancel(requestId: string): Promise<void> {
-    await api.put(API_ENDPOINTS.HR_LEAVE.CANCEL(requestId));
+    // Send an explicit empty body so a Content-Length:0 header is emitted —
+    // a bodyless PUT returns HTTP 411 (Length Required) from this backend.
+    await api.put(API_ENDPOINTS.HR_LEAVE.CANCEL(requestId), {});
   }
 
   static async getEmployeeBalances(params: {

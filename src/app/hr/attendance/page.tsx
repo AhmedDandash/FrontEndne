@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   Table,
@@ -26,6 +26,7 @@ import {
   EnvironmentOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
 import { useHRAttendance, useHREmployees } from '@/hooks/api/useHR';
 import type { AttendanceFilterDto, AttendanceRecord } from '@/types/hr.types';
 
@@ -61,7 +62,7 @@ function renderLocation(
     return <span style={{ color: '#bbb' }}>—</span>;
   }
   return (
-    <Space direction="vertical" size={2}>
+    <Space orientation="vertical" size={2}>
       <a
         href={`https://www.google.com/maps?q=${lat},${lng}`}
         target="_blank"
@@ -81,10 +82,13 @@ function renderLocation(
 
 export default function HRAttendancePage() {
   const [form] = Form.useForm();
+  // The applied filter drives both the server fetch (employeeId only — the
+  // backend ignores status/date filters) and client-side narrowing below.
   const [filter, setFilter] = useState<AttendanceFilterDto>({});
+  const [hasSearched, setHasSearched] = useState(false);
 
-  const { records, isLoading, filterAttendance, checkIn, checkOut, isCheckingIn, isCheckingOut } =
-    useHRAttendance(filter);
+  const { records, isLoading, checkIn, checkOut, isCheckingIn, isCheckingOut } =
+    useHRAttendance({ employeeId: filter.employeeId ?? undefined }, hasSearched);
 
   const { employees } = useHREmployees({ pageSize: 200 });
 
@@ -93,23 +97,34 @@ export default function HRAttendancePage() {
     label: `${e.nameAr || e.nameEn || '—'} ${e.employeeNumber ? `(${e.employeeNumber})` : ''}`.trim(),
   }));
 
-  const handleFilter = async () => {
+  // Status & date-range filters are NOT honoured by the backend, so apply them
+  // client-side on top of the (employee-filtered) result set.
+  const displayRecords = useMemo(() => {
+    return records.filter((r) => {
+      if (filter.status != null && r.status !== filter.status) return false;
+      if (filter.fromDate && (!r.attendanceDay || dayjs(r.attendanceDay).isBefore(dayjs(filter.fromDate), 'day')))
+        return false;
+      if (filter.toDate && (!r.attendanceDay || dayjs(r.attendanceDay).isAfter(dayjs(filter.toDate), 'day')))
+        return false;
+      return true;
+    });
+  }, [records, filter]);
+
+  const handleFilter = () => {
     const values = form.getFieldsValue();
-    const dto: AttendanceFilterDto = {
+    setFilter({
       employeeId: values.employeeId || undefined,
       fromDate: values.dateRange?.[0]?.format('YYYY-MM-DD'),
       toDate: values.dateRange?.[1]?.format('YYYY-MM-DD'),
-      status: values.status || undefined,
-    };
-    setFilter(dto);
-    await filterAttendance(dto);
+      status: values.status ?? undefined,
+    });
+    setHasSearched(true);
   };
 
-  const handleReset = async () => {
+  const handleReset = () => {
     form.resetFields();
-    const dto: AttendanceFilterDto = {};
-    setFilter(dto);
-    await filterAttendance(dto);
+    setFilter({});
+    setHasSearched(true);
   };
 
   const columns: ColumnsType<AttendanceRecord> = [
@@ -191,9 +206,9 @@ export default function HRAttendancePage() {
     },
   ];
 
-  const presentCount = records.filter((r) => r.status === 1).length;
-  const absentCount = records.filter((r) => r.status === 2).length;
-  const lateCount = records.filter((r) => r.status === 3).length;
+  const presentCount = displayRecords.filter((r) => r.status === 1).length;
+  const absentCount = displayRecords.filter((r) => r.status === 2).length;
+  const lateCount = displayRecords.filter((r) => r.status === 3).length;
 
   return (
     <div style={{ padding: 24 }}>
@@ -208,7 +223,7 @@ export default function HRAttendancePage() {
 
       {/* ── Check-In / Check-Out panel ── */}
       <Card style={{ marginBottom: 16 }}>
-        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={4} style={{ width: '100%' }}>
           <Text strong style={{ fontSize: 14 }}>
             تسجيل الحضور/الانصراف (للمستخدم الحالي)
           </Text>
@@ -216,7 +231,7 @@ export default function HRAttendancePage() {
             type="info"
             showIcon
             icon={<EnvironmentOutlined />}
-            message="يتم تحديد الموظف تلقائياً من رمز المصادقة (JWT)، ويُطلب إذن الوصول إلى موقعك عند التسجيل."
+            title="يتم تحديد الموظف تلقائياً من رمز المصادقة (JWT)، ويُطلب إذن الوصول إلى موقعك عند التسجيل."
             description="يجب أن تكون داخل النطاق الجغرافي المسموح لفرعك. سيُرفض التسجيل إذا تم رفض إذن الموقع أو كنت خارج النطاق."
             style={{ marginBottom: 8 }}
           />
@@ -306,21 +321,21 @@ export default function HRAttendancePage() {
         </Form>
       </Card>
 
-      {records.length > 0 && (
+      {displayRecords.length > 0 && (
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col xs={8}>
             <Card size="small">
-              <Statistic title="حاضر" value={presentCount} valueStyle={{ color: '#52c41a' }} />
+              <Statistic title="حاضر" value={presentCount} styles={{ content: { color: '#52c41a' } }} />
             </Card>
           </Col>
           <Col xs={8}>
             <Card size="small">
-              <Statistic title="غائب" value={absentCount} valueStyle={{ color: '#ff4d4f' }} />
+              <Statistic title="غائب" value={absentCount} styles={{ content: { color: '#ff4d4f' } }} />
             </Card>
           </Col>
           <Col xs={8}>
             <Card size="small">
-              <Statistic title="متأخر" value={lateCount} valueStyle={{ color: '#faad14' }} />
+              <Statistic title="متأخر" value={lateCount} styles={{ content: { color: '#faad14' } }} />
             </Card>
           </Col>
         </Row>
@@ -328,12 +343,12 @@ export default function HRAttendancePage() {
 
       <Card>
         <Table<AttendanceRecord>
-          dataSource={records}
+          dataSource={displayRecords}
           columns={columns}
           rowKey={(r) => r.id ?? `${r.employeeId}-${r.attendanceDay}`}
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: false }}
-          locale={{ emptyText: 'لا توجد سجلات حضور — استخدم الفلتر للبحث' }}
+          locale={{ emptyText: hasSearched ? 'لا توجد سجلات حضور مطابقة' : 'استخدم الفلتر للبحث عن سجلات الحضور' }}
           scroll={{ x: 1160 }}
         />
       </Card>

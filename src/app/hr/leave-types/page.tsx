@@ -181,7 +181,7 @@ export default function HRLeaveTypesPage() {
         okText={editing ? 'حفظ' : 'إضافة'}
         cancelText="إلغاء"
         width={480}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 12 }}>
           <Form.Item

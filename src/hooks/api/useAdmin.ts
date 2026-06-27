@@ -6,6 +6,7 @@ import {
   AdminRoleService,
 } from '@/services/admin.service';
 import { DepartmentService } from '@/services/department.service';
+import { extractApiError } from '@/lib/api/unwrap';
 import type {
   EmployeePositionCreateDto,
   AddUserDto,
@@ -36,8 +37,8 @@ export function useAdminPositions() {
       queryClient.invalidateQueries({ queryKey: QK.positions });
       message.success('تم إضافة المسمى الوظيفي بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إضافة المسمى الوظيفي');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إضافة المسمى الوظيفي'));
     },
   });
 
@@ -47,8 +48,8 @@ export function useAdminPositions() {
       queryClient.invalidateQueries({ queryKey: QK.positions });
       message.success('تم حذف المسمى الوظيفي');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل حذف المسمى الوظيفي');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل حذف المسمى الوظيفي'));
     },
   });
 
@@ -79,8 +80,8 @@ export function useAdminUsers() {
       queryClient.invalidateQueries({ queryKey: QK.users });
       message.success('تم إضافة المستخدم بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إضافة المستخدم');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إضافة المستخدم'));
     },
   });
 
@@ -90,8 +91,8 @@ export function useAdminUsers() {
       queryClient.invalidateQueries({ queryKey: QK.users });
       message.success('تم تعيين الدور بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل تعيين الدور');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل تعيين الدور'));
     },
   });
 
@@ -101,8 +102,8 @@ export function useAdminUsers() {
       queryClient.invalidateQueries({ queryKey: QK.users });
       message.success('تم إزالة الدور بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إزالة الدور');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إزالة الدور'));
     },
   });
 
@@ -144,8 +145,8 @@ export function useDepartments() {
       queryClient.invalidateQueries({ queryKey: QK.departments });
       message.success('تم إضافة القسم بنجاح');
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.message || 'فشل إضافة القسم');
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل إضافة القسم'));
     },
   });
 

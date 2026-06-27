@@ -53,16 +53,16 @@ export default function PermissionRequestPage() {
       permissionType: values.permissionType as PermissionType,
       permissionNature: values.permissionNature as PermissionNature,
       comeLateTime: values.permissionType === 1 && values.comeLateTime
-        ? values.comeLateTime.format('hh:mm A')
+        ? values.comeLateTime.format('HH:mm')
         : null,
       partTimeStart: values.permissionType === 2 && values.partTimeStart
-        ? values.partTimeStart.format('hh:mm A')
+        ? values.partTimeStart.format('HH:mm')
         : null,
       partTimeFinish: values.permissionType === 2 && values.partTimeFinish
-        ? values.partTimeFinish.format('hh:mm A')
+        ? values.partTimeFinish.format('HH:mm')
         : null,
       outEarlyTime: values.permissionType === 3 && values.outEarlyTime
-        ? values.outEarlyTime.format('hh:mm A')
+        ? values.outEarlyTime.format('HH:mm')
         : null,
       reasons: values.reasons,
     };
@@ -93,7 +93,7 @@ export default function PermissionRequestPage() {
           <Col xs={24} md={10}>
             <Card
               title={<span style={{ color: '#fff' }}>بيانات الموظف</span>}
-              headStyle={{ background: '#4da6e8', border: 'none' }}
+              styles={{ header: { background: '#4da6e8', border: 'none' } }}
               style={{ height: '100%' }}
             >
               <div style={{ marginBottom: 8, fontWeight: 500 }}>من أجل</div>
@@ -104,7 +104,7 @@ export default function PermissionRequestPage() {
               >
                 <Select
                   showSearch
-                  placeholder="اسم الكيال"
+                  placeholder="اختر الموظف"
                   loading={isLoadingEmployees}
                   onChange={handleEmployeeChange}
                   optionFilterProp="label"
@@ -145,7 +145,7 @@ export default function PermissionRequestPage() {
           <Col xs={24} md={14}>
             <Card
               title={<span style={{ color: '#fff' }}>نوع الاستئذان</span>}
-              headStyle={{ background: '#4da6e8', border: 'none' }}
+              styles={{ header: { background: '#4da6e8', border: 'none' } }}
             >
               <Form.Item
                 name="permissionDate"
@@ -173,7 +173,7 @@ export default function PermissionRequestPage() {
                   label="الحضور في الساعة"
                   rules={[{ required: true, message: 'يرجى تحديد وقت الحضور المتوقع' }]}
                 >
-                  <TimePicker use12Hours format="hh:mm A" style={{ width: '100%' }} />
+                  <TimePicker format="HH:mm" minuteStep={5} style={{ width: '100%' }} />
                 </Form.Item>
               )}
 
@@ -185,7 +185,7 @@ export default function PermissionRequestPage() {
                       label="من الساعة"
                       rules={[{ required: true, message: 'يرجى تحديد وقت الخروج' }]}
                     >
-                      <TimePicker use12Hours format="hh:mm A" style={{ width: '100%' }} />
+                      <TimePicker format="HH:mm" minuteStep={5} style={{ width: '100%' }} />
                     </Form.Item>
                   </Col>
                   <Col xs={12}>
@@ -194,7 +194,7 @@ export default function PermissionRequestPage() {
                       label="إلى الساعة"
                       rules={[{ required: true, message: 'يرجى تحديد وقت العودة' }]}
                     >
-                      <TimePicker use12Hours format="hh:mm A" style={{ width: '100%' }} />
+                      <TimePicker format="HH:mm" minuteStep={5} style={{ width: '100%' }} />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -206,7 +206,7 @@ export default function PermissionRequestPage() {
                   label="وقت الانصراف"
                   rules={[{ required: true, message: 'يرجى تحديد وقت الخروج المبكر' }]}
                 >
-                  <TimePicker use12Hours format="hh:mm A" style={{ width: '100%' }} />
+                  <TimePicker format="HH:mm" minuteStep={5} style={{ width: '100%' }} />
                 </Form.Item>
               )}
 

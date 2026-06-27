@@ -61,7 +61,7 @@ export default function ResignationRequestPage() {
           <Col xs={24} md={10}>
             <Card
               title={<span style={{ color: '#fff' }}>بيانات الموظف</span>}
-              headStyle={{ background: '#4da6e8', border: 'none' }}
+              styles={{ header: { background: '#4da6e8', border: 'none' } }}
               style={{ height: '100%' }}
             >
               <div style={{ marginBottom: 8, fontWeight: 500 }}>من أجل</div>
@@ -72,7 +72,7 @@ export default function ResignationRequestPage() {
               >
                 <Select
                   showSearch
-                  placeholder="اسم الكيال"
+                  placeholder="اختر الموظف"
                   loading={isLoadingEmployees}
                   onChange={handleEmployeeChange}
                   optionFilterProp="label"
@@ -109,7 +109,7 @@ export default function ResignationRequestPage() {
           <Col xs={24} md={14}>
             <Card
               title={<span style={{ color: '#fff' }}>بيانات الاستقالة</span>}
-              headStyle={{ background: '#4da6e8', border: 'none' }}
+              styles={{ header: { background: '#4da6e8', border: 'none' } }}
             >
               <Form.Item
                 name="resignationDate"

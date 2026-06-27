@@ -19,10 +19,11 @@ import {
   MinusCircleOutlined,
   TeamOutlined,
   SearchOutlined,
+  UserAddOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAdminUsers, useAdminRoles } from '@/hooks/api/useAdmin';
-import type { AdminUser, AssignRoleDto } from '@/types/hr.types';
+import type { AdminUser, AssignRoleDto, AddUserDto } from '@/types/hr.types';
 
 const { Title, Text } = Typography;
 
@@ -31,9 +32,19 @@ type RoleAction = { type: 'assign' | 'remove'; user: AdminUser };
 export default function AdminUsersPage() {
   const [roleAction, setRoleAction] = useState<RoleAction | null>(null);
   const [roleForm] = Form.useForm();
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [addUserForm] = Form.useForm();
 
-  const { users, isLoading, assignRole, removeRole, isAssigningRole, isRemovingRole } =
-    useAdminUsers();
+  const {
+    users,
+    isLoading,
+    addUser,
+    assignRole,
+    removeRole,
+    isAddingUser,
+    isAssigningRole,
+    isRemovingRole,
+  } = useAdminUsers();
 
   const { data: roles = [] } = useAdminRoles();
   const roleOptions = roles.map((r) => ({ value: r, label: r }));
@@ -44,7 +55,12 @@ export default function AdminUsersPage() {
   const filteredUsers = useMemo(() => {
     const q = searchText.trim().toLowerCase();
     return (users ?? []).filter((u) => {
-      if (q && !(u.email ?? '').toLowerCase().includes(q)) return false;
+      if (
+        q &&
+        !(u.email ?? '').toLowerCase().includes(q) &&
+        !(u.fullName ?? '').toLowerCase().includes(q)
+      )
+        return false;
       if (roleFilter && !(u.roles ?? []).includes(roleFilter)) return false;
       return true;
     });
@@ -53,6 +69,20 @@ export default function AdminUsersPage() {
   const openRoleAction = (type: 'assign' | 'remove', user: AdminUser) => {
     roleForm.resetFields();
     setRoleAction({ type, user });
+  };
+
+  const handleAddUser = async () => {
+    const values = await addUserForm.validateFields();
+    const dto: AddUserDto = {
+      fullName: values.fullName,
+      email: values.email || null,
+      userName: values.userName || null,
+      password: values.password || null,
+      role: values.role,
+    };
+    await addUser(dto);
+    setAddUserOpen(false);
+    addUserForm.resetFields();
   };
 
   const handleRoleAction = async () => {
@@ -69,6 +99,11 @@ export default function AdminUsersPage() {
   };
 
   const columns: ColumnsType<AdminUser> = [
+    {
+      title: 'الاسم',
+      dataIndex: 'fullName',
+      render: (v) => <Text strong>{v || '—'}</Text>,
+    },
     {
       title: 'البريد الإلكتروني',
       dataIndex: 'email',
@@ -118,17 +153,37 @@ export default function AdminUsersPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <Space style={{ marginBottom: 16 }}>
-        <TeamOutlined style={{ fontSize: 22, color: '#1677ff' }} />
-        <Title level={4} style={{ margin: 0 }}>
-          إدارة أدوار المستخدمين
-        </Title>
-      </Space>
+      <div
+        style={{
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Space>
+          <TeamOutlined style={{ fontSize: 22, color: '#1677ff' }} />
+          <Title level={4} style={{ margin: 0 }}>
+            إدارة المستخدمين والأدوار
+          </Title>
+        </Space>
+        <Button
+          type="primary"
+          icon={<UserAddOutlined />}
+          size="large"
+          onClick={() => {
+            addUserForm.resetFields();
+            setAddUserOpen(true);
+          }}
+        >
+          إضافة مستخدم
+        </Button>
+      </div>
 
       <Card>
         <Space wrap style={{ marginBottom: 16 }}>
           <Input
-            placeholder="بحث بالبريد الإلكتروني..."
+            placeholder="بحث بالاسم أو البريد الإلكتروني..."
             allowClear
             prefix={<SearchOutlined />}
             style={{ width: 300 }}
@@ -189,7 +244,7 @@ export default function AdminUsersPage() {
         okButtonProps={roleAction?.type === 'remove' ? { danger: true } : undefined}
         cancelText="إلغاء"
         width={400}
-        destroyOnClose
+        destroyOnHidden
       >
         {roleAction && (
           <>
@@ -228,6 +283,64 @@ export default function AdminUsersPage() {
             </Form>
           </>
         )}
+      </Modal>
+
+      {/* ── Add User Modal ── */}
+      <Modal
+        open={addUserOpen}
+        title={
+          <Space>
+            <UserAddOutlined style={{ color: '#1677ff' }} />
+            إضافة مستخدم جديد
+          </Space>
+        }
+        onCancel={() => {
+          setAddUserOpen(false);
+          addUserForm.resetFields();
+        }}
+        onOk={handleAddUser}
+        confirmLoading={isAddingUser}
+        okText="إضافة"
+        cancelText="إلغاء"
+        width={460}
+        destroyOnHidden
+      >
+        <Form form={addUserForm} layout="vertical" style={{ marginTop: 12 }}>
+          <Form.Item
+            name="fullName"
+            label="الاسم الكامل"
+            rules={[{ required: true, message: 'الاسم الكامل مطلوب' }]}
+          >
+            <Input placeholder="الاسم الكامل للمستخدم" />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="البريد الإلكتروني"
+            rules={[
+              { required: true, message: 'البريد الإلكتروني مطلوب' },
+              { type: 'email', message: 'بريد إلكتروني غير صحيح' },
+            ]}
+          >
+            <Input placeholder="user@company.com" />
+          </Form.Item>
+          <Form.Item name="userName" label="اسم المستخدم (اختياري)">
+            <Input placeholder="username" />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="كلمة المرور"
+            rules={[{ required: true, message: 'كلمة المرور مطلوبة' }]}
+          >
+            <Input.Password placeholder="كلمة المرور المبدئية" />
+          </Form.Item>
+          <Form.Item
+            name="role"
+            label="الدور"
+            rules={[{ required: true, message: 'يرجى اختيار الدور' }]}
+          >
+            <Select placeholder="اختر الدور" options={roleOptions} />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );
