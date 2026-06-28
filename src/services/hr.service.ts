@@ -75,7 +75,9 @@ export class HREmployeeService {
   }
 
   static async resetPassword(id: string): Promise<void> {
-    await api.put(API_ENDPOINTS.HR_EMPLOYEE.RESET_PASSWORD(id));
+    // Send an explicit empty body so a Content-Length:0 header is emitted —
+    // bodyless PUTs return HTTP 411 (Length Required) from this backend.
+    await api.put(API_ENDPOINTS.HR_EMPLOYEE.RESET_PASSWORD(id), {});
   }
 }
 
@@ -258,8 +260,14 @@ export class HRPayrollService {
     return unwrap<PayrollRunDto>(response.data);
   }
 
+  // Generate → Approve → Close. Approve must precede Close (verified live).
+  static async approve(id: string): Promise<void> {
+    await api.put(API_ENDPOINTS.HR_PAYROLL.APPROVE(id), {});
+  }
+
   static async close(id: string): Promise<void> {
-    await api.put(API_ENDPOINTS.HR_PAYROLL.CLOSE(id));
+    // Empty body required — a bodyless PUT returns HTTP 411 from this backend.
+    await api.put(API_ENDPOINTS.HR_PAYROLL.CLOSE(id), {});
   }
 
   static async exportExcel(month: number, year: number): Promise<Blob> {

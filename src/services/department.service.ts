@@ -9,9 +9,11 @@ export class DepartmentService {
     return unwrapList<Department>(response.data);
   }
 
-  // POST /api/V1/Department — nameAr and nameEn are sent as query params per spec
+  // POST /api/V1/Department — nameAr and nameEn are sent as query params per spec.
+  // An empty object body is required so a Content-Length header is emitted —
+  // a bodyless POST returns HTTP 411 (Length Required) from this backend.
   static async create(dto: CreateDepartmentDto): Promise<void> {
-    await api.post(API_ENDPOINTS.DEPARTMENT.CREATE, undefined, {
+    await api.post(API_ENDPOINTS.DEPARTMENT.CREATE, {}, {
       params: {
         nameAr: dto.nameAr || undefined,
         nameEn: dto.nameEn || undefined,

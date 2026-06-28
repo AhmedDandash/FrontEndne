@@ -117,6 +117,9 @@ export interface CreateEmployeeDto {
 }
 
 export interface UpdateEmployeeDto {
+  // The backend requires `userName` on update (returns 400
+  // "The UserName field is required." if omitted) — verified live.
+  userName: string;
   employeeNumber?: string | null;
   nameAr?: string | null;
   nameEn?: string | null;
@@ -377,6 +380,8 @@ export interface GeneratePayrollDto {
 }
 
 export interface PayrollEmployeeDto {
+  // Payroll-run row id (distinct from `employeeId`) — verified live.
+  id?: string | null;
   employeeId?: string | null;
   employeeName?: string | null;
   baseSalary?: number | null;
@@ -386,14 +391,38 @@ export interface PayrollEmployeeDto {
   leaveDeduction?: number | null;
   bonus?: number | null;
   additionalDeduction?: number | null;
+  loanDeduction?: number | null;
+  paidAmount?: number | null;
   netSalary?: number | null;
+  remainingAmount?: number | null;
 }
+
+// Payroll-run lifecycle. Verified live: a freshly generated run is status 0 and
+// must be Approved before it can be Closed.
+export const PayrollStatus = {
+  Draft: 0,
+  Approved: 1,
+  Closed: 2,
+} as const;
 
 export interface PayrollRunDto {
   id: string;
   month?: number | null;
   year?: number | null;
+  status?: number | null;
+  totalNetAmount?: number | null;
+  totalPaidAmount?: number | null;
+  remainingAmount?: number | null;
   isClosed?: boolean | null;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  // Accounting integration links (populated once the run is approved/posted).
+  journalEntryId?: string | null;
+  accountingDocumentId?: string | null;
   createdAt?: string | null;
   employees?: PayrollEmployeeDto[];
+  // Returned by the backend but structure not yet exercised by the UI.
+  workers?: unknown[];
+  payments?: unknown[];
+  approvals?: unknown[];
 }

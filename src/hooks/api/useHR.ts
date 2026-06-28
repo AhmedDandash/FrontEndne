@@ -555,6 +555,17 @@ export function useHRPayroll(month: number, year: number) {
     },
   });
 
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => HRPayrollService.approve(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QK.payroll(month, year) });
+      message.success('تم اعتماد كشف الرواتب');
+    },
+    onError: (err) => {
+      message.error(extractApiError(err, 'فشل اعتماد كشف الرواتب'));
+    },
+  });
+
   const closeMutation = useMutation({
     mutationFn: (id: string) => HRPayrollService.close(id),
     onSuccess: () => {
@@ -587,9 +598,11 @@ export function useHRPayroll(month: number, year: number) {
     isError: query.isError,
     refetch: query.refetch,
     generatePayroll: generateMutation.mutateAsync,
+    approvePayroll: approveMutation.mutateAsync,
     closePayroll: closeMutation.mutateAsync,
     exportPayroll: exportMutation.mutateAsync,
     isGenerating: generateMutation.isPending,
+    isApproving: approveMutation.isPending,
     isClosing: closeMutation.isPending,
     isExporting: exportMutation.isPending,
   };

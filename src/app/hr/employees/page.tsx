@@ -57,10 +57,12 @@ export default function HREmployeesPage() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const { data: detailEmployee, isLoading: isLoadingDetail } = useHREmployee(detailId ?? '');
   const now = new Date();
+  // Query the full-year balance (no `month`): with a `month` param the backend
+  // reports usage for that calendar month only, so a leave taken in another
+  // month would wrongly show 0 used days.
   const { data: leaveBalances, isLoading: isBalancesLoading } = useEmployeeLeaveBalances({
     employeeId: detailId ?? undefined,
     year: now.getFullYear(),
-    month: now.getMonth() + 1,
   });
 
   const {
@@ -124,6 +126,8 @@ export default function HREmployeesPage() {
 
     if (editing) {
       const payload: UpdateEmployeeDto = {
+        // Backend requires userName on update (400 if missing).
+        userName: values.userName ?? editing.userName ?? '',
         employeeNumber: n(values.employeeNumber),
         nameAr: n(values.nameAr),
         nameEn: n(values.nameEn),
@@ -207,7 +211,7 @@ export default function HREmployeesPage() {
       title: 'الاسم',
       key: 'name',
       render: (_, r) => (
-        <Space orientation="vertical" size={0}>
+        <Space direction="vertical" size={0}>
           <span style={{ fontWeight: 500 }}>{r.nameAr || '—'}</span>
           {r.nameEn && <span style={{ color: '#888', fontSize: 12 }}>{r.nameEn}</span>}
         </Space>
@@ -514,10 +518,10 @@ export default function HREmployeesPage() {
               <Form.Item
                 name="userName"
                 label="اسم المستخدم (للدخول)"
-                rules={editing ? undefined : [{ required: true, message: 'اسم المستخدم مطلوب' }]}
-                extra={!editing ? 'يُستخدم اسم المستخدم لتسجيل دخول الموظف' : undefined}
+                rules={[{ required: true, message: 'اسم المستخدم مطلوب' }]}
+                extra="يُستخدم اسم المستخدم لتسجيل دخول الموظف"
               >
-                <Input placeholder="username" disabled={!!editing} />
+                <Input placeholder="username" />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>

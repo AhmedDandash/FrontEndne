@@ -62,7 +62,7 @@ function renderLocation(
     return <span style={{ color: '#bbb' }}>—</span>;
   }
   return (
-    <Space orientation="vertical" size={2}>
+    <Space direction="vertical" size={2}>
       <a
         href={`https://www.google.com/maps?q=${lat},${lng}`}
         target="_blank"
@@ -223,7 +223,7 @@ export default function HRAttendancePage() {
 
       {/* ── Check-In / Check-Out panel ── */}
       <Card style={{ marginBottom: 16 }}>
-        <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+        <Space direction="vertical" size={4} style={{ width: '100%' }}>
           <Text strong style={{ fontSize: 14 }}>
             تسجيل الحضور/الانصراف (للمستخدم الحالي)
           </Text>

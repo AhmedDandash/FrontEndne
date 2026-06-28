@@ -24,10 +24,11 @@ import {
   FileExcelOutlined,
   LockOutlined,
   PlayCircleOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useHRPayroll } from '@/hooks/api/useHR';
-import type { PayrollEmployeeDto } from '@/types/hr.types';
+import { PayrollStatus, type PayrollEmployeeDto } from '@/types/hr.types';
 
 const { Title, Text } = Typography;
 
@@ -63,9 +64,11 @@ export default function HRPayrollPage() {
     isLoading,
     isError,
     generatePayroll,
+    approvePayroll,
     closePayroll,
     exportPayroll,
     isGenerating,
+    isApproving,
     isClosing,
     isExporting,
   } = useHRPayroll(selectedMonth, selectedYear);
@@ -74,6 +77,8 @@ export default function HRPayrollPage() {
 
   const totalNetSalary = employees.reduce((s, e) => s + (e.netSalary ?? 0), 0);
   const totalOvertime = employees.reduce((s, e) => s + (e.overtimeAmount ?? 0), 0);
+  const totalPaid = employees.reduce((s, e) => s + (e.paidAmount ?? 0), 0);
+  const totalRemaining = employees.reduce((s, e) => s + (e.remainingAmount ?? 0), 0);
   const totalDeductions =
     employees.reduce(
       (s, e) =>
@@ -81,17 +86,29 @@ export default function HRPayrollPage() {
         (e.lateDeduction ?? 0) +
         (e.absenceDeduction ?? 0) +
         (e.leaveDeduction ?? 0) +
-        (e.additionalDeduction ?? 0),
+        (e.additionalDeduction ?? 0) +
+        (e.loanDeduction ?? 0),
       0
     );
 
+  // Lifecycle: Draft (0) → Approved (1) → Closed (2). `isClosed` is the
+  // authoritative closed flag; status drives whether Approve/Close show.
+  const status = payroll?.status ?? PayrollStatus.Draft;
+  const isClosed = payroll?.isClosed || status === PayrollStatus.Closed;
+  const isApproved = status >= PayrollStatus.Approved;
+
   const handleGenerate = async () => {
     const values = await genForm.validateFields();
-    await generatePayroll({ month: values.month, year: values.year });
-    setSelectedMonth(values.month);
-    setSelectedYear(values.year);
-    setGenerateModalOpen(false);
-    genForm.resetFields();
+    try {
+      await generatePayroll({ month: values.month, year: values.year });
+      setSelectedMonth(values.month);
+      setSelectedYear(values.year);
+      setGenerateModalOpen(false);
+      genForm.resetFields();
+    } catch {
+      // Error toast is surfaced by the mutation's onError; keep the modal open
+      // so the user can retry (generate can 500 when a branch has no employees).
+    }
   };
 
   const columns: ColumnsType<PayrollEmployeeDto> = [
@@ -159,6 +176,13 @@ export default function HRPayrollPage() {
       align: 'center',
     },
     {
+      title: 'خصم القروض',
+      dataIndex: 'loanDeduction',
+      render: (v) =>
+        v && v > 0 ? <Text type="danger">-{formatSAR(v)}</Text> : '—',
+      align: 'center',
+    },
+    {
       title: 'صافي الراتب',
       dataIndex: 'netSalary',
       render: (v) => (
@@ -169,6 +193,24 @@ export default function HRPayrollPage() {
       align: 'center',
       fixed: 'left',
       width: 130,
+    },
+    {
+      title: 'المدفوع',
+      dataIndex: 'paidAmount',
+      render: (v) =>
+        v && v > 0 ? (
+          <Text style={{ color: '#52c41a' }}>{formatSAR(v)}</Text>
+        ) : (
+          '—'
+        ),
+      align: 'center',
+    },
+    {
+      title: 'المتبقي',
+      dataIndex: 'remainingAmount',
+      render: (v) =>
+        v && v > 0 ? <Text type="warning">{formatSAR(v)}</Text> : '—',
+      align: 'center',
     },
   ];
 
@@ -211,10 +253,33 @@ export default function HRPayrollPage() {
           </Space>
           {payroll && (
             <Space>
-              <Tag color={payroll.isClosed ? 'error' : 'success'}>
-                {payroll.isClosed ? 'مغلق' : 'مفتوح'}
+              <Tag color={isClosed ? 'error' : isApproved ? 'blue' : 'warning'}>
+                {isClosed ? 'مغلق' : isApproved ? 'معتمد' : 'مسودة'}
               </Tag>
-              {!payroll.isClosed && (
+
+              {/* Step 1 — Approve a draft run */}
+              {!isApproved && !isClosed && (
+                <Tooltip title="اعتماد كشف الرواتب قبل الإغلاق">
+                  <Popconfirm
+                    title="اعتماد كشف الرواتب"
+                    description="سيتم اعتماد الكشف تمهيداً لإغلاقه وترحيله محاسبياً. هل تريد المتابعة؟"
+                    onConfirm={() => approvePayroll(payroll.id)}
+                    okText="اعتماد"
+                    cancelText="إلغاء"
+                  >
+                    <Button
+                      type="primary"
+                      icon={<CheckCircleOutlined />}
+                      loading={isApproving}
+                    >
+                      اعتماد الكشف
+                    </Button>
+                  </Popconfirm>
+                </Tooltip>
+              )}
+
+              {/* Step 2 — Close an approved run */}
+              {isApproved && !isClosed && (
                 <Tooltip title="إغلاق كشف الرواتب — لا يمكن التراجع">
                   <Popconfirm
                     title="إغلاق كشف الرواتب"
@@ -234,6 +299,7 @@ export default function HRPayrollPage() {
                   </Popconfirm>
                 </Tooltip>
               )}
+
               <Button
                 icon={<FileExcelOutlined />}
                 loading={isExporting}
@@ -295,7 +361,7 @@ export default function HRPayrollPage() {
             loading={isLoading}
             pagination={{ pageSize: 20, showSizeChanger: false }}
             locale={{ emptyText: <Empty description="اختر شهراً وسنة لعرض كشف الرواتب" /> }}
-            scroll={{ x: 1200 }}
+            scroll={{ x: 1500 }}
             summary={() =>
               employees.length > 0 ? (
                 <Table.Summary.Row>
@@ -317,9 +383,20 @@ export default function HRPayrollPage() {
                   <Table.Summary.Cell index={5} />
                   <Table.Summary.Cell index={6} />
                   <Table.Summary.Cell index={7} />
-                  <Table.Summary.Cell index={8} align="center">
+                  <Table.Summary.Cell index={8} />
+                  <Table.Summary.Cell index={9} align="center">
                     <Text strong style={{ color: '#1677ff' }}>
                       {formatSAR(totalNetSalary)}
+                    </Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={10} align="center">
+                    <Text strong style={{ color: '#52c41a' }}>
+                      {formatSAR(totalPaid)}
+                    </Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={11} align="center">
+                    <Text strong style={{ color: '#faad14' }}>
+                      {formatSAR(totalRemaining)}
                     </Text>
                   </Table.Summary.Cell>
                 </Table.Summary.Row>

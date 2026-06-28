@@ -13,7 +13,6 @@ import {
   Select,
   Tag,
   Typography,
-  Popconfirm,
   Tooltip,
   Row,
   Col,
@@ -23,7 +22,6 @@ import {
   PlusOutlined,
   CheckOutlined,
   CloseOutlined,
-  StopOutlined,
   CalendarOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
@@ -67,11 +65,9 @@ export default function HRLeavePage() {
     createLeave,
     approveLeave,
     rejectLeave,
-    cancelLeave,
     isCreating,
     isApproving,
     isRejecting,
-    isCancelling,
   } = useHRLeave();
 
   const { leaveTypes } = useHRLeaveTypes();
@@ -95,12 +91,6 @@ export default function HRLeavePage() {
 
   const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
   const [searchText, setSearchText] = useState('');
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
-
-  const handleCancel = (id: string) => {
-    setCancellingId(id);
-    return cancelLeave(id).finally(() => setCancellingId(null));
-  };
 
   const pendingCount = leaveRequests.filter((r) => r.status === LeaveStatus.Pending).length;
   const approvedCount = leaveRequests.filter((r) => r.status === LeaveStatus.Approved).length;
@@ -211,52 +201,30 @@ export default function HRLeavePage() {
       width: 140,
       render: (_, record) => {
         const isPending = record.status === LeaveStatus.Pending;
-        const isApproved = record.status === LeaveStatus.Approved;
+        // Only pending requests are actionable. There is no cancel action: the
+        // backend exposes no cancel endpoint (404 on every variant), so a
+        // pending request is resolved via reject rather than cancel.
+        if (!isPending) {
+          return <span style={{ color: '#bbb' }}>—</span>;
+        }
         return (
           <Space>
-            {isPending && (
-              <>
-                <Tooltip title="موافقة">
-                  <Button
-                    type="text"
-                    icon={<CheckOutlined />}
-                    style={{ color: '#52c41a' }}
-                    onClick={() => setActionModal({ type: 'approve', record })}
-                  />
-                </Tooltip>
-                <Tooltip title="رفض">
-                  <Button
-                    type="text"
-                    danger
-                    icon={<CloseOutlined />}
-                    onClick={() => setActionModal({ type: 'reject', record })}
-                  />
-                </Tooltip>
-              </>
-            )}
-            {(isPending || isApproved) && (
-              <Tooltip title="إلغاء">
-                <Popconfirm
-                  title="تأكيد الإلغاء"
-                  description={
-                    isApproved
-                      ? 'الإجازة معتمدة. سيتم استعادة الرصيد عند الإلغاء.'
-                      : 'هل تريد إلغاء هذا الطلب؟'
-                  }
-                  onConfirm={() => handleCancel(record.id)}
-                  okText="إلغاء الطلب"
-                  cancelText="تراجع"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Button
-                    type="text"
-                    icon={<StopOutlined />}
-                    style={{ color: '#faad14' }}
-                    loading={isCancelling && cancellingId === record.id}
-                  />
-                </Popconfirm>
-              </Tooltip>
-            )}
+            <Tooltip title="موافقة">
+              <Button
+                type="text"
+                icon={<CheckOutlined />}
+                style={{ color: '#52c41a' }}
+                onClick={() => setActionModal({ type: 'approve', record })}
+              />
+            </Tooltip>
+            <Tooltip title="رفض">
+              <Button
+                type="text"
+                danger
+                icon={<CloseOutlined />}
+                onClick={() => setActionModal({ type: 'reject', record })}
+              />
+            </Tooltip>
           </Space>
         );
       },

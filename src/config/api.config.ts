@@ -384,6 +384,9 @@ export const API_ENDPOINTS = {
     GENERATE: '/api/V1/Payroll/generate',
     GET: '/api/V1/Payroll',
     EXPORT: '/api/V1/Payroll/export',
+    // Workflow is Generate → Approve → Close (verified live: Close returns
+    // "Payroll must be approved before closing" until the run is approved).
+    APPROVE: (id: string) => `/api/V1/Payroll/${id}/approve`,
     CLOSE: (id: string) => `/api/V1/Payroll/close/${id}`,
   },
 
