@@ -234,7 +234,7 @@ export default function ReceiptVouchersPage() {
             onChange={setContractId}
             options={(contracts as any[]).map((c: any) => ({
               value: c.id,
-              label: c.contractNumber || c.id,
+              label: c.contractNumber ? `#${c.contractNumber}${c.customerNameAr ? ` - ${c.customerNameAr}` : ''}` : String(c.id),
             }))}
           />
           <RangePicker
@@ -353,7 +353,7 @@ export default function ReceiptVouchersPage() {
               placeholder={t('اختر العقد', 'Select contract')}
               options={(contracts as any[]).map((c: any) => ({
                 value: c.id,
-                label: c.contractNumber || c.id,
+                label: c.contractNumber ? `#${c.contractNumber}${c.customerNameAr ? ` - ${c.customerNameAr}` : ''}` : String(c.id),
               }))}
             />
           </Form.Item>
