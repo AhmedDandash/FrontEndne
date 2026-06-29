@@ -7,6 +7,8 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { useCanAccess } from '@/hooks/api/usePagePermissions';
+import AccessDenied from '@/components/common/AccessDenied';
 import styles from './MainLayout.module.css';
 
 const { Content } = Layout;
@@ -28,6 +30,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const language = useAuthStore((state) => state.language);
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const setIsHydrated = useAuthStore((state) => state.setIsHydrated);
+  const { check } = useCanAccess();
 
   // Check authentication status
   useEffect(() => {
@@ -105,6 +108,31 @@ export default function MainLayout({ children }: MainLayoutProps) {
     setMobileDrawerVisible(!mobileDrawerVisible);
   };
 
+  // Role-based page guard: 'allow' renders the page, 'deny' shows 403,
+  // 'pending' waits for the user's roles to load (restricted pages only).
+  const accessState = check(pathname);
+
+  const renderContent = () => {
+    if (accessState === 'pending') {
+      return (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '60vh',
+          }}
+        >
+          <Spin size="large" />
+        </div>
+      );
+    }
+    if (accessState === 'deny') {
+      return <AccessDenied />;
+    }
+    return children;
+  };
+
   return (
     <Layout className={styles.mainLayout} hasSider>
       <Sidebar
@@ -123,7 +151,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         />
 
         <Content className={styles.content}>
-<div className={styles.pageContent}>{children}</div>
+          <div className={styles.pageContent}>{renderContent()}</div>
         </Content>
       </Layout>
     </Layout>

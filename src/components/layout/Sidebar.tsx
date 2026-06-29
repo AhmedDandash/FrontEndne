@@ -18,6 +18,7 @@ import {
 import type { MenuProps } from 'antd';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { useCanAccess } from '@/hooks/api/usePagePermissions';
 import Image from 'next/image';
 import styles from './Sidebar.module.css';
 
@@ -39,6 +40,7 @@ export default function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const language = useAuthStore((state) => state.language);
+  const { check } = useCanAccess();
   const [openKeys, setOpenKeys] = useState<string[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
 
@@ -520,6 +522,29 @@ export default function Sidebar({
     // },
   ];
 
+  // Hide menu entries the current user's roles may not access. Leaf items
+  // (route keys) are checked directly; group items are kept only if at least
+  // one child survives. 'pending' (roles still loading) is treated as visible
+  // to avoid flicker — the route guard is the authoritative gate.
+  const filterMenu = (items: MenuItem[]): MenuItem[] =>
+    items.reduce<MenuItem[]>((acc, item) => {
+      if (!item) return acc;
+      const node = item as MenuItem & { key?: React.Key; children?: MenuItem[] };
+
+      if (node.children) {
+        const children = filterMenu(node.children);
+        if (children.length > 0) acc.push({ ...node, children } as MenuItem);
+        return acc;
+      }
+
+      const key = String(node.key ?? '');
+      if (key.startsWith('/') && check(key) === 'deny') return acc;
+      acc.push(item);
+      return acc;
+    }, []);
+
+  const visibleMenuItems = filterMenu(menuItems);
+
   const handleMenuClick = (e: { key: string }) => {
     router.push(e.key);
     // Close mobile drawer on navigation
@@ -547,7 +572,7 @@ export default function Sidebar({
         selectedKeys={selectedKeys}
         openKeys={openKeys}
         onOpenChange={handleOpenChange}
-        items={menuItems}
+        items={visibleMenuItems}
         onClick={handleMenuClick}
         className={styles.menu}
         inlineCollapsed={collapsed}
