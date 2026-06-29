@@ -185,17 +185,6 @@ export default function Header({ collapsed, onToggleSidebar, onToggleMobileDrawe
           </Button>
         </div>
 
-        {/* Notifications */}
-        <Dropdown
-          menu={{ items: notificationItems }}
-          placement={language === 'ar' ? 'bottomLeft' : 'bottomRight'}
-          trigger={['click']}
-          classNames={{ root: styles.notificationDropdown }}
-        >
-          <Badge count={5} overflowCount={99} className={styles.notificationBadge}>
-            <Button type="text" icon={<BellOutlined />} className={styles.iconBtn} />
-          </Badge>
-        </Dropdown>
 
         {/* User Menu */}
         <Dropdown

@@ -257,14 +257,6 @@ export default function LoginPage() {
             </Form.Item>
           </Form>
 
-          {/* Footer */}
-          <div className={styles.formFooter}>
-            <p className={styles.footerText}>
-              {language === 'ar'
-                ? 'بيانات التجربة: admin / password'
-                : 'Demo Credentials: admin / password'}
-            </p>
-          </div>
         </div>
       </div>
     </div>
