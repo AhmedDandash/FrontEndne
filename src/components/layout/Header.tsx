@@ -1,10 +1,9 @@
 'use client';
 
-import { Layout, Badge, Dropdown, Avatar, Button } from 'antd';
+import { Layout, Dropdown, Avatar, Button } from 'antd';
 import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
-  BellOutlined,
   UserOutlined,
   LogoutOutlined,
   SettingOutlined,
@@ -75,66 +74,6 @@ export default function Header({ collapsed, onToggleSidebar, onToggleMobileDrawe
       label: language === 'ar' ? 'تسجيل الخروج' : 'Logout',
       danger: true,
       onClick: handleLogout,
-    },
-  ];
-
-  const notificationItems: MenuProps['items'] = [
-    {
-      key: '1',
-      label: (
-        <div className={styles.notificationItem}>
-          <div className={styles.notificationTitle}>
-            {language === 'ar' ? 'عقد جديد' : 'New Contract'}
-          </div>
-          <div className={styles.notificationDesc}>
-            {language === 'ar' ? 'تم إضافة عقد جديد #12345' : 'New contract #12345 added'}
-          </div>
-          <div className={styles.notificationTime}>
-            {language === 'ar' ? 'منذ 5 دقائق' : '5 minutes ago'}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: '2',
-      label: (
-        <div className={styles.notificationItem}>
-          <div className={styles.notificationTitle}>
-            {language === 'ar' ? 'شكوى جديدة' : 'New Complaint'}
-          </div>
-          <div className={styles.notificationDesc}>
-            {language === 'ar' ? 'شكوى عميل تحتاج إلى مراجعة' : 'Customer complaint needs review'}
-          </div>
-          <div className={styles.notificationTime}>
-            {language === 'ar' ? 'منذ ساعة' : '1 hour ago'}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: '3',
-      label: (
-        <div className={styles.notificationItem}>
-          <div className={styles.notificationTitle}>{language === 'ar' ? 'تذكير' : 'Reminder'}</div>
-          <div className={styles.notificationDesc}>
-            {language === 'ar' ? 'موعد متابعة مع العميل اليوم' : 'Follow-up meeting today'}
-          </div>
-          <div className={styles.notificationTime}>
-            {language === 'ar' ? 'منذ 3 ساعات' : '3 hours ago'}
-          </div>
-        </div>
-      ),
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'view-all',
-      label: (
-        <div className={styles.viewAllNotifications}>
-          {language === 'ar' ? 'عرض جميع الإشعارات' : 'View all notifications'}
-        </div>
-      ),
     },
   ];
 
