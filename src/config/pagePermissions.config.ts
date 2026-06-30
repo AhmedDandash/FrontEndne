@@ -66,6 +66,12 @@ export const PAGE_REGISTRY: PageDef[] = [
   // ── Hourly Workers ──
   { key: '/hourly-workers', labelAr: 'قائمة العمال', labelEn: 'Workers Pool', group: 'hourly', groupAr: 'العمالة بالساعة', groupEn: 'Hourly Workers' },
   { key: '/hourly-workers/requests', labelAr: 'طلبات العمل', labelEn: 'Service Requests', group: 'hourly', groupAr: 'العمالة بالساعة', groupEn: 'Hourly Workers' },
+  { key: '/hourly-workers/drivers', labelAr: 'السائقون', labelEn: 'Drivers', group: 'hourly', groupAr: 'العمالة بالساعة', groupEn: 'Hourly Workers' },
+  { key: '/hourly-workers/packages', labelAr: 'باقات الخدمة', labelEn: 'Service Packages', group: 'hourly', groupAr: 'العمالة بالساعة', groupEn: 'Hourly Workers' },
+  { key: '/hourly-workers/serving-areas', labelAr: 'مناطق الخدمة', labelEn: 'Serving Areas', group: 'hourly', groupAr: 'العمالة بالساعة', groupEn: 'Hourly Workers' },
+  { key: '/hourly-workers/payments', labelAr: 'المدفوعات', labelEn: 'Payments', group: 'hourly', groupAr: 'العمالة بالساعة', groupEn: 'Hourly Workers' },
+  { key: '/hourly-workers/notifications', labelAr: 'الإشعارات', labelEn: 'Notifications', group: 'hourly', groupAr: 'العمالة بالساعة', groupEn: 'Hourly Workers' },
+  { key: '/hourly-workers/reports', labelAr: 'التقارير', labelEn: 'Reports', group: 'hourly', groupAr: 'العمالة بالساعة', groupEn: 'Hourly Workers' },
 
   // ── Contracts ──
   { key: '/contracts/mediationcontract', labelAr: 'عقود الاستقدام', labelEn: 'Mediation Contracts', group: 'contracts', groupAr: 'العقود', groupEn: 'Contracts' },

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   Table,
@@ -11,12 +12,9 @@ import {
   Space,
   Tooltip,
   DatePicker,
-  Drawer,
   Modal,
   Form,
-  Timeline,
   Empty,
-  Spin,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -31,17 +29,13 @@ import {
   PlayCircleOutlined,
   CheckCircleOutlined,
   StopOutlined,
-  PhoneOutlined,
-  EnvironmentOutlined,
-  ClockCircleOutlined,
-  HistoryOutlined,
 } from '@ant-design/icons';
 import {
   useHourlyWorkerRequests,
-  useHourlyWorkerRequest,
   useHourlyWorkerRequestActions,
 } from '@/hooks/api/useHourlyWorkers';
 import { useHourlyWorkers } from '@/hooks/api/useHourlyWorkers';
+import { useHourlyPermissions } from '@/hooks/useHourlyPermissions';
 import { useAuthStore } from '@/store/authStore';
 import {
   HourlyRequestStatus,
@@ -53,15 +47,11 @@ import {
   type HourlyWorkerRequest,
   type HourlyRequestAction,
 } from '@/types/hourly-worker.types';
+import { fmtTime } from '../_lib/hourlyDisplay';
 import styles from '../hourly-workers.module.css';
 
 const { RangePicker } = DatePicker;
 const PAGE_SIZE = 10;
-
-function fmtTime(v?: string | null): string {
-  if (!v) return '—';
-  return v.length >= 5 ? v.slice(0, 5) : v;
-}
 
 function StatusTag({ status, isAr }: { status: HourlyRequestStatus; isAr: boolean }) {
   const opt = getStatusOption(status);
@@ -69,9 +59,11 @@ function StatusTag({ status, isAr }: { status: HourlyRequestStatus; isAr: boolea
 }
 
 export default function HourlyWorkerRequestsPage() {
+  const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const perms = useHourlyPermissions();
 
   // ── Filters ─────────────────────────────────────────────────
   const [ticketNumber, setTicketNumber] = useState('');
@@ -93,23 +85,18 @@ export default function HourlyWorkerRequestsPage() {
   const requests = useMemo(() => data?.items ?? [], [data]);
   const totalCount = data?.totalCount ?? 0;
 
-  // ── Detail drawer ───────────────────────────────────────────
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const { data: detail, isLoading: isDetailLoading } = useHourlyWorkerRequest(detailId ?? undefined);
-
   const actions = useHourlyWorkerRequestActions();
 
-  // ── Assign modal ────────────────────────────────────────────
+  // ── Inline assign modal (quick action) ──────────────────────
   const [assignFor, setAssignFor] = useState<HourlyWorkerRequest | null>(null);
   const [assignForm] = Form.useForm();
-  // Only active workers are eligible; show availability indicator.
   const { data: workerData, isLoading: isWorkersLoading } = useHourlyWorkers({
     isActive: true,
     pageSize: 100,
   });
   const eligibleWorkers = workerData?.items ?? [];
 
-  // ── Reject modal ────────────────────────────────────────────
+  // ── Inline reject modal ─────────────────────────────────────
   const [rejectFor, setRejectFor] = useState<HourlyWorkerRequest | null>(null);
   const [rejectForm] = Form.useForm();
 
@@ -124,6 +111,8 @@ export default function HourlyWorkerRequestsPage() {
       ).length,
     [requests]
   );
+
+  const goDetail = (id: string) => router.push(`/hourly-workers/requests/${id}`);
 
   // ── Action handlers ─────────────────────────────────────────
   const runAction = (action: HourlyRequestAction, req: HourlyWorkerRequest) => {
@@ -182,8 +171,11 @@ export default function HourlyWorkerRequestsPage() {
     cancel: { ar: 'إلغاء', en: 'Cancel', icon: <StopOutlined />, danger: true },
   };
 
-  const renderActionButtons = (req: HourlyWorkerRequest, size: 'small' | 'middle' = 'small') => {
-    const available = ACTIONS_BY_STATUS[req.status] ?? [];
+  const renderActionButtons = (req: HourlyWorkerRequest) => {
+    const available = (ACTIONS_BY_STATUS[req.status] ?? []).filter((a) => {
+      if (a === 'assign') return perms.canAssignWorkers;
+      return perms.canManageOrders;
+    });
     return available.map((a) => {
       const meta = ACTION_META[a];
       const loading =
@@ -194,7 +186,7 @@ export default function HourlyWorkerRequestsPage() {
       return (
         <Button
           key={a}
-          size={size}
+          size="small"
           type={meta.primary ? 'primary' : 'default'}
           danger={meta.danger}
           icon={meta.icon}
@@ -214,7 +206,7 @@ export default function HourlyWorkerRequestsPage() {
       key: 'ticketNumber',
       width: 160,
       render: (v: string, record) => (
-        <a className={styles.docNumber} onClick={() => setDetailId(record.id)}>
+        <a className={styles.docNumber} onClick={() => goDetail(record.id)}>
           {v}
         </a>
       ),
@@ -268,18 +260,16 @@ export default function HourlyWorkerRequestsPage() {
     {
       title: t('إجراءات', 'Actions'),
       key: 'actions',
-      width: 260,
+      width: 300,
       fixed: 'right',
-      render: (_, record) =>
-        isTerminalStatus(record.status) ? (
-          <Tooltip title={t('عرض', 'View')}>
-            <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => setDetailId(record.id)} />
+      render: (_, record) => (
+        <Space size={4} wrap>
+          <Tooltip title={t('عرض التفاصيل', 'View details')}>
+            <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => goDetail(record.id)} />
           </Tooltip>
-        ) : (
-          <Space size={4} wrap>
-            {renderActionButtons(record)}
-          </Space>
-        ),
+          {!isTerminalStatus(record.status) && renderActionButtons(record)}
+        </Space>
+      ),
     },
   ];
 
@@ -399,126 +389,7 @@ export default function HourlyWorkerRequestsPage() {
         />
       </Card>
 
-      {/* ── Detail Drawer ──────────────────────────────────────── */}
-      <Drawer
-        title={
-          detail ? (
-            <Space>
-              <span>{detail.ticketNumber}</span>
-              <StatusTag status={detail.status} isAr={isAr} />
-            </Space>
-          ) : (
-            t('تفاصيل الطلب', 'Request Details')
-          )
-        }
-        open={!!detailId}
-        onClose={() => setDetailId(null)}
-        width={560}
-      >
-        {isDetailLoading || !detail ? (
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin />
-          </div>
-        ) : (
-          <>
-            {/* Action panel / read-only note */}
-            {isTerminalStatus(detail.status) ? (
-              <div className={styles.readOnlyNote}>
-                {t('هذا الطلب للقراءة فقط ولا يمكن تعديله.', 'This request is read-only and cannot be modified.')}
-              </div>
-            ) : (
-              <div className={styles.actionPanel}>{renderActionButtons(detail, 'middle')}</div>
-            )}
-
-            {/* Customer / request facts */}
-            <div className={styles.facts}>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('العميل', 'Customer')}</div>
-                <div className={styles.factValue}>{detail.customerName}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>
-                  <PhoneOutlined /> {t('الهاتف', 'Phone')}
-                </div>
-                <div className={styles.factValue}>{detail.customerPhone}</div>
-              </div>
-              <div className={styles.factItem} style={{ gridColumn: '1 / -1' }}>
-                <div className={styles.factLabel}>
-                  <EnvironmentOutlined /> {t('العنوان', 'Address')}
-                </div>
-                <div className={styles.factValue}>{detail.customerAddress || '—'}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('تاريخ الطلب', 'Request Date')}</div>
-                <div className={styles.factValue}>{dayjs(detail.requestDate).format('YYYY-MM-DD')}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>
-                  <ClockCircleOutlined /> {t('الوقت', 'Time')}
-                </div>
-                <div className={styles.factValue}>
-                  {fmtTime(detail.requestedStartTime)} – {fmtTime(detail.requestedEndTime)}
-                </div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('عدد العمال', 'Workers Needed')}</div>
-                <div className={styles.factValue}>
-                  {detail.assignedWorkersCount} / {detail.numberOfWorkers}
-                </div>
-              </div>
-            </div>
-            {detail.notes && <div className={styles.notesBox}>{detail.notes}</div>}
-
-            {/* Assignments */}
-            <div className={styles.sectionTitle}>
-              {t('العمال المعينون', 'Assigned Workers')} ({detail.assignments.length})
-            </div>
-            {detail.assignments.length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('لم يتم تعيين عمال بعد', 'No workers assigned yet')} />
-            ) : (
-              detail.assignments.map((a) => (
-                <div key={a.id} className={styles.assignmentRow}>
-                  <UserAddOutlined style={{ color: '#1677ff' }} />
-                  <div style={{ flex: 1 }}>
-                    <div className={styles.assignmentName}>{a.workerName}</div>
-                    <div className={styles.assignmentPhone}>{a.workerPhone}</div>
-                  </div>
-                  <span className={styles.muted}>{dayjs(a.assignedDate).format('YYYY-MM-DD HH:mm')}</span>
-                </div>
-              ))
-            )}
-
-            {/* History */}
-            <div className={styles.sectionTitle}>
-              <HistoryOutlined /> {t('سجل الحالة', 'Status History')}
-            </div>
-            {detail.history.length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('لا يوجد سجل', 'No history')} />
-            ) : (
-              <Timeline
-                items={detail.history.map((h) => ({
-                  color: getStatusOption(h.newStatus as HourlyRequestStatus)?.color ?? 'blue',
-                  children: (
-                    <div>
-                      <div style={{ fontWeight: 600 }}>
-                        {h.oldStatusName ? `${h.oldStatusName} → ` : ''}
-                        {h.newStatusName}
-                      </div>
-                      {h.notes && <div style={{ fontSize: 12.5, color: '#6b7280' }}>{h.notes}</div>}
-                      <div style={{ fontSize: 12, color: '#9ca3af' }}>
-                        {dayjs(h.changedAt).format('YYYY-MM-DD HH:mm')} ·{' '}
-                        {h.changedBy === 'Mobile' ? t('التطبيق', 'Mobile') : t('لوحة التحكم', 'Dashboard')}
-                      </div>
-                    </div>
-                  ),
-                }))}
-              />
-            )}
-          </>
-        )}
-      </Drawer>
-
-      {/* ── Assign Worker Modal ────────────────────────────────── */}
+      {/* ── Assign Worker Modal (quick action) ─────────────────── */}
       <Modal
         title={t('تعيين عامل', 'Assign Worker')}
         open={!!assignFor}
@@ -527,12 +398,12 @@ export default function HourlyWorkerRequestsPage() {
         okText={t('تعيين', 'Assign')}
         cancelText={t('إلغاء', 'Cancel')}
         confirmLoading={actions.assign.isPending}
-        destroyOnClose
+        destroyOnHidden
       >
         <p style={{ color: '#6b7280', marginBottom: 12 }}>
           {t(
-            'اختر عاملاً واحداً نشطاً. يُفضّل اختيار عامل متاح الآن.',
-            'Select one active worker. Prefer a worker who is available now.'
+            'اختر عاملاً واحداً نشطاً. للحصول على توصيات حسب التوفر افتح صفحة التفاصيل.',
+            'Select one active worker. For availability-ranked recommendations, open the order detail page.'
           )}
         </p>
         <Form form={assignForm} layout="vertical">
@@ -553,7 +424,7 @@ export default function HourlyWorkerRequestsPage() {
                 worker: w,
               }))}
               optionRender={(opt) => {
-                const w = (opt.data as any).worker;
+                const w = (opt.data as { worker: (typeof eligibleWorkers)[number] }).worker;
                 return (
                   <Space>
                     <span>{w.fullName}</span>
@@ -581,7 +452,7 @@ export default function HourlyWorkerRequestsPage() {
         okButtonProps={{ danger: true }}
         cancelText={t('إلغاء', 'Cancel')}
         confirmLoading={actions.reject.isPending}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={rejectForm} layout="vertical">
           <Form.Item name="notes" label={t('سبب الرفض (اختياري)', 'Reason for rejection (optional)')}>

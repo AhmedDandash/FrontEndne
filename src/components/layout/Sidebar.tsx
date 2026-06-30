@@ -68,6 +68,9 @@ export default function Sidebar({
             keys.push('contracts-mediation');
           }
         }
+        if (pathParts[0] === 'hourly-workers') {
+          keys.push('hourly-workers');
+        }
         setOpenKeys(keys);
       }
     }
@@ -147,12 +150,36 @@ export default function Sidebar({
       label: language === 'ar' ? 'العمالة بالساعة' : 'Hourly Workers',
       children: [
         {
+          key: '/hourly-workers/requests',
+          label: language === 'ar' ? 'طلبات العمل' : 'Service Requests',
+        },
+        {
           key: '/hourly-workers',
           label: language === 'ar' ? 'قائمة العمال' : 'Workers Pool',
         },
         {
-          key: '/hourly-workers/requests',
-          label: language === 'ar' ? 'طلبات العمل' : 'Service Requests',
+          key: '/hourly-workers/drivers',
+          label: language === 'ar' ? 'السائقون' : 'Drivers',
+        },
+        {
+          key: '/hourly-workers/packages',
+          label: language === 'ar' ? 'باقات الخدمة' : 'Service Packages',
+        },
+        {
+          key: '/hourly-workers/serving-areas',
+          label: language === 'ar' ? 'مناطق الخدمة' : 'Serving Areas',
+        },
+        {
+          key: '/hourly-workers/payments',
+          label: language === 'ar' ? 'المدفوعات' : 'Payments',
+        },
+        {
+          key: '/hourly-workers/notifications',
+          label: language === 'ar' ? 'الإشعارات' : 'Notifications',
+        },
+        {
+          key: '/hourly-workers/reports',
+          label: language === 'ar' ? 'التقارير' : 'Reports',
         },
       ],
     },

@@ -103,7 +103,10 @@ export interface HourlyWorkerRequest {
 }
 
 export interface AssignWorkerDto {
-  workerId: string;
+  /** Assign endpoint accepts a single worker… */
+  workerId?: string;
+  /** …or several at once. */
+  workerIds?: string[];
 }
 
 export interface RejectRequestDto {
@@ -194,3 +197,474 @@ export const ACTIONS_BY_STATUS: Record<HourlyRequestStatus, HourlyRequestAction[
   [HourlyRequestStatus.Completed]: [],
   [HourlyRequestStatus.Cancelled]: [],
 };
+
+// ==================== Order Detail (full) ====================
+
+export interface HourlyOrderPaymentDto {
+  id: string;
+  amount: number;
+  paymentMethod: number;
+  paymentMethodName: string;
+  status: number;
+  statusName?: string;
+  transactionReference: string | null;
+  transferProofUrl: string | null;
+  paidAt: string | null;
+  createdDate?: string;
+}
+
+export interface HourlyDriverAssignmentDto {
+  id: string;
+  driverId: string;
+  driverName: string;
+  driverPhone: string;
+  status: number;
+  statusName: string;
+  assignedDate: string;
+}
+
+export interface HourlyOrderTimelineDto {
+  id?: string;
+  eventType: number;
+  title: string;
+  description: string | null;
+  occurredAt: string;
+  createdBy?: string;
+}
+
+export interface HourlyOrderLogDto {
+  id?: string;
+  action: string;
+  details: string | null;
+  performedBy?: string;
+  occurredAt: string;
+}
+
+export interface HourlyOrderTrackingDto {
+  id?: string;
+  eventType: number;
+  subjectType?: number;
+  subjectId?: string;
+  latitude?: number;
+  longitude?: number;
+  device?: string;
+  notes?: string;
+  trackingSource?: number;
+  recordedAt?: string;
+}
+
+export interface HourlyWorkerAssignmentDetailDto {
+  id: string;
+  workerId: string;
+  workerName: string;
+  workerPhone: string;
+  assignedDate: string;
+  assignmentStatus: number;
+  assignmentStatusName: string;
+  confirmedAt: string | null;
+  notes: string | null;
+}
+
+export interface HourlyOrderDetailDto {
+  id: string;
+  ticketNumber: string;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  customerId: string | null;
+  serviceCity: string | null;
+  serviceDistrict: string | null;
+  packageId: string | null;
+  packageName: string | null;
+  servingAreaId: string | null;
+  numberOfWorkers: number;
+  subTotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  paymentStatus: number;
+  status: HourlyRequestStatus;
+  statusName: string;
+  requiresDriver: boolean;
+  requiresAccommodation: boolean;
+  serviceLatitude: number | null;
+  serviceLongitude: number | null;
+  transferProofUrl: string | null;
+  internalNotes: string | null;
+  requestDate: string;
+  requestedStartTime: string;
+  requestedEndTime: string;
+  assignedWorkersCount: number;
+  createdDate: string;
+  /**
+   * Detail returns the SIMPLE assignment shape (verified 2026-06-29) — the rich
+   * status/confirmedAt fields come from GET /Assignments (HourlyWorkerAssignmentDetailDto).
+   */
+  assignments: HourlyWorkerAssignment[];
+  payments: HourlyOrderPaymentDto[];
+  driverAssignment: HourlyDriverAssignmentDto | null;
+  timeline: HourlyOrderTimelineDto[];
+  /** Detail embeds logs too, alongside the dedicated GET /Logs endpoint. */
+  logs: HourlyOrderLogDto[];
+  tracking: HourlyOrderTrackingDto[];
+  history: HourlyWorkerRequestHistory[];
+}
+
+export interface UpdateAssignmentStatusDto {
+  status: number;
+  notes?: string;
+}
+
+export interface AddInternalNoteDto {
+  note: string;
+}
+
+// ==================== Recommended Workers ====================
+
+export interface RecommendedWorkerDto {
+  /** Live API returns `workerId`/`workerName` (verified 2026-06-29), not id/fullName. */
+  workerId: string;
+  workerName: string;
+  phoneNumber: string;
+  hourlyRate: number;
+  isAvailable: boolean;
+  score: number;
+  recommendationReason: string | null;
+}
+
+// ==================== Driver ====================
+
+export interface HourlyDriver {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  nationalId: string | null;
+  licenseNumber: string | null;
+  vehicleType: string | null;
+  vehiclePlateNumber: string | null;
+  notes: string | null;
+  isActive: boolean;
+  linkedUserId: string | null;
+  createdDate: string;
+  updatedDate: string | null;
+}
+
+export interface CreateHourlyDriverDto {
+  fullName: string;
+  phoneNumber: string;
+  nationalId?: string | null;
+  licenseNumber?: string | null;
+  vehicleType?: string | null;
+  vehiclePlateNumber?: string | null;
+  notes?: string | null;
+  linkedUserId?: string | null;
+}
+
+export type UpdateHourlyDriverDto = CreateHourlyDriverDto;
+
+export interface HourlyDriverListParams {
+  search?: string;
+  isActive?: boolean;
+  sortBy?: 'fullName' | 'createdDate';
+  sortDescending?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+// ==================== Catalog — Packages ====================
+
+export interface HourlyServicePackage {
+  id: string;
+  code: string;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string | null;
+  descriptionEn: string | null;
+  durationHours: number;
+  numberOfWorkers: number;
+  basePrice: number;
+  hourlyRate: number;
+  sortOrder: number;
+  isActive: boolean;
+  createdDate: string;
+}
+
+export interface CreateHourlyServicePackageDto {
+  code: string;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr?: string | null;
+  descriptionEn?: string | null;
+  durationHours: number;
+  numberOfWorkers: number;
+  basePrice: number;
+  hourlyRate: number;
+  sortOrder?: number;
+  isActive: boolean;
+}
+
+export type UpdateHourlyServicePackageDto = CreateHourlyServicePackageDto;
+
+export interface HourlyPackageListParams {
+  search?: string;
+  isActive?: boolean;
+  sortBy?: 'code' | 'nameEn' | 'basePrice' | 'sortOrder' | 'createdDate';
+  sortDescending?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+// ==================== Catalog — Serving Areas ====================
+
+export interface HourlyServingArea {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  cityAr: string;
+  cityEn: string;
+  districtAr: string | null;
+  districtEn: string | null;
+  postalCode: string | null;
+  centerLatitude: number | null;
+  centerLongitude: number | null;
+  radiusKm: number | null;
+  isActive: boolean;
+  createdDate: string;
+}
+
+export interface CreateHourlyServingAreaDto {
+  nameAr: string;
+  nameEn: string;
+  cityAr: string;
+  cityEn: string;
+  districtAr?: string | null;
+  districtEn?: string | null;
+  postalCode?: string | null;
+  centerLatitude?: number | null;
+  centerLongitude?: number | null;
+  radiusKm?: number | null;
+  isActive: boolean;
+}
+
+export type UpdateHourlyServingAreaDto = CreateHourlyServingAreaDto;
+
+export interface HourlyServingAreaListParams {
+  search?: string;
+  isActive?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+// ==================== Payments List ====================
+
+export interface HourlyPaymentListItem {
+  id: string;
+  orderId: string;
+  ticketNumber: string;
+  checkoutReference: string | null;
+  amount: number;
+  paymentMethod: number;
+  paymentMethodName: string;
+  status: number;
+  statusName?: string;
+  transactionReference: string | null;
+  transferProofUrl: string | null;
+  paidAt: string | null;
+  createdDate: string;
+}
+
+export interface HourlyPaymentListParams {
+  orderId?: string;
+  status?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  sortBy?: 'amount' | 'status' | 'createdDate';
+  sortDescending?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+// ==================== Notifications ====================
+
+export interface HourlyOrderNotification {
+  id: string;
+  orderId: string;
+  ticketNumber?: string;
+  recipientPhone: string;
+  message: string | null;
+  deliveryStatus: number;
+  deliveryStatusName?: string;
+  sentAt: string | null;
+  createdDate: string;
+}
+
+export interface HourlyNotificationListParams {
+  orderId?: string;
+  deliveryStatus?: number;
+  recipientPhone?: string;
+  search?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+// ==================== Reports ====================
+
+export interface HourlyOrdersSummaryReport {
+  totalOrders: number;
+  pendingOrders: number;
+  approvedOrders: number;
+  assignedOrders: number;
+  inProgressOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  rejectedOrders: number;
+  totalRevenue: number;
+  paidRevenue: number;
+}
+
+export interface HourlyRevenueReport {
+  totalCollected: number;
+  totalRefunded: number;
+  netRevenue: number;
+  completedPayments: number;
+  pendingPayments: number;
+  failedPayments: number;
+}
+
+export interface HourlyWorkerUtilizationReport {
+  workerId?: string;
+  workerName?: string;
+  totalAssignments: number;
+  completedAssignments: number;
+  activeAssignments: number;
+  utilizationRate: number;
+}
+
+export interface HourlyDriverPerformanceReport {
+  driverId?: string;
+  driverName?: string;
+  totalTrips: number;
+  completedTrips: number;
+  cancelledTrips: number;
+  completionRate: number;
+}
+
+export interface HourlyReportFilterParams {
+  dateFrom?: string;
+  dateTo?: string;
+  serviceCity?: string;
+  status?: number;
+}
+
+// ==================== Invoices ====================
+
+export interface HourlyOrderInvoice {
+  id: string;
+  orderId: string;
+  invoiceNumber?: string;
+  dueDate: string | null;
+  notes: string | null;
+  createdDate: string;
+}
+
+export interface IssueHourlyOrderInvoiceDto {
+  dueDate?: string;
+  notes?: string;
+}
+
+// ==================== Accommodation ====================
+
+export interface HourlyOrderAccommodation {
+  id: string;
+  orderId: string;
+  housingId: string | null;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfWorkers: number;
+  cost: number;
+  notes: string | null;
+  status: number;
+  statusName: string;
+  createdDate: string;
+}
+
+export interface BookHourlyOrderAccommodationDto {
+  housingId?: string;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfWorkers: number;
+  cost: number;
+  notes?: string;
+}
+
+export interface UpdateHourlyAccommodationStatusDto {
+  status: number;
+  notes?: string;
+}
+
+// ==================== Assign Driver ====================
+
+export interface AssignDriverDto {
+  driverId: string;
+}
+
+// ==================== Worker Assignment Status Enums ====================
+
+export enum HourlyWorkerAssignmentStatus {
+  Pending = 0,
+  Confirmed = 1,
+  EnRoute = 2,
+  Arrived = 3,
+  InService = 4,
+  ServiceCompleted = 5,
+  Cancelled = 6,
+  NoShow = 7,
+  LeftCustomer = 8,
+  ReturnedToAccommodation = 9,
+}
+
+export enum HourlyDriverAssignmentStatus {
+  Pending = 0,
+  Assigned = 1,
+  EnRoute = 2,
+  Arrived = 3,
+  Completed = 4,
+  Cancelled = 5,
+}
+
+export enum HourlyAccommodationStatus {
+  Requested = 0,
+  Confirmed = 1,
+  CheckedIn = 2,
+  CheckedOut = 3,
+  Cancelled = 4,
+}
+
+export enum HourlyNotificationDeliveryStatus {
+  Pending = 0,
+  Sent = 1,
+  Delivered = 2,
+  Failed = 3,
+}
+
+export enum HourlyPaymentMethod {
+  Card = 1,
+  BankTransfer = 2,
+}
+
+export enum HourlyPaymentRecordStatus {
+  Pending = 0,
+  Completed = 1,
+  Failed = 2,
+  Refunded = 3,
+  Cancelled = 4,
+}
+
+export enum HourlyOrderPaymentStatus {
+  Unpaid = 0,
+  PartiallyPaid = 1,
+  Paid = 2,
+  Refunded = 3,
+  Failed = 4,
+}

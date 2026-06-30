@@ -548,11 +548,98 @@ export const API_ENDPOINTS = {
   HOURLY_WORKER_REQUESTS: {
     GET_ALL: '/api/V1/HourlyWorkerRequests',
     GET_BY_ID: (id: string) => `/api/V1/HourlyWorkerRequests/${id}`,
+    GET_DETAIL: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Detail`,
+    GET_TIMELINE: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Timeline`,
+    GET_LOGS: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Logs`,
+    GET_PAYMENTS: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Payments`,
+    GET_ASSIGNMENTS: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Assignments`,
+    UPDATE_ASSIGNMENT_STATUS: (id: string, assignmentId: string) =>
+      `/api/V1/HourlyWorkerRequests/${id}/Assignments/${assignmentId}/Status`,
+    DELETE_ASSIGNMENT: (id: string, assignmentId: string) =>
+      `/api/V1/HourlyWorkerRequests/${id}/Assignments/${assignmentId}`,
+    ADD_INTERNAL_NOTE: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/InternalNotes`,
+    TRACK: (ticketNumber: string) => `/api/V1/HourlyWorkerRequests/Track/${ticketNumber}`,
     APPROVE: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Approve`,
     REJECT: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Reject`,
     ASSIGN: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Assign`,
     IN_PROGRESS: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/InProgress`,
     COMPLETE: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Complete`,
     CANCEL: (id: string) => `/api/V1/HourlyWorkerRequests/${id}/Cancel`,
+  },
+
+  // ─── Hourly Worker Orders — /api/V1/HourlyWorkerOrders/* ─────────────────────
+  HOURLY_WORKER_ORDERS: {
+    RECOMMENDED_WORKERS: (orderId: string) =>
+      `/api/V1/HourlyWorkerOrders/${orderId}/RecommendedWorkers`,
+    ASSIGN_DRIVER: (orderId: string) => `/api/V1/HourlyWorkerOrders/${orderId}/AssignDriver`,
+    GET_TRACKING: (orderId: string) => `/api/V1/HourlyWorkerOrders/${orderId}/Tracking`,
+    POST_TRACKING: (orderId: string) => `/api/V1/HourlyWorkerOrders/${orderId}/Tracking`,
+    GET_INVOICES: (orderId: string) => `/api/V1/HourlyWorkerOrders/${orderId}/Invoices`,
+    POST_INVOICE: (orderId: string) => `/api/V1/HourlyWorkerOrders/${orderId}/Invoices`,
+    GET_ACCOMMODATION: (orderId: string) =>
+      `/api/V1/HourlyWorkerOrders/${orderId}/Accommodation`,
+    POST_ACCOMMODATION: (orderId: string) =>
+      `/api/V1/HourlyWorkerOrders/${orderId}/Accommodation`,
+    UPDATE_ACCOMMODATION_STATUS: (orderId: string, accommodationId: string) =>
+      `/api/V1/HourlyWorkerOrders/${orderId}/Accommodation/${accommodationId}/Status`,
+  },
+
+  // ─── Hourly Drivers — /api/V1/HourlyDrivers/* ────────────────────────────────
+  HOURLY_DRIVERS: {
+    GET_ALL: '/api/V1/HourlyDrivers',
+    GET_BY_ID: (id: string) => `/api/V1/HourlyDrivers/${id}`,
+    CREATE: '/api/V1/HourlyDrivers',
+    UPDATE: (id: string) => `/api/V1/HourlyDrivers/${id}`,
+    DELETE: (id: string) => `/api/V1/HourlyDrivers/${id}`,
+    ACTIVATE: (id: string) => `/api/V1/HourlyDrivers/${id}/Activate`,
+    DEACTIVATE: (id: string) => `/api/V1/HourlyDrivers/${id}/Deactivate`,
+    GET_ORDERS: (driverId: string) => `/api/V1/HourlyDrivers/${driverId}/Orders`,
+    TRANSPORT_STATUS: (driverId: string, orderId: string) =>
+      `/api/V1/HourlyDrivers/${driverId}/Orders/${orderId}/TransportStatus`,
+  },
+
+  // ─── Hourly Catalog — /api/V1/HourlyCatalog/* ────────────────────────────────
+  HOURLY_CATALOG: {
+    PACKAGES: '/api/V1/HourlyCatalog/Packages',
+    SERVING_AREAS: '/api/V1/HourlyCatalog/ServingAreas',
+    ADMIN_PACKAGES: '/api/V1/HourlyCatalog/Admin/Packages',
+    ADMIN_PACKAGE_BY_ID: (id: string) => `/api/V1/HourlyCatalog/Admin/Packages/${id}`,
+    ADMIN_UPDATE_PACKAGE: (id: string) => `/api/V1/HourlyCatalog/Admin/Packages/${id}`,
+    ADMIN_DELETE_PACKAGE: (id: string) => `/api/V1/HourlyCatalog/Admin/Packages/${id}`,
+    ADMIN_SERVING_AREAS: '/api/V1/HourlyCatalog/Admin/ServingAreas',
+    ADMIN_SERVING_AREA_BY_ID: (id: string) => `/api/V1/HourlyCatalog/Admin/ServingAreas/${id}`,
+    ADMIN_UPDATE_SERVING_AREA: (id: string) =>
+      `/api/V1/HourlyCatalog/Admin/ServingAreas/${id}`,
+    ADMIN_DELETE_SERVING_AREA: (id: string) =>
+      `/api/V1/HourlyCatalog/Admin/ServingAreas/${id}`,
+  },
+
+  // ─── Hourly Order Payments — /api/V1/HourlyOrderPayments/* ───────────────────
+  HOURLY_ORDER_PAYMENTS: {
+    GET_ALL: '/api/V1/HourlyOrderPayments',
+    REFUND: (id: string) => `/api/V1/HourlyOrderPayments/${id}/Refund`,
+  },
+
+  // ─── Hourly Order Notifications — /api/V1/HourlyOrderNotifications/* ──────────
+  HOURLY_ORDER_NOTIFICATIONS: {
+    GET_ALL: '/api/V1/HourlyOrderNotifications',
+    RETRY: (id: string) => `/api/V1/HourlyOrderNotifications/${id}/Retry`,
+  },
+
+  // ─── Hourly Reports — /api/V1/HourlyWorkerReports/* ──────────────────────────
+  HOURLY_REPORTS: {
+    ORDERS_SUMMARY: '/api/V1/HourlyWorkerReports/OrdersSummary',
+    REVENUE: '/api/V1/HourlyWorkerReports/Revenue',
+    WORKER_UTILIZATION: '/api/V1/HourlyWorkerReports/WorkerUtilization',
+    DRIVER_PERFORMANCE: '/api/V1/HourlyWorkerReports/DriverPerformance',
+  },
+
+  // ─── Hourly Worker Portal — /api/V1/HourlyWorkerPortal/* ─────────────────────
+  HOURLY_WORKER_PORTAL: {
+    GET_ASSIGNMENTS: (workerId: string) =>
+      `/api/V1/HourlyWorkerPortal/${workerId}/Assignments`,
+    UPDATE_ASSIGNMENT_STATUS: (workerId: string, assignmentId: string) =>
+      `/api/V1/HourlyWorkerPortal/${workerId}/Assignments/${assignmentId}/Status`,
+    GET_SCHEDULE: (workerId: string) => `/api/V1/HourlyWorkerPortal/${workerId}/Schedule`,
   },
 } as const;
