@@ -49,15 +49,22 @@ export default function HourlyNotificationsPage() {
 
   const { retry } = useHourlyNotificationMutations();
 
+  // Humanize the raw event name, e.g. "HourlyOrderInProgress" → "In Progress".
+  const fmtEvent = (e: string | null) =>
+    e ? e.replace(/^HourlyOrder/, '').replace(/([a-z])([A-Z])/g, '$1 $2') : '—';
+
   const columns: ColumnsType<HourlyOrderNotification> = [
-    { title: t('رقم التذكرة', 'Ticket'), dataIndex: 'ticketNumber', key: 'ticket', width: 160,
-      render: (v) => (v ? <span className={styles.docNumber}>{v}</span> : '—') },
+    { title: t('الحدث', 'Event'), dataIndex: 'event', key: 'event', width: 150,
+      render: (v) => <span className={styles.docNumber}>{fmtEvent(v)}</span> },
     { title: t('المستلم', 'Recipient'), dataIndex: 'recipientPhone', key: 'phone', width: 150,
       render: (v) => <span className={styles.assignmentPhone}>{v}</span> },
-    { title: t('الرسالة', 'Message'), dataIndex: 'message', key: 'message', render: (v) => v || '—' },
     { title: t('الحالة', 'Status'), dataIndex: 'deliveryStatus', key: 'status', width: 120,
       render: (v) => <EnumTag map={NOTIFICATION_STATUS} value={v} isAr={isAr} /> },
+    { title: t('سبب الفشل', 'Error'), dataIndex: 'errorMessage', key: 'error',
+      render: (v) => (v ? <span className={styles.muted}>{v}</span> : '—') },
     { title: t('تاريخ الإرسال', 'Sent At'), dataIndex: 'sentAt', key: 'sent', width: 150,
+      render: (v) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '—') },
+    { title: t('تاريخ الإنشاء', 'Created'), dataIndex: 'createdDate', key: 'created', width: 150,
       render: (v) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '—') },
     ...(canRetry
       ? [{

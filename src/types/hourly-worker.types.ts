@@ -490,12 +490,16 @@ export interface HourlyPaymentListParams {
 export interface HourlyOrderNotification {
   id: string;
   orderId: string;
-  ticketNumber?: string;
+  /** Notification event type, e.g. "HourlyOrderCreated", "HourlyOrderApproved". */
+  event: string | null;
+  /** Delivery channel (0 = WhatsApp). */
+  channel: number;
   recipientPhone: string;
-  message: string | null;
   deliveryStatus: number;
   deliveryStatusName?: string;
   sentAt: string | null;
+  /** Populated when deliveryStatus = Failed, e.g. "Template not found". */
+  errorMessage: string | null;
   createdDate: string;
 }
 
