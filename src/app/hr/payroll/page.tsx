@@ -25,7 +25,9 @@ import {
   LockOutlined,
   PlayCircleOutlined,
   CheckCircleOutlined,
+  AuditOutlined,
 } from '@ant-design/icons';
+import Link from 'next/link';
 import type { ColumnsType } from 'antd/es/table';
 import { useHRPayroll } from '@/hooks/api/useHR';
 import { PayrollStatus, type PayrollEmployeeDto } from '@/types/hr.types';
@@ -256,6 +258,25 @@ export default function HRPayrollPage() {
               <Tag color={isClosed ? 'error' : isApproved ? 'blue' : 'warning'}>
                 {isClosed ? 'مغلق' : isApproved ? 'معتمد' : 'مسودة'}
               </Tag>
+
+              {/* Accounting linkage — populated once the run is approved/posted.
+                  Links to the journal entries screen; shows references on hover. */}
+              {payroll.journalEntryId && (
+                <Tooltip
+                  title={
+                    `تم ترحيل الكشف محاسبياً — قيد اليومية: ${payroll.journalEntryId}` +
+                    (payroll.accountingDocumentId
+                      ? ` — سند محاسبي: ${payroll.accountingDocumentId}`
+                      : '')
+                  }
+                >
+                  <Link href="/accounting/journal-entries">
+                    <Tag color="green" icon={<AuditOutlined />} style={{ cursor: 'pointer' }}>
+                      مُرحّل محاسبياً
+                    </Tag>
+                  </Link>
+                </Tooltip>
+              )}
 
               {/* Step 1 — Approve a draft run */}
               {!isApproved && !isClosed && (

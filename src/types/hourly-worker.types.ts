@@ -55,6 +55,9 @@ export interface HourlyWorkerListParams {
   sortDescending?: boolean;
   pageNumber?: number;
   pageSize?: number;
+  // Branch scoping (FilterHourlyWorkerDto shared base fields).
+  branchId?: string;
+  includeSubBranches?: boolean;
 }
 
 // ==================== Request ====================
@@ -123,6 +126,13 @@ export interface HourlyWorkerRequestListParams {
   sortDescending?: boolean;
   pageNumber?: number;
   pageSize?: number;
+  // Branch scoping + shared filters (FilterHourlyWorkerRequestDto). NOTE: on the
+  // current backend data branchId had no observable effect — plumbed per spec.
+  branchId?: string;
+  includeSubBranches?: boolean;
+  search?: string;
+  customerPhone?: string;
+  serviceCity?: string;
 }
 
 // ==================== Status enum ====================
@@ -559,6 +569,9 @@ export interface HourlyReportFilterParams {
   dateTo?: string;
   serviceCity?: string;
   status?: number;
+  // Branch scoping — verified live: OrdersSummary honors branchId (5 → 0).
+  branchId?: string;
+  includeSubBranches?: boolean;
 }
 
 // ==================== Invoices ====================

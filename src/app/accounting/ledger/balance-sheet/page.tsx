@@ -9,6 +9,7 @@ import { useBalanceSheet } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import type { BalanceSheetLine, BalanceSheetSection } from '@/types/ledger.types';
 import { LedgerHeader } from '../_components/LedgerHeader';
+import { BranchFilterSelect } from '@/components/filters';
 import { fmtAmount, fmtBalance } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
 
@@ -17,9 +18,13 @@ export default function BalanceSheetPage() {
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   const [asOf, setAsOf] = useState<Dayjs | null>(dayjs());
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   const { data, isLoading, isFetching, refetch } = useBalanceSheet({
     asOfDate: asOf?.format('YYYY-MM-DD'),
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
   });
 
   const sectionColumns = (label: string): ColumnsType<BalanceSheetLine> => [
@@ -88,13 +93,21 @@ export default function BalanceSheetPage() {
         onRefresh={() => refetch()}
         refreshLabel={t('تحديث', 'Refresh')}
         extra={
-          <DatePicker
-            value={asOf}
-            onChange={(v) => setAsOf(v)}
-            allowClear={false}
-            format="YYYY-MM-DD"
-            placeholder={t('حتى تاريخ', 'As of date')}
-          />
+          <>
+            <DatePicker
+              value={asOf}
+              onChange={(v) => setAsOf(v)}
+              allowClear={false}
+              format="YYYY-MM-DD"
+              placeholder={t('حتى تاريخ', 'As of date')}
+            />
+            <BranchFilterSelect
+              value={branchId}
+              onChange={setBranchId}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+            />
+          </>
         }
       />
 

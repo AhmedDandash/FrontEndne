@@ -29,13 +29,21 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useHRCustodyRequests, useHREmployees } from '@/hooks/api/useHR';
-import type { CustodyRequestDto, CustodyRequestItemDto } from '@/types/hr.types';
+import { RequestStatus, type CustodyRequestDto, type CustodyRequestItemDto } from '@/types/hr.types';
 
 const { Title } = Typography;
 
-// 1=Pending, 2=Approved, 3=Rejected
-const STATUS_COLOR: Record<number, string> = { 1: 'warning', 2: 'success', 3: 'error' };
-const STATUS_LABEL: Record<number, string> = { 1: 'قيد الانتظار', 2: 'موافق عليه', 3: 'مرفوض' };
+// Status enum is 1=Approved, 2=Rejected, 3=Pending (verified live) — see RequestStatus.
+const STATUS_COLOR: Record<number, string> = {
+  [RequestStatus.Pending]: 'warning',
+  [RequestStatus.Approved]: 'success',
+  [RequestStatus.Rejected]: 'error',
+};
+const STATUS_LABEL: Record<number, string> = {
+  [RequestStatus.Pending]: 'قيد الانتظار',
+  [RequestStatus.Approved]: 'موافق عليه',
+  [RequestStatus.Rejected]: 'مرفوض',
+};
 
 const itemColumns: ColumnsType<CustodyRequestItemDto> = [
   {
@@ -96,9 +104,9 @@ export default function CustodyRequestsPage() {
     return fn(id).finally(() => setActioningId(null));
   };
 
-  const pendingCount  = custodyRequests.filter((r) => r.status === 1).length;
-  const approvedCount = custodyRequests.filter((r) => r.status === 2).length;
-  const rejectedCount = custodyRequests.filter((r) => r.status === 3).length;
+  const pendingCount  = custodyRequests.filter((r) => r.status === RequestStatus.Pending).length;
+  const approvedCount = custodyRequests.filter((r) => r.status === RequestStatus.Approved).length;
+  const rejectedCount = custodyRequests.filter((r) => r.status === RequestStatus.Rejected).length;
 
   const filteredRequests = useMemo(() => {
     const q = searchText.trim().toLowerCase();
@@ -144,7 +152,7 @@ export default function CustodyRequestsPage() {
       key: 'actions',
       width: 130,
       render: (_, record) => {
-        const isPending = record.status === 1;
+        const isPending = record.status === RequestStatus.Pending;
         return (
           <Space>
             <Tooltip title="عرض التفاصيل">
@@ -236,9 +244,9 @@ export default function CustodyRequestsPage() {
             value={statusFilter}
             onChange={(v) => setStatusFilter(v)}
             options={[
-              { value: 1, label: 'قيد الانتظار' },
-              { value: 2, label: 'موافق عليه' },
-              { value: 3, label: 'مرفوض' },
+              { value: RequestStatus.Pending, label: 'قيد الانتظار' },
+              { value: RequestStatus.Approved, label: 'موافق عليه' },
+              { value: RequestStatus.Rejected, label: 'مرفوض' },
             ]}
           />
         </Space>

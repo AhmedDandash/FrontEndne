@@ -9,6 +9,7 @@ import { usePartyLedger, usePartyOptions } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import type { PartyKind, PartyLedgerLine } from '@/types/ledger.types';
 import { LedgerHeader } from './LedgerHeader';
+import { BranchFilterSelect } from '@/components/filters';
 import { fmtAmount, fmtDate } from './ledgerFormat';
 import styles from '../Ledger.module.css';
 
@@ -30,12 +31,16 @@ export function PartyLedgerView({ kind, icon, title, subtitle, idLabel }: PartyL
 
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   const { data: partyOptions = [], isLoading: optionsLoading } = usePartyOptions(kind);
 
   const { data, isLoading, isFetching, refetch, error } = usePartyLedger(kind, selectedId, {
     from: range?.[0]?.startOf('day').toISOString(),
     to: range?.[1]?.endOf('day').toISOString(),
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
   });
 
   const columns: ColumnsType<PartyLedgerLine> = [
@@ -121,6 +126,12 @@ export function PartyLedgerView({ kind, icon, title, subtitle, idLabel }: PartyL
             value={range as any}
             onChange={(v) => setRange(v as any)}
             placeholder={[t('من', 'From'), t('إلى', 'To')]}
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={setBranchId}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
           />
         </div>
 

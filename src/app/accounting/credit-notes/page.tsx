@@ -25,6 +25,7 @@ import {
   AuditOutlined,
 } from '@ant-design/icons';
 import { useCreditNotes, useCreditNoteTrace, useCreateCreditNote } from '@/hooks/api/useCreditNotes';
+import { BranchFilterSelect } from '@/components/filters';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { useAuthStore } from '@/store/authStore';
 import type { CreditNote, CreateCreditNoteDto } from '@/types/api.types';
@@ -40,10 +41,14 @@ export default function CreditNotesPage() {
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   const [customerId, setCustomerId] = useState<string | undefined>();
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
 
   const { data: notes = [], isLoading, isFetching, refetch } = useCreditNotes({
     customerId,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
     dateFrom: range?.[0]?.startOf('day').toISOString(),
     dateTo: range?.[1]?.endOf('day').toISOString(),
   });
@@ -197,6 +202,12 @@ export default function CreditNotesPage() {
             className={styles.filterSelect}
             value={customerId} onChange={setCustomerId}
             options={(customers as any[]).map((c: any) => ({ value: c.id, label: (isAr ? c.arabicName || c.englishName : c.englishName || c.arabicName) || String(c.id) }))}
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={setBranchId}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
           />
           <RangePicker size="large" className={styles.filterDate} value={range} onChange={(d) => setRange(d as any)} />
         </div>

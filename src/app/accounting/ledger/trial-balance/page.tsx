@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/authStore';
 import { getAccountType } from '@/types/accounting.types';
 import type { TrialBalanceLine } from '@/types/ledger.types';
 import { LedgerHeader } from '../_components/LedgerHeader';
+import { BranchFilterSelect } from '@/components/filters';
 import { fmtAmount, fmtBalance } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
 
@@ -22,11 +23,15 @@ export default function TrialBalancePage() {
 
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
   const [groupedOnly, setGroupedOnly] = useState(false);
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   const { data, isLoading, isFetching, refetch } = useTrialBalance({
     from: range?.[0]?.startOf('day').toISOString(),
     to: range?.[1]?.endOf('day').toISOString(),
     groupedOnly,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
   });
 
   const balanced =
@@ -126,6 +131,12 @@ export default function TrialBalancePage() {
             value={range as any}
             onChange={(v) => setRange(v as any)}
             placeholder={[t('من', 'From'), t('إلى', 'To')]}
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={setBranchId}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
           />
           <Space>
             <Switch checked={groupedOnly} onChange={setGroupedOnly} />

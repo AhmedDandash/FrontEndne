@@ -25,6 +25,7 @@ import {
   AuditOutlined,
 } from '@ant-design/icons';
 import { useReceiptVouchers, useReceiptVoucherTrace, useCreateReceiptVoucher } from '@/hooks/api/useReceiptVouchers';
+import { BranchFilterSelect } from '@/components/filters';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useAuthStore } from '@/store/authStore';
@@ -47,11 +48,15 @@ export default function ReceiptVouchersPage() {
   // ── Filters ─────────────────────────────────────────────────
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [contractId, setContractId] = useState<string | undefined>();
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
 
   const { data: vouchers = [], isLoading, isFetching, refetch } = useReceiptVouchers({
     customerId,
     contractId,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
     dateFrom: range?.[0]?.startOf('day').toISOString(),
     dateTo: range?.[1]?.endOf('day').toISOString(),
   });
@@ -236,6 +241,12 @@ export default function ReceiptVouchersPage() {
               value: c.id,
               label: c.contractNumber ? `#${c.contractNumber}${c.customerNameAr ? ` - ${c.customerNameAr}` : ''}` : String(c.id),
             }))}
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={setBranchId}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
           />
           <RangePicker
             size="large"

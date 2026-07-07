@@ -25,6 +25,7 @@ import {
   AuditOutlined,
 } from '@ant-design/icons';
 import { useDebitNotes, useDebitNoteTrace, useCreateDebitNote } from '@/hooks/api/useDebitNotes';
+import { BranchFilterSelect } from '@/components/filters';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useAuthStore } from '@/store/authStore';
 import type { DebitNote, CreateDebitNoteDto } from '@/types/api.types';
@@ -40,10 +41,14 @@ export default function DebitNotesPage() {
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   const [agentId, setAgentId] = useState<string | undefined>();
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
 
   const { data: notes = [], isLoading, isFetching, refetch } = useDebitNotes({
     agentId,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
     dateFrom: range?.[0]?.startOf('day').toISOString(),
     dateTo: range?.[1]?.endOf('day').toISOString(),
   });
@@ -196,6 +201,12 @@ export default function DebitNotesPage() {
             className={styles.filterSelect}
             value={agentId} onChange={setAgentId}
             options={(agents as any[]).map((a: any) => ({ value: a.id, label: (isAr ? a.agentNameAr || a.agentNameEn : a.agentNameEn || a.agentNameAr) || String(a.id) }))}
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={setBranchId}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
           />
           <RangePicker size="large" className={styles.filterDate} value={range} onChange={(d) => setRange(d as any)} />
         </div>

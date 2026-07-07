@@ -15,6 +15,7 @@ import {
 import dayjs from 'dayjs';
 
 import { useAuthStore } from '@/store/authStore';
+import { BranchFilterSelect } from '@/components/filters';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
@@ -61,6 +62,8 @@ export default function RentContractsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [nationalityFilter, setNationalityFilter] = useState<string | 'all'>('all');
   const [dateRange, setDateRange] = useState<[any, any] | null>(null);
+  const [branchId, setBranchId] = useState<string | undefined>(undefined);
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -97,7 +100,10 @@ export default function RentContractsPage() {
     isRenewing,
     isTerminating,
     isRefunding,
-  } = useEmploymentOperatingContracts();
+  } = useEmploymentOperatingContracts({
+    BranchId: branchId,
+    IncludeSubBranches: branchId ? includeSubBranches : undefined,
+  });
 
   const { data: jobs = [] } = useJobs();
   const { data: nationalities = [] } = useNationalities();
@@ -446,6 +452,15 @@ export default function RentContractsPage() {
           </Col>
           <Col xs={24} sm={12} md={8}>
             <RangePicker value={dateRange} onChange={(dates) => setDateRange(dates)} style={{ width: '100%' }} size="large" placeholder={[t.startDate, t.endDate]} format="YYYY-MM-DD" />
+          </Col>
+          <Col xs={24} md={10}>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={setBranchId}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+              style={{ width: '100%' }}
+            />
           </Col>
         </Row>
       </Card>

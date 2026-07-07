@@ -17,6 +17,8 @@ export class DebitNoteService {
         contractId: filters.contractId || undefined,
         dateFrom: filters.dateFrom || undefined,
         dateTo: filters.dateTo || undefined,
+        branchId: filters.branchId || undefined,
+        includeSubBranches: filters.branchId ? filters.includeSubBranches ?? undefined : undefined,
       },
     });
     return unwrapList<DebitNote>(response.data);

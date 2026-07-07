@@ -7,6 +7,7 @@ import { PercentageOutlined } from '@ant-design/icons';
 import { useVatReport } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import { LedgerHeader } from '../_components/LedgerHeader';
+import { BranchFilterSelect } from '@/components/filters';
 import { fmtAmount, fmtDate } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
 
@@ -18,8 +19,15 @@ export default function VatReportPage() {
 
   const [year, setYear] = useState<number>(now.year());
   const [quarter, setQuarter] = useState<number>(Math.floor(now.month() / 3) + 1);
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
-  const { data, isLoading, isFetching, refetch, error } = useVatReport({ year, quarter });
+  const { data, isLoading, isFetching, refetch, error } = useVatReport({
+    year,
+    quarter,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
+  });
 
   const quarters = [1, 2, 3, 4].map((q) => ({ value: q, label: `${t('الربع', 'Q')} ${q}` }));
 
@@ -54,6 +62,12 @@ export default function VatReportPage() {
             onChange={setQuarter}
             options={quarters}
             style={{ width: 140 }}
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={setBranchId}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
           />
         </div>
 

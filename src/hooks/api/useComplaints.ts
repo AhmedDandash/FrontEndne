@@ -37,7 +37,14 @@ const updateCachedComplaint = (
   });
 };
 
-export const useComplaints = (params?: { pageNumber?: number; pageSize?: number; search?: string }) => {
+export const useComplaints = (params?: {
+  pageNumber?: number;
+  pageSize?: number;
+  search?: string;
+  branchId?: string;
+  includeSubBranches?: boolean;
+  status?: number;
+}) => {
   return useQuery<{ complaints: Complaint[]; total: number }, Error>({
     queryKey: [QUERY_KEY, 'list', params],
     queryFn: () => ComplaintService.getAll(params),

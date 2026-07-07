@@ -32,6 +32,7 @@ import {
 import { useJournalEntries, useJournalEntryMutations } from '@/hooks/api/useJournalEntries';
 import { useRestrictionTypes } from '@/hooks/api/useRestrictionTypes';
 import { useAuthStore } from '@/store/authStore';
+import { BranchFilterSelect } from '@/components/filters';
 import {
   JOURNAL_STATUSES,
   JOURNAL_SOURCES,
@@ -56,6 +57,8 @@ export default function JournalEntriesPage() {
   const [status, setStatus] = useState<JournalEntryStatus | undefined>();
   const [source, setSource] = useState<JournalEntrySource | undefined>();
   const [restrictionTypeId, setRestrictionTypeId] = useState<string | undefined>();
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -70,6 +73,8 @@ export default function JournalEntriesPage() {
     status,
     source,
     restrictionTypeId,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
     from: range?.[0]?.startOf('day').toISOString(),
     to: range?.[1]?.endOf('day').toISOString(),
   });
@@ -100,6 +105,7 @@ export default function JournalEntriesPage() {
     setStatus(undefined);
     setSource(undefined);
     setRestrictionTypeId(undefined);
+    setBranchId(undefined);
     setRange([dayjs().subtract(1, 'month'), dayjs()]);
     setPageNumber(1);
   };
@@ -411,6 +417,15 @@ export default function JournalEntriesPage() {
 
         {showAdvanced && (
           <div className={styles.advancedRow}>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={(v) => {
+                setBranchId(v);
+                setPageNumber(1);
+              }}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+            />
             <RangePicker
               value={range as any}
               onChange={(v) => {

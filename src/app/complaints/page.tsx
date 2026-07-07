@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { BranchFilterSelect } from '@/components/filters';
 import {
   Input,
   Select,
@@ -499,11 +500,19 @@ export default function ComplaintsPage() {
   const [complaintFromFilter, setComplaintFromFilter] = useState<string>('all');
   const [workerLocationFilter, setWorkerLocationFilter] = useState<string>('all');
   const [contractNumberFilter, setContractNumberFilter] = useState<string>('');
+  const [branchId, setBranchId] = useState<string | undefined>(undefined);
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // API hooks
-  const { data: complaintsData, isLoading } = useComplaints({ pageNumber: currentPage, pageSize });
+  // API hooks — branch scoping is applied server-side; other filters below are
+  // refined client-side on the returned page.
+  const { data: complaintsData, isLoading } = useComplaints({
+    pageNumber: currentPage,
+    pageSize,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
+  });
   const complaints = complaintsData?.complaints ?? [];
   const serverTotal = complaintsData?.total ?? 0;
   const { customers = [] } = useCustomers();
@@ -1170,6 +1179,18 @@ export default function ComplaintsPage() {
                 setCurrentPage(1);
               }}
               allowClear
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>
+              {language === 'ar' ? 'الفرع' : 'Branch'}
+            </label>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={(v) => { setBranchId(v); setCurrentPage(1); }}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+              style={{ width: '100%' }}
             />
           </Col>
           <Col xs={24} md={8}>

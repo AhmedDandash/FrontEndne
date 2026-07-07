@@ -26,13 +26,21 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useHRResignationRequests } from '@/hooks/api/useHR';
-import type { ResignationRequestDto } from '@/types/hr.types';
+import { RequestStatus, type ResignationRequestDto } from '@/types/hr.types';
 
 const { Title } = Typography;
 
-// 1=Pending, 2=Approved, 3=Rejected
-const STATUS_COLOR: Record<number, string> = { 1: 'warning', 2: 'success', 3: 'error' };
-const STATUS_LABEL: Record<number, string> = { 1: 'قيد الانتظار', 2: 'موافق عليه', 3: 'مرفوض' };
+// Status enum is 1=Approved, 2=Rejected, 3=Pending (verified live) — see RequestStatus.
+const STATUS_COLOR: Record<number, string> = {
+  [RequestStatus.Pending]: 'warning',
+  [RequestStatus.Approved]: 'success',
+  [RequestStatus.Rejected]: 'error',
+};
+const STATUS_LABEL: Record<number, string> = {
+  [RequestStatus.Pending]: 'قيد الانتظار',
+  [RequestStatus.Approved]: 'موافق عليه',
+  [RequestStatus.Rejected]: 'مرفوض',
+};
 
 export default function ResignationRequestsPage() {
   const {
@@ -54,9 +62,9 @@ export default function ResignationRequestsPage() {
     return fn(id).finally(() => setActioningId(null));
   };
 
-  const pendingCount  = resignationRequests.filter((r) => r.status === 1).length;
-  const approvedCount = resignationRequests.filter((r) => r.status === 2).length;
-  const rejectedCount = resignationRequests.filter((r) => r.status === 3).length;
+  const pendingCount  = resignationRequests.filter((r) => r.status === RequestStatus.Pending).length;
+  const approvedCount = resignationRequests.filter((r) => r.status === RequestStatus.Approved).length;
+  const rejectedCount = resignationRequests.filter((r) => r.status === RequestStatus.Rejected).length;
 
   const filteredRequests = useMemo(() => {
     const q = searchText.trim().toLowerCase();
@@ -107,7 +115,7 @@ export default function ResignationRequestsPage() {
       key: 'actions',
       width: 100,
       render: (_, record) => {
-        const isPending = record.status === 1;
+        const isPending = record.status === RequestStatus.Pending;
         if (!isPending) return null;
         return (
           <Space>
@@ -193,9 +201,9 @@ export default function ResignationRequestsPage() {
             value={statusFilter}
             onChange={(v) => setStatusFilter(v)}
             options={[
-              { value: 1, label: 'قيد الانتظار' },
-              { value: 2, label: 'موافق عليه' },
-              { value: 3, label: 'مرفوض' },
+              { value: RequestStatus.Pending, label: 'قيد الانتظار' },
+              { value: RequestStatus.Approved, label: 'موافق عليه' },
+              { value: RequestStatus.Rejected, label: 'مرفوض' },
             ]}
           />
         </Space>

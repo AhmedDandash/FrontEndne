@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { AntdProvider } from '@/components/AntdProvider';
 import { ReactQueryProvider } from '@/lib/providers/ReactQueryProvider';
 import { TokenDebugger } from '@/components/TokenDebugger';
+import { PageTitle } from '@/components/PageTitle';
 import MainLayout from '@/components/layout/MainLayout';
 import './globals.css';
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ReactQueryProvider>
           <AntdProvider>
             <TokenDebugger />
+            <PageTitle />
             <MainLayout>{children}</MainLayout>
           </AntdProvider>
         </ReactQueryProvider>

@@ -267,6 +267,19 @@ export interface EmployeeLeaveBalanceDto {
   remainingBalance?: number | null;
 }
 
+// ==================== Request Status (shared) ====================
+
+// Permission / Resignation / Custody requests share ONE status enum, verified
+// live 2026-07-06: a freshly-created request is status 3 (Pending); approving
+// moves it to 1 (Approved); rejecting to 2. This is DIFFERENT from LeaveStatus
+// (which is 0-based). Earlier code assumed 1=Pending/2=Approved/3=Rejected — the
+// inverse — which broke the counts, labels and approve/reject gating.
+export const RequestStatus = {
+  Approved: 1,
+  Rejected: 2,
+  Pending: 3,
+} as const;
+
 // ==================== Permission Request Types ====================
 
 export type PermissionType = 1 | 2 | 3; // 1=ComeLate, 2=PartTime, 3=OutEarly
@@ -284,7 +297,7 @@ export interface CreatePermissionRequestDto {
   reasons: string;
 }
 
-// status: 1=Pending, 2=Approved, 3=Rejected
+// status: 1=Approved, 2=Rejected, 3=Pending (see RequestStatus)
 export interface PermissionRequestDto {
   id: string;
   employeeId?: string | null;
@@ -309,7 +322,7 @@ export interface CreateResignationRequestDto {
   reasons: string;
 }
 
-// status: 1=Pending, 2=Approved, 3=Rejected
+// status: 1=Approved, 2=Rejected, 3=Pending (see RequestStatus)
 export interface ResignationRequestDto {
   id: string;
   employeeId?: string | null;
@@ -348,7 +361,7 @@ export interface CreateCustodyRequestDto {
   custodyItems: CustodyItemDto[];
 }
 
-// status: 1=Pending, 2=Approved, 3=Rejected
+// status: 1=Approved, 2=Rejected, 3=Pending (see RequestStatus)
 export type CustodyRequestStatus = 1 | 2 | 3 | number;
 
 export interface CustodyRequestItemDto {

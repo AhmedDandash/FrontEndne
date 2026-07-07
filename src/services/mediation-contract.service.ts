@@ -78,6 +78,19 @@ export class MediationContractService {
     WorkerType?: number;
     DateFrom?: string;
     DateTo?: string;
+    // Branch scoping + shared advanced filters (FilterMediationContractDto).
+    BranchId?: string;
+    IncludeSubBranches?: boolean;
+    Search?: string;
+    ContractType?: number;
+    CustomerId?: string;
+    WorkerId?: string;
+    AgentId?: string;
+    MarketerId?: string;
+    CustomerPhone?: string;
+    VisaNumber?: string;
+    CreatedDateFrom?: string;
+    CreatedDateTo?: string;
   }): Promise<{ contracts: MediationContract[]; total: number }> {
     const query: Record<string, any> = {
       Page: params?.Page ?? 1,
@@ -96,6 +109,18 @@ export class MediationContractService {
           'WorkerType',
           'DateFrom',
           'DateTo',
+          'BranchId',
+          'IncludeSubBranches',
+          'Search',
+          'ContractType',
+          'CustomerId',
+          'WorkerId',
+          'AgentId',
+          'MarketerId',
+          'CustomerPhone',
+          'VisaNumber',
+          'CreatedDateFrom',
+          'CreatedDateTo',
         ] as const
       ).forEach((key) => {
         const value = params[key];

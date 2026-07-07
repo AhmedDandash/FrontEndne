@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/authStore';
 import type { GeneralLedgerLine } from '@/types/ledger.types';
 import { AccountSelect } from '../../journal-entries/_components/AccountSelect';
 import { LedgerHeader } from '../_components/LedgerHeader';
+import { BranchFilterSelect } from '@/components/filters';
 import { fmtAmount, fmtBalance, fmtDate } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
 
@@ -23,11 +24,15 @@ export default function GeneralLedgerPage() {
 
   const [accountId, setAccountId] = useState<string | undefined>();
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   const { data, isLoading, isFetching, refetch, error } = useGeneralLedger({
     accountId,
     from: range?.[0]?.startOf('day').toISOString(),
     to: range?.[1]?.endOf('day').toISOString(),
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
   });
 
   const columns: ColumnsType<GeneralLedgerLine> = [
@@ -102,6 +107,12 @@ export default function GeneralLedgerPage() {
             value={range as any}
             onChange={(v) => setRange(v as any)}
             placeholder={[t('من', 'From'), t('إلى', 'To')]}
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={setBranchId}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
           />
         </div>
 

@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/authStore';
 import { getAccountType } from '@/types/accounting.types';
 import type { IncomeStatementLine } from '@/types/ledger.types';
 import { LedgerHeader } from '../_components/LedgerHeader';
+import { BranchFilterSelect } from '@/components/filters';
 import { fmtAmount, fmtBalance } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
 
@@ -23,12 +24,16 @@ export default function IncomeStatementPage() {
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   const { data, isLoading, isFetching, refetch } = useIncomeStatement({
     from: range?.[0]?.startOf('day').toISOString(),
     to: range?.[1]?.endOf('day').toISOString(),
     pageNumber,
     pageSize,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
   });
 
   const columns: ColumnsType<IncomeStatementLine> = [
@@ -123,6 +128,12 @@ export default function IncomeStatementPage() {
               setPageNumber(1);
             }}
             placeholder={[t('من', 'From'), t('إلى', 'To')]}
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={(v) => { setBranchId(v); setPageNumber(1); }}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
           />
         </div>
 

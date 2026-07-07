@@ -11,6 +11,7 @@ import {
   useHourlyWorkerUtilization,
   useHourlyDriverPerformance,
 } from '@/hooks/api/useHourlyReports';
+import { BranchFilterSelect } from '@/components/filters';
 import { useAuthStore } from '@/store/authStore';
 import { fmtMoney } from '../_lib/hourlyDisplay';
 import type {
@@ -29,6 +30,8 @@ export default function HourlyReportsPage() {
 
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [serviceCity, setServiceCity] = useState('');
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [filters, setFilters] = useState<HourlyReportFilterParams>({});
 
   const applyFilters = () => {
@@ -36,6 +39,8 @@ export default function HourlyReportsPage() {
       dateFrom: range?.[0]?.format('YYYY-MM-DD'),
       dateTo: range?.[1]?.format('YYYY-MM-DD'),
       serviceCity: serviceCity || undefined,
+      branchId,
+      includeSubBranches: branchId ? includeSubBranches : undefined,
     });
   };
 
@@ -120,6 +125,12 @@ export default function HourlyReportsPage() {
           <RangePicker size="large" className={styles.filterDate} onChange={(d) => setRange(d as [Dayjs | null, Dayjs | null] | null)} />
           <Input allowClear size="large" placeholder={t('المدينة', 'City')} className={styles.filterSelect}
             value={serviceCity} onChange={(e) => setServiceCity(e.target.value)} />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={setBranchId}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
+          />
           <Button type="primary" size="large" onClick={applyFilters}>{t('تطبيق', 'Apply')}</Button>
         </div>
       </Card>

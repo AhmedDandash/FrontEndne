@@ -47,7 +47,13 @@ export class LedgerService {
   }
 
   private static dateParams(q: DateRangeQuery) {
-    return { from: q.from || undefined, to: q.to || undefined };
+    return {
+      from: q.from || undefined,
+      to: q.to || undefined,
+      // Branch scoping — DTO-ready on the backend (aggregation partially applied).
+      branchId: q.branchId || undefined,
+      includeSubBranches: q.branchId ? q.includeSubBranches : undefined,
+    };
   }
 
   // ==================== 3.1 General Ledger ====================
@@ -206,7 +212,11 @@ export class LedgerService {
 
   static async getBalanceSheet(query: BalanceSheetQuery): Promise<BalanceSheet> {
     const response = await api.get<any>(API_ENDPOINTS.LEDGER.BALANCE_SHEET, {
-      params: { asOfDate: query.asOfDate },
+      params: {
+        asOfDate: query.asOfDate,
+        branchId: query.branchId || undefined,
+        includeSubBranches: query.branchId ? query.includeSubBranches : undefined,
+      },
     });
     const d = this.unwrap<any>(response.data);
     return {
@@ -223,7 +233,12 @@ export class LedgerService {
 
   static async getVatReport(query: VatReportQuery): Promise<VatReport> {
     const response = await api.get<any>(API_ENDPOINTS.LEDGER.VAT_REPORT, {
-      params: { year: query.year, quarter: query.quarter },
+      params: {
+        year: query.year,
+        quarter: query.quarter,
+        branchId: query.branchId || undefined,
+        includeSubBranches: query.branchId ? query.includeSubBranches : undefined,
+      },
     });
     const d = this.unwrap<any>(response.data);
     return {

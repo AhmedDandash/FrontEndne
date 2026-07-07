@@ -42,6 +42,8 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
+import { API_ENDPOINTS } from '@/config/api.config';
 import {
   useTransferContracts,
   useTransferContract,
@@ -528,6 +530,8 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
       paymentMeansCodeTypeId: values.paymentMeansCodeTypeId,
       trialPeriodDays:        values.trialPeriodDays ?? 90,
       notes:                  values.notes ?? null,
+      // Scope to the creator's branch (backend falls back to JWT branchId).
+      branchId:               useAuthStore.getState().branchId ?? undefined,
     };
     createMutation.mutate(dto, {
       onSuccess: () => { form.resetFields(); onClose(); },
@@ -870,6 +874,12 @@ export default function SponsorshipTransferPage() {
 
   const [searchText,    setSearchText]    = useState('');
   const [statusFilter,  setStatusFilter]  = useState<string>('all');
+  const [branchId,      setBranchId]      = useState<string | undefined>(undefined);
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  const [dateRange, setDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
   const [currentPage,   setCurrentPage]   = useState(1);
   const [pageSize,      setPageSize]      = useState(10);
   const [createModal,   setCreateModal]   = useState(false);
@@ -879,7 +889,22 @@ export default function SponsorshipTransferPage() {
   const [complaintId, setComplaintId] = useState<string | null>(null);
   const [authorityId, setAuthorityId] = useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useTransferContracts({ pageNumber: currentPage, pageSize, search: searchText });
+  // All filters are applied server-side (TransferContractQuery).
+  const transferParams = useMemo(
+    () => ({
+      pageNumber: currentPage,
+      pageSize,
+      search: searchText || undefined,
+      branchId,
+      includeSubBranches: branchId ? includeSubBranches : undefined,
+      contractStatus: statusFilter !== 'all' ? Number(statusFilter) : undefined,
+      createdDateFrom: dateRange[0],
+      createdDateTo: dateRange[1],
+    }),
+    [currentPage, pageSize, searchText, branchId, includeSubBranches, statusFilter, dateRange]
+  );
+
+  const { data, isLoading, refetch } = useTransferContracts(transferParams);
   const contracts: TransferContractListItem[] = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
 
@@ -887,13 +912,8 @@ export default function SponsorshipTransferPage() {
   const completeMutation = useCompleteTransferContract();
   const deleteMutation   = useDeleteTransferContract();
 
-  const filteredContracts = useMemo(
-    () =>
-      statusFilter === 'all'
-        ? contracts
-        : contracts.filter((c) => String(c.contractStatus) === statusFilter),
-    [contracts, statusFilter]
-  );
+  // Status is now filtered server-side; render the returned page directly.
+  const filteredContracts = contracts;
 
   const stats = useMemo(() => ({
     total:     totalCount,
@@ -1005,7 +1025,7 @@ export default function SponsorshipTransferPage() {
       {/* ── Filters ── */}
       <Card className={styles.filterCard}>
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} md={14}>
+          <Col xs={24} md={10}>
             <Input
               placeholder={t('search')}
               prefix={<SearchOutlined />}
@@ -1016,7 +1036,7 @@ export default function SponsorshipTransferPage() {
               className={styles.searchInput}
             />
           </Col>
-          <Col xs={24} md={10}>
+          <Col xs={24} md={7}>
             <Select
               value={statusFilter}
               onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}
@@ -1029,6 +1049,30 @@ export default function SponsorshipTransferPage() {
                   value: String(o.value),
                 })),
               ]}
+            />
+          </Col>
+          <Col xs={24} md={7}>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={(v) => { setBranchId(v); setCurrentPage(1); }}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={14}>
+            <DateRangeFilter
+              value={dateRange}
+              onChange={(range) => { setDateRange(range); setCurrentPage(1); }}
+              placeholder={['أُنشئ من', 'إلى']}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={10} style={{ textAlign: language === 'ar' ? 'left' : 'right' }}>
+            <ExportButton
+              endpoint={API_ENDPOINTS.TRANSFER_CONTRACT.EXPORT}
+              filters={transferParams}
+              fileName="TransferContracts.xlsx"
             />
           </Col>
         </Row>

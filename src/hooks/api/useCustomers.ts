@@ -3,12 +3,41 @@
  * React Query hooks for customer operations
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { message } from 'antd';
 import { CustomerService } from '@/services';
 import type { CreateCustomerDto, UpdateCustomerDto } from '@/types/api.types';
+import type { CustomerQuery } from '@/types/filters.types';
 
 const QUERY_KEY = 'customers';
+
+/**
+ * Server-side filtered + paginated customers (branch scoping, search, dates).
+ * Kept separate from `useCustomers` so the mutation hook and lookups are
+ * unaffected. `keepPreviousData` avoids a flash of empty state while paging.
+ */
+export function useCustomersFiltered(query: CustomerQuery) {
+  const {
+    data,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: [QUERY_KEY, 'filtered', query],
+    queryFn: () => CustomerService.getPaged(query),
+    placeholderData: keepPreviousData,
+  });
+
+  return {
+    customers: data?.items ?? [],
+    total: data?.totalCount ?? 0,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  };
+}
 
 export function useCustomers() {
   const queryClient = useQueryClient();

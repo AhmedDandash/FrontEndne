@@ -5,12 +5,14 @@
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { buildListParams } from '@/lib/api/buildListParams';
 import type {
   Customer,
   CreateCustomerDto,
   UpdateCustomerDto,
   // CustomerPhoneDto,
 } from '@/types/api.types';
+import type { CustomerQuery, PagedResponse } from '@/types/filters.types';
 
 export class CustomerService {
   private static unwrap<T>(payload: any): T {
@@ -25,11 +27,27 @@ export class CustomerService {
   }
 
   /**
-   * Get all customers
+   * Get all customers (unpaged — kept for lookups/selects).
    */
   static async getAll(): Promise<Customer[]> {
     const response = await api.get<any>(API_ENDPOINTS.CUSTOMERS.GET_ALL);
     return this.unwrapList<Customer>(response.data);
+  }
+
+  /**
+   * Get customers with server-side branch scoping, filters and pagination.
+   * Response envelope: { data: { items, totalCount, pageNumber, pageSize } }.
+   */
+  static async getPaged(query?: CustomerQuery): Promise<PagedResponse<Customer>> {
+    const params = buildListParams(query as Record<string, unknown>);
+    const response = await api.get<any>(API_ENDPOINTS.CUSTOMERS.GET_ALL, { params });
+    const page = this.unwrap<any>(response.data);
+    return {
+      items: Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : [],
+      totalCount: page?.totalCount ?? 0,
+      pageNumber: page?.pageNumber ?? query?.pageNumber ?? 1,
+      pageSize: page?.pageSize ?? query?.pageSize ?? 10,
+    };
   }
 
   /**

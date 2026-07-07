@@ -58,6 +58,8 @@ import {
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
+import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
+import { API_ENDPOINTS } from '@/config/api.config';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import {
   useMediationContracts,
@@ -95,6 +97,12 @@ export default function MediationContractsPage() {
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [branchId, setBranchId] = useState<string | undefined>(undefined);
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  const [dateRange, setDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -147,6 +155,12 @@ export default function MediationContractsPage() {
     pageNumber: currentPage,
     pageSize,
     statusId: statusFilter === 'all' ? undefined : Number(statusFilter),
+    contractType: typeFilter === 'all' ? undefined : Number(typeFilter),
+    search: searchText || undefined,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
+    createdDateFrom: dateRange[0],
+    createdDateTo: dateRange[1],
   });
 
   const { mutateAsync: createComplaint, isPending: isCreatingComplaint } = useCreateComplaint();
@@ -835,6 +849,41 @@ export default function MediationContractsPage() {
                 { value: 'all', label: t.allStatuses },
                 ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
               ]}
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={(v) => { setBranchId(v); setCurrentPage(1); }}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={10}>
+            <DateRangeFilter
+              value={dateRange}
+              onChange={(range) => { setDateRange(range); setCurrentPage(1); }}
+              placeholder={['أُنشئ من', 'إلى']}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={6} style={{ textAlign: language === 'ar' ? 'left' : 'right' }}>
+            <ExportButton
+              endpoint={API_ENDPOINTS.MEDIATION_CONTRACT.EXPORT}
+              filters={{
+                Page: currentPage,
+                PageSize: pageSize,
+                StatusId: statusFilter === 'all' ? undefined : Number(statusFilter),
+                ContractType: typeFilter === 'all' ? undefined : Number(typeFilter),
+                Search: searchText || undefined,
+                BranchId: branchId,
+                IncludeSubBranches: branchId ? includeSubBranches : undefined,
+                CreatedDateFrom: dateRange[0],
+                CreatedDateTo: dateRange[1],
+              }}
+              fileName="MediationContracts.xlsx"
+              pageParam="page"
             />
           </Col>
         </Row>

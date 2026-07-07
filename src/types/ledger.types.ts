@@ -16,6 +16,9 @@
 export interface DateRangeQuery {
   from?: string;
   to?: string;
+  /** Branch scoping (DTO-ready; ledger aggregation partially applied backend-side). */
+  branchId?: string;
+  includeSubBranches?: boolean;
 }
 
 // ==================== 3.1 General Ledger ====================
@@ -152,6 +155,8 @@ export interface BalanceSheet {
 export interface BalanceSheetQuery {
   /** Required. The as-of date; the period always starts Jan 1 of that year. */
   asOfDate: string;
+  branchId?: string;
+  includeSubBranches?: boolean;
 }
 
 // ==================== 3.8 VAT Report ====================
@@ -173,4 +178,6 @@ export interface VatReportQuery {
   year: number;
   /** 1–4 (the API returns 400 otherwise). */
   quarter: number;
+  branchId?: string;
+  includeSubBranches?: boolean;
 }

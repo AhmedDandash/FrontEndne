@@ -13,6 +13,9 @@ interface AuthStore {
   /** Cached display name of the logged-in user */
   username: string | null;
   setUsername: (name: string | null) => void;
+  /** Logged-in user's branch id, parsed from the JWT `branchId` claim (may be null). */
+  branchId: string | null;
+  setBranchId: (id: string | null) => void;
 }
 
 // Initialize language from localStorage if available
@@ -88,6 +91,20 @@ const getInitialUsername = (): string | null => {
   return null;
 };
 
+// Read the user's branch id from the JWT `branchId` claim (issued at login).
+const getInitialBranchId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  const stored = localStorage.getItem('branchId');
+  if (stored) return stored;
+  const payload = decodeStoredJwt();
+  const claim = payload?.['branchId'];
+  if (claim) {
+    localStorage.setItem('branchId', String(claim));
+    return String(claim);
+  }
+  return null;
+};
+
 export const useAuthStore = create<AuthStore>((set) => ({
   language: getInitialLanguage(),
   setLanguage: (lang) => set({ language: lang }),
@@ -108,5 +125,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
       name !== null ? localStorage.setItem('username', name) : localStorage.removeItem('username');
     }
     set({ username: name });
+  },
+  branchId: getInitialBranchId(),
+  setBranchId: (id) => {
+    if (typeof window !== 'undefined') {
+      id !== null ? localStorage.setItem('branchId', id) : localStorage.removeItem('branchId');
+    }
+    set({ branchId: id });
   },
 }));

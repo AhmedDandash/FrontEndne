@@ -168,8 +168,24 @@ export class ComplaintService {
     pageNumber?: number;
     pageSize?: number;
     search?: string;
+    // Branch scoping + ComplaintQuery filters (verified live: status + search).
+    branchId?: string;
+    includeSubBranches?: boolean;
+    status?: number;
+    customerId?: string;
+    workerId?: string;
+    relatedContractType?: number;
+    relatedContractId?: string;
+    customerPhone?: string;
+    customerNationalId?: string;
   }): Promise<{ complaints: Complaint[]; total: number }> {
-    const response = await api.get<any>(API_ENDPOINTS.COMPLAINT.GET_ALL, { params });
+    // Drop empty values so the backend doesn't try to bind them.
+    const clean = params
+      ? Object.fromEntries(
+          Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+        )
+      : undefined;
+    const response = await api.get<any>(API_ENDPOINTS.COMPLAINT.GET_ALL, { params: clean });
     const payload = response.data;
     const complaints = extractArray<any>(payload).map(normalizeComplaint);
     const total: number =

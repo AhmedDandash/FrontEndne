@@ -82,6 +82,8 @@ import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useHousingActiveList } from '@/hooks/api/useHousing';
 import { useAssignWorkerHousing } from '@/hooks/api/useWorkerHousing';
+import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
+import { API_ENDPOINTS } from '@/config/api.config';
 import type { Worker, WorkerDto } from '@/types/api.types';
 import {
   GENDER,
@@ -469,6 +471,7 @@ type WorkerAttachmentItem = {
 
 export default function WorkersPage() {
   const language = useAuthStore((state) => state.language);
+  const userBranchId = useAuthStore((state) => state.branchId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [editingWorkerId, setEditingWorkerId] = useState<string | null>(null);
@@ -498,7 +501,11 @@ export default function WorkersPage() {
     passportFilter?: string;
     nationalId?: string;
     mobile?: string;
-  }>({});
+    branchId?: string;
+    includeSubBranches?: boolean;
+    createdDateFrom?: string;
+    createdDateTo?: string;
+  }>({ includeSubBranches: true });
   const [pageNumber, setPageNumber] = useState(1);
   const PAGE_SIZE = 50;
   const [form] = Form.useForm();
@@ -538,6 +545,12 @@ export default function WorkersPage() {
     else if (filters.status) p.WorkerStatus = Number(filters.status);
     if (filters.ageMin !== undefined) p.MinAge = filters.ageMin;
     if (filters.ageMax !== undefined) p.MaxAge = filters.ageMax;
+    if (filters.branchId) {
+      p.BranchId = filters.branchId;
+      p.IncludeSubBranches = filters.includeSubBranches;
+    }
+    if (filters.createdDateFrom) p.CreatedDateFrom = filters.createdDateFrom;
+    if (filters.createdDateTo) p.CreatedDateTo = filters.createdDateTo;
     return p;
   }, [filters, activeTab, pageNumber]);
 
@@ -719,7 +732,9 @@ export default function WorkersPage() {
     if (editingWorkerId !== null) {
       updateWorker({ id: editingWorkerId, data: workerData });
     } else {
-      createWorker(workerData);
+      // Scope new workers to the creator's branch (backend also falls back to
+      // the JWT branchId if omitted).
+      createWorker({ ...workerData, branchId: userBranchId ?? undefined });
     }
     handleCloseModal();
   };
@@ -1052,6 +1067,17 @@ export default function WorkersPage() {
               style={{ width: 300 }}
               allowClear
             />
+            <BranchFilterSelect
+              value={filters.branchId}
+              onChange={(v) => {
+                setFilters({ ...filters, branchId: v });
+                setPageNumber(1);
+              }}
+              includeSubBranches={filters.includeSubBranches ?? true}
+              onIncludeSubBranchesChange={(v) =>
+                setFilters({ ...filters, includeSubBranches: v })
+              }
+            />
             <Button
               icon={<FilterOutlined />}
               onClick={() => setShowFilters(!showFilters)}
@@ -1060,6 +1086,11 @@ export default function WorkersPage() {
             >
               {t('filters')}
             </Button>
+            <ExportButton
+              endpoint={API_ENDPOINTS.WORKERS.EXPORT}
+              filters={workerApiParams}
+              fileName="Workers.xlsx"
+            />
           </Space>
         </div>
 
@@ -1230,6 +1261,20 @@ export default function WorkersPage() {
                   onChange={(value) =>
                     setFilters({ ...filters, ageMax: value ?? undefined })
                   }
+                  style={{ width: '100%' }}
+                />
+              </Col>
+
+              <Col xs={24} md={12}>
+                <label className={styles.filterLabel}>
+                  {language === 'ar' ? 'تاريخ الإنشاء' : 'Created date'}
+                </label>
+                <DateRangeFilter
+                  value={[filters.createdDateFrom, filters.createdDateTo]}
+                  onChange={([from, to]) => {
+                    setFilters({ ...filters, createdDateFrom: from, createdDateTo: to });
+                    setPageNumber(1);
+                  }}
                   style={{ width: '100%' }}
                 />
               </Col>

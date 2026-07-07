@@ -33,6 +33,15 @@ export interface MediationContractListParams {
   workerType?: number;
   dateFrom?: string;
   dateTo?: string;
+  // Branch scoping + shared advanced filters
+  branchId?: string;
+  includeSubBranches?: boolean;
+  search?: string;
+  contractType?: number;
+  customerPhone?: string;
+  visaNumber?: string;
+  createdDateFrom?: string;
+  createdDateTo?: string;
 }
 
 export function useMediationContracts(params?: MediationContractListParams) {
@@ -57,6 +66,14 @@ export function useMediationContracts(params?: MediationContractListParams) {
       WorkerType: params?.workerType,
       DateFrom: params?.dateFrom,
       DateTo: params?.dateTo,
+      BranchId: params?.branchId,
+      IncludeSubBranches: params?.branchId ? params?.includeSubBranches : undefined,
+      Search: params?.search,
+      ContractType: params?.contractType,
+      CustomerPhone: params?.customerPhone,
+      VisaNumber: params?.visaNumber,
+      CreatedDateFrom: params?.createdDateFrom,
+      CreatedDateTo: params?.createdDateTo,
     }),
   });
 

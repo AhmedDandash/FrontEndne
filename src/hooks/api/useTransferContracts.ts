@@ -14,13 +14,31 @@ export interface TransferContractParams {
   pageNumber?: number;
   pageSize?: number;
   search?: string;
+  // Branch scoping + advanced filters (TransferContractQuery — verified live).
+  branchId?: string;
+  includeSubBranches?: boolean;
+  contractStatus?: number;
+  contractNumber?: number;
+  customerNationalId?: string;
+  workerPassportNo?: string;
+  customerPhone?: string;
+  requestDateFrom?: string;
+  requestDateTo?: string;
+  createdDateFrom?: string;
+  createdDateTo?: string;
 }
 
 /** GET /api/TransferContract — paginated list */
 export function useTransferContracts(params?: TransferContractParams) {
+  // Drop null/empty values so the backend doesn't try to bind them.
+  const clean = params
+    ? (Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+      ) as TransferContractParams)
+    : undefined;
   return useQuery({
-    queryKey: [...QUERY_KEY, 'list', params],
-    queryFn: () => TransferContractService.getAll(params),
+    queryKey: [...QUERY_KEY, 'list', clean],
+    queryFn: () => TransferContractService.getAll(clean),
   });
 }
 

@@ -236,6 +236,8 @@ export interface CreateCustomerDto {
   domesticWorkers?: number | null;
   monthlyIncome?: number | null;
   phones?: CustomerPhoneDto[] | null;
+  /** Optional branch scope. If omitted, backend uses the JWT `branchId`. */
+  branchId?: string | null;
 }
 
 export interface UpdateCustomerDto {
@@ -374,6 +376,8 @@ export interface WorkerDto {
   referenceNo?: string | null;
   fullNameAr?: string | null;
   fullNameEn?: string | null;
+  /** Optional branch scope on create. Omitted → backend uses JWT branchId. */
+  branchId?: string | null;
   /** renamed from workerSatus (typo fix) */
   workerStatus?: number | null;
   religion?: number | null;
@@ -1685,6 +1689,8 @@ export interface CreateTransferContractDto {
   paymentMeansCodeTypeId: number;
   trialPeriodDays: number;
   notes?: string | null;
+  /** Optional branch scope on create. Omitted → backend uses JWT branchId. */
+  branchId?: string | null;
 }
 
 // ==================== Accounting Document Types ====================
@@ -1699,6 +1705,12 @@ export interface AccountingDocumentFilterDto {
   contractId?: string | null;
   dateFrom?: string | null;
   dateTo?: string | null;
+  // Branch scoping + AccountingDocumentFilterDto extensions (new edits2.md).
+  branchId?: string | null;
+  includeSubBranches?: boolean | null;
+  search?: string | null;
+  documentType?: number | null;
+  documentNumber?: string | null;
 }
 
 // ── Receipt Voucher ──────────────────────────────────────────────────────────

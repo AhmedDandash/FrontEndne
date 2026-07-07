@@ -154,7 +154,11 @@ export interface JournalEntriesQuery {
   customerId?: string;
   agentId?: string;
   workerId?: string;
+  employeeId?: string;
   restrictionTypeId?: string;
+  /** Branch scoping — filters journal entries by BranchId. */
+  branchId?: string;
+  includeSubBranches?: boolean;
   /** Client-only: filter by entryNumber / description (API has no text param). */
   searchTerm?: string;
 }

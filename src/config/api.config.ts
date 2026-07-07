@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
     CREATE: '/api/V1/Customer',
     UPDATE: (id: number | string) => `/api/V1/Customer/${id}`,
     DELETE: (id: number | string) => `/api/V1/Customer/${id}`,
+    EXPORT: '/api/V1/Customer/export',
   },
 
   // Document
@@ -97,6 +98,7 @@ export const API_ENDPOINTS = {
     MOVE_TO_ACCOMMODATION: (id: number | string) => `/api/V1/Worker/${id}/move-to-accommodation`,
     SET_REFUSAL: (id: number | string) => `/api/V1/Worker/${id}/set-refusal`,
     WANTS_TRANSFER: '/api/V1/Worker/WantsTransfer',
+    EXPORT: '/api/V1/Worker/export',
   },
 
   // Recruitment Request
@@ -184,6 +186,7 @@ export const API_ENDPOINTS = {
     GET_ALL: '/api/Mediation/MediationContract',
     GET_BY_ID: (id: string) => `/api/Mediation/MediationContract/${id}`,
     CREATE: '/api/Mediation/MediationContract',
+    EXPORT: '/api/Mediation/MediationContract/export',
     CONTRACT_CANCEL: '/api/Mediation/MediationContract/cancel',
     SIGN: '/api/Mediation/MediationContract/sign',
     UPDATE_STATUS: '/api/Mediation/MediationContract/update-status',
@@ -271,6 +274,7 @@ export const API_ENDPOINTS = {
     GET_ALL: '/api/TransferContract',
     GET_BY_ID: (id: number | string) => `/api/TransferContract/${id}`,
     CREATE: '/api/TransferContract',
+    EXPORT: '/api/TransferContract/export',
     DELETE: (id: number | string) => `/api/TransferContract/${id}`,
     SIGN: (id: number | string) => `/api/TransferContract/${id}/sign`,
     COMPLETE: (id: number | string) => `/api/TransferContract/${id}/complete`,

@@ -35,6 +35,7 @@ import {
   useHourlyWorkerRequestActions,
 } from '@/hooks/api/useHourlyWorkers';
 import { useHourlyWorkers } from '@/hooks/api/useHourlyWorkers';
+import { BranchFilterSelect } from '@/components/filters';
 import { useHourlyPermissions } from '@/hooks/useHourlyPermissions';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -69,6 +70,8 @@ export default function HourlyWorkerRequestsPage() {
   const [ticketNumber, setTicketNumber] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [status, setStatus] = useState<HourlyRequestStatus | undefined>();
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
 
@@ -76,6 +79,8 @@ export default function HourlyWorkerRequestsPage() {
     ticketNumber: ticketNumber || undefined,
     customerName: customerName || undefined,
     status,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
     dateFrom: range?.[0]?.startOf('day').toISOString(),
     dateTo: range?.[1]?.endOf('day').toISOString(),
     pageNumber,
@@ -367,6 +372,12 @@ export default function HourlyWorkerRequestsPage() {
               setRange(dates as [Dayjs | null, Dayjs | null] | null);
               setPageNumber(1);
             }}
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={(v) => { setBranchId(v); setPageNumber(1); }}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
           />
         </div>
 

@@ -35,6 +35,7 @@ import {
   useHourlyWorkers,
   useHourlyWorkerMutations,
 } from '@/hooks/api/useHourlyWorkers';
+import { BranchFilterSelect } from '@/components/filters';
 import { useAuthStore } from '@/store/authStore';
 import type {
   HourlyWorker,
@@ -61,6 +62,8 @@ export default function HourlyWorkersPage() {
   const [isActive, setIsActive] = useState<boolean | undefined>();
   const [isAvailableNow, setIsAvailableNow] = useState<boolean | undefined>();
   const [sortBy, setSortBy] = useState<'fullName' | 'hourlyRate' | 'createdDate'>('createdDate');
+  const [branchId, setBranchId] = useState<string | undefined>();
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [pageNumber, setPageNumber] = useState(1);
 
   const { data, isLoading, isFetching, refetch } = useHourlyWorkers({
@@ -68,6 +71,8 @@ export default function HourlyWorkersPage() {
     isActive,
     isAvailableNow,
     sortBy,
+    branchId,
+    includeSubBranches: branchId ? includeSubBranches : undefined,
     pageNumber,
     pageSize: PAGE_SIZE,
   });
@@ -350,6 +355,12 @@ export default function HourlyWorkersPage() {
               { value: 'fullName', label: t('ترتيب: الاسم', 'Sort: Name') },
               { value: 'hourlyRate', label: t('ترتيب: الأجر', 'Sort: Rate') },
             ]}
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={(v) => { setBranchId(v); setPageNumber(1); }}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
           />
         </div>
 

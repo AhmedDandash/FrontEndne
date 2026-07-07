@@ -17,6 +17,7 @@ import {
   Dropdown,
   Divider,
   Tag,
+  Pagination,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -38,7 +39,15 @@ import {
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
-import { useCustomers } from '@/hooks/api/useCustomers';
+import { useCustomers, useCustomersFiltered } from '@/hooks/api/useCustomers';
+import {
+  BranchFilterSelect,
+  DateRangeFilter,
+  ExportButton,
+  AdvancedFilterPanel,
+} from '@/components/filters';
+import { API_ENDPOINTS } from '@/config/api.config';
+import type { CustomerQuery } from '@/types/filters.types';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
@@ -66,8 +75,19 @@ import styles from './Customers.module.css';
 export default function CustomersPage() {
   const router = useRouter();
   const language = useAuthStore((state) => state.language);
+  const userBranchId = useAuthStore((state) => state.branchId);
   const [searchText, setSearchText] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [cityFilter, setCityFilter] = useState<string>('all');
+  // Branch scoping + advanced filters (server-side)
+  const [branchId, setBranchId] = useState<string | undefined>(undefined);
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  const [dateRange, setDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [form] = Form.useForm();
@@ -81,10 +101,8 @@ export default function CustomersPage() {
     useState<EmploymentContractOffer | null>(null);
   const [contractForm] = Form.useForm();
 
-  // Use real API
+  // Mutations (create/update/delete) come from the base hook.
   const {
-    customers,
-    isLoading,
     createCustomer,
     updateCustomer,
     deleteCustomer,
@@ -92,6 +110,43 @@ export default function CustomersPage() {
     isUpdating,
     isDeleting,
   } = useCustomers();
+
+  // Debounce the search box → server-side `search`, and reset to page 1.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+      setPageNumber(1);
+    }, 400);
+    return () => clearTimeout(id);
+  }, [searchText]);
+
+  const query: CustomerQuery = useMemo(
+    () => ({
+      branchId,
+      includeSubBranches: branchId ? includeSubBranches : undefined,
+      search: debouncedSearch || undefined,
+      createdDateFrom: dateRange[0],
+      createdDateTo: dateRange[1],
+      pageNumber,
+      pageSize,
+    }),
+    [branchId, includeSubBranches, debouncedSearch, dateRange, pageNumber, pageSize]
+  );
+
+  // Server-side filtered + paginated list.
+  const { customers, total, isLoading, isFetching } = useCustomersFiltered(query);
+
+  // Count of active advanced filters (for the panel badge / clear button).
+  const activeFilterCount =
+    (branchId ? 1 : 0) + (dateRange[0] || dateRange[1] ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0);
+
+  const clearFilters = () => {
+    setBranchId(undefined);
+    setIncludeSubBranches(true);
+    setDateRange([undefined, undefined]);
+    setCityFilter('all');
+    setPageNumber(1);
+  };
 
   // Employment operating contracts API
   const { createContract, isCreating: isCreatingContract } = useEmploymentOperatingContracts();
@@ -185,25 +240,13 @@ export default function CustomersPage() {
     setCityFilter('all');
   }, [language]);
 
-  // Filter customers
+  // Name/phone search is now server-side; the city filter refines the current
+  // page client-side (the backend Customer query has no city parameter).
   const filteredCustomers = useMemo(() => {
     if (!customers) return [];
-
-    return customers.filter((customer) => {
-      // Collect all phone numbers from phones array for search
-      const allPhones = (customer.phones || []).map((p) => p.phoneNumber || '').join(' ');
-      const matchesSearch =
-        searchText === '' ||
-        (customer.arabicName || '').toLowerCase().includes(searchText.toLowerCase()) ||
-        (customer.englishName || '').toLowerCase().includes(searchText.toLowerCase()) ||
-        // (customer.identityNumber || '').includes(searchText) ||
-        allPhones.includes(searchText);
-
-      const matchesCity = cityFilter === 'all' || getCustomerCityLabel(customer) === cityFilter;
-
-      return matchesSearch && matchesCity;
-    });
-  }, [customers, searchText, cityFilter, getCustomerCityLabel]);
+    if (cityFilter === 'all') return customers;
+    return customers.filter((customer) => getCustomerCityLabel(customer) === cityFilter);
+  }, [customers, cityFilter, getCustomerCityLabel]);
 
   // Get unique cities for filter in the active UI language
   const cities = useMemo(() => {
@@ -220,6 +263,8 @@ export default function CustomersPage() {
   const handleAddCustomer = () => {
     setEditingCustomer(null);
     form.resetFields();
+    // Default the new customer's branch to the logged-in user's branch.
+    form.setFieldsValue({ branchId: userBranchId ?? undefined });
     setIsModalVisible(true);
   };
 
@@ -262,8 +307,9 @@ export default function CustomersPage() {
     try {
       const values = await form.validateFields();
 
-      // Transform mobile text field → phones array expected by the API
-      const { mobile, ...rest } = values;
+      // Transform mobile text field → phones array expected by the API.
+      // branchId only applies to create (UpdateCustomerDto has no branch field).
+      const { mobile, branchId: formBranchId, ...rest } = values;
       const payload = {
         ...rest,
         phones: mobile
@@ -278,8 +324,12 @@ export default function CustomersPage() {
           data: payload as UpdateCustomerDto,
         });
       } else {
-        // Create new customer
-        await createCustomer(payload as CreateCustomerDto);
+        // Create new customer — attach branch (explicit selection or user's own;
+        // omitted → backend falls back to the JWT branchId).
+        await createCustomer({
+          ...payload,
+          branchId: formBranchId || userBranchId || undefined,
+        } as CreateCustomerDto);
       }
 
       setIsModalVisible(false);
@@ -485,7 +535,7 @@ export default function CustomersPage() {
             <div>
               <h1 className={styles.pageTitle}>{t('pageTitle')}</h1>
               <p className={styles.pageSubtitle}>
-                {t('totalCustomers')}: <strong>{customers?.length || 0}</strong>
+                {t('totalCustomers')}: <strong>{total || 0}</strong>
               </p>
             </div>
           </div>
@@ -502,38 +552,61 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Search Section */}
-      <div className={styles.searchSection}>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={12}>
+      {/* Search + branch scoping + advanced filters + export */}
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        quickFilters={
+          <>
             <Input
-              size="large"
               placeholder={t('searchPlaceholder')}
               prefix={<SearchOutlined />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className={styles.searchInput}
+              style={{ width: 260 }}
               allowClear
             />
-          </Col>
-          <Col xs={24} md={12}>
-            <Select
-              size="large"
-              style={{ width: '100%' }}
-              value={cityFilter}
-              onChange={setCityFilter}
-              placeholder={t('city')}
-            >
-              <Select.Option value="all">{t('allCities')}</Select.Option>
-              {cities.map((city) => (
-                <Select.Option key={city} value={city}>
-                  {city}
-                </Select.Option>
-              ))}
-            </Select>
-          </Col>
-        </Row>
-      </div>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={(v) => {
+                setBranchId(v);
+                setPageNumber(1);
+              }}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+            />
+          </>
+        }
+        actions={
+          <ExportButton
+            endpoint={API_ENDPOINTS.CUSTOMERS.EXPORT}
+            filters={query}
+            fileName="Customers.xlsx"
+          />
+        }
+      >
+        <Select
+          style={{ width: 200 }}
+          value={cityFilter}
+          onChange={(v) => setCityFilter(v)}
+          placeholder={t('city')}
+        >
+          <Select.Option value="all">{t('allCities')}</Select.Option>
+          {cities.map((city) => (
+            <Select.Option key={city} value={city}>
+              {city}
+            </Select.Option>
+          ))}
+        </Select>
+        <DateRangeFilter
+          value={dateRange}
+          onChange={(range) => {
+            setDateRange(range);
+            setPageNumber(1);
+          }}
+          placeholder={['أُنشئ من', 'إلى']}
+        />
+      </AdvancedFilterPanel>
 
       {/* Stats Overview */}
       <Row gutter={[24, 24]} className={styles.statsRow}>
@@ -548,7 +621,7 @@ export default function CustomersPage() {
                 style={{ textAlign: language === 'ar' ? 'right' : 'left' }}
               >
                 <p className={styles.statLabel}>{t('totalCustomers')}</p>
-                <h3 className={styles.statValue}>{customers?.length || 0}</h3>
+                <h3 className={styles.statValue}>{total || 0}</h3>
               </div>
             </div>
           </Card>
@@ -727,6 +800,25 @@ export default function CustomersPage() {
         <Empty description={t('noCustomers')} />
       )}
 
+      {/* Server-side pagination */}
+      {total > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+          <Pagination
+            current={pageNumber}
+            pageSize={pageSize}
+            total={total}
+            showSizeChanger
+            pageSizeOptions={[12, 24, 48, 96]}
+            disabled={isFetching}
+            onChange={(p, size) => {
+              setPageNumber(p);
+              setPageSize(size);
+            }}
+            showTotal={(t) => `${t}`}
+          />
+        </div>
+      )}
+
       {/* Create/Edit Modal */}
       <Modal
         title={editingCustomer ? t('edit') : t('addCustomer')}
@@ -825,6 +917,26 @@ export default function CustomersPage() {
               options={toSelectOptions([...HOUSING_TYPE], language)}
             />
           </Form.Item>
+
+          {/* Branch — only on create (optional; defaults to user's branch) */}
+          {!editingCustomer && (
+            <Form.Item
+              label={language === 'ar' ? 'الفرع' : 'Branch'}
+              name="branchId"
+              tooltip={
+                language === 'ar'
+                  ? 'اختياري — الافتراضي فرع المستخدم الحالي'
+                  : "Optional — defaults to the current user's branch"
+              }
+            >
+              <BranchFilterSelect
+                value={undefined}
+                onChange={() => undefined}
+                showSubBranchToggle={false}
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+          )}
         </Form>
       </Modal>
 

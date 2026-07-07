@@ -89,7 +89,10 @@ export class JournalEntryService {
         customerId: query.customerId || undefined,
         agentId: query.agentId || undefined,
         workerId: query.workerId || undefined,
+        employeeId: query.employeeId || undefined,
         restrictionTypeId: query.restrictionTypeId || undefined,
+        branchId: query.branchId || undefined,
+        includeSubBranches: query.branchId ? query.includeSubBranches : undefined,
       },
     });
     const data = this.unwrap<any>(response.data);
