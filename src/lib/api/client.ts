@@ -4,11 +4,23 @@
  */
 
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { message } from 'antd';
 import { API_CONFIG, API_ENDPOINTS } from '@/config/api.config';
+import { useAuthStore } from '@/store/authStore';
 import type { ApiError } from '@/types/api.types';
 
 interface AxiosRequestConfigWithRetry extends AxiosRequestConfig {
   _retry?: boolean;
+}
+
+/**
+ * True when the server rejected a request because the `X-Branch-Id` header was
+ * missing or not a valid branch GUID (e.g. the selected branch was deleted or
+ * the value got corrupted). Message text is matched loosely — the backend
+ * returns it in Arabic but always includes the literal "X-Branch-Id".
+ */
+function isBranchHeaderError(status: number, data: ApiError | undefined): boolean {
+  return status === 400 && !!data?.message && data.message.includes('X-Branch-Id');
 }
 
 /**
@@ -30,34 +42,15 @@ function isBranchExcludedRoute(url: string | undefined): boolean {
   return BRANCH_HEADER_EXCLUDED_PATHS.some((p) => lower.includes(p));
 }
 
-/** Decode the `branchId` claim from a JWT payload, if present. */
-function branchIdFromToken(token: string): string | null {
-  try {
-    const payloadBase64 = token.split('.')[1];
-    const payload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
-    const claim = payload?.branchId;
-    return claim !== undefined && claim !== null ? String(claim) : null;
-  } catch {
-    return null;
-  }
-}
-
 /**
- * Resolve the current branch id for the `X-Branch-Id` header. Prefers the
- * cached value written at login, falling back to the JWT `branchId` claim.
+ * Resolve the branch id for the `X-Branch-Id` header. This is the branch the
+ * user explicitly selected after login (persisted by the store / BranchGate).
+ * It is intentionally NOT derived from the JWT — until the user picks a branch
+ * no header is sent, and the app gates the UI behind that selection.
  */
-function getCurrentBranchId(token?: string | null): string | null {
+function getCurrentBranchId(): string | null {
   if (typeof window === 'undefined') return null;
-  const cached = localStorage.getItem('branchId');
-  if (cached) return cached;
-  if (token) {
-    const fromToken = branchIdFromToken(token);
-    if (fromToken) {
-      localStorage.setItem('branchId', fromToken); // cache for subsequent requests
-      return fromToken;
-    }
-  }
-  return null;
+  return localStorage.getItem('branchId');
 }
 
 class ApiClient {
@@ -110,7 +103,7 @@ class ApiClient {
           // Excluded from auth endpoints (login/refresh/forgot/reset) which run
           // before a branch context exists or don't require authentication.
           if (!isBranchExcludedRoute(config.url)) {
-            const branchId = getCurrentBranchId(token);
+            const branchId = getCurrentBranchId();
             if (branchId) {
               config.headers['X-Branch-Id'] = branchId;
             } else if (isDev) {
@@ -162,6 +155,23 @@ class ApiClient {
             requestUrl.includes(API_ENDPOINTS.AUTH.LOGOUT) ||
             requestUrl.includes(API_ENDPOINTS.AUTH.REFRESH_TOKEN);
 
+          // Server rejected the branch scope → clear the selection so the user
+          // is sent back to the branch gate to pick a valid branch again.
+          // Guarded on a branch being currently selected: while the gate is
+          // open no branch is set and other calls may legitimately 400 here.
+          if (typeof window !== 'undefined' && isBranchHeaderError(status, data)) {
+            const authState = useAuthStore.getState();
+            if (authState.branchId) {
+              authState.setBranch(null, null);
+              const isAr = authState.language === 'ar';
+              message.warning(
+                isAr
+                  ? 'انتهت صلاحية الفرع المحدد، الرجاء اختيار الفرع من جديد'
+                  : 'Your selected branch is no longer valid — please choose a branch again'
+              );
+            }
+          }
+
           // Handle 401 Unauthorized
           if (status === 401) {
             if (!isAuthRoute && originalRequest && !originalRequest._retry) {
@@ -193,6 +203,7 @@ class ApiClient {
               sessionStorage.removeItem('authToken');
               localStorage.removeItem('user');
               localStorage.removeItem('branchId');
+              localStorage.removeItem('branchName');
 
               // Redirect to login (only on client side)
               if (window.location.pathname !== '/login') {

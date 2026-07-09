@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useCanAccess } from '@/hooks/api/usePagePermissions';
 import AccessDenied from '@/components/common/AccessDenied';
+import BranchGate from '@/components/branch/BranchGate';
 import styles from './MainLayout.module.css';
 
 const { Content } = Layout;
@@ -28,6 +29,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const pathname = usePathname();
   const language = useAuthStore((state) => state.language);
+  const branchId = useAuthStore((state) => state.branchId);
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const setIsHydrated = useAuthStore((state) => state.setIsHydrated);
   const { check } = useCanAccess();
@@ -98,6 +100,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // Prevent flash of unstyled content during hydration
   if (!isHydrated) {
     return null;
+  }
+
+  // Require an explicit branch selection before entering the app. The chosen
+  // branch drives the X-Branch-Id header on every request.
+  if (!branchId) {
+    return <BranchGate />;
   }
 
   const toggleSidebar = () => {

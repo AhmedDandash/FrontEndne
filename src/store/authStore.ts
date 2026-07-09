@@ -13,9 +13,13 @@ interface AuthStore {
   /** Cached display name of the logged-in user */
   username: string | null;
   setUsername: (name: string | null) => void;
-  /** Logged-in user's branch id, parsed from the JWT `branchId` claim (may be null). */
+  /** Branch the user explicitly selected after login; drives the X-Branch-Id header. */
   branchId: string | null;
   setBranchId: (id: string | null) => void;
+  /** Display name of the selected branch (for the header switcher). */
+  branchName: string | null;
+  /** Set the active branch (id + display name) in one call. */
+  setBranch: (id: string | null, name: string | null) => void;
 }
 
 // Initialize language from localStorage if available
@@ -91,18 +95,27 @@ const getInitialUsername = (): string | null => {
   return null;
 };
 
-// Read the user's branch id from the JWT `branchId` claim (issued at login).
+// The active branch is chosen explicitly by the user after login (see BranchGate).
+// We read ONLY the persisted selection here — we do NOT auto-derive it from the
+// JWT, so the user always makes a deliberate choice that drives X-Branch-Id.
 const getInitialBranchId = (): string | null => {
   if (typeof window === 'undefined') return null;
-  const stored = localStorage.getItem('branchId');
-  if (stored) return stored;
+  return localStorage.getItem('branchId');
+};
+
+const getInitialBranchName = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('branchName');
+};
+
+/**
+ * The user's "home" branch id from the JWT `branchId` claim, used only to
+ * pre-highlight a sensible default in the branch selector — not to auto-select.
+ */
+export const getJwtBranchId = (): string | null => {
   const payload = decodeStoredJwt();
   const claim = payload?.['branchId'];
-  if (claim) {
-    localStorage.setItem('branchId', String(claim));
-    return String(claim);
-  }
-  return null;
+  return claim ? String(claim) : null;
 };
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -132,5 +145,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
       id !== null ? localStorage.setItem('branchId', id) : localStorage.removeItem('branchId');
     }
     set({ branchId: id });
+  },
+  branchName: getInitialBranchName(),
+  setBranch: (id, name) => {
+    if (typeof window !== 'undefined') {
+      if (id !== null) {
+        localStorage.setItem('branchId', id);
+      } else {
+        localStorage.removeItem('branchId');
+      }
+      if (name) {
+        localStorage.setItem('branchName', name);
+      } else {
+        localStorage.removeItem('branchName');
+      }
+    }
+    set({ branchId: id, branchName: name });
   },
 }));

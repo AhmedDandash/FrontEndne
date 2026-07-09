@@ -14,6 +14,7 @@ import type { MenuProps } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useAuth } from '@/hooks/useAuth';
+import BranchSwitcher from './BranchSwitcher';
 import Image from 'next/image';
 import styles from './Header.module.css';
 
@@ -110,8 +111,11 @@ export default function Header({ collapsed, onToggleSidebar, onToggleMobileDrawe
         />
       </div>
 
-      {/* Right: language, notifications, user */}
+      {/* Right: branch, language, notifications, user */}
       <div className={styles.headerRight}>
+        {/* Active branch switcher */}
+        <BranchSwitcher />
+
         {/* Language Switcher */}
         <div className={styles.langSwitcher}>
           <Button

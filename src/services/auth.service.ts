@@ -37,6 +37,11 @@ export class AuthService {
       if (tokenValue) {
         localStorage.setItem('authToken', tokenValue);
 
+        // Clear any prior branch selection so this login must pick a branch
+        // (the BranchGate blocks the app until a branch is chosen).
+        localStorage.removeItem('branchId');
+        localStorage.removeItem('branchName');
+
         // Persist the refresh token so the API client can silently renew the
         // access token when it expires (see ApiClient.refreshAccessToken).
         if (authData?.refreshToken) {
@@ -144,6 +149,7 @@ export class AuthService {
         localStorage.removeItem('userId');
         localStorage.removeItem('username');
         localStorage.removeItem('branchId');
+        localStorage.removeItem('branchName');
         sessionStorage.clear();
 
         // Best-effort clear of legacy non-HttpOnly cookie (refresh cookie is HttpOnly)
