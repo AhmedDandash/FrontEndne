@@ -37,8 +37,11 @@ export class AuthService {
       if (tokenValue) {
         localStorage.setItem('authToken', tokenValue);
 
-        // Keep compatibility with middleware that checks refreshToken cookie
+        // Persist the refresh token so the API client can silently renew the
+        // access token when it expires (see ApiClient.refreshAccessToken).
         if (authData?.refreshToken) {
+          localStorage.setItem('refreshToken', authData.refreshToken);
+          // Keep compatibility with middleware that checks the refreshToken cookie
           document.cookie = `refreshToken=${encodeURIComponent(authData.refreshToken)}; path=/; SameSite=Lax`;
         }
 
@@ -136,9 +139,11 @@ export class AuthService {
       // Clear local storage and cookies regardless of API response
       if (typeof window !== 'undefined') {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         localStorage.removeItem('userId');
         localStorage.removeItem('username');
+        localStorage.removeItem('branchId');
         sessionStorage.clear();
 
         // Best-effort clear of legacy non-HttpOnly cookie (refresh cookie is HttpOnly)

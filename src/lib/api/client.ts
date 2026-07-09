@@ -11,6 +11,55 @@ interface AxiosRequestConfigWithRetry extends AxiosRequestConfig {
   _retry?: boolean;
 }
 
+/**
+ * Auth / unauthenticated endpoints that must NOT carry the `X-Branch-Id`
+ * header (they run before a branch context exists, or don't require auth):
+ * login, refresh-token, forgot-password, reset-password. Matched by path
+ * substring so it stays correct even for endpoints not yet in api.config.
+ */
+const BRANCH_HEADER_EXCLUDED_PATHS = [
+  '/auth/login',
+  '/auth/refresh-token',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+] as const;
+
+function isBranchExcludedRoute(url: string | undefined): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return BRANCH_HEADER_EXCLUDED_PATHS.some((p) => lower.includes(p));
+}
+
+/** Decode the `branchId` claim from a JWT payload, if present. */
+function branchIdFromToken(token: string): string | null {
+  try {
+    const payloadBase64 = token.split('.')[1];
+    const payload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+    const claim = payload?.branchId;
+    return claim !== undefined && claim !== null ? String(claim) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve the current branch id for the `X-Branch-Id` header. Prefers the
+ * cached value written at login, falling back to the JWT `branchId` claim.
+ */
+function getCurrentBranchId(token?: string | null): string | null {
+  if (typeof window === 'undefined') return null;
+  const cached = localStorage.getItem('branchId');
+  if (cached) return cached;
+  if (token) {
+    const fromToken = branchIdFromToken(token);
+    if (fromToken) {
+      localStorage.setItem('branchId', fromToken); // cache for subsequent requests
+      return fromToken;
+    }
+  }
+  return null;
+}
+
 class ApiClient {
   private client: AxiosInstance;
   private static instance: ApiClient;
@@ -55,6 +104,18 @@ class ApiClient {
             config.headers.Authorization = `Bearer ${token}`;
           } else if (isDev) {
             console.warn('⚠️ No token found for request:', config.url);
+          }
+
+          // Attach the tenant/branch scope header on every authenticated request.
+          // Excluded from auth endpoints (login/refresh/forgot/reset) which run
+          // before a branch context exists or don't require authentication.
+          if (!isBranchExcludedRoute(config.url)) {
+            const branchId = getCurrentBranchId(token);
+            if (branchId) {
+              config.headers['X-Branch-Id'] = branchId;
+            } else if (isDev) {
+              console.warn('⚠️ No branchId available for X-Branch-Id header:', config.url);
+            }
           }
         }
 
@@ -128,8 +189,10 @@ class ApiClient {
 
             if (typeof window !== 'undefined') {
               localStorage.removeItem('authToken');
+              localStorage.removeItem('refreshToken');
               sessionStorage.removeItem('authToken');
               localStorage.removeItem('user');
+              localStorage.removeItem('branchId');
 
               // Redirect to login (only on client side)
               if (window.location.pathname !== '/login') {
@@ -173,12 +236,47 @@ class ApiClient {
     );
   }
 
+  /**
+   * Exchange the stored refresh token for a new access token.
+   *
+   * Uses a bare axios call (no interceptors) so that a failed refresh does not
+   * recurse back through the 401 handler. On success, persists BOTH the new
+   * access token and the rotated refresh token (the backend issues a fresh
+   * refresh token on every call and revokes the old one). Returns the new
+   * access token, or null if refresh is not possible / fails — in which case
+   * the caller logs the user out.
+   */
   private async refreshAccessToken(): Promise<string | null> {
+    if (typeof window === 'undefined') return null;
+
+    const storedRefreshToken = localStorage.getItem('refreshToken');
+    if (!storedRefreshToken) return null;
+
     try {
-      const response = await this.client.post<{ accessToken?: string; token?: string }>(
-        API_ENDPOINTS.AUTH.REFRESH_TOKEN
+      // Bare axios (bypasses this.client's interceptors). BASE_URL is '' in the
+      // browser, so this resolves to the same-origin `/api/*` proxy route.
+      const response = await axios.post(
+        `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
+        { refreshToken: storedRefreshToken },
+        { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
       );
-      return response.data?.accessToken || response.data?.token || null;
+
+      // Unwrap the standard { success, data, ... } envelope (also tolerate a
+      // flat payload just in case).
+      const payload: any = response.data?.data ?? response.data;
+      const newAccessToken: string | null = payload?.accessToken ?? payload?.token ?? null;
+      const newRefreshToken: string | null = payload?.refreshToken ?? null;
+
+      if (!newAccessToken) return null;
+
+      localStorage.setItem('authToken', newAccessToken);
+      if (newRefreshToken) {
+        // Store the rotated refresh token; the old one is now revoked server-side.
+        localStorage.setItem('refreshToken', newRefreshToken);
+        document.cookie = `refreshToken=${encodeURIComponent(newRefreshToken)}; path=/; SameSite=Lax`;
+      }
+
+      return newAccessToken;
     } catch (refreshError) {
       if (process.env.NEXT_PUBLIC_ENV === 'development') {
         console.error('Refresh token failed:', refreshError);
