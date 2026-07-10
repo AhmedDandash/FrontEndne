@@ -138,7 +138,7 @@ export default function ContractReceiptsModal({
           </Button>,
         ]}
         width={720}
-        destroyOnClose
+        destroyOnHidden
       >
         {rows.length === 0 && !isLoading ? (
           <Empty description={isRtl ? 'لا توجد سندات قبض' : 'No receipt vouchers yet'} />

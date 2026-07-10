@@ -666,7 +666,7 @@ export default function HousingApplicantsPage() {
         okButtonProps={{ danger: true }}
         cancelText="إلغاء"
         width={540}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={deportationForm} layout="vertical" style={{ marginTop: 12 }}>
           <Form.Item name="transportType" label="نوع المواصلة" rules={[{ required: true, message: 'مطلوب' }]}>
@@ -733,7 +733,7 @@ export default function HousingApplicantsPage() {
         okText="تسجيل التسليم"
         cancelText="إلغاء"
         width={480}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={handoverForm} layout="vertical" style={{ marginTop: 12 }}>
           <Form.Item name="handoverTime" label="وقت التسليم" rules={[{ required: true, message: 'مطلوب' }]}>
@@ -768,7 +768,7 @@ export default function HousingApplicantsPage() {
         okText="تأكيد إصدار الإقامة"
         cancelText="إلغاء"
         width={400}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={residencyForm} layout="vertical" style={{ marginTop: 12 }}>
           <Form.Item
@@ -803,7 +803,7 @@ export default function HousingApplicantsPage() {
         okText="إضافة"
         cancelText="إلغاء"
         width={440}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={updateForm} layout="vertical" style={{ marginTop: 12 }}>
           <Form.Item name="updateDate" label="تاريخ التحديث" rules={[{ required: true, message: 'مطلوب' }]}>
@@ -830,7 +830,7 @@ export default function HousingApplicantsPage() {
         okText="تسجيل الخروج"
         cancelText="إلغاء"
         width={440}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={exitForm} layout="vertical" style={{ marginTop: 12 }}>
           <Form.Item name="exitDate" label="تاريخ الخروج" rules={[{ required: true, message: 'مطلوب' }]}>

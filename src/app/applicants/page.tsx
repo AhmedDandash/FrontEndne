@@ -1576,7 +1576,7 @@ export default function WorkersPage() {
         okText={language === 'ar' ? 'تسكين' : 'Assign'}
         cancelText={language === 'ar' ? 'إلغاء' : 'Cancel'}
         width={460}
-        destroyOnClose
+        destroyOnHidden
         onOk={async () => {
           const vals = await housingForm.validateFields();
           await assignToHousing({

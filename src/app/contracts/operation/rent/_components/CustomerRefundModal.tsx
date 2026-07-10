@@ -61,7 +61,7 @@ export default function CustomerRefundModal({ open, isRtl, loading, onCancel, on
         </Button>,
       ]}
       width={460}
-      destroyOnClose
+      destroyOnHidden
     >
       <Alert
         type="info"

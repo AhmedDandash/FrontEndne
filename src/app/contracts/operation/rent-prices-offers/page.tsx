@@ -680,7 +680,7 @@ export default function RentPricesOffersPage() {
         onCancel={() => { setEditModalOpen(false); setEditingOffer(null); }}
         footer={null}
         width={860}
-        destroyOnClose
+        destroyOnHidden
       >
         {editingOffer && (
           <Form form={editForm} layout="vertical">

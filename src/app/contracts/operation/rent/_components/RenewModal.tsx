@@ -60,7 +60,7 @@ export default function RenewModal({ open, isRtl, loading, onCancel, onSubmit }:
         </Button>,
       ]}
       width={420}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" dir={isRtl ? 'rtl' : 'ltr'}>
         <Form.Item

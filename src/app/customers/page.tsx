@@ -18,6 +18,7 @@ import {
   Divider,
   Tag,
   Pagination,
+  message,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -40,6 +41,7 @@ import {
 
 import { useAuthStore } from '@/store/authStore';
 import { useCustomers, useCustomersFiltered } from '@/hooks/api/useCustomers';
+import { CustomerService } from '@/services';
 import {
   BranchFilterSelect,
   DateRangeFilter,
@@ -154,8 +156,11 @@ export default function CustomersPage() {
   // Jobs API
   const { data: jobsData, isLoading: isLoadingJobs } = useJobs();
 
-  // Nationalities API
-  const { data: nationalitiesData = [] } = useNationalities();
+  // Nationalities API — customer dropdown shows active nationalities only.
+  const { data: nationalitiesData = [] } = useNationalities({ isActiveOnly: true, pageSize: 100 });
+
+  // English-name auto-generation (from the Arabic name) state.
+  const [isGeneratingName, setIsGeneratingName] = useState(false);
 
   const nationalities = useMemo(() => {
     const raw = Array.isArray(nationalitiesData)
@@ -199,6 +204,17 @@ export default function CustomersPage() {
       name: { ar: 'الاسم', en: 'Name' },
       arabicName: { ar: 'الاسم بالعربي', en: 'Arabic Name' },
       englishName: { ar: 'الاسم بالإنجليزي', en: 'English Name' },
+      generateNameTip: {
+        ar: 'يُولّد تلقائياً من الاسم العربي — يمكنك تعديله',
+        en: 'Auto-generated from the Arabic name — you can edit it',
+      },
+      generateNameFailed: {
+        ar: 'تعذّر توليد الاسم الإنجليزي',
+        en: 'Failed to generate English name',
+      },
+      dateOfBirth: { ar: 'تاريخ الميلاد', en: 'Date of Birth' },
+      nationalId: { ar: 'رقم الهوية الوطنية', en: 'National ID' },
+      secondaryMobile: { ar: 'جوال ثانوي', en: 'Secondary Mobile' },
       // identityNumber: { ar: 'رقم الهوية', en: 'Identity Number' },
       nationality: { ar: 'الجنسية', en: 'Nationality' },
       mobile: { ar: 'الجوال', en: 'Mobile' },
@@ -275,17 +291,42 @@ export default function CustomersPage() {
       customer.phones?.find((p) => p.isPrimary)?.phoneNumber ??
       customer.phones?.[0]?.phoneNumber ??
       '';
+    // DOB may arrive as a full ISO datetime — the date input needs YYYY-MM-DD.
+    const dob = (customer.dateOfBirth ?? customer.birthDate ?? '')?.slice(0, 10) || undefined;
     form.setFieldsValue({
       arabicName: customer.arabicName,
       englishName: customer.englishName,
       // identityNumber: customer.identityNumber,
       nationality: customer.nationality,
       mobile: primaryPhone,
+      secondaryMobileNumber: customer.secondaryMobileNumber,
+      dateOfBirth: dob,
+      nationalId: customer.nationalId,
       cityAr: customer.cityAr,
       cityEn: customer.cityEn,
       housingType: customer.housingType,
     });
     setIsModalVisible(true);
+  };
+
+  /**
+   * Auto-fill the English name from the Arabic name via the transliteration
+   * endpoint. Only fills when the English field is empty so manual edits are
+   * never overwritten. Silent no-op on empty input; toast on failure.
+   */
+  const handleGenerateEnglishName = async () => {
+    const arabicName = (form.getFieldValue('arabicName') || '').trim();
+    if (!arabicName) return;
+    if ((form.getFieldValue('englishName') || '').trim()) return; // keep manual value
+    try {
+      setIsGeneratingName(true);
+      const englishName = await CustomerService.generateEnglishName(arabicName);
+      if (englishName) form.setFieldsValue({ englishName });
+    } catch {
+      message.error(t('generateNameFailed'));
+    } finally {
+      setIsGeneratingName(false);
+    }
   };
 
   const handleDeleteCustomer = (customer: Customer) => {
@@ -693,6 +734,19 @@ export default function CustomersPage() {
                     </div>
                   )} */}
 
+                  {/* National ID */}
+                  {customer.nationalId && (
+                    <div className={styles.infoRow}>
+                      <div className={styles.infoIcon}>
+                        <IdcardOutlined />
+                      </div>
+                      <div className={styles.infoContent}>
+                        <p className={styles.infoLabel}>{t('nationalId')}</p>
+                        <p className={styles.infoValue}>{customer.nationalId}</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Contact Information — from phones array */}
                   {customer.phones && customer.phones.length > 0 && (
                     <div className={styles.infoRow}>
@@ -705,6 +759,19 @@ export default function CustomersPage() {
                           {(customer.phones.find((p) => p.isPrimary) ?? customer.phones[0])
                             .phoneNumber || '-'}
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Secondary Mobile */}
+                  {customer.secondaryMobileNumber && (
+                    <div className={styles.infoRow}>
+                      <div className={styles.infoIcon}>
+                        <PhoneOutlined />
+                      </div>
+                      <div className={styles.infoContent}>
+                        <p className={styles.infoLabel}>{t('secondaryMobile')}</p>
+                        <p className={styles.infoValue}>{customer.secondaryMobileNumber}</p>
                       </div>
                     </div>
                   )}
@@ -842,12 +909,24 @@ export default function CustomersPage() {
                 name="arabicName"
                 rules={[{ required: true, message: 'Please enter Arabic name' }]}
               >
-                <Input prefix={<UserOutlined />} placeholder={t('arabicName')} />
+                <Input
+                  prefix={<UserOutlined />}
+                  placeholder={t('arabicName')}
+                  onBlur={handleGenerateEnglishName}
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item label={t('englishName')} name="englishName">
-                <Input prefix={<UserOutlined />} placeholder={t('englishName')} />
+              <Form.Item
+                label={t('englishName')}
+                name="englishName"
+                tooltip={t('generateNameTip')}
+              >
+                <Input
+                  prefix={<UserOutlined />}
+                  placeholder={t('englishName')}
+                  suffix={isGeneratingName ? <Spin size="small" /> : null}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -878,13 +957,35 @@ export default function CustomersPage() {
             />
           </Form.Item>
 
-          <Form.Item
-            label={t('mobile')}
-            name="mobile"
-            rules={[{ required: true, message: 'Please enter mobile number' }]}
-          >
-            <Input prefix={<PhoneOutlined />} placeholder={t('mobile')} />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label={t('nationalId')} name="nationalId">
+                <Input prefix={<IdcardOutlined />} placeholder={t('nationalId')} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label={t('dateOfBirth')} name="dateOfBirth">
+                <Input type="date" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label={t('mobile')}
+                name="mobile"
+                rules={[{ required: true, message: 'Please enter mobile number' }]}
+              >
+                <Input prefix={<PhoneOutlined />} placeholder={t('mobile')} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label={t('secondaryMobile')} name="secondaryMobileNumber">
+                <Input prefix={<PhoneOutlined />} placeholder={t('secondaryMobile')} />
+              </Form.Item>
+            </Col>
+          </Row>
 
           <Row gutter={16}>
             <Col span={12}>

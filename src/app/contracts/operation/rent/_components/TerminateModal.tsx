@@ -58,7 +58,7 @@ export default function TerminateModal({ open, isRtl, loading, onCancel, onSubmi
         </Button>,
       ]}
       width={460}
-      destroyOnClose
+      destroyOnHidden
     >
       <Alert
         type="warning"

@@ -39,6 +39,8 @@ export const API_ENDPOINTS = {
     UPDATE: (id: number | string) => `/api/V1/Customer/${id}`,
     DELETE: (id: number | string) => `/api/V1/Customer/${id}`,
     EXPORT: '/api/V1/Customer/export',
+    // POST { arabicName } → { englishName } — auto-transliteration (V1 path only)
+    GENERATE_ENGLISH_NAME: '/api/V1/Customer/generate-english-name',
   },
 
   // Document
@@ -101,17 +103,9 @@ export const API_ENDPOINTS = {
     EXPORT: '/api/V1/Worker/export',
   },
 
-  // Recruitment Request
-  RECRUITMENT_REQUEST: {
-    GET_ALL: '/api/RecruitmentRequest',
-    CREATE: '/api/RecruitmentRequest',
-    CHOICE_CUSTOMER: '/api/RecruitmentRequest/ChoiceCusomer',
-    CHOICE_WORKER: '/api/RecruitmentRequest/ChoiceWorker',
-    DELETE_WORKER: (requestId: number) => `/api/RecruitmentRequest/DeleteWorker/${requestId}`,
-    REVIEW_REQUEST: '/api/RecruitmentRequest/ReviewRequest',
-    REFUSED_REQUEST: '/api/RecruitmentRequest/RefusedRequest',
-    ACCEPT_REQUEST: '/api/RecruitmentRequest/AcceptRequest',
-  },
+  // NOTE: the legacy `/api/RecruitmentRequest` endpoints were removed — the
+  // recruitment-requests view now uses GET /api/Mediation/MediationContract/recruitment-requests
+  // (see MEDIATION_CONTRACT.RECRUITMENT_REQUESTS below).
 
   // Operating Contract Offer (renamed from EmploymentContractOffers)
   OPERATING_CONTRACT_OFFER: {
@@ -140,6 +134,12 @@ export const API_ENDPOINTS = {
       `/api/EmploymentOperatingContract/${id}/customer-refund`,
     PRINT_RECEIPT_FORM: (id: number | string) =>
       `/api/EmploymentOperatingContract/${id}/print-receipt-form`,
+    // GET — delivery-form print data (OperatingContractDeliveryFormDto)
+    PRINT_DELIVERY_FORM: (id: number | string) =>
+      `/api/EmploymentOperatingContract/${id}/print-delivery-form`,
+    // POST — save delivery date / signatures
+    DELIVERY_FORM: (id: number | string) =>
+      `/api/EmploymentOperatingContract/${id}/delivery-form`,
   },
 
   // Complaint
@@ -187,6 +187,12 @@ export const API_ENDPOINTS = {
     GET_BY_ID: (id: string) => `/api/Mediation/MediationContract/${id}`,
     CREATE: '/api/Mediation/MediationContract',
     EXPORT: '/api/Mediation/MediationContract/export',
+    // GET — recruitment requests view (worker vs. "any matching worker")
+    RECRUITMENT_REQUESTS: '/api/Mediation/MediationContract/recruitment-requests',
+    // POST { contractId, reason? } — ends the current worker's service
+    END_WORKER_SERVICE: '/api/Mediation/MediationContract/end-worker-service',
+    // POST { contractId, workerId, workerPassportNumber } — assigns a new worker
+    ASSIGN_WORKER: '/api/Mediation/MediationContract/assign-worker',
     CONTRACT_CANCEL: '/api/Mediation/MediationContract/cancel',
     SIGN: '/api/Mediation/MediationContract/sign',
     UPDATE_STATUS: '/api/Mediation/MediationContract/update-status',
@@ -265,7 +271,9 @@ export const API_ENDPOINTS = {
 
   // ─── Period Closing — /api/V1/PeriodClosing/* ──────────────────────────────
   PERIOD_CLOSING: {
+    GET_ALL: '/api/V1/PeriodClosing',
     CLOSE: '/api/V1/PeriodClosing/close',
+    OPEN: '/api/V1/PeriodClosing/open',
     STATUS: '/api/V1/PeriodClosing/status',
   },
 

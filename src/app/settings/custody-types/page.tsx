@@ -143,7 +143,7 @@ export default function CustodyTypesSettingsPage() {
         cancelText="إلغاء"
         confirmLoading={isCreatingType}
         width={480}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item

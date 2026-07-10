@@ -24,7 +24,7 @@ export const useNationalityFollowUpStatuses = () => {
   // Step 1: fetch all nationalities
   const { data: nationalities = [], isLoading: natLoading } = useQuery({
     queryKey: ['nationalities'],
-    queryFn: NationalityService.getAll,
+    queryFn: () => NationalityService.getAll(),
   });
 
   const nationalityIds = nationalities

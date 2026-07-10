@@ -10,6 +10,9 @@ import type {
   DeliveryFormSignDto,
   WarrantyReturnDto,
   UpdateContractStatusDto,
+  EndWorkerServiceDto,
+  AssignWorkerDto,
+  RecruitmentRequestItem,
 } from '@/types/api.types';
 
 export class MediationContractService {
@@ -91,6 +94,12 @@ export class MediationContractService {
     VisaNumber?: string;
     CreatedDateFrom?: string;
     CreatedDateTo?: string;
+    // Advanced filters (ErpImprovementsJul2026).
+    WithoutAssignedWorker?: boolean;
+    IsPaid?: boolean;
+    IsUnpaid?: boolean;
+    PaymentDateFrom?: string;
+    PaymentDateTo?: string;
   }): Promise<{ contracts: MediationContract[]; total: number }> {
     const query: Record<string, any> = {
       Page: params?.Page ?? 1,
@@ -121,6 +130,11 @@ export class MediationContractService {
           'VisaNumber',
           'CreatedDateFrom',
           'CreatedDateTo',
+          'WithoutAssignedWorker',
+          'IsPaid',
+          'IsUnpaid',
+          'PaymentDateFrom',
+          'PaymentDateTo',
         ] as const
       ).forEach((key) => {
         const value = params[key];
@@ -165,7 +179,7 @@ export class MediationContractService {
     if (data.marketerId) append('MarketerId', data.marketerId);
     if (data.visaNumber) append('VisaNumber', data.visaNumber);
     if (data.visaDate) append('VisaDate', data.visaDate);
-    if (data.visaType != null) append('VisaType', Number(data.visaType));
+    // visaType removed from creation (ErpImprovementsJul2026) — no longer sent.
     if (data.visaDateHijri) append('VisaDateHijri', data.visaDateHijri);
     if (data.isComprehensiveQualificationVisa != null)
       append('IsComprehensiveQualificationVisa', data.isComprehensiveQualificationVisa);
@@ -245,5 +259,62 @@ export class MediationContractService {
       notes: data.notes || null,
     });
     return this.unwrap<any>(response.data);
+  }
+
+  // ==================== Worker Assignment ====================
+
+  /** POST /api/Mediation/MediationContract/end-worker-service */
+  static async endWorkerService(data: EndWorkerServiceDto): Promise<any> {
+    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.END_WORKER_SERVICE, {
+      contractId: data.contractId,
+      reason: data.reason || null,
+    });
+    return this.unwrap<any>(response.data);
+  }
+
+  /** POST /api/Mediation/MediationContract/assign-worker */
+  static async assignWorker(data: AssignWorkerDto): Promise<any> {
+    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.ASSIGN_WORKER, {
+      contractId: data.contractId,
+      workerId: data.workerId,
+      workerPassportNumber: data.workerPassportNumber,
+    });
+    return this.unwrap<any>(response.data);
+  }
+
+  // ==================== Recruitment Requests ====================
+
+  /**
+   * GET /api/Mediation/MediationContract/recruitment-requests
+   * Returns `{ items, total }`; each item shows either a specific worker or the
+   * `workerSelectionLabel` ("any matching worker").
+   */
+  static async getRecruitmentRequests(params?: {
+    Page?: number;
+    PageSize?: number;
+    Search?: string;
+    BranchId?: string;
+    IncludeSubBranches?: boolean;
+  }): Promise<{ requests: RecruitmentRequestItem[]; total: number }> {
+    const query: Record<string, any> = {
+      Page: params?.Page ?? 1,
+      PageSize: params?.PageSize ?? 50,
+    };
+    (['Search', 'BranchId', 'IncludeSubBranches'] as const).forEach((key) => {
+      const value = params?.[key];
+      if (value != null && value !== '') query[key] = value;
+    });
+    const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT.RECRUITMENT_REQUESTS, {
+      params: query,
+    });
+    const payload = response.data;
+    const requests = this.unwrapList<RecruitmentRequestItem>(payload);
+    const total: number =
+      payload?.data?.totalCount ??
+      payload?.totalCount ??
+      payload?.data?.total ??
+      payload?.total ??
+      requests.length;
+    return { requests, total };
   }
 }

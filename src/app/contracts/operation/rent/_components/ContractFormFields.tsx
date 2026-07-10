@@ -5,8 +5,8 @@
 'use client';
 
 import React from 'react';
-import { Row, Col, Form, Input, InputNumber, Select, DatePicker } from 'antd';
-import { OPERATING_PAYMENT_METHOD, toSelectOptions } from '@/constants/enums';
+import { Row, Col, Form, Input, InputNumber, Select, DatePicker, Alert } from 'antd';
+import { OPERATING_PAYMENT_METHOD, OPERATION_DURATION, toSelectOptions } from '@/constants/enums';
 import WorkerSelect from '@/components/contracts/WorkerSelect';
 
 interface Props {
@@ -75,8 +75,11 @@ export default function ContractFormFields({ isRtl, customers, jobs, nationaliti
           </Form.Item>
         </Col>
         <Col xs={24} sm={12}>
-          <Form.Item name="duration" label={isRtl ? 'المدة (أشهر)' : 'Duration (months)'}>
-            <InputNumber style={{ width: '100%' }} min={1} max={24} />
+          <Form.Item name="duration" label={isRtl ? 'المدة' : 'Duration'}>
+            <Select
+              placeholder={isRtl ? 'اختر المدة' : 'Select duration'}
+              options={toSelectOptions(OPERATION_DURATION, lang)}
+            />
           </Form.Item>
         </Col>
       </Row>
@@ -117,6 +120,16 @@ export default function ContractFormFields({ isRtl, customers, jobs, nationaliti
           <Form.Item name="workerId" label={isRtl ? 'العامل' : 'Worker'}>
             <WorkerSelect isRtl={isRtl} />
           </Form.Item>
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message={
+              isRtl
+                ? 'عند إسناد عامل، يقوم النظام تلقائياً بإخراجه من السكن ونقله لقائمة التسليم — لا حاجة لخطوة يدوية.'
+                : 'Assigning a worker automatically removes them from housing and moves them to the delivery list — no manual step needed.'
+            }
+          />
         </Col>
       </Row>
 

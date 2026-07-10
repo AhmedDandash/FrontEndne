@@ -269,7 +269,7 @@ export default function ContractFollowUpDetailPage() {
           </Button>,
         ]}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         {detailLoading ? (
           <div className={styles.centered}>

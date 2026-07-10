@@ -16,6 +16,8 @@ import type {
   DeliveryFormSignDto,
   WarrantyReturnDto,
   UpdateContractStatusDto,
+  EndWorkerServiceDto,
+  AssignWorkerDto,
 } from '@/types/api.types';
 
 const QUERY_KEY = 'mediation-contracts';
@@ -42,6 +44,14 @@ export interface MediationContractListParams {
   visaNumber?: string;
   createdDateFrom?: string;
   createdDateTo?: string;
+  customerId?: string;
+  workerId?: string;
+  // Advanced filters (ErpImprovementsJul2026).
+  withoutAssignedWorker?: boolean;
+  isPaid?: boolean;
+  isUnpaid?: boolean;
+  paymentDateFrom?: string;
+  paymentDateTo?: string;
 }
 
 export function useMediationContracts(params?: MediationContractListParams) {
@@ -74,6 +84,13 @@ export function useMediationContracts(params?: MediationContractListParams) {
       VisaNumber: params?.visaNumber,
       CreatedDateFrom: params?.createdDateFrom,
       CreatedDateTo: params?.createdDateTo,
+      CustomerId: params?.customerId,
+      WorkerId: params?.workerId,
+      WithoutAssignedWorker: params?.withoutAssignedWorker,
+      IsPaid: params?.isPaid,
+      IsUnpaid: params?.isUnpaid,
+      PaymentDateFrom: params?.paymentDateFrom,
+      PaymentDateTo: params?.paymentDateTo,
     }),
   });
 
@@ -169,6 +186,32 @@ export function useMediationContracts(params?: MediationContractListParams) {
     },
   });
 
+  const endWorkerServiceMutation = useMutation({
+    mutationFn: (data: EndWorkerServiceDto) => MediationContractService.endWorkerService(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      message.success('تم إنهاء خدمة العامل / Worker service ended');
+    },
+    onError: (error: any) => {
+      message.error(
+        getApiErrorMessage(error, 'فشل إنهاء خدمة العامل / Failed to end worker service')
+      );
+    },
+  });
+
+  const assignWorkerMutation = useMutation({
+    mutationFn: (data: AssignWorkerDto) => MediationContractService.assignWorker(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      message.success('تم إسناد العامل بنجاح / Worker assigned successfully');
+    },
+    onError: (error: any) => {
+      message.error(
+        getApiErrorMessage(error, 'فشل إسناد العامل / Failed to assign worker')
+      );
+    },
+  });
+
   return {
     contracts,
     total,
@@ -182,6 +225,8 @@ export function useMediationContracts(params?: MediationContractListParams) {
     signDelivery: signDeliveryMutation.mutateAsync,
     warrantyReturn: warrantyReturnMutation.mutateAsync,
     updateContractStatus: updateStatusMutation.mutateAsync,
+    endWorkerService: endWorkerServiceMutation.mutateAsync,
+    assignWorker: assignWorkerMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isCancelling: cancelMutation.isPending,
     isSigning: signMutation.isPending,
@@ -189,6 +234,35 @@ export function useMediationContracts(params?: MediationContractListParams) {
     isSigningDelivery: signDeliveryMutation.isPending,
     isReturning: warrantyReturnMutation.isPending,
     isUpdatingStatus: updateStatusMutation.isPending,
+    isEndingWorkerService: endWorkerServiceMutation.isPending,
+    isAssigningWorker: assignWorkerMutation.isPending,
+  };
+}
+
+/** GET /api/Mediation/MediationContract/recruitment-requests */
+export function useRecruitmentRequests(params?: {
+  search?: string;
+  branchId?: string;
+  includeSubBranches?: boolean;
+  pageSize?: number;
+}) {
+  const query = useQuery({
+    queryKey: [QUERY_KEY, 'recruitment-requests', params],
+    queryFn: () =>
+      MediationContractService.getRecruitmentRequests({
+        Search: params?.search,
+        BranchId: params?.branchId,
+        IncludeSubBranches: params?.branchId ? params?.includeSubBranches : undefined,
+        PageSize: params?.pageSize ?? 50,
+      }),
+  });
+  return {
+    requests: query.data?.requests ?? [],
+    total: query.data?.total ?? 0,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error,
+    refetch: query.refetch,
   };
 }
 

@@ -31,6 +31,7 @@ import {
   StopOutlined,
   FileDoneOutlined,
   DollarOutlined,
+  SolutionOutlined,
 } from '@ant-design/icons';
 import type { RentContract } from './types';
 import { getStatusMeta } from './mapping';
@@ -48,6 +49,7 @@ export interface ContractCardActions {
   onRefund: (c: RentContract) => void;
   onReceipts: (c: RentContract) => void;
   onPrint: (c: RentContract) => void;
+  onDeliveryForm: (c: RentContract) => void;
 }
 
 interface Props {
@@ -70,6 +72,7 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
     edit: isRtl ? 'تعديل' : 'Edit',
     delete: isRtl ? 'حذف' : 'Delete',
     printReceipt: isRtl ? 'طباعة الإيصال' : 'Print Receipt',
+    deliveryForm: isRtl ? 'نموذج التسليم' : 'Delivery Form',
     signContract: isRtl ? 'توقيع العقد' : 'Sign Contract',
     startExecution: isRtl ? 'بدء التنفيذ' : 'Start Execution',
     renewContract: isRtl ? 'تجديد العقد' : 'Renew Contract',
@@ -108,6 +111,15 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
     icon: <PrinterOutlined />,
     onClick: () => actions.onPrint(contract),
   });
+  // Delivery form — relevant once a worker is handed over (not for a bare Draft).
+  if (contract.contractStatus !== 1) {
+    menuItems.push({
+      key: 'delivery-form',
+      label: t.deliveryForm,
+      icon: <SolutionOutlined />,
+      onClick: () => actions.onDeliveryForm(contract),
+    });
+  }
   if (contract.contractStatus === 1) {
     menuItems.push({ type: 'divider' });
     menuItems.push({

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Card,
   Row,
@@ -8,279 +8,92 @@ import {
   Tag,
   Button,
   Input,
-  Select,
   Statistic,
   Avatar,
   Empty,
   Modal,
-  Badge,
-  Form,
   Divider,
   Descriptions,
-  Alert,
   Pagination,
+  Spin,
+  Image,
 } from 'antd';
 import {
   FileAddOutlined,
   SearchOutlined,
-  UserOutlined,
-  CalendarOutlined,
-  DollarOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  ExclamationCircleOutlined,
-  PhoneOutlined,
-  GlobalOutlined,
   ReloadOutlined,
+  UserOutlined,
+  PhoneOutlined,
   EyeOutlined,
-  CheckOutlined,
-  CloseOutlined,
-  MessageOutlined,
-  CloseCircleOutlined,
+  GlobalOutlined,
+  CalendarOutlined,
+  TeamOutlined,
+  EnvironmentOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { useRecruitmentRequests } from '@/hooks/api/useMediationContracts';
+import { resolveImageUrl } from '@/utils/image';
+import type { RecruitmentRequestItem } from '@/types/api.types';
 import styles from './MediationRequests.module.css';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type RequestStatus = 'pending' | 'reviewing' | 'approved' | 'rejected' | 'completed';
-
-interface MediationRequest {
-  id: number;
-  customerName: string;
-  customerNameAr: string;
-  customerPhone: string;
-  workerType: string;
-  workerTypeAr: string;
-  nationality: string;
-  nationalityAr: string;
-  proposedSalary: number;
-  contractDurationMonths: number;
-  status: RequestStatus;
-  requestDate: string;
-  notes: string | null;
-  assignedTo: string | null;
-  city: string;
-  cityAr: string;
-}
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const MOCK_REQUESTS: MediationRequest[] = [
-  {
-    id: 1001,
-    customerName: 'Abdullah Al-Qahtani',
-    customerNameAr: 'عبدالله القحطاني',
-    customerPhone: '0501234567',
-    workerType: 'Housemaid',
-    workerTypeAr: 'عاملة منزلية',
-    nationality: 'Philippines',
-    nationalityAr: 'فلبينية',
-    proposedSalary: 1200,
-    contractDurationMonths: 24,
-    status: 'pending',
-    requestDate: '2026-05-01T09:00:00',
-    notes: 'يُفضَّل ذات خبرة في الطبخ',
-    assignedTo: null,
-    city: 'Riyadh',
-    cityAr: 'الرياض',
-  },
-  {
-    id: 1002,
-    customerName: 'Nora Al-Shammari',
-    customerNameAr: 'نورة الشمري',
-    customerPhone: '0559876543',
-    workerType: 'Driver',
-    workerTypeAr: 'سائق',
-    nationality: 'Pakistan',
-    nationalityAr: 'باكستانية',
-    proposedSalary: 1500,
-    contractDurationMonths: 12,
-    status: 'reviewing',
-    requestDate: '2026-04-28T11:30:00',
-    notes: null,
-    assignedTo: 'أحمد المنصور',
-    city: 'Jeddah',
-    cityAr: 'جدة',
-  },
-  {
-    id: 1003,
-    customerName: 'Khalid Al-Otaibi',
-    customerNameAr: 'خالد العتيبي',
-    customerPhone: '0534561234',
-    workerType: 'Housemaid',
-    workerTypeAr: 'عاملة منزلية',
-    nationality: 'Indonesia',
-    nationalityAr: 'إندونيسية',
-    proposedSalary: 1100,
-    contractDurationMonths: 24,
-    status: 'approved',
-    requestDate: '2026-04-20T14:00:00',
-    notes: 'تم الموافقة وجاري إجراءات العقد',
-    assignedTo: 'سارة الزهراني',
-    city: 'Dammam',
-    cityAr: 'الدمام',
-  },
-  {
-    id: 1004,
-    customerName: 'Fatima Al-Ghamdi',
-    customerNameAr: 'فاطمة الغامدي',
-    customerPhone: '0502345678',
-    workerType: 'Nanny',
-    workerTypeAr: 'مربية أطفال',
-    nationality: 'Ethiopia',
-    nationalityAr: 'إثيوبية',
-    proposedSalary: 900,
-    contractDurationMonths: 12,
-    status: 'rejected',
-    requestDate: '2026-04-15T10:00:00',
-    notes: 'لم تتوفر العمالة المطلوبة في الوقت الحالي',
-    assignedTo: 'أحمد المنصور',
-    city: 'Mecca',
-    cityAr: 'مكة المكرمة',
-  },
-  {
-    id: 1005,
-    customerName: 'Mohammed Al-Dosari',
-    customerNameAr: 'محمد الدوسري',
-    customerPhone: '0561234567',
-    workerType: 'Cook',
-    workerTypeAr: 'طباخ',
-    nationality: 'India',
-    nationalityAr: 'هندية',
-    proposedSalary: 1800,
-    contractDurationMonths: 24,
-    status: 'completed',
-    requestDate: '2026-03-10T08:00:00',
-    notes: 'تم إتمام العقد بنجاح',
-    assignedTo: 'سارة الزهراني',
-    city: 'Riyadh',
-    cityAr: 'الرياض',
-  },
-  {
-    id: 1006,
-    customerName: 'Sara Al-Harbi',
-    customerNameAr: 'سارة الحربي',
-    customerPhone: '0573456789',
-    workerType: 'Housemaid',
-    workerTypeAr: 'عاملة منزلية',
-    nationality: 'Sri Lanka',
-    nationalityAr: 'سريلانكية',
-    proposedSalary: 1000,
-    contractDurationMonths: 24,
-    status: 'pending',
-    requestDate: '2026-05-05T13:00:00',
-    notes: null,
-    assignedTo: null,
-    city: 'Tabuk',
-    cityAr: 'تبوك',
-  },
-  {
-    id: 1007,
-    customerName: 'Ibrahim Al-Subaie',
-    customerNameAr: 'إبراهيم السبيعي',
-    customerPhone: '0545678901',
-    workerType: 'Driver',
-    workerTypeAr: 'سائق',
-    nationality: 'Bangladesh',
-    nationalityAr: 'بنغلاديشية',
-    proposedSalary: 1300,
-    contractDurationMonths: 12,
-    status: 'reviewing',
-    requestDate: '2026-05-08T09:30:00',
-    notes: 'يحتاج رخصة قيادة سعودية',
-    assignedTo: 'أحمد المنصور',
-    city: 'Khobar',
-    cityAr: 'الخبر',
-  },
-  {
-    id: 1008,
-    customerName: 'Mona Al-Rashidi',
-    customerNameAr: 'منى الرشيدي',
-    customerPhone: '0516789012',
-    workerType: 'Nanny',
-    workerTypeAr: 'مربية أطفال',
-    nationality: 'Philippines',
-    nationalityAr: 'فلبينية',
-    proposedSalary: 1400,
-    contractDurationMonths: 24,
-    status: 'approved',
-    requestDate: '2026-04-25T16:00:00',
-    notes: 'لديها خبرة مع أطفال دون سن المدرسة',
-    assignedTo: 'سارة الزهراني',
-    city: 'Medina',
-    cityAr: 'المدينة المنورة',
-  },
-];
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MediationRequestsPage() {
   const language = useAuthStore((state) => state.language);
+  const isRtl = language === 'ar';
 
   const [searchText, setSearchText] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showNoteModal, setShowNoteModal] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<MediationRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<RecruitmentRequestItem | null>(null);
 
-  const [noteForm] = Form.useForm();
+  // Debounce the search box → resets to page 1.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(id);
+  }, [searchText]);
 
-  // ── Translations ──────────────────────────────────────────────────────────
+  const { requests, total, isLoading, isFetching, refetch } = useRecruitmentRequests({
+    search: debouncedSearch || undefined,
+    pageSize: 200,
+  });
 
   const t = {
-    pageTitle: language === 'ar' ? 'طلبات عقود التوسط' : 'Mediation Contract Requests',
-    pageSubtitle: language === 'ar' ? 'إدارة جميع طلبات عقود التوسط الواردة' : 'Manage all incoming mediation contract requests',
-    totalRequests: language === 'ar' ? 'إجمالي الطلبات' : 'Total Requests',
-    pendingRequests: language === 'ar' ? 'قيد الانتظار' : 'Pending',
-    approvedRequests: language === 'ar' ? 'موافق عليها' : 'Approved',
-    rejectedRequests: language === 'ar' ? 'مرفوضة' : 'Rejected',
-    search: language === 'ar' ? 'بحث باسم العميل أو رقم الطلب...' : 'Search by customer name or request number...',
-    allStatuses: language === 'ar' ? 'جميع الحالات' : 'All Statuses',
-    refresh: language === 'ar' ? 'تحديث' : 'Refresh',
-    requestDetails: language === 'ar' ? 'تفاصيل الطلب' : 'Request Details',
-    approve: language === 'ar' ? 'موافقة' : 'Approve',
-    reject: language === 'ar' ? 'رفض' : 'Reject',
-    addNote: language === 'ar' ? 'إضافة ملاحظة' : 'Add Note',
-    viewDetails: language === 'ar' ? 'عرض التفاصيل' : 'View Details',
-    close: language === 'ar' ? 'إغلاق' : 'Close',
-    save: language === 'ar' ? 'حفظ' : 'Save',
-    cancel: language === 'ar' ? 'إلغاء' : 'Cancel',
-    noResults: language === 'ar' ? 'لا توجد نتائج' : 'No results found',
-    customerInfo: language === 'ar' ? 'بيانات العميل' : 'Customer Info',
-    requestInfo: language === 'ar' ? 'بيانات الطلب' : 'Request Info',
-    workerType: language === 'ar' ? 'نوع العامل' : 'Worker Type',
-    nationality: language === 'ar' ? 'الجنسية المفضلة' : 'Preferred Nationality',
-    salary: language === 'ar' ? 'الراتب المقترح' : 'Proposed Salary',
-    duration: language === 'ar' ? 'مدة العقد' : 'Contract Duration',
-    months: language === 'ar' ? 'شهر' : 'months',
-    city: language === 'ar' ? 'المدينة' : 'City',
-    requestDate: language === 'ar' ? 'تاريخ الطلب' : 'Request Date',
-    assignedTo: language === 'ar' ? 'مسؤول المتابعة' : 'Assigned To',
-    notes: language === 'ar' ? 'الملاحظات' : 'Notes',
-    noteText: language === 'ar' ? 'نص الملاحظة' : 'Note Text',
-    notePlaceholder: language === 'ar' ? 'أدخل ملاحظتك هنا...' : 'Enter your note here...',
-    status: language === 'ar' ? 'الحالة' : 'Status',
-    showing: language === 'ar' ? 'عرض' : 'Showing',
-    of: language === 'ar' ? 'من' : 'of',
-    requests: language === 'ar' ? 'طلب' : 'requests',
+    pageTitle: isRtl ? 'طلبات الاستقدام' : 'Recruitment Requests',
+    pageSubtitle: isRtl
+      ? 'إدارة جميع طلبات الاستقدام الواردة'
+      : 'Manage all incoming recruitment requests',
+    totalRequests: isRtl ? 'إجمالي الطلبات' : 'Total Requests',
+    withWorker: isRtl ? 'بعامل محدد' : 'With Worker',
+    anyWorker: isRtl ? 'أي عامل مطابق' : 'Any Matching Worker',
+    search: isRtl ? 'بحث باسم العميل أو رقم الطلب...' : 'Search by customer name or request number...',
+    refresh: isRtl ? 'تحديث' : 'Refresh',
+    requestDetails: isRtl ? 'تفاصيل الطلب' : 'Request Details',
+    viewDetails: isRtl ? 'عرض التفاصيل' : 'View Details',
+    close: isRtl ? 'إغلاق' : 'Close',
+    noResults: isRtl ? 'لا توجد طلبات مطابقة' : 'No matching requests',
+    customerInfo: isRtl ? 'بيانات العميل' : 'Customer Info',
+    workerInfo: isRtl ? 'بيانات العامل' : 'Worker Info',
+    workerType: isRtl ? 'نوع العامل' : 'Worker Type',
+    nationality: isRtl ? 'الجنسية' : 'Nationality',
+    passport: isRtl ? 'رقم الجواز' : 'Passport',
+    worker: isRtl ? 'العامل' : 'Worker',
+    branch: isRtl ? 'الفرع' : 'Branch',
+    requestDate: isRtl ? 'تاريخ الطلب' : 'Request Date',
+    status: isRtl ? 'الحالة' : 'Status',
+    showing: isRtl ? 'عرض' : 'Showing',
+    of: isRtl ? 'من' : 'of',
+    requests: isRtl ? 'طلب' : 'requests',
   };
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
-      style: 'currency',
-      currency: 'SAR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return '-';
     try {
-      return new Date(dateString).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
+      return new Date(dateString).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -290,98 +103,108 @@ export default function MediationRequestsPage() {
     }
   };
 
-  const STATUS_CONFIG: Record<RequestStatus, { color: 'processing' | 'warning' | 'success' | 'error' | 'default'; labelAr: string; labelEn: string; tagColor: string }> = {
-    pending: { color: 'warning', labelAr: 'قيد الانتظار', labelEn: 'Pending', tagColor: 'orange' },
-    reviewing: { color: 'processing', labelAr: 'قيد المراجعة', labelEn: 'Under Review', tagColor: 'blue' },
-    approved: { color: 'success', labelAr: 'موافق عليه', labelEn: 'Approved', tagColor: 'green' },
-    rejected: { color: 'error', labelAr: 'مرفوض', labelEn: 'Rejected', tagColor: 'red' },
-    completed: { color: 'default', labelAr: 'مكتمل', labelEn: 'Completed', tagColor: 'cyan' },
-  };
-
-  const getStatusLabel = (status: RequestStatus) => {
-    const cfg = STATUS_CONFIG[status];
-    return language === 'ar' ? cfg.labelAr : cfg.labelEn;
-  };
-
-  const STATUS_OPTIONS = [
-    { value: 'all', label: t.allStatuses },
-    { value: 'pending', label: language === 'ar' ? 'قيد الانتظار' : 'Pending' },
-    { value: 'reviewing', label: language === 'ar' ? 'قيد المراجعة' : 'Under Review' },
-    { value: 'approved', label: language === 'ar' ? 'موافق عليه' : 'Approved' },
-    { value: 'rejected', label: language === 'ar' ? 'مرفوض' : 'Rejected' },
-    { value: 'completed', label: language === 'ar' ? 'مكتمل' : 'Completed' },
-  ];
-
-  // ── Derived data ──────────────────────────────────────────────────────────
-
-  const filtered = useMemo(() => {
-    return MOCK_REQUESTS.filter((r) => {
-      const searchLower = searchText.toLowerCase();
-      const matchesSearch =
-        !searchText ||
-        String(r.id).includes(searchText) ||
-        r.customerName.toLowerCase().includes(searchLower) ||
-        r.customerNameAr.includes(searchText);
-      const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [searchText, statusFilter]);
-
+  // The endpoint already applies the search server-side; paginate client-side.
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, currentPage, pageSize]);
+    return requests.slice(start, start + pageSize);
+  }, [requests, currentPage, pageSize]);
 
-  const stats = useMemo(() => ({
-    total: MOCK_REQUESTS.length,
-    pending: MOCK_REQUESTS.filter((r) => r.status === 'pending' || r.status === 'reviewing').length,
-    approved: MOCK_REQUESTS.filter((r) => r.status === 'approved').length,
-    rejected: MOCK_REQUESTS.filter((r) => r.status === 'rejected').length,
-  }), []);
+  const stats = useMemo(
+    () => ({
+      total,
+      withWorker: requests.filter((r) => r.hasSpecificWorker).length,
+      anyWorker: requests.filter((r) => !r.hasSpecificWorker).length,
+    }),
+    [requests, total]
+  );
 
-  // ── Card renderer ─────────────────────────────────────────────────────────
+  const branchOf = (r: RecruitmentRequestItem) =>
+    (isRtl ? r.branchNameAr : r.branchNameEn) || r.branchNameAr || r.branchNameEn || '';
 
-  const renderCard = (req: MediationRequest) => {
-    const statusCfg = STATUS_CONFIG[req.status];
-    const customerDisplay = language === 'ar' ? req.customerNameAr : req.customerName;
-    const workerTypeDisplay = language === 'ar' ? req.workerTypeAr : req.workerType;
-    const nationalityDisplay = language === 'ar' ? req.nationalityAr : req.nationality;
-    const cityDisplay = language === 'ar' ? req.cityAr : req.city;
+  // Worker display: either a specific worker (name/passport/photo) or the
+  // "any matching worker" label. Requirement edits.md §3.7.
+  const renderWorkerSummary = (r: RecruitmentRequestItem) => {
+    if (r.hasSpecificWorker) {
+      return (
+        <div className={styles.customerSection}>
+          {r.workerPhotoUrl ? (
+            <Image
+              src={resolveImageUrl(r.workerPhotoUrl)}
+              alt={r.workerName || 'worker'}
+              width={44}
+              height={44}
+              style={{ objectFit: 'cover', borderRadius: '50%' }}
+              preview={false}
+            />
+          ) : (
+            <Avatar size={44} icon={<UserOutlined />} className={styles.customerAvatar} />
+          )}
+          <div className={styles.customerDetails}>
+            <span className={styles.customerName}>{r.workerName || '-'}</span>
+            {r.workerPassportNumber && (
+              <div className={styles.customerMeta}>
+                <IdcardOutlined />
+                <span dir="ltr">{r.workerPassportNumber}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <Tag icon={<TeamOutlined />} color="purple" style={{ fontWeight: 600, padding: '4px 10px' }}>
+        {r.workerSelectionLabel || t.anyWorker}
+      </Tag>
+    );
+  };
 
+  const renderCard = (req: RecruitmentRequestItem) => {
+    const branch = branchOf(req);
     return (
       <Col xs={24} key={req.id}>
         <Card className={styles.requestCard} hoverable>
           <div className={styles.cardContent}>
-            {/* Left Section */}
             <div className={styles.cardLeft}>
               <div className={styles.cardHeader}>
                 <div className={styles.requestNumber}>
                   <FileAddOutlined className={styles.requestIcon} />
-                  <span>#{req.id}</span>
+                  <span>#{req.contractNumber ?? req.id}</span>
                 </div>
-                <Tag color={statusCfg.tagColor} style={{ fontWeight: 600 }}>
-                  {getStatusLabel(req.status)}
-                </Tag>
+                {req.statusName && (
+                  <Tag color="blue" style={{ fontWeight: 600 }}>
+                    {req.statusName}
+                  </Tag>
+                )}
               </div>
 
               <div className={styles.tagsSection}>
-                <Tag color="blue" className={styles.workerTypeTag} style={{ color: '#003366', borderColor: '#003366', background: '#e8f0f8' }}>
-                  {workerTypeDisplay}
-                </Tag>
-                <Badge
-                  status={statusCfg.color}
-                  text={getStatusLabel(req.status)}
-                />
+                {req.workerTypeName && (
+                  <Tag
+                    color="blue"
+                    className={styles.workerTypeTag}
+                    style={{ color: '#003366', borderColor: '#003366', background: '#e8f0f8' }}
+                  >
+                    {req.workerTypeName}
+                  </Tag>
+                )}
+                {branch && (
+                  <Tag icon={<EnvironmentOutlined />} color="geekblue">
+                    {branch}
+                  </Tag>
+                )}
               </div>
 
+              {/* Customer */}
               <div className={styles.customerSection}>
                 <Avatar size={44} icon={<UserOutlined />} className={styles.customerAvatar} />
                 <div className={styles.customerDetails}>
-                  <span className={styles.customerName}>{customerDisplay}</span>
-                  <div className={styles.customerMeta}>
-                    <PhoneOutlined />
-                    <span dir="ltr">{req.customerPhone}</span>
-                  </div>
+                  <span className={styles.customerName}>{req.customerName || '-'}</span>
+                  {req.customerPhone && (
+                    <div className={styles.customerMeta}>
+                      <PhoneOutlined />
+                      <span dir="ltr">{req.customerPhone}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -390,70 +213,31 @@ export default function MediationRequestsPage() {
                   <GlobalOutlined className={styles.detailIcon} />
                   <div className={styles.detailText}>
                     <span className={styles.detailLabel}>{t.nationality}</span>
-                    <span className={styles.detailValue}>{nationalityDisplay}</span>
+                    <span className={styles.detailValue}>{req.workerNationalityAr || '-'}</span>
                   </div>
                 </div>
                 <div className={styles.detailItem}>
                   <CalendarOutlined className={styles.detailIcon} />
                   <div className={styles.detailText}>
-                    <span className={styles.detailLabel}>{t.duration}</span>
-                    <span className={styles.detailValue}>{req.contractDurationMonths} {t.months}</span>
-                  </div>
-                </div>
-                <div className={styles.detailItem}>
-                  <ExclamationCircleOutlined className={styles.detailIcon} />
-                  <div className={styles.detailText}>
-                    <span className={styles.detailLabel}>{t.city}</span>
-                    <span className={styles.detailValue}>{cityDisplay}</span>
+                    <span className={styles.detailLabel}>{t.requestDate}</span>
+                    <span className={styles.detailValue}>{formatDate(req.createdAt)}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Section */}
+            {/* Right: worker selection */}
             <div className={styles.cardRight}>
               <div className={styles.salaryBanner}>
                 <div className={styles.salaryMeta}>
-                  <DollarOutlined className={styles.salaryIcon} />
-                  <span className={styles.salaryLabel}>{t.salary}</span>
-                </div>
-                <div className={styles.salaryAmount}>{formatCurrency(req.proposedSalary)}</div>
-              </div>
-
-              <div className={styles.requestDetails}>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailDot} style={{ background: '#003366' }} />
-                  <span className={styles.detailRowLabel}>{t.requestDate}</span>
-                  <span className={styles.detailRowValue} style={{ color: '#003366' }}>
-                    {formatDate(req.requestDate)}
-                  </span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailDot} style={{ background: '#1890ff' }} />
-                  <span className={styles.detailRowLabel}>{t.assignedTo}</span>
-                  <span className={styles.detailRowValue} style={{ color: '#1890ff' }}>
-                    {req.assignedTo || (language === 'ar' ? 'غير محدد' : 'Unassigned')}
-                  </span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailDot} style={{ background: '#faad14' }} />
-                  <span className={styles.detailRowLabel}>{t.duration}</span>
-                  <span className={styles.detailRowValue} style={{ color: '#faad14' }}>
-                    {req.contractDurationMonths} {t.months}
-                  </span>
+                  <TeamOutlined className={styles.salaryIcon} />
+                  <span className={styles.salaryLabel}>{t.worker}</span>
                 </div>
               </div>
-
-              <div className={styles.datesSection}>
-                <div className={styles.dateItem}>
-                  <CalendarOutlined />
-                  <span>{formatDate(req.requestDate)}</span>
-                </div>
-              </div>
+              <div style={{ padding: '12px 4px' }}>{renderWorkerSummary(req)}</div>
             </div>
           </div>
 
-          {/* Actions */}
           <div className={styles.cardBottom}>
             <div className={styles.actionsList}>
               <Button
@@ -461,36 +245,12 @@ export default function MediationRequestsPage() {
                 icon={<EyeOutlined />}
                 className={styles.actionBtn}
                 block
-                onClick={() => { setSelectedRequest(req); setShowDetailsModal(true); }}
+                onClick={() => {
+                  setSelectedRequest(req);
+                  setShowDetailsModal(true);
+                }}
               >
                 {t.viewDetails}
-              </Button>
-              <Button
-                type="link"
-                icon={<CheckOutlined />}
-                className={[styles.actionBtn, styles.successBtn].join(' ')}
-                block
-                disabled={req.status === 'approved' || req.status === 'completed' || req.status === 'rejected'}
-              >
-                {t.approve}
-              </Button>
-              <Button
-                type="link"
-                icon={<CloseOutlined />}
-                className={[styles.actionBtn, styles.dangerBtn].join(' ')}
-                block
-                disabled={req.status === 'rejected' || req.status === 'completed'}
-              >
-                {t.reject}
-              </Button>
-              <Button
-                type="link"
-                icon={<MessageOutlined />}
-                className={styles.actionBtn}
-                block
-                onClick={() => { setSelectedRequest(req); noteForm.resetFields(); setShowNoteModal(true); }}
-              >
-                {t.addNote}
               </Button>
             </div>
           </div>
@@ -499,10 +259,8 @@ export default function MediationRequestsPage() {
     );
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
-    <div className={styles.requestsPage}>
+    <div className={styles.requestsPage} dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className={styles.pageHeader}>
         <div className={styles.headerContent}>
@@ -514,7 +272,12 @@ export default function MediationRequestsPage() {
             </div>
           </div>
           <div className={styles.headerActions}>
-            <Button icon={<ReloadOutlined />} className={styles.secondaryBtn}>
+            <Button
+              icon={<ReloadOutlined />}
+              className={styles.secondaryBtn}
+              loading={isFetching}
+              onClick={() => refetch()}
+            >
               {t.refresh}
             </Button>
           </div>
@@ -523,7 +286,7 @@ export default function MediationRequestsPage() {
 
       {/* Stats */}
       <Row gutter={[16, 16]} className={styles.statisticsRow}>
-        <Col xs={12} sm={6}>
+        <Col xs={24} sm={8}>
           <Card className={styles.statCard}>
             <Statistic
               title={t.totalRequests}
@@ -533,33 +296,23 @@ export default function MediationRequestsPage() {
             />
           </Card>
         </Col>
-        <Col xs={12} sm={6}>
+        <Col xs={12} sm={8}>
           <Card className={styles.statCard}>
             <Statistic
-              title={t.pendingRequests}
-              value={stats.pending}
-              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={6}>
-          <Card className={styles.statCard}>
-            <Statistic
-              title={t.approvedRequests}
-              value={stats.approved}
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+              title={t.withWorker}
+              value={stats.withWorker}
+              prefix={<UserOutlined style={{ color: '#52c41a' }} />}
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
         </Col>
-        <Col xs={12} sm={6}>
+        <Col xs={12} sm={8}>
           <Card className={styles.statCard}>
             <Statistic
-              title={t.rejectedRequests}
-              value={stats.rejected}
-              prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-              valueStyle={{ color: '#ff4d4f' }}
+              title={t.anyWorker}
+              value={stats.anyWorker}
+              prefix={<TeamOutlined style={{ color: '#722ed1' }} />}
+              valueStyle={{ color: '#722ed1' }}
             />
           </Card>
         </Col>
@@ -568,24 +321,15 @@ export default function MediationRequestsPage() {
       {/* Filters */}
       <Card className={styles.filterCard}>
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} md={14}>
+          <Col xs={24}>
             <Input
               placeholder={t.search}
               prefix={<SearchOutlined />}
               value={searchText}
-              onChange={(e) => { setSearchText(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => setSearchText(e.target.value)}
               allowClear
               size="large"
               className={styles.searchInput}
-            />
-          </Col>
-          <Col xs={24} sm={10} md={6}>
-            <Select
-              value={statusFilter}
-              onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}
-              style={{ width: '100%' }}
-              size="large"
-              options={STATUS_OPTIONS}
             />
           </Col>
         </Row>
@@ -594,12 +338,16 @@ export default function MediationRequestsPage() {
       {/* Count */}
       <div className={styles.resultsInfo}>
         <span>
-          {t.showing} {paginated.length} {t.of} {filtered.length} {t.requests}
+          {t.showing} {paginated.length} {t.of} {requests.length} {t.requests}
         </span>
       </div>
 
       {/* List */}
-      {paginated.length > 0 ? (
+      {isLoading ? (
+        <div style={{ textAlign: 'center', padding: 60 }}>
+          <Spin size="large" />
+        </div>
+      ) : paginated.length > 0 ? (
         <Row gutter={[16, 16]} className={styles.requestsGrid}>
           {paginated.map(renderCard)}
         </Row>
@@ -610,48 +358,52 @@ export default function MediationRequestsPage() {
       )}
 
       {/* Pagination */}
-      {filtered.length > pageSize && (
+      {requests.length > pageSize && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24, marginBottom: 8 }}>
           <Pagination
             current={currentPage}
             pageSize={pageSize}
-            total={filtered.length}
+            total={requests.length}
             onChange={(page, size) => {
               setCurrentPage(page);
               if (size !== pageSize) setCurrentPage(1);
               setPageSize(size);
             }}
             showSizeChanger
-            showTotal={(total, range) =>
-              language === 'ar'
-                ? `${range[0]}-${range[1]} من ${total}`
-                : `${range[0]}-${range[1]} of ${total}`
+            showTotal={(tot, range) =>
+              isRtl ? `${range[0]}-${range[1]} من ${tot}` : `${range[0]}-${range[1]} of ${tot}`
             }
             pageSizeOptions={[10, 20, 50]}
           />
         </div>
       )}
 
-      {/* ── Details Modal ── */}
+      {/* Details Modal */}
       <Modal
         title={
           <span>
             {t.requestDetails}
-            {selectedRequest && ` — #${selectedRequest.id}`}
-            {selectedRequest && (
-              <Tag
-                color={STATUS_CONFIG[selectedRequest.status].tagColor}
-                style={{ marginInlineStart: 12, fontWeight: 600 }}
-              >
-                {getStatusLabel(selectedRequest.status)}
+            {selectedRequest && ` — #${selectedRequest.contractNumber ?? selectedRequest.id}`}
+            {selectedRequest?.statusName && (
+              <Tag color="blue" style={{ marginInlineStart: 12, fontWeight: 600 }}>
+                {selectedRequest.statusName}
               </Tag>
             )}
           </span>
         }
         open={showDetailsModal}
-        onCancel={() => { setShowDetailsModal(false); setSelectedRequest(null); }}
+        onCancel={() => {
+          setShowDetailsModal(false);
+          setSelectedRequest(null);
+        }}
         footer={
-          <Button type="primary" onClick={() => { setShowDetailsModal(false); setSelectedRequest(null); }}>
+          <Button
+            type="primary"
+            onClick={() => {
+              setShowDetailsModal(false);
+              setSelectedRequest(null);
+            }}
+          >
             {t.close}
           </Button>
         }
@@ -664,85 +416,55 @@ export default function MediationRequestsPage() {
               {t.customerInfo}
             </Divider>
             <Descriptions column={2} size="small" bordered>
-              <Descriptions.Item label={language === 'ar' ? 'اسم العميل' : 'Customer Name'}>
-                {language === 'ar' ? selectedRequest.customerNameAr : selectedRequest.customerName}
+              <Descriptions.Item label={isRtl ? 'اسم العميل' : 'Customer Name'}>
+                {selectedRequest.customerName || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label={language === 'ar' ? 'رقم الجوال' : 'Phone'}>
-                <span dir="ltr">{selectedRequest.customerPhone}</span>
+              <Descriptions.Item label={isRtl ? 'رقم الجوال' : 'Phone'}>
+                <span dir="ltr">{selectedRequest.customerPhone || '-'}</span>
               </Descriptions.Item>
-              <Descriptions.Item label={t.city}>
-                {language === 'ar' ? selectedRequest.cityAr : selectedRequest.city}
+              <Descriptions.Item label={t.branch} span={2}>
+                {branchOf(selectedRequest) || '-'}
               </Descriptions.Item>
             </Descriptions>
 
             <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
-              {t.requestInfo}
+              {t.workerInfo}
             </Divider>
-            <Descriptions column={2} size="small" bordered>
-              <Descriptions.Item label={t.workerType}>
-                {language === 'ar' ? selectedRequest.workerTypeAr : selectedRequest.workerType}
-              </Descriptions.Item>
-              <Descriptions.Item label={t.nationality}>
-                {language === 'ar' ? selectedRequest.nationalityAr : selectedRequest.nationality}
-              </Descriptions.Item>
-              <Descriptions.Item label={t.salary}>
-                <span style={{ color: '#003366', fontWeight: 700 }}>
-                  {formatCurrency(selectedRequest.proposedSalary)}
-                </span>
-              </Descriptions.Item>
-              <Descriptions.Item label={t.duration}>
-                {selectedRequest.contractDurationMonths} {t.months}
-              </Descriptions.Item>
-              <Descriptions.Item label={t.requestDate}>
-                {formatDate(selectedRequest.requestDate)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t.assignedTo}>
-                {selectedRequest.assignedTo || (language === 'ar' ? 'غير محدد' : 'Unassigned')}
-              </Descriptions.Item>
-              <Descriptions.Item label={t.status} span={2}>
-                <Badge
-                  status={STATUS_CONFIG[selectedRequest.status].color}
-                  text={getStatusLabel(selectedRequest.status)}
-                />
-              </Descriptions.Item>
-            </Descriptions>
-
-            {selectedRequest.notes && (
+            {selectedRequest.hasSpecificWorker ? (
               <>
-                <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
-                  {t.notes}
-                </Divider>
-                <Alert type="info" showIcon message={selectedRequest.notes} />
+                {selectedRequest.workerPhotoUrl && (
+                  <div style={{ marginBlockEnd: 12 }}>
+                    <Image
+                      src={resolveImageUrl(selectedRequest.workerPhotoUrl)}
+                      alt={selectedRequest.workerName || 'worker'}
+                      width={96}
+                      height={96}
+                      style={{ objectFit: 'cover', borderRadius: 8 }}
+                    />
+                  </div>
+                )}
+                <Descriptions column={2} size="small" bordered>
+                  <Descriptions.Item label={t.worker}>
+                    {selectedRequest.workerName || '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t.passport}>
+                    {selectedRequest.workerPassportNumber || '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t.nationality}>
+                    {selectedRequest.workerNationalityAr || '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t.workerType}>
+                    {selectedRequest.workerTypeName || '-'}
+                  </Descriptions.Item>
+                </Descriptions>
               </>
+            ) : (
+              <Tag icon={<TeamOutlined />} color="purple" style={{ fontWeight: 600, padding: '6px 12px' }}>
+                {selectedRequest.workerSelectionLabel || t.anyWorker}
+              </Tag>
             )}
           </div>
         )}
-      </Modal>
-
-      {/* ── Add Note Modal ── */}
-      <Modal
-        title={
-          <span>
-            <MessageOutlined style={{ marginInlineEnd: 8, color: '#003366' }} />
-            {t.addNote}
-            {selectedRequest && ` — #${selectedRequest.id}`}
-          </span>
-        }
-        open={showNoteModal}
-        onCancel={() => { setShowNoteModal(false); noteForm.resetFields(); }}
-        onOk={() => { setShowNoteModal(false); noteForm.resetFields(); }}
-        okText={t.save}
-        cancelText={t.cancel}
-      >
-        <Form form={noteForm} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item
-            name="note"
-            label={t.noteText}
-            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
-          >
-            <Input.TextArea rows={4} placeholder={t.notePlaceholder} />
-          </Form.Item>
-        </Form>
       </Modal>
     </div>
   );

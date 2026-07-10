@@ -26,6 +26,8 @@ import type {
   TerminateContractDto,
   CustomerRefundDto,
   ContractPrintReceiptData,
+  OperatingContractDeliveryFormDto,
+  SaveDeliveryFormDto,
 } from '@/types/api.types';
 
 import type { RentContract } from './_components/types';
@@ -44,6 +46,7 @@ import CustomerRefundModal from './_components/CustomerRefundModal';
 import ContractReceiptsModal from './_components/ContractReceiptsModal';
 import PrintReceiptModal from './_components/PrintReceiptModal';
 import ContractDetailsModal from './_components/ContractDetailsModal';
+import DeliveryFormModal from './_components/DeliveryFormModal';
 import styles from './RentContracts.module.css';
 
 const { RangePicker } = DatePicker;
@@ -79,6 +82,10 @@ export default function RentContractsPage() {
   const [printData, setPrintData] = useState<ContractPrintReceiptData | null>(null);
   const [printLoading, setPrintLoading] = useState(false);
   const [detailsModal, setDetailsModal] = useState<{ open: boolean; contract: RentContract | null }>({ open: false, contract: null });
+  // Worker delivery-form modal
+  const [deliveryModal, setDeliveryModal] = useState<{ open: boolean; id: string | null; title: string }>({ open: false, id: null, title: '' });
+  const [deliveryData, setDeliveryData] = useState<OperatingContractDeliveryFormDto | null>(null);
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
 
   const {
     contracts: apiContracts,
@@ -92,6 +99,8 @@ export default function RentContractsPage() {
     terminateContract,
     recordCustomerRefund,
     printReceiptForm,
+    printDeliveryForm,
+    saveDeliveryForm,
     isCreating,
     isUpdating,
     isDeleting,
@@ -100,6 +109,7 @@ export default function RentContractsPage() {
     isRenewing,
     isTerminating,
     isRefunding,
+    isSavingDeliveryForm,
   } = useEmploymentOperatingContracts({
     BranchId: branchId,
     IncludeSubBranches: branchId ? includeSubBranches : undefined,
@@ -328,6 +338,28 @@ export default function RentContractsPage() {
     }
   };
 
+  // Load + open the worker delivery-form modal.
+  const handleDeliveryForm = async (contract: RentContract) => {
+    setDeliveryData(null);
+    setDeliveryLoading(true);
+    setDeliveryModal({ open: true, id: contract.id, title: `#${contract.contractNumber}` });
+    try {
+      const data = await printDeliveryForm(contract.id);
+      setDeliveryData(data);
+    } catch {
+      // hook surfaces the error toast; modal stays open with an empty state
+    } finally {
+      setDeliveryLoading(false);
+    }
+  };
+
+  const handleSaveDeliveryForm = async (data: SaveDeliveryFormDto) => {
+    if (!deliveryModal.id) return;
+    const updated = await saveDeliveryForm({ id: deliveryModal.id, data });
+    // Reflect the saved values (signature timestamps etc.) back in the modal.
+    setDeliveryData((prev) => ({ ...(prev ?? {}), ...(updated ?? {}) }));
+  };
+
   const cardActions = {
     onView: (c: RentContract) => setDetailsModal({ open: true, contract: c }),
     onEdit: handleEditOpen,
@@ -339,6 +371,7 @@ export default function RentContractsPage() {
     onRefund: (c: RentContract) => setRefundModal({ open: true, id: c.id }),
     onReceipts: (c: RentContract) => setReceiptsModal({ open: true, contract: c }),
     onPrint: handlePrint,
+    onDeliveryForm: handleDeliveryForm,
   };
 
   if (!mounted) return null;
@@ -577,6 +610,17 @@ export default function RentContractsPage() {
         open={detailsModal.open}
         isRtl={isRtl}
         onClose={() => setDetailsModal({ open: false, contract: null })}
+      />
+
+      <DeliveryFormModal
+        open={deliveryModal.open}
+        isRtl={isRtl}
+        data={deliveryData}
+        loading={deliveryLoading}
+        saving={isSavingDeliveryForm}
+        title={deliveryModal.title}
+        onClose={() => setDeliveryModal({ open: false, id: null, title: '' })}
+        onSave={handleSaveDeliveryForm}
       />
     </div>
   );

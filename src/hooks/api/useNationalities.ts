@@ -15,12 +15,14 @@ import { message } from 'antd';
 const QUERY_KEY = 'nationalities';
 
 /**
- * Fetch all nationalities
+ * Fetch nationalities.
+ * @param params Optional server-side filters. Pass `{ isActiveOnly: true, pageSize: 100 }`
+ *   for customer-facing dropdowns so disabled nationalities are excluded.
  */
-export const useNationalities = () => {
+export const useNationalities = (params?: { isActiveOnly?: boolean; pageSize?: number }) => {
   return useQuery<Nationality[], Error>({
-    queryKey: [QUERY_KEY],
-    queryFn: NationalityService.getAll,
+    queryKey: [QUERY_KEY, params ?? {}],
+    queryFn: () => NationalityService.getAll(params),
   });
 };
 

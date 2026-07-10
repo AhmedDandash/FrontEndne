@@ -197,7 +197,7 @@ export default function LocationPicker({
       width="90vw"
       style={{ maxWidth: 980, top: 24 }}
       // Re-mount the map container cleanly on each open.
-      destroyOnClose
+      destroyOnHidden
       maskClosable={false}
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>

@@ -5,6 +5,7 @@ import {
   Card,
   Table,
   Input,
+  InputNumber,
   Select,
   Button,
   Tag,
@@ -31,6 +32,7 @@ import {
 } from '@ant-design/icons';
 import { useJournalEntries, useJournalEntryMutations } from '@/hooks/api/useJournalEntries';
 import { useRestrictionTypes } from '@/hooks/api/useRestrictionTypes';
+import { useClosedYears } from '@/hooks/api/usePeriodClosing';
 import { useAuthStore } from '@/store/authStore';
 import { BranchFilterSelect } from '@/components/filters';
 import {
@@ -57,6 +59,7 @@ export default function JournalEntriesPage() {
   const [status, setStatus] = useState<JournalEntryStatus | undefined>();
   const [source, setSource] = useState<JournalEntrySource | undefined>();
   const [restrictionTypeId, setRestrictionTypeId] = useState<string | undefined>();
+  const [contractNumber, setContractNumber] = useState<number | undefined>();
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
@@ -65,6 +68,9 @@ export default function JournalEntriesPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const { restrictionTypes } = useRestrictionTypes();
+  // Posting/unposting is blocked by the backend inside a closed fiscal year;
+  // gate those actions in the UI too (fails open if the list is unavailable).
+  const { isYearClosed } = useClosedYears();
 
   const { items, totalCount, isLoading, isFetching, refetch } = useJournalEntries({
     pageNumber,
@@ -73,6 +79,7 @@ export default function JournalEntriesPage() {
     status,
     source,
     restrictionTypeId,
+    contractNumber,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
     from: range?.[0]?.startOf('day').toISOString(),
@@ -105,6 +112,7 @@ export default function JournalEntriesPage() {
     setStatus(undefined);
     setSource(undefined);
     setRestrictionTypeId(undefined);
+    setContractNumber(undefined);
     setBranchId(undefined);
     setRange([dayjs().subtract(1, 'month'), dayjs()]);
     setPageNumber(1);
@@ -230,6 +238,7 @@ export default function JournalEntriesPage() {
       fixed: 'right',
       render: (_, record) => {
         const isDraft = record.status === 'Draft';
+        const yearClosed = isYearClosed(record.date);
         return (
           <Space size={2}>
             <Tooltip title={t('عرض', 'View')}>
@@ -250,7 +259,13 @@ export default function JournalEntriesPage() {
                     onClick={() => openEdit(record.id)}
                   />
                 </Tooltip>
-                <Tooltip title={t('اعتماد', 'Post')}>
+                <Tooltip
+                  title={
+                    yearClosed
+                      ? t('السنة المالية مغلقة', 'Fiscal year is closed')
+                      : t('اعتماد', 'Post')
+                  }
+                >
                   <Popconfirm
                     title={t('اعتماد القيد؟', 'Post this entry?')}
                     description={t(
@@ -261,12 +276,14 @@ export default function JournalEntriesPage() {
                     cancelText={t('إلغاء', 'Cancel')}
                     okButtonProps={{ loading: isPosting, disabled: !record.isBalanced }}
                     onConfirm={() => postEntry(record.id)}
+                    disabled={yearClosed}
                   >
                     <Button
                       size="small"
                       type="text"
-                      style={{ color: '#52c41a' }}
+                      style={yearClosed ? undefined : { color: '#52c41a' }}
                       icon={<CheckCircleOutlined />}
+                      disabled={yearClosed}
                     />
                   </Popconfirm>
                 </Tooltip>
@@ -287,7 +304,13 @@ export default function JournalEntriesPage() {
                 </Tooltip>
               </>
             ) : (
-              <Tooltip title={t('إلغاء الاعتماد', 'Unpost')}>
+              <Tooltip
+                title={
+                  yearClosed
+                    ? t('السنة المالية مغلقة', 'Fiscal year is closed')
+                    : t('إلغاء الاعتماد', 'Unpost')
+                }
+              >
                 <Popconfirm
                   title={t('إلغاء اعتماد القيد؟', 'Unpost this entry?')}
                   description={t(
@@ -298,12 +321,14 @@ export default function JournalEntriesPage() {
                   cancelText={t('رجوع', 'Back')}
                   okButtonProps={{ loading: isUnposting }}
                   onConfirm={() => unpostEntry(record.id)}
+                  disabled={yearClosed}
                 >
                   <Button
                     size="small"
                     type="text"
-                    style={{ color: '#fa8c16' }}
+                    style={yearClosed ? undefined : { color: '#fa8c16' }}
                     icon={<RollbackOutlined />}
+                    disabled={yearClosed}
                   />
                 </Popconfirm>
               </Tooltip>
@@ -433,6 +458,18 @@ export default function JournalEntriesPage() {
                 setPageNumber(1);
               }}
               placeholder={[t('من', 'From'), t('إلى', 'To')]}
+            />
+            <InputNumber
+              min={1}
+              precision={0}
+              controls={false}
+              style={{ minWidth: 160 }}
+              value={contractNumber ?? null}
+              onChange={(v) => {
+                setContractNumber(v ? Number(v) : undefined);
+                setPageNumber(1);
+              }}
+              placeholder={t('رقم العقد', 'Contract No.')}
             />
             <Select
               allowClear

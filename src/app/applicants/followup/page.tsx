@@ -44,10 +44,10 @@ import {
   useDeleteMedicalExamination,
 } from '@/hooks/api/useWorkers';
 import type { Worker } from '@/types/api.types';
+import { useNationalities } from '@/hooks/api/useNationalities';
 import {
   MEDICAL_STATUS,
   WORKER_SATUS,
-  NATIONALITIES,
   VISA_JOB_TYPES,
   toSelectOptions,
 } from '@/constants/enums';
@@ -276,6 +276,19 @@ export default function WorkersFollowupPage() {
   const { data: medicalExaminations = [] } = useMedicalExaminations();
   const { mutate: updateMedicalExam, isPending: isUpdating } = useUpdateMedicalExamination();
   const { mutate: deleteMedicalExam } = useDeleteMedicalExamination();
+  // Nationality dropdown from the API (active only) — no hardcoded/disabled entries.
+  const { data: nationalities = [] } = useNationalities({ isActiveOnly: true, pageSize: 100 });
+  const nationalityOptions = useMemo(
+    () =>
+      (Array.isArray(nationalities) ? nationalities : [])
+        .filter((n: any) => n?.isActive !== false)
+        .map((n: any) => ({
+          value: n.nationalityNameAr || n.nationalityNameEn || String(n.id),
+          label: (language === 'ar' ? n.nationalityNameAr : n.nationalityNameEn) ||
+            n.nationalityNameAr || n.nationalityNameEn || String(n.id),
+        })),
+    [nationalities, language]
+  );
 
   // Filter workers
   const filteredWorkers = useMemo(() => {
@@ -289,8 +302,10 @@ export default function WorkersFollowupPage() {
         worker.referenceNo?.toLowerCase().includes(searchLower);
 
       const matchesStatus = !filters.status || worker.workerStatus === Number(filters.status);
+      // Worker records carry `nationalityName` (string), so match by name.
       const matchesNationality =
-        !filters.nationality || String(worker.nationalityId) === String(filters.nationality);
+        !filters.nationality ||
+        (worker.nationalityName || '').toLowerCase() === String(filters.nationality).toLowerCase();
       const matchesJob = !filters.job || worker.jobname === filters.job;
 
       return matchesSearch && matchesStatus && matchesNationality && matchesJob;
@@ -651,10 +666,7 @@ export default function WorkersFollowupPage() {
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  options={toSelectOptions([...NATIONALITIES], language).map((o) => ({
-                    value: String(o.value),
-                    label: o.label,
-                  }))}
+                  options={nationalityOptions}
                 />
               </Col>
 
@@ -785,7 +797,7 @@ export default function WorkersFollowupPage() {
         width={600}
         className={styles.modal}
       >
-        <Space direction="vertical" style={{ width: '100%' }} size={16}>
+        <Space orientation="vertical" style={{ width: '100%' }} size={16}>
           <div>
             <label className={styles.filterLabel}>{t('examDate')}</label>
             <DatePicker

@@ -173,6 +173,31 @@ export function useWorkersFiltered(params?: WorkerFilterParams) {
   });
 }
 
+/**
+ * Fetch workers available for a mediation contract, searched by passport number.
+ * Backend params: `availableForMediationContract=true` (active + not on an active
+ * contract) and `searchByPassportOnly=true` with `passportNo` as a partial match.
+ * Pass an empty/short `passportNo` and set `enabled=false` to defer the query.
+ */
+export function useAvailableMediationWorkers(passportNo?: string, enabled = true) {
+  const trimmed = (passportNo ?? '').trim();
+  return useQuery<Worker[]>({
+    queryKey: [...WORKERS_KEY, 'available-mediation', trimmed],
+    queryFn: async () => {
+      const response = await api.get(API_ENDPOINTS.WORKERS.GET_ALL, {
+        params: {
+          availableForMediationContract: true,
+          searchByPassportOnly: true,
+          passportNo: trimmed,
+          PageSize: 50,
+        },
+      });
+      return extractWorkerArray(response.data);
+    },
+    enabled,
+  });
+}
+
 /** Fetch a single worker by ID */
 export function useWorker(id: string | undefined) {
   const normalizedId = id && id !== 'undefined' ? id : undefined;

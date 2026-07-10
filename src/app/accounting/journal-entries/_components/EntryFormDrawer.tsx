@@ -184,7 +184,7 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
       open={open}
       onClose={onClose}
       width={620}
-      destroyOnClose
+      destroyOnHidden
       title={
         <Space>
           <PlusOutlined />

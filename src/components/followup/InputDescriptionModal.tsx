@@ -185,7 +185,7 @@ export function InputDescriptionModal({ item, open, onCancel, onSave, loading }:
       okText="حفظ البيانات"
       cancelText="إلغاء"
       confirmLoading={loading}
-      destroyOnClose
+      destroyOnHidden
       width={560}
     >
       <Form form={form} layout="vertical" style={{ marginTop: 16 }} dir="rtl">

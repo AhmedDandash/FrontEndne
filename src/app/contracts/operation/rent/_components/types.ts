@@ -32,6 +32,12 @@ export interface RentContract {
   professionAr: string;
   branch: string;
   branchAr: string;
+  /** Raw duration in months (1/3/6/12) + readable labels from the API. */
+  duration: number | null;
+  durationNameAr: string;
+  durationNameEn: string;
+  /** Assigned worker photo (relative R2 key — resolve via resolveImageUrl). */
+  workerPhotoUrl: string;
   daysRemaining: number;
   createdAt: string;
   notes: string;

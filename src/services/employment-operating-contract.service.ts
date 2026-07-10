@@ -24,6 +24,8 @@ import type {
   TerminateContractDto,
   CustomerRefundDto,
   ContractPrintReceiptData,
+  OperatingContractDeliveryFormDto,
+  SaveDeliveryFormDto,
 } from '@/types/api.types';
 
 export interface GetContractsParams {
@@ -180,5 +182,38 @@ export class EmploymentOperatingContractService {
     const payload = unwrap<any>(response.data);
     const contract = payload?.contract ?? payload;
     return { message: payload?.message ?? null, contract };
+  }
+
+  /**
+   * GET /api/EmploymentOperatingContract/{id}/print-delivery-form
+   * Returns the OperatingContractDeliveryFormDto (customer + worker + signatures).
+   */
+  static async printDeliveryForm(id: number | string): Promise<OperatingContractDeliveryFormDto> {
+    const response = await api.get<any>(
+      API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.PRINT_DELIVERY_FORM(id)
+    );
+    return unwrap<OperatingContractDeliveryFormDto>(response.data);
+  }
+
+  /**
+   * POST /api/EmploymentOperatingContract/{id}/delivery-form
+   * Saves the delivery date / employee name / signatures.
+   */
+  static async saveDeliveryForm(
+    id: number | string,
+    data: SaveDeliveryFormDto
+  ): Promise<OperatingContractDeliveryFormDto> {
+    const response = await api.post<any>(
+      API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.DELIVERY_FORM(id),
+      {
+        deliveryDate: data.deliveryDate ?? null,
+        employeeName: data.employeeName ?? null,
+        notes: data.notes ?? null,
+        customerSignedAt: data.customerSignedAt ?? null,
+        workerSignedAt: data.workerSignedAt ?? null,
+        companyRepresentativeSignedAt: data.companyRepresentativeSignedAt ?? null,
+      }
+    );
+    return unwrap<OperatingContractDeliveryFormDto>(response.data);
   }
 }

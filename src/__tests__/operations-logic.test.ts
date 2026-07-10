@@ -103,27 +103,33 @@ test('toReceiptSections: null payload → []', () => {
   assert.deepEqual(toReceiptSections(null, false), []);
 });
 
-test('toReceiptSections: humanizes keys and formats values', () => {
+test('toReceiptSections: projects the contract + display into labelled sections', () => {
   const sections = toReceiptSections(
     {
-      customerData: { fullName: 'Sara', is_vip: true, missing: null },
-      workerData: {},
-      priceDetails: { total_cost: 1500 },
-      duration: 12,
-      contractStartDate: '2026-01-01T00:00:00',
-      contractEndDate: null,
+      contract: {
+        contractNumber: 55,
+        paymentMethod: 1, // → Cash
+        customerAddress: 'Riyadh',
+        workerNameEn: 'Raju',
+        cost: 1500,
+        contractStartDate: '2026-01-01T00:00:00',
+        contractEndDate: null,
+      },
+      display: { customerName: 'Sara', customerPhone: '050', nationalityName: 'India', jobName: 'Maid' },
     } as any,
     false
   );
 
-  // Empty workerData section is omitted; Customer, Pricing, Period remain.
+  // All five sections carry at least one real value here.
   const titles = sections.map((s) => s.title);
-  assert.deepEqual(titles, ['Customer', 'Pricing', 'Contract Period']);
+  assert.deepEqual(titles, ['Contract', 'Customer', 'Worker', 'Pricing', 'Contract Period']);
+
+  const contract = sections.find((s) => s.title === 'Contract')!;
+  assert.equal(contract.rows.find((r) => r.label === 'Contract No.')!.value, '55');
+  assert.equal(contract.rows.find((r) => r.label === 'Payment Method')!.value, 'Cash'); // enum → label
 
   const customer = sections.find((s) => s.title === 'Customer')!;
-  assert.deepEqual(customer.rows.find((r) => r.label === 'Full Name')!.value, 'Sara');
-  assert.equal(customer.rows.find((r) => r.label === 'Is Vip')!.value, '✓'); // boolean → ✓
-  assert.equal(customer.rows.find((r) => r.label === 'Missing')!.value, '—'); // null → —
+  assert.equal(customer.rows.find((r) => r.label === 'Name')!.value, 'Sara');
 
   const period = sections.find((s) => s.title === 'Contract Period')!;
   assert.equal(period.rows.find((r) => r.label === 'End Date')!.value, '—'); // null date → —
@@ -131,16 +137,14 @@ test('toReceiptSections: humanizes keys and formats values', () => {
   assert.notEqual(period.rows.find((r) => r.label === 'Start Date')!.value, '2026-01-01T00:00:00');
 });
 
-test('toReceiptSections: fully empty payload → no sections with rows', () => {
-  const sections = toReceiptSections(
-    { customerData: {}, workerData: {}, priceDetails: {}, duration: null, contractStartDate: null, contractEndDate: null } as any,
-    false
-  );
-  // customer/worker/pricing omitted (empty); period rows are all '—' but still present (3 fixed rows)
-  assert.deepEqual(sections.map((s) => s.title), ['Contract Period']);
+test('toReceiptSections: fully empty payload → no sections (all rows are dashes)', () => {
+  const sections = toReceiptSections({ contract: {}, display: {} } as any, false);
+  // Every row would be '—', so every section is filtered out.
+  assert.deepEqual(sections, []);
 });
 
 test('toReceiptSections: Arabic titles when isRtl', () => {
-  const sections = toReceiptSections({ priceDetails: { x: 1 } } as any, true);
+  // Only the pricing figure is set → only the pricing section survives the dash filter.
+  const sections = toReceiptSections({ contract: { cost: 1 }, display: {} } as any, true);
   assert.equal(sections[0].title, 'تفاصيل التسعير');
 });

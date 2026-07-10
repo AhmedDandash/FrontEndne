@@ -83,7 +83,7 @@ export default function BranchGate() {
       dir={isAr ? 'rtl' : 'ltr'}
     >
       <Card style={{ width: '100%', maxWidth: 440 }}>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <div style={{ textAlign: 'center' }}>
             <ApartmentOutlined style={{ fontSize: 32, color: '#1677ff' }} />
             <Title level={4} style={{ marginTop: 12, marginBottom: 4 }}>

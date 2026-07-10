@@ -118,7 +118,7 @@ export function DocumentTraceDrawer({ open, onClose, trace, loading }: Props) {
                 )}
               </Descriptions>
               <Table<AccountingDocumentTraceJournalLine>
-                rowKey={(line) => `${line.accountCode ?? ''}-${line.debit}-${line.credit}`}
+                rowKey={(line, index) => line.id ?? `line-${index}`}
                 size="small"
                 bordered
                 pagination={false}

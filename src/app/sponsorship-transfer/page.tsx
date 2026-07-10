@@ -225,7 +225,7 @@ function ContractDetailsModal({
           )}
         </span>
       }
-      destroyOnClose
+      destroyOnHidden
     >
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: 48 }}>
@@ -414,7 +414,7 @@ function ComplaintModal({
       cancelText={t('cancel')}
       confirmLoading={mutation.isPending}
       width={500}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" style={{ marginTop: 12 }}>
         <Form.Item
@@ -476,7 +476,7 @@ function AuthorityModal({
       cancelText={t('cancel')}
       confirmLoading={mutation.isPending}
       width={480}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" style={{ marginTop: 12 }}>
         <Form.Item
@@ -565,7 +565,7 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
       cancelText={t('cancel')}
       confirmLoading={createMutation.isPending}
       width={700}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
         <Row gutter={[16, 0]}>

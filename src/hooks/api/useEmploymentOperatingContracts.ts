@@ -21,6 +21,7 @@ import type {
   UpdateEmploymentOperatingContractDto,
   TerminateContractDto,
   CustomerRefundDto,
+  SaveDeliveryFormDto,
 } from '@/types/api.types';
 
 const QUERY_KEY = 'employment-operating-contracts';
@@ -157,6 +158,27 @@ export function useEmploymentOperatingContracts(
       ),
   });
 
+  /** Fetch delivery-form print data */
+  const printDeliveryFormMutation = useMutation({
+    mutationFn: (id: number | string) => EmploymentOperatingContractService.printDeliveryForm(id),
+    onError: (error) =>
+      message.error(
+        getApiErrorMessage(error, 'فشل جلب نموذج التسليم / Failed to fetch delivery form')
+      ),
+  });
+
+  /** Save delivery-form (date / employee name / signatures) */
+  const saveDeliveryFormMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: SaveDeliveryFormDto }) =>
+      EmploymentOperatingContractService.saveDeliveryForm(id, data),
+    onSuccess: () => {
+      invalidate();
+      message.success('تم حفظ نموذج التسليم / Delivery form saved');
+    },
+    onError: (error) =>
+      message.error(getApiErrorMessage(error, 'فشل حفظ نموذج التسليم / Failed to save delivery form')),
+  });
+
   return {
     contracts,
     isLoading,
@@ -177,10 +199,13 @@ export function useEmploymentOperatingContracts(
     terminateContract: terminateMutation.mutate,
     recordCustomerRefund: customerRefundMutation.mutate,
     printReceiptForm: printReceiptFormMutation.mutateAsync,
+    printDeliveryForm: printDeliveryFormMutation.mutateAsync,
+    saveDeliveryForm: saveDeliveryFormMutation.mutateAsync,
     isSigning: signMutation.isPending,
     isStartingExecution: startExecutionMutation.isPending,
     isRenewing: renewMutation.isPending,
     isTerminating: terminateMutation.isPending,
     isRefunding: customerRefundMutation.isPending,
+    isSavingDeliveryForm: saveDeliveryFormMutation.isPending,
   };
 }

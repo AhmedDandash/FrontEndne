@@ -156,6 +156,9 @@ export interface JournalEntriesQuery {
   workerId?: string;
   employeeId?: string;
   restrictionTypeId?: string;
+  /** Filter by the source contract's sequential number (int). Verified live:
+   *  `GET /JournalEntries?contractNumber=123` — applied as AND with other params. */
+  contractNumber?: number;
   /** Branch scoping — filters journal entries by BranchId. */
   branchId?: string;
   includeSubBranches?: boolean;

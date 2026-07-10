@@ -4,76 +4,173 @@ import { useState } from 'react';
 import {
   Card,
   Button,
-  Select,
   Space,
-  Descriptions,
   Typography,
   Popconfirm,
   Alert,
   Statistic,
   Tag,
+  Spin,
+  Empty,
 } from 'antd';
 import {
   LockOutlined,
+  UnlockOutlined,
   CheckCircleFilled,
   ClockCircleOutlined,
   ReloadOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
-import { usePeriodClosingStatus, useClosePeriod } from '@/hooks/api/usePeriodClosing';
+import {
+  usePeriodClosingYears,
+  useClosePeriod,
+  useOpenPeriod,
+} from '@/hooks/api/usePeriodClosing';
 import { useAuthStore } from '@/store/authStore';
+import type { PeriodYearStatus, PeriodClosingResult } from '@/types/api.types';
 import styles from '../accounting-doc.module.css';
 
 const { Title, Text, Paragraph } = Typography;
-
-const MONTHS = [
-  { value: 1, ar: 'يناير', en: 'January' },
-  { value: 2, ar: 'فبراير', en: 'February' },
-  { value: 3, ar: 'مارس', en: 'March' },
-  { value: 4, ar: 'أبريل', en: 'April' },
-  { value: 5, ar: 'مايو', en: 'May' },
-  { value: 6, ar: 'يونيو', en: 'June' },
-  { value: 7, ar: 'يوليو', en: 'July' },
-  { value: 8, ar: 'أغسطس', en: 'August' },
-  { value: 9, ar: 'سبتمبر', en: 'September' },
-  { value: 10, ar: 'أكتوبر', en: 'October' },
-  { value: 11, ar: 'نوفمبر', en: 'November' },
-  { value: 12, ar: 'ديسمبر', en: 'December' },
-];
-
-const currentYear = new Date().getFullYear();
-const YEARS = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
 export default function PeriodClosingPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
-  const [year, setYear] = useState<number>(currentYear);
-  const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-
-  const { data: status, isLoading: isStatusLoading, error: statusError, refetch } =
-    usePeriodClosingStatus(year, month);
+  const { data: years, isLoading, error, refetch } = usePeriodClosingYears();
   const { mutateAsync: closePeriod, isPending: isClosing } = useClosePeriod();
+  const { mutateAsync: openPeriod, isPending: isOpening } = useOpenPeriod();
 
-  // The closing details (entry id, net income) are only returned by the close
-  // mutation itself — the status endpoint just returns a boolean. Keep the most
-  // recent close result to surface those figures right after closing.
-  const [lastResult, setLastResult] = useState<any>(null);
+  // The net income figure is only returned by the close mutation itself; keep the
+  // latest result per year to surface it right after closing.
+  const [lastResults, setLastResults] = useState<Record<number, PeriodClosingResult>>({});
+  // Track which specific year is mutating so only its button spins.
+  const [busyYear, setBusyYear] = useState<number | null>(null);
 
-  const handleClose = async () => {
-    const result = await closePeriod({ year, month });
-    setLastResult(result);
-    refetch();
+  // Period-closing endpoints are role/branch-restricted. A 401/403 means the
+  // current user may not view or perform period closing.
+  const errorCode = (error as any)?.response?.status;
+  const isForbidden = errorCode === 401 || errorCode === 403;
+
+  const handleClose = async (year: number) => {
+    setBusyYear(year);
+    try {
+      const result = await closePeriod({ year });
+      setLastResults((prev) => ({ ...prev, [year]: result }));
+    } finally {
+      setBusyYear(null);
+    }
   };
 
-  // status is a boolean: true = closed, false = open, undefined = not loaded.
-  const isClosed = status === true;
-  const isOpen = status === false;
-  // Period-closing endpoints are role-restricted. A 401/403 means the current
-  // user (e.g. Employee role) may not view or perform period closing.
-  const errorCode = (statusError as any)?.response?.status;
-  const isForbidden = errorCode === 401 || errorCode === 403;
+  const handleOpen = async (year: number) => {
+    setBusyYear(year);
+    try {
+      await openPeriod({ year });
+      setLastResults((prev) => {
+        const next = { ...prev };
+        delete next[year];
+        return next;
+      });
+    } finally {
+      setBusyYear(null);
+    }
+  };
+
+  const renderYearRow = (row: PeriodYearStatus) => {
+    const isClosed = row.isClosed;
+    const isBusy = busyYear === row.year;
+    const result = lastResults[row.year];
+
+    return (
+      <div
+        key={row.year}
+        className={`${styles.periodStatus} ${isClosed ? styles.closed : styles.open}`}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}
+      >
+        <Space align="center" size={12}>
+          {isClosed ? (
+            <CheckCircleFilled style={{ fontSize: 22, color: '#52c41a' }} />
+          ) : (
+            <ClockCircleOutlined style={{ fontSize: 22, color: '#fa8c16' }} />
+          )}
+          <div>
+            <Space size={8} align="center">
+              <Text strong style={{ fontSize: 18 }}>
+                {row.year}
+              </Text>
+              <Tag color={isClosed ? 'success' : 'warning'}>
+                {isClosed ? t('مغلقة', 'Closed') : t('مفتوحة', 'Open')}
+              </Tag>
+            </Space>
+            {isClosed && (row.closedBy || row.closedAt) && (
+              <div style={{ marginBlockStart: 4 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {row.closedBy ? t(`أُغلقت بواسطة ${row.closedBy}`, `Closed by ${row.closedBy}`) : ''}
+                  {row.closedBy && row.closedAt ? ' · ' : ''}
+                  {row.closedAt ? new Date(row.closedAt).toLocaleString() : ''}
+                </Text>
+              </div>
+            )}
+            {result?.netIncomeTransferred != null && (
+              <div style={{ marginBlockStart: 6 }}>
+                <Statistic
+                  title={t('صافي الدخل المحول', 'Net income transferred')}
+                  value={result.netIncomeTransferred}
+                  precision={2}
+                  valueStyle={{
+                    fontSize: 15,
+                    color: result.netIncomeTransferred >= 0 ? '#52c41a' : '#cf1322',
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </Space>
+
+        {isClosed ? (
+          <Popconfirm
+            title={t('فتح السنة المالية؟', 'Reopen fiscal year?')}
+            description={
+              <div style={{ maxWidth: 320 }}>
+                {t(
+                  `سيتم فتح سنة ${row.year} والسماح بالترحيل مجدداً وعكس قيد الإغلاق.`,
+                  `Year ${row.year} will reopen, re-enabling posting and reversing the closing entry.`
+                )}
+              </div>
+            }
+            okText={t('نعم، افتح السنة', 'Yes, Reopen')}
+            cancelText={t('إلغاء', 'Cancel')}
+            okButtonProps={{ loading: isBusy && isOpening }}
+            onConfirm={() => handleOpen(row.year)}
+          >
+            <Button icon={<UnlockOutlined />} loading={isBusy && isOpening}>
+              {t('فتح السنة', 'Reopen Year')}
+            </Button>
+          </Popconfirm>
+        ) : (
+          <Popconfirm
+            title={t('تأكيد إغلاق السنة', 'Confirm Year Closing')}
+            description={
+              <div style={{ maxWidth: 340 }}>
+                {t(
+                  `هل أنت متأكد من إغلاق سنة ${row.year}؟ سيتم إغلاق حسابات الإيرادات والمصروفات وتحويل صافي الدخل. يمكن فتح السنة لاحقاً.`,
+                  `Close year ${row.year}? Revenue and expense accounts will be closed and net income transferred. The year can be reopened later.`
+                )}
+              </div>
+            }
+            okText={t('نعم، أغلق السنة', 'Yes, Close')}
+            cancelText={t('إلغاء', 'Cancel')}
+            okButtonProps={{ danger: true, loading: isBusy && isClosing }}
+            onConfirm={() => handleClose(row.year)}
+          >
+            <Button type="primary" danger icon={<LockOutlined />} loading={isBusy && isClosing}>
+              {t('إغلاق السنة', 'Close Year')}
+            </Button>
+          </Popconfirm>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className={styles.page}>
@@ -83,18 +180,18 @@ export default function PeriodClosingPage() {
           <div className={styles.headerLeft}>
             <LockOutlined className={styles.headerIcon} />
             <div>
-              <h1 className={styles.pageTitle}>{t('إغلاق الفترة المحاسبية', 'Accounting Period Closing')}</h1>
+              <h1 className={styles.pageTitle}>{t('إغلاق السنة المالية', 'Fiscal Year Closing')}</h1>
               <p className={styles.pageSubtitle}>
                 {t(
-                  'إغلاق شهر محاسبي وترحيل صافي الدخل إلى الأرباح المحتجزة',
-                  'Close an accounting month and transfer net income to retained earnings'
+                  'إغلاق أو فتح السنوات المحاسبية وترحيل صافي الدخل إلى الأرباح المحتجزة',
+                  'Close or reopen accounting years and transfer net income to retained earnings'
                 )}
               </p>
             </div>
           </div>
           <div className={styles.headerActions}>
             <Button
-              icon={<ReloadOutlined spin={isStatusLoading} />}
+              icon={<ReloadOutlined spin={isLoading} />}
               onClick={() => refetch()}
               className={styles.refreshBtn}
             >
@@ -104,173 +201,60 @@ export default function PeriodClosingPage() {
         </div>
       </div>
 
-      {/* ── Period Selector + Status Card ────────────────────────── */}
-      <Card className={styles.periodCard}>
-        <Title level={4} style={{ marginBottom: 20 }}>
-          {t('اختر الفترة المحاسبية', 'Select Accounting Period')}
+      {/* ── Years list ─────────────────────────────────────────── */}
+      <Card className={styles.periodCard} style={{ maxInlineSize: 640 }}>
+        <Title level={4} style={{ marginBlockEnd: 20 }}>
+          {t('السنوات المحاسبية', 'Accounting Years')}
         </Title>
 
-        <div className={styles.periodSelectors}>
-          <Select
-            size="large"
-            value={year}
-            onChange={setYear}
-            style={{ minWidth: 120 }}
-            options={YEARS.map((y) => ({ value: y, label: String(y) }))}
-          />
-          <Select
-            size="large"
-            value={month}
-            onChange={setMonth}
-            style={{ minWidth: 160 }}
-            options={MONTHS.map((m) => ({ value: m.value, label: isAr ? m.ar : m.en }))}
-          />
-        </div>
-
-        {/* ── Permission gate ────────────────────────────────────── */}
-        {isForbidden && (
+        {/* Permission gate */}
+        {isForbidden ? (
           <Alert
             type="error"
             showIcon
             icon={<ExclamationCircleOutlined />}
-            style={{ marginBottom: 16 }}
             message={t('صلاحيات غير كافية', 'Insufficient Permissions')}
             description={t(
-              'إغلاق الفترة المحاسبية متاح للمحاسبين والمسؤولين فقط. لا يملك حسابك الحالي صلاحية الوصول لهذه الخدمة.',
-              'Period closing is restricted to Accountant/Admin roles. Your current account does not have permission to access this feature.'
+              'إغلاق السنة المالية متاح للمحاسبين والمسؤولين فقط. لا يملك حسابك الحالي صلاحية الوصول لهذه الخدمة.',
+              'Year closing is restricted to Accountant/Admin roles. Your current account does not have permission to access this feature.'
             )}
           />
-        )}
-
-        {/* ── Period Status ──────────────────────────────────────── */}
-        {isForbidden ? null : isClosed || isOpen ? (
-          <div className={`${styles.periodStatus} ${isClosed ? styles.closed : styles.open}`}>
-            <Space align="center" size={12}>
-              {isClosed ? (
-                <CheckCircleFilled style={{ fontSize: 24, color: '#52c41a' }} />
-              ) : (
-                <ClockCircleOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
-              )}
-              <div>
-                <Text strong style={{ fontSize: 16 }}>
-                  {isClosed
-                    ? t('الفترة مغلقة', 'Period is Closed')
-                    : t('الفترة مفتوحة', 'Period is Open')}
-                </Text>
-                <div>
-                  <Tag color={isClosed ? 'success' : 'warning'} style={{ marginTop: 4 }}>
-                    {`${year} / ${String(month).padStart(2, '0')}`}
-                  </Tag>
-                </div>
-              </div>
-            </Space>
-
-            {isClosed && lastResult && (
-              <Descriptions
-                style={{ marginTop: 16 }}
-                size="small"
-                column={1}
-                bordered
-              >
-                {lastResult.closingJournalEntryId && (
-                  <Descriptions.Item label={t('قيد الإغلاق', 'Closing Entry ID')}>
-                    <Text code>{lastResult.closingJournalEntryId}</Text>
-                  </Descriptions.Item>
-                )}
-                {lastResult.netIncomeTransferred !== undefined && lastResult.netIncomeTransferred !== null && (
-                  <Descriptions.Item label={t('صافي الدخل المحول', 'Net Income Transferred')}>
-                    <Statistic
-                      value={lastResult.netIncomeTransferred}
-                      precision={2}
-                      valueStyle={{
-                        fontSize: 16,
-                        color: lastResult.netIncomeTransferred >= 0 ? '#52c41a' : '#cf1322',
-                      }}
-                    />
-                  </Descriptions.Item>
-                )}
-              </Descriptions>
-            )}
+        ) : isLoading ? (
+          <div style={{ textAlign: 'center', padding: 48 }}>
+            <Spin size="large" />
           </div>
-        ) : isStatusLoading ? null : (
+        ) : error ? (
           <Alert
-            message={t('تعذّر تحميل حالة الفترة', 'Could not load period status')}
-            type="info"
+            type="warning"
             showIcon
-            style={{ marginBottom: 16 }}
+            message={t('تعذّر تحميل السنوات المحاسبية', 'Could not load accounting years')}
+            description={t('يرجى المحاولة مرة أخرى.', 'Please try again.')}
           />
-        )}
-
-        {/* ── Warning & Close Button ─────────────────────────────── */}
-        {isOpen && !isForbidden && (
-          <>
-            <Alert
-              icon={<ExclamationCircleOutlined />}
-              showIcon
-              type="warning"
-              style={{ marginBottom: 20 }}
-              message={t('تحذير: عملية غير قابلة للتراجع', 'Warning: Irreversible Operation')}
-              description={
-                <Paragraph style={{ margin: 0 }}>
-                  {t(
-                    'إغلاق الفترة سيقوم تلقائيًا بـ: (1) إغلاق حسابات الإيرادات والمصروفات، (2) تحويل صافي الدخل/الخسارة إلى الأرباح المحتجزة، (3) منع أي قيود جديدة على هذا الشهر.',
-                    'Closing the period will automatically: (1) close revenue and expense accounts, (2) transfer net income/loss to retained earnings, (3) block any new journal entries for this month.'
-                  )}
-                </Paragraph>
-              }
-            />
-
-            <Popconfirm
-              title={t('تأكيد إغلاق الفترة', 'Confirm Period Closing')}
-              description={
-                <div style={{ maxWidth: 320 }}>
-                  {t(
-                    `هل أنت متأكد من إغلاق فترة ${month}/${year}؟ لا يمكن التراجع عن هذه العملية.`,
-                    `Are you sure you want to close period ${month}/${year}? This operation cannot be undone.`
-                  )}
-                </div>
-              }
-              okText={t('نعم، أغلق الفترة', 'Yes, Close Period')}
-              cancelText={t('إلغاء', 'Cancel')}
-              okButtonProps={{ danger: true, loading: isClosing }}
-              onConfirm={handleClose}
-            >
-              <Button
-                type="primary"
-                danger
-                size="large"
-                icon={<LockOutlined />}
-                loading={isClosing}
-                block
-              >
-                {t(`إغلاق فترة ${month}/${year}`, `Close Period ${month}/${year}`)}
-              </Button>
-            </Popconfirm>
-          </>
+        ) : !years || years.length === 0 ? (
+          <Empty description={t('لا توجد سنوات محاسبية', 'No accounting years')} />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {years.map(renderYearRow)}
+          </div>
         )}
       </Card>
 
-      {/* ── Info Card ─────────────────────────────────────────────── */}
+      {/* ── Info Card ──────────────────────────────────────────── */}
       <Card
-        style={{ marginTop: 16, maxWidth: 560, margin: '16px auto 0' }}
+        style={{ marginBlockStart: 16, maxInlineSize: 640, marginInline: 'auto' }}
         title={
           <Space>
             <ExclamationCircleOutlined />
-            {t('كيفية عمل الإغلاق', 'How Period Closing Works')}
+            {t('كيفية عمل الإغلاق', 'How Year Closing Works')}
           </Space>
         }
       >
-        <Descriptions column={1} size="small">
-          <Descriptions.Item label={t('الخطوة 1', 'Step 1')}>
-            {t('إغلاق حسابات الإيرادات → مدين الإيرادات، دائن ملخص الدخل (390)', 'Close revenue accounts → DR Revenue, CR Income Summary (390)')}
-          </Descriptions.Item>
-          <Descriptions.Item label={t('الخطوة 2', 'Step 2')}>
-            {t('إغلاق حسابات المصروفات → مدين ملخص الدخل، دائن المصروفات', 'Close expense accounts → DR Income Summary, CR Expenses')}
-          </Descriptions.Item>
-          <Descriptions.Item label={t('الخطوة 3', 'Step 3')}>
-            {t('تحويل صافي الدخل → مدين/دائن ملخص الدخل ↔ أرباح محتجزة (302)', 'Transfer net income → DR/CR Income Summary ↔ Retained Earnings (302)')}
-          </Descriptions.Item>
-        </Descriptions>
+        <Paragraph style={{ margin: 0 }} type="secondary">
+          {t(
+            'عند إغلاق سنة: (1) تُغلق حسابات الإيرادات والمصروفات، (2) يُحوّل صافي الدخل/الخسارة إلى الأرباح المحتجزة (302)، (3) يُمنع ترحيل أي قيود جديدة داخل السنة المغلقة. يمكن فتح السنة لاحقاً لعكس هذه العملية.',
+            'Closing a year: (1) closes revenue and expense accounts, (2) transfers net income/loss to retained earnings (302), (3) blocks posting new journal entries within the closed year. Reopening the year reverses this.'
+          )}
+        </Paragraph>
       </Card>
     </div>
   );

@@ -4,10 +4,11 @@
 'use client';
 
 import React from 'react';
-import { Modal, Button, Row, Col, Badge } from 'antd';
+import { Modal, Button, Row, Col, Badge, Image } from 'antd';
 import type { RentContract } from './types';
 import { getStatusMeta } from './mapping';
 import { formatDate, formatCurrency } from './format';
+import { resolveImageUrl } from '@/utils/image';
 import styles from '../RentContracts.module.css';
 
 interface Props {
@@ -29,7 +30,14 @@ export default function ContractDetailsModal({ contract, open, isRtl, onClose }:
     monthlyRent: isRtl ? 'التكلفة' : 'Cost',
     profession: isRtl ? 'المهنة' : 'Profession',
     phone: isRtl ? 'الهاتف' : 'Phone',
+    branch: isRtl ? 'الفرع' : 'Branch',
+    duration: isRtl ? 'المدة' : 'Duration',
   };
+
+  const durationLabel = contract
+    ? (isRtl ? contract.durationNameAr : contract.durationNameEn) ||
+      (contract.duration != null ? String(contract.duration) : '-')
+    : '-';
 
   return (
     <Modal
@@ -55,7 +63,20 @@ export default function ContractDetailsModal({ contract, open, isRtl, onClose }:
             <Col span={24}>
               <div className={styles.modalSection}>
                 <h4>{t.worker}</h4>
-                <p className={styles.modalValue}>{isRtl ? contract.workerNameAr : contract.workerName}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {contract.workerPhotoUrl && (
+                    <Image
+                      src={resolveImageUrl(contract.workerPhotoUrl)}
+                      alt={contract.workerName}
+                      width={56}
+                      height={56}
+                      style={{ objectFit: 'cover', borderRadius: 8 }}
+                    />
+                  )}
+                  <p className={styles.modalValue} style={{ margin: 0 }}>
+                    {isRtl ? contract.workerNameAr : contract.workerName}
+                  </p>
+                </div>
               </div>
             </Col>
             <Col span={12}>
@@ -71,6 +92,18 @@ export default function ContractDetailsModal({ contract, open, isRtl, onClose }:
               <div className={styles.modalSection}>
                 <h4>{t.nationality}</h4>
                 <p className={styles.modalValue}>{isRtl ? contract.nationalityAr : contract.nationality}</p>
+              </div>
+            </Col>
+            <Col span={12}>
+              <div className={styles.modalSection}>
+                <h4>{t.branch}</h4>
+                <p className={styles.modalValue}>{isRtl ? contract.branchAr : contract.branch}</p>
+              </div>
+            </Col>
+            <Col span={12}>
+              <div className={styles.modalSection}>
+                <h4>{t.duration}</h4>
+                <p className={styles.modalValue}>{durationLabel}</p>
               </div>
             </Col>
             <Col span={12}>

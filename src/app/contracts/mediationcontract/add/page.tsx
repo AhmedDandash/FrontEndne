@@ -35,13 +35,13 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useMediationContracts } from '@/hooks/api/useMediationContracts';
 import { useCustomers } from '@/hooks/api/useCustomers';
-import { useWorkers } from '@/hooks/api/useWorkers';
+import { useAvailableMediationWorkers } from '@/hooks/api/useWorkers';
 import { useMarketers } from '@/hooks/api/useMarketers';
-import type { CreateMediationContractDto, MediationContractOffer } from '@/types/api.types';
+import type { CreateMediationContractDto, MediationContractOffer, Worker } from '@/types/api.types';
 import {
   MEDIATION_CONTRACT_TYPE,
   ARRIVAL_DESTINATIONS,
-  VISA_TYPE,
+  CONTRACT_CATEGORY,
   toSelectOptions,
 } from '@/constants/enums';
 import OfferSelector from '@/components/contracts/OfferSelector';
@@ -65,9 +65,18 @@ export default function AddMediationContractPage() {
   const [selectedOffer, setSelectedOffer] = useState<MediationContractOffer | null>(null);
   const [attachmentFiles, setAttachmentFiles] = useState<UploadFile[]>([]);
 
+  // Worker search — mediation contracts pick from AVAILABLE workers by passport.
+  const [passportSearch, setPassportSearch] = useState('');
+  const [debouncedPassport, setDebouncedPassport] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedPassport(passportSearch.trim()), 400);
+    return () => clearTimeout(id);
+  }, [passportSearch]);
+
   const { createContract, isCreating } = useMediationContracts();
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
-  const { data: workers, isLoading: isLoadingWorkers } = useWorkers();
+  const { data: workers = [], isLoading: isLoadingWorkers } =
+    useAvailableMediationWorkers(debouncedPassport);
   const { data: marketers, isLoading: isLoadingMarketers } = useMarketers();
 
   // Handle offer selection → auto-fill fields
@@ -227,7 +236,6 @@ export default function AddMediationContractPage() {
         offerId: vals.offerId ? String(vals.offerId) : null,
         visaNumber: vals.visaNumber ?? null,
         visaDate: vals.visaDate ?? null,
-        visaType: vals.visaType ? Number(vals.visaType) : null,
         visaDateHijri: vals.visaDateHijri ?? null,
         isComprehensiveQualificationVisa: vals.isComprehensiveQualificationVisa ?? null,
         arrivalDestinationId: vals.arrivalDestinationId ? Number(vals.arrivalDestinationId) : null,
@@ -307,11 +315,11 @@ export default function AddMediationContractPage() {
         </Col>
         <Col xs={24} md={12}>
           <Form.Item name="contractCategory" label={t.contractCategory}>
-            <InputNumber
+            <Select
               size="large"
-              style={{ width: '100%' }}
-              placeholder={isRtl ? 'تصنيف العقد' : 'Contract category'}
-              min={0}
+              allowClear
+              placeholder={isRtl ? 'اختر تصنيف العقد' : 'Select contract category'}
+              options={toSelectOptions([...CONTRACT_CATEGORY], language)}
             />
           </Form.Item>
         </Col>
@@ -384,21 +392,31 @@ export default function AddMediationContractPage() {
             <Select
               showSearch
               loading={isLoadingWorkers}
-              placeholder={t.selectWorker}
+              placeholder={isRtl ? 'ابحث برقم الجواز' : 'Search by passport number'}
               size="large"
-              filterOption={(input, option) =>
-                String(option?.children || '')
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
+              // Passport search is server-side (available workers only); disable
+              // the built-in client filter so results aren't hidden.
+              filterOption={false}
+              onSearch={setPassportSearch}
+              searchValue={passportSearch}
+              notFoundContent={
+                isLoadingWorkers ? (
+                  <span>{isRtl ? 'جارٍ البحث...' : 'Searching...'}</span>
+                ) : debouncedPassport ? (
+                  <span>{isRtl ? 'لا يوجد عامل متاح مطابق' : 'No matching available worker'}</span>
+                ) : (
+                  <span>{isRtl ? 'اكتب رقم الجواز للبحث' : 'Type a passport number to search'}</span>
+                )
               }
               onChange={(workerId) => {
-                const selected = (workers || []).find((w) => String(w.id) === String(workerId));
+                const selected = (workers as Worker[]).find((w) => String(w.id) === String(workerId));
                 form.setFieldsValue({ workerPassportNumber: selected?.passportNo ?? '' });
               }}
             >
-              {(workers || []).map((w) => (
+              {(workers as Worker[]).map((w) => (
                 <Option key={w.id} value={w.id}>
-                  {isRtl ? w.fullNameAr : w.fullNameEn || w.fullNameAr}
+                  {(isRtl ? w.fullNameAr : w.fullNameEn || w.fullNameAr) || `#${w.id}`}
+                  {w.passportNo ? ` — ${w.passportNo}` : ''}
                 </Option>
               ))}
             </Select>
@@ -459,16 +477,6 @@ export default function AddMediationContractPage() {
       <Col xs={24} md={12}>
         <Form.Item name="visaDate" label={t.visaDate}>
           <Input size="large" type="date" />
-        </Form.Item>
-      </Col>
-      <Col xs={24} md={12}>
-        <Form.Item name="visaType" label={t.visaType}>
-          <Select
-            size="large"
-            allowClear
-            placeholder={t.visaType}
-            options={toSelectOptions([...VISA_TYPE], language)}
-          />
         </Form.Item>
       </Col>
       <Col xs={24} md={12}>

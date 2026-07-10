@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { LedgerService } from '@/services/ledger.service';
 import { CustomerService } from '@/services/customer.service';
 import { AgentService } from '@/services/agent.service';
-import { RecruitmentRequestService } from '@/services/recruitment-request.service';
+import { api } from '@/lib/api/client';
+import { API_ENDPOINTS } from '@/config/api.config';
 import type {
   GeneralLedgerQuery,
   TrialBalanceQuery,
@@ -47,7 +48,15 @@ export function usePartyOptions(kind: PartyKind) {
           label: c.arabicName || c.englishName || String(c.id),
         }));
       }
-      const workers = (await RecruitmentRequestService.getWorkers()) as any[];
+      // Fetch workers directly (GUID id + display name) for the party picker.
+      const response = await api.get<any>(API_ENDPOINTS.WORKERS.GET_ALL);
+      const body = response.data;
+      const workers: any[] =
+        (Array.isArray(body?.data?.items) && body.data.items) ||
+        (Array.isArray(body?.data) && body.data) ||
+        (Array.isArray(body?.items) && body.items) ||
+        (Array.isArray(body) && body) ||
+        [];
       return workers.map((w) => ({
         value: String(w.id),
         label: w.fullNameAr || w.fullNameEn || w.referenceNo || String(w.id),

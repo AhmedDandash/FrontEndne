@@ -14,6 +14,7 @@ import {
   useJournalEntryDetail,
   useJournalEntryMutations,
 } from '@/hooks/api/useJournalEntries';
+import { useClosedYears } from '@/hooks/api/usePeriodClosing';
 import {
   getStatusLabel,
   getSourceLabel,
@@ -34,8 +35,11 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
   const { data: entry, isLoading } = useJournalEntryDetail(open ? entryId : null);
   const { deleteEntry, postEntry, unpostEntry, isDeleting, isPosting, isUnposting } =
     useJournalEntryMutations();
+  const { isYearClosed } = useClosedYears();
 
   const isDraft = entry?.status === 'Draft';
+  // Posting/unposting is rejected by the backend inside a closed fiscal year.
+  const yearClosed = isYearClosed(entry?.date);
 
   const lineColumns: ColumnsType<JournalEntryLineDetail> = [
     {
@@ -97,7 +101,7 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
       open={open}
       onClose={onClose}
       width={620}
-      destroyOnClose
+      destroyOnHidden
       title={
         <Space>
           {t('تفاصيل القيد', 'Journal Entry')}
@@ -109,12 +113,19 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
             <Space>
               {isDraft ? (
-                <Tooltip title={t('اعتماد القيد', 'Post to ledger')}>
+                <Tooltip
+                  title={
+                    yearClosed
+                      ? t('السنة المالية مغلقة', 'Fiscal year is closed')
+                      : t('اعتماد القيد', 'Post to ledger')
+                  }
+                >
                   <Button
                     type="primary"
                     icon={<CheckCircleOutlined />}
                     loading={isPosting}
                     onClick={handlePost}
+                    disabled={yearClosed}
                   >
                     {t('اعتماد', 'Post')}
                   </Button>
@@ -130,10 +141,15 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
                   cancelText={t('رجوع', 'Back')}
                   okButtonProps={{ loading: isUnposting }}
                   onConfirm={handleUnpost}
+                  disabled={yearClosed}
                 >
-                  <Button icon={<RollbackOutlined />} loading={isUnposting}>
-                    {t('إلغاء الاعتماد', 'Unpost')}
-                  </Button>
+                  <Tooltip
+                    title={yearClosed ? t('السنة المالية مغلقة', 'Fiscal year is closed') : ''}
+                  >
+                    <Button icon={<RollbackOutlined />} loading={isUnposting} disabled={yearClosed}>
+                      {t('إلغاء الاعتماد', 'Unpost')}
+                    </Button>
+                  </Tooltip>
                 </Popconfirm>
               )}
             </Space>

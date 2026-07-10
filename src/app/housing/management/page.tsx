@@ -93,7 +93,7 @@ export default function HousingManagementPage() {
       title: t('السكن', 'Housing', lang),
       key: 'name',
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text strong>{record.name}</Text>
           {record.address && <Text type="secondary" className={styles.addressText}>{record.address}</Text>}
         </Space>
@@ -107,7 +107,7 @@ export default function HousingManagementPage() {
         const pct = record.capacity > 0 ? Math.round((record.currentOccupancy / record.capacity) * 100) : 0;
         const color = pct >= 90 ? '#ff4d4f' : pct >= 70 ? '#faad14' : '#52c41a';
         return (
-          <Space direction="vertical" size={2} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={2} style={{ width: '100%' }}>
             <Space>
               <TeamOutlined />
               <Text>
@@ -174,7 +174,7 @@ export default function HousingManagementPage() {
         <Card className={styles.statCard} size="small">
           <Space>
             <HomeOutlined className={styles.statIcon} />
-            <Space direction="vertical" size={0}>
+            <Space orientation="vertical" size={0}>
               <Text type="secondary">{t('إجمالي السكنات', 'Total Units', lang)}</Text>
               <Title level={4} style={{ margin: 0 }}>{(housings ?? []).length}</Title>
             </Space>
@@ -183,7 +183,7 @@ export default function HousingManagementPage() {
         <Card className={styles.statCard} size="small">
           <Space>
             <Badge color="green" />
-            <Space direction="vertical" size={0}>
+            <Space orientation="vertical" size={0}>
               <Text type="secondary">{t('مفعّلة', 'Active', lang)}</Text>
               <Title level={4} style={{ margin: 0 }}>{activeCount}</Title>
             </Space>
@@ -192,7 +192,7 @@ export default function HousingManagementPage() {
         <Card className={styles.statCard} size="small">
           <Space>
             <TeamOutlined className={styles.statIcon} />
-            <Space direction="vertical" size={0}>
+            <Space orientation="vertical" size={0}>
               <Text type="secondary">{t('إجمالي الطاقة', 'Total Capacity', lang)}</Text>
               <Title level={4} style={{ margin: 0 }}>
                 {totalOccupied} / {totalCapacity}
@@ -251,7 +251,7 @@ export default function HousingManagementPage() {
         okText={editingItem ? t('حفظ', 'Save', lang) : t('إضافة', 'Add', lang)}
         cancelText={t('إلغاء', 'Cancel', lang)}
         width={560}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item

@@ -302,11 +302,20 @@ export const MARKETER_SOURCE = [
 ] as const;
 
 // ==================== Contract Category ====================
-// تصنيف العقد
-// TODO: Verify actual numeric values from backend documentation
+// تصنيف العقد (ContractCategory: 1=Standard, 2=VIP, 3=Corporate)
 export const CONTRACT_CATEGORY = [
-  { value: 1, labelAr: 'فئة أولى', labelEn: 'Category 1' },
-  { value: 2, labelAr: 'فئة ثانية', labelEn: 'Category 2' },
+  { value: 1, labelAr: 'قياسي', labelEn: 'Standard' },
+  { value: 2, labelAr: 'مميز', labelEn: 'VIP' },
+  { value: 3, labelAr: 'شركات', labelEn: 'Corporate' },
+] as const;
+
+// ==================== Operation Contract Duration ====================
+// مدة عقد التشغيل (بالأشهر) — تُعرض تسميتها من الـ API عبر durationNameAr/En
+export const OPERATION_DURATION = [
+  { value: 1, labelAr: 'شهري', labelEn: 'Monthly' },
+  { value: 3, labelAr: 'ربع سنوي', labelEn: 'Quarterly' },
+  { value: 6, labelAr: 'نصف سنوي', labelEn: 'Semi Annual' },
+  { value: 12, labelAr: 'سنوي', labelEn: 'Annual' },
 ] as const;
 
 // ==================== Labor Management ====================

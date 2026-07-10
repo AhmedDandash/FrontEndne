@@ -62,7 +62,7 @@ export default function PrintReceiptModal({ open, isRtl, data, loading, title, o
         </Button>,
       ]}
       width={640}
-      destroyOnClose
+      destroyOnHidden
     >
       {loading ? (
         <p style={{ textAlign: 'center', padding: 24 }}>

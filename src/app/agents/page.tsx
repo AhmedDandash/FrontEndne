@@ -524,7 +524,7 @@ export default function AgentsPage() {
                       </div>
                       <div className={styles.infoContent}>
                         <p className={styles.infoLabel}>{t('phone')}</p>
-                        <Space size={4} direction="vertical">
+                        <Space size={4} orientation="vertical">
                           {agent.phone && <p className={styles.infoValue}>{agent.phone}</p>}
                           {agent.mobile && <p className={styles.infoValue}>{agent.mobile}</p>}
                           {!agent.phone && !agent.mobile && <p className={styles.infoValue}>N/A</p>}

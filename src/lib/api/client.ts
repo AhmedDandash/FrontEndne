@@ -6,7 +6,7 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { message } from 'antd';
 import { API_CONFIG, API_ENDPOINTS } from '@/config/api.config';
-import { useAuthStore } from '@/store/authStore';
+import { useAuthStore, getJwtBranchId } from '@/store/authStore';
 import type { ApiError } from '@/types/api.types';
 
 interface AxiosRequestConfigWithRetry extends AxiosRequestConfig {
@@ -43,14 +43,19 @@ function isBranchExcludedRoute(url: string | undefined): boolean {
 }
 
 /**
- * Resolve the branch id for the `X-Branch-Id` header. This is the branch the
- * user explicitly selected after login (persisted by the store / BranchGate).
- * It is intentionally NOT derived from the JWT — until the user picks a branch
- * no header is sent, and the app gates the UI behind that selection.
+ * Resolve the branch id for the `X-Branch-Id` header.
+ *
+ * Primary source is the branch the user explicitly selected after login
+ * (persisted by the store / BranchGate). Before that selection exists we fall
+ * back to the JWT `branchId` claim (the user's home branch) so bootstrap calls
+ * still carry a valid header — the backend REQUIRES `X-Branch-Id` on some
+ * authenticated endpoints (e.g. `/api/V1/Auth/me` returns 400 without it). The
+ * BranchGate still governs which branch the user actually works in; this fallback
+ * only prevents the pre-selection 400s.
  */
 function getCurrentBranchId(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('branchId');
+  return localStorage.getItem('branchId') || getJwtBranchId();
 }
 
 class ApiClient {

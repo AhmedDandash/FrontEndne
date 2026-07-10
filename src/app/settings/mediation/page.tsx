@@ -285,7 +285,7 @@ function FollowUpStatusesTab({ t, isRTL }: TabProps) {
         okText={t('save')}
         cancelText={t('cancel')}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
@@ -462,7 +462,7 @@ function ContractNationalitiesTab({ t, isRTL }: TabProps) {
         okText={t('save')}
         cancelText={t('cancel')}
         confirmLoading={createMutation.isPending}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
@@ -726,7 +726,7 @@ function ContractCreationRequirementsTab({ t, isRTL }: TabProps) {
         okText={t('save')}
         cancelText={t('cancel')}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        destroyOnClose
+        destroyOnHidden
         width={560}
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>

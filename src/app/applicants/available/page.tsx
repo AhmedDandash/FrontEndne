@@ -38,11 +38,11 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useWorker, useWorkers } from '@/hooks/api/useWorkers';
+import { useNationalities } from '@/hooks/api/useNationalities';
 import {
   GENDER,
   MARITAL_STATUS,
   RELIGION,
-  NATIONALITIES,
   WORKER_CONTRACT_TYPE,
   getEnumLabel,
   toSelectOptions,
@@ -225,6 +225,24 @@ export default function AvailableWorkersPage() {
 
   const { data: workers = [], isLoading } = useWorkers();
   const { data: viewingWorker, isLoading: isViewingLoading } = useWorker(viewingWorkerId ?? undefined);
+  // Nationality dropdown is sourced from the API (active only) instead of a
+  // hardcoded enum, so disabled nationalities never appear.
+  const { data: nationalities = [] } = useNationalities({ isActiveOnly: true, pageSize: 100 });
+
+  // Options: value = Arabic name (the worker list only carries `nationalityName`),
+  // label follows the UI language.
+  const nationalityOptions = useMemo(
+    () =>
+      (Array.isArray(nationalities) ? nationalities : [])
+        .filter((n: any) => n?.isActive !== false)
+        .map((n: any) => ({
+          value: n.nationalityNameAr || n.nationalityNameEn || String(n.id),
+          label: (language === 'ar' ? n.nationalityNameAr : n.nationalityNameEn) ||
+            n.nationalityNameAr || n.nationalityNameEn || String(n.id),
+          altNames: [n.nationalityNameAr, n.nationalityNameEn].filter(Boolean).map((s: string) => s.toLowerCase()),
+        })),
+    [nationalities, language]
+  );
 
   const getGenderLabel = (g?: number | null) => getEnumLabel(GENDER, g, language);
   const getMaritalLabel = (m?: number | null) => getEnumLabel(MARITAL_STATUS, m, language);
@@ -239,8 +257,10 @@ export default function AvailableWorkersPage() {
         worker.fullNameEn?.toLowerCase().includes(searchLower) ||
         worker.passportNo?.toLowerCase().includes(searchLower);
 
+      // Worker records carry `nationalityName` (string), so match by name.
       const matchesNationality =
-        !filters.nationality || String(worker.nationalityId) === String(filters.nationality);
+        !filters.nationality ||
+        (worker.nationalityName || '').toLowerCase() === String(filters.nationality).toLowerCase();
       const matchesGender = !filters.gender || worker.gender === Number(filters.gender);
 
       // Only show Available workers (workerStatus === 1)
@@ -474,10 +494,7 @@ export default function AvailableWorkersPage() {
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  options={toSelectOptions([...NATIONALITIES], language).map((o) => ({
-                    value: String(o.value),
-                    label: o.label,
-                  }))}
+                  options={nationalityOptions}
                 />
               </Col>
 
@@ -606,7 +623,7 @@ export default function AvailableWorkersPage() {
                   <div className={styles.detailRow}>
                     <EnvironmentOutlined className={styles.detailIcon} />
                     <span className={styles.detailLabel}>{t('nationality')}:</span>
-                    <span className={styles.detailValue}>{worker.nationalityId || 'N/A'}</span>
+                    <span className={styles.detailValue}>{worker.nationalityName || 'N/A'}</span>
                   </div>
                   <div className={styles.detailRow}>
                     <TrophyOutlined className={styles.detailIcon} />
@@ -753,7 +770,7 @@ export default function AvailableWorkersPage() {
                   : '-'}
               </Descriptions.Item>
               <Descriptions.Item label={t('nationality')}>
-                {viewingWorker?.nationalityId || '-'}
+                {viewingWorker?.nationalityName || '-'}
               </Descriptions.Item>
               <Descriptions.Item label={t('educationLevelAr')}>
                 {viewingWorker?.educationLevelAr || '-'}

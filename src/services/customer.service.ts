@@ -80,4 +80,18 @@ export class CustomerService {
   static async delete(id: number | string): Promise<void> {
     await api.delete(API_ENDPOINTS.CUSTOMERS.DELETE(id));
   }
+
+  /**
+   * POST /api/V1/Customer/generate-english-name
+   * Transliterates an Arabic name to English. Returns '' when the input is empty
+   * or cannot be transliterated. The user may still edit the result manually.
+   */
+  static async generateEnglishName(arabicName: string): Promise<string> {
+    if (!arabicName?.trim()) return '';
+    const response = await api.post<any>(API_ENDPOINTS.CUSTOMERS.GENERATE_ENGLISH_NAME, {
+      arabicName: arabicName.trim(),
+    });
+    const payload = this.unwrap<any>(response.data);
+    return payload?.englishName ?? '';
+  }
 }

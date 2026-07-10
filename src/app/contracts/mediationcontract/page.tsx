@@ -28,6 +28,7 @@ import {
   Image,
   Pagination,
   Dropdown,
+  Checkbox,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -55,12 +56,16 @@ import {
   DownloadOutlined,
   WarningOutlined,
   MoreOutlined,
+  UserDeleteOutlined,
+  UserAddOutlined,
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
 import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { resolveImageUrl } from '@/utils/image';
 import { useCustomers } from '@/hooks/api/useCustomers';
+import { useAvailableMediationWorkers } from '@/hooks/api/useWorkers';
 import {
   useMediationContracts,
   useMediationContract,
@@ -75,6 +80,7 @@ import type {
   WarrantyReturnDto,
   UpdateContractStatusDto,
   CreateComplaintDto,
+  Worker,
 } from '@/types/api.types';
 import {
   MEDIATION_CONTRACT_STATUS,
@@ -123,6 +129,22 @@ export default function MediationContractsPage() {
   const [showDeliverySignModal, setShowDeliverySignModal] = useState(false);
   const [showWarrantyReturnModal, setShowWarrantyReturnModal] = useState(false);
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
+  const [showEndServiceModal, setShowEndServiceModal] = useState(false);
+  const [showAssignWorkerModal, setShowAssignWorkerModal] = useState(false);
+
+  // Advanced filters (ErpImprovementsJul2026)
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
+  const [withoutWorker, setWithoutWorker] = useState(false);
+
+  // Assign-worker passport search (available workers only)
+  const [assignPassportSearch, setAssignPassportSearch] = useState('');
+  const [assignPassportDebounced, setAssignPassportDebounced] = useState('');
+  React.useEffect(() => {
+    const id = setTimeout(() => setAssignPassportDebounced(assignPassportSearch.trim()), 400);
+    return () => clearTimeout(id);
+  }, [assignPassportSearch]);
+  const { data: assignWorkers = [], isLoading: isLoadingAssignWorkers } =
+    useAvailableMediationWorkers(assignPassportDebounced, showAssignWorkerModal);
 
   // Forms
   const [cancelForm] = Form.useForm();
@@ -132,6 +154,8 @@ export default function MediationContractsPage() {
   const [warrantyReturnForm] = Form.useForm();
   const [updateStatusForm] = Form.useForm();
   const [complaintForm] = Form.useForm();
+  const [endServiceForm] = Form.useForm();
+  const [assignWorkerForm] = Form.useForm();
 
   // API hooks
   const {
@@ -145,12 +169,16 @@ export default function MediationContractsPage() {
     signDelivery,
     warrantyReturn,
     updateContractStatus,
+    endWorkerService,
+    assignWorker,
     isCancelling,
     isSigning,
     isGeneratingDelivery,
     isSigningDelivery,
     isReturning,
     isUpdatingStatus,
+    isEndingWorkerService,
+    isAssigningWorker,
   } = useMediationContracts({
     pageNumber: currentPage,
     pageSize,
@@ -161,6 +189,9 @@ export default function MediationContractsPage() {
     includeSubBranches: branchId ? includeSubBranches : undefined,
     createdDateFrom: dateRange[0],
     createdDateTo: dateRange[1],
+    withoutAssignedWorker: withoutWorker || undefined,
+    isPaid: paymentFilter === 'paid' ? true : undefined,
+    isUnpaid: paymentFilter === 'unpaid' ? true : undefined,
   });
 
   const { mutateAsync: createComplaint, isPending: isCreatingComplaint } = useCreateComplaint();
@@ -251,6 +282,15 @@ export default function MediationContractsPage() {
     complaintSource: language === 'ar' ? 'مصدر الشكوى' : 'Complaint Source',
     complaintPriority: language === 'ar' ? 'الأولوية' : 'Priority',
     complaintNotes: language === 'ar' ? 'ملاحظات الشكوى' : 'Complaint Notes',
+    endWorkerService: language === 'ar' ? 'إنهاء خدمة العامل' : 'End Worker Service',
+    assignWorker: language === 'ar' ? 'إسناد عامل جديد' : 'Assign New Worker',
+    endServiceReason: language === 'ar' ? 'سبب الإنهاء (اختياري)' : 'End Reason (optional)',
+    selectWorkerPassport:
+      language === 'ar' ? 'ابحث عن عامل برقم الجواز' : 'Search worker by passport',
+    paymentStatus: language === 'ar' ? 'حالة السداد' : 'Payment Status',
+    paid: language === 'ar' ? 'مدفوع' : 'Paid',
+    unpaid: language === 'ar' ? 'غير مدفوع' : 'Unpaid',
+    withoutWorkerLabel: language === 'ar' ? 'بدون عامل مسند' : 'Without Assigned Worker',
   };
 
   // Helper functions
@@ -481,6 +521,42 @@ export default function MediationContractsPage() {
     }
   };
 
+  // Handle end worker service
+  const handleEndWorkerService = async () => {
+    if (!selectedContract?.id) return;
+    try {
+      const values = await endServiceForm.validateFields();
+      await endWorkerService({ contractId: selectedContract.id, reason: values.reason || null });
+      setShowEndServiceModal(false);
+      endServiceForm.resetFields();
+      setSelectedContract(null);
+    } catch {
+      // validation + API errors surfaced by the mutation
+    }
+  };
+
+  // Handle assign a new worker (by picking an available worker via passport)
+  const handleAssignWorker = async () => {
+    if (!selectedContract?.id) return;
+    try {
+      const values = await assignWorkerForm.validateFields();
+      const worker = (assignWorkers as Worker[]).find(
+        (w) => String(w.id) === String(values.workerId)
+      );
+      await assignWorker({
+        contractId: selectedContract.id,
+        workerId: String(values.workerId),
+        workerPassportNumber: worker?.passportNo ?? values.workerPassportNumber ?? '',
+      });
+      setShowAssignWorkerModal(false);
+      assignWorkerForm.resetFields();
+      setAssignPassportSearch('');
+      setSelectedContract(null);
+    } catch {
+      // validation + API errors surfaced by the mutation
+    }
+  };
+
   // Render a contract card
   const renderContractCard = (contract: MediationContract) => {
     const statusConfig = contract.statusName
@@ -569,6 +645,30 @@ export default function MediationContractsPage() {
         ? [
             { type: 'divider' as const },
             {
+              key: 'end-worker-service',
+              icon: <UserDeleteOutlined />,
+              label: t.endWorkerService,
+              onClick: selectAnd(() => {
+                endServiceForm.resetFields();
+                setShowEndServiceModal(true);
+              }),
+            },
+            {
+              key: 'assign-worker',
+              icon: <UserAddOutlined />,
+              label: t.assignWorker,
+              onClick: selectAnd(() => {
+                assignWorkerForm.resetFields();
+                setAssignPassportSearch('');
+                setShowAssignWorkerModal(true);
+              }),
+            },
+          ]
+        : []),
+      ...(!isTerminal
+        ? [
+            { type: 'divider' as const },
+            {
               key: 'cancel',
               icon: <CloseCircleOutlined />,
               danger: true,
@@ -608,6 +708,12 @@ export default function MediationContractsPage() {
                   status={statusConfig.color as 'processing' | 'warning' | 'success' | 'error' | 'default'}
                   text={statusConfig.label}
                 />
+                {(contract.branchNameAr || contract.branchNameEn || contract.branchName) && (
+                  <Tag icon={<EnvironmentOutlined />} color="blue">
+                    {(language === 'ar' ? contract.branchNameAr : contract.branchNameEn) ||
+                      contract.branchName}
+                  </Tag>
+                )}
               </div>
 
               <div className={styles.customerSection}>
@@ -868,6 +974,27 @@ export default function MediationContractsPage() {
               style={{ width: '100%' }}
             />
           </Col>
+          <Col xs={12} sm={6} md={4}>
+            <Select
+              value={paymentFilter}
+              onChange={(v) => { setPaymentFilter(v); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+              size="large"
+              options={[
+                { value: 'all', label: t.paymentStatus },
+                { value: 'paid', label: t.paid },
+                { value: 'unpaid', label: t.unpaid },
+              ]}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={4}>
+            <Checkbox
+              checked={withoutWorker}
+              onChange={(e) => { setWithoutWorker(e.target.checked); setCurrentPage(1); }}
+            >
+              {t.withoutWorkerLabel}
+            </Checkbox>
+          </Col>
           <Col xs={24} md={6} style={{ textAlign: language === 'ar' ? 'left' : 'right' }}>
             <ExportButton
               endpoint={API_ENDPOINTS.MEDIATION_CONTRACT.EXPORT}
@@ -881,6 +1008,9 @@ export default function MediationContractsPage() {
                 IncludeSubBranches: branchId ? includeSubBranches : undefined,
                 CreatedDateFrom: dateRange[0],
                 CreatedDateTo: dateRange[1],
+                WithoutAssignedWorker: withoutWorker || undefined,
+                IsPaid: paymentFilter === 'paid' ? true : undefined,
+                IsUnpaid: paymentFilter === 'unpaid' ? true : undefined,
               }}
               fileName="MediationContracts.xlsx"
               pageParam="page"
@@ -1018,6 +1148,18 @@ export default function MediationContractsPage() {
                     <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
                       {language === 'ar' ? 'بيانات العامل' : 'Worker'}
                     </Divider>
+                    {contractDetail.workerPhotoUrl && (
+                      <div style={{ marginBlockEnd: 12 }}>
+                        <Image
+                          src={resolveImageUrl(contractDetail.workerPhotoUrl)}
+                          alt={contractDetail.workerName || 'worker'}
+                          width={96}
+                          height={96}
+                          style={{ objectFit: 'cover', borderRadius: 8 }}
+                          fallback="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIvPg=="
+                        />
+                      </div>
+                    )}
                     <Descriptions column={2} size="small" bordered>
                       <Descriptions.Item label={language === 'ar' ? 'اسم العامل' : 'Worker Name'}>
                         {contractDetail.workerName || '-'}
@@ -1054,6 +1196,13 @@ export default function MediationContractsPage() {
                       </Descriptions.Item>
                       <Descriptions.Item label={language === 'ar' ? 'الوكيل' : 'Agent'}>
                         {contractDetail.agentName || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={language === 'ar' ? 'الفرع' : 'Branch'}>
+                        {(language === 'ar'
+                          ? contractDetail.branchNameAr
+                          : contractDetail.branchNameEn) ||
+                          contractDetail.branchName ||
+                          '-'}
                       </Descriptions.Item>
                       <Descriptions.Item label={language === 'ar' ? 'أيام منذ الإنشاء' : 'Days Since Creation'}>
                         {contractDetail.daysSinceCreation != null ? contractDetail.daysSinceCreation : '-'}
@@ -1266,6 +1415,72 @@ export default function MediationContractsPage() {
                       />
                     ) : (
                       <Empty description={language === 'ar' ? 'لا يوجد سجل حالات' : 'No status history'} />
+                    )}
+                  </div>
+                ),
+              },
+              {
+                key: 'assignments',
+                label: language === 'ar' ? 'سجل الإسنادات' : 'Worker Assignments',
+                children: (
+                  <div className={styles.detailsModal}>
+                    {contractDetail.workerAssignments && contractDetail.workerAssignments.length > 0 ? (
+                      <Timeline
+                        mode="left"
+                        items={contractDetail.workerAssignments.map((a, idx) => ({
+                          key: a.id ?? idx,
+                          color: a.isActive ? 'green' : 'gray',
+                          label: formatDate(a.assignedAt),
+                          children: (
+                            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                              {a.workerPhotoUrl && (
+                                <Image
+                                  src={resolveImageUrl(a.workerPhotoUrl)}
+                                  alt={a.workerNameAr || 'worker'}
+                                  width={48}
+                                  height={48}
+                                  style={{ objectFit: 'cover', borderRadius: 6 }}
+                                  preview={false}
+                                />
+                              )}
+                              <div>
+                                <div style={{ fontWeight: 600 }}>
+                                  {(language === 'ar' ? a.workerNameAr : a.workerNameEn) ||
+                                    a.workerNameAr ||
+                                    a.workerNameEn ||
+                                    '-'}
+                                  {a.isActive && (
+                                    <Tag color="green" style={{ marginInlineStart: 8 }}>
+                                      {language === 'ar' ? 'نشط' : 'Active'}
+                                    </Tag>
+                                  )}
+                                </div>
+                                {a.workerPassportNumber && (
+                                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                                    {language === 'ar' ? 'رقم الجواز' : 'Passport'}: {a.workerPassportNumber}
+                                  </div>
+                                )}
+                                {a.endedAt && (
+                                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                                    {language === 'ar' ? 'انتهى في' : 'Ended at'}: {formatDate(a.endedAt)}
+                                  </div>
+                                )}
+                                {a.endReason && (
+                                  <div style={{ fontSize: 13, color: '#595959' }}>
+                                    {language === 'ar' ? 'السبب' : 'Reason'}: {a.endReason}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ),
+                        }))}
+                      />
+                    ) : (
+                      <Empty
+                        description={
+                          language === 'ar' ? 'لا يوجد سجل إسنادات' : 'No worker assignment history'
+                        }
+                      />
                     )}
                   </div>
                 ),
@@ -1670,6 +1885,84 @@ export default function MediationContractsPage() {
           </Form.Item>
           <Form.Item name="notesEn" label={language === 'ar' ? 'ملاحظات (إنجليزي)' : 'Notes (English)'}>
             <Input.TextArea rows={3} placeholder={language === 'ar' ? 'وصف الشكوى بالإنجليزي...' : 'Complaint description in English...'} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ========== END WORKER SERVICE MODAL ========== */}
+      <Modal
+        title={
+          <span>
+            <UserDeleteOutlined style={{ marginInlineEnd: 8 }} />
+            {t.endWorkerService}
+            {selectedContract && ` — #${selectedContract.contractNumber ?? selectedContract.id}`}
+          </span>
+        }
+        open={showEndServiceModal}
+        onCancel={() => { setShowEndServiceModal(false); endServiceForm.resetFields(); }}
+        onOk={handleEndWorkerService}
+        okText={t.save}
+        cancelText={t.cancel}
+        confirmLoading={isEndingWorkerService}
+        okButtonProps={{ danger: true }}
+      >
+        <Form form={endServiceForm} layout="vertical">
+          <Form.Item name="reason" label={t.endServiceReason}>
+            <Input.TextArea
+              rows={3}
+              placeholder={language === 'ar' ? 'سبب إنهاء الخدمة...' : 'Reason for ending service...'}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ========== ASSIGN WORKER MODAL ========== */}
+      <Modal
+        title={
+          <span>
+            <UserAddOutlined style={{ marginInlineEnd: 8 }} />
+            {t.assignWorker}
+            {selectedContract && ` — #${selectedContract.contractNumber ?? selectedContract.id}`}
+          </span>
+        }
+        open={showAssignWorkerModal}
+        onCancel={() => {
+          setShowAssignWorkerModal(false);
+          assignWorkerForm.resetFields();
+          setAssignPassportSearch('');
+        }}
+        onOk={handleAssignWorker}
+        okText={t.save}
+        cancelText={t.cancel}
+        confirmLoading={isAssigningWorker}
+      >
+        <Form form={assignWorkerForm} layout="vertical">
+          <Form.Item
+            name="workerId"
+            label={t.assignWorker}
+            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
+          >
+            <Select
+              showSearch
+              loading={isLoadingAssignWorkers}
+              placeholder={t.selectWorkerPassport}
+              filterOption={false}
+              onSearch={setAssignPassportSearch}
+              searchValue={assignPassportSearch}
+              notFoundContent={
+                isLoadingAssignWorkers
+                  ? (language === 'ar' ? 'جارٍ البحث...' : 'Searching...')
+                  : assignPassportDebounced
+                  ? (language === 'ar' ? 'لا يوجد عامل متاح مطابق' : 'No matching available worker')
+                  : (language === 'ar' ? 'اكتب رقم الجواز للبحث' : 'Type a passport number to search')
+              }
+              options={(assignWorkers as Worker[]).map((w) => ({
+                value: String(w.id),
+                label:
+                  ((language === 'ar' ? w.fullNameAr : w.fullNameEn || w.fullNameAr) || `#${w.id}`) +
+                  (w.passportNo ? ` — ${w.passportNo}` : ''),
+              }))}
+            />
           </Form.Item>
         </Form>
       </Modal>

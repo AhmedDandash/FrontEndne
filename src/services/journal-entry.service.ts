@@ -91,6 +91,7 @@ export class JournalEntryService {
         workerId: query.workerId || undefined,
         employeeId: query.employeeId || undefined,
         restrictionTypeId: query.restrictionTypeId || undefined,
+        contractNumber: query.contractNumber || undefined,
         branchId: query.branchId || undefined,
         includeSubBranches: query.branchId ? query.includeSubBranches : undefined,
       },

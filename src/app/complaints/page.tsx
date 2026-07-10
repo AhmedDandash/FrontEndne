@@ -1546,7 +1546,7 @@ export default function ComplaintsPage() {
         cancelText={t('cancel')}
         confirmLoading={createMutation.isPending}
         width={700}
-        destroyOnClose
+        destroyOnHidden
       >
         <ComplaintForm form={form} language={language} isArabic={isArabic} t={t} />
       </Modal>
@@ -1570,7 +1570,7 @@ export default function ComplaintsPage() {
         confirmLoading={finishMutation.isPending}
         okButtonProps={{ style: { background: '#00aa64', borderColor: '#00aa64' } }}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         {finishingComplaint && (
           <div style={{ padding: 12, background: '#f5f7fa', borderRadius: 8 }}>
@@ -1605,7 +1605,7 @@ export default function ComplaintsPage() {
         cancelText={t('cancel')}
         confirmLoading={addIssueMutation.isPending}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         {issueComplaint && (
           <div style={{ marginBottom: 16, padding: 12, background: '#f5f7fa', borderRadius: 8 }}>
@@ -1720,7 +1720,7 @@ function ViewDetailsModal({
         </Button>,
       ]}
       width={700}
-      destroyOnClose
+      destroyOnHidden
     >
       {/* Complaint Info */}
       <div style={{ marginBottom: 24 }}>

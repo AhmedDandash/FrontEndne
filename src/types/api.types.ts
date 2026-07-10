@@ -175,7 +175,13 @@ export interface Customer {
   identityType?: number | null;
   identityNumber?: string | null;
   identityIssueDate?: string | null;
+  /** Preferred DOB key on the new API; legacy `birthDate` kept for read tolerance. */
+  dateOfBirth?: string | null;
   birthDate?: string | null;
+  /** National ID — copied from `identityNumber` server-side when left blank. */
+  nationalId?: string | null;
+  /** Secondary mobile number (ErpImprovementsJul2026). */
+  secondaryMobileNumber?: string | null;
   maritalStatus?: number | null;
   housingType?: number | null;
   email?: string | null;
@@ -221,7 +227,13 @@ export interface CreateCustomerDto {
   identityType?: number | null;
   identityNumber?: string | null;
   identityIssueDate?: string | null;
+  /** Preferred DOB key on the new API. */
+  dateOfBirth?: string | null;
   birthDate?: string | null;
+  /** National ID — server copies from `identityNumber` when blank. */
+  nationalId?: string | null;
+  /** Secondary mobile number (ErpImprovementsJul2026). */
+  secondaryMobileNumber?: string | null;
   maritalStatus?: number | null;
   housingType?: number | null;
   email?: string | null;
@@ -247,7 +259,13 @@ export interface UpdateCustomerDto {
   identityType?: number | null;
   identityNumber?: string | null;
   identityIssueDate?: string | null;
+  /** Preferred DOB key on the new API. */
+  dateOfBirth?: string | null;
   birthDate?: string | null;
+  /** National ID — server copies from `identityNumber` when blank. */
+  nationalId?: string | null;
+  /** Secondary mobile number (ErpImprovementsJul2026). */
+  secondaryMobileNumber?: string | null;
   maritalStatus?: number | null;
   housingType?: number | null;
   email?: string | null;
@@ -559,57 +577,11 @@ export interface Nationality {
   isActive?: boolean;
 }
 
-// ==================== Recruitment Request Types ====================
-export interface RecruitmentRequest {
-  id: number;
-  requestCode?: string | null;
-  customerName?: string | null;
-  customerPhone?: string | null;
-  customerEmail?: string | null;
-  workerAge?: number | null;
-  customerId?: number | null;
-  workerName?: string | null;
-  workerReligion?: number | null; // 1 = Muslim, 2 = Non-Muslim
-  nationalityId?: number | null;
-  jobName?: string | null;
-  jobId?: number | null;
-  requestType?: number | null; // 0 = Pending, 1 = Review, 2 = Accepted, etc.
-  requestStats?: number | null;
-  specialSpecifications?: string | null;
-  createdAt?: string | null;
-  workerId?: number | null;
-}
-
-export interface CreateRecruitmentRequestDto {
-  requestCode?: string | null;
-  customerName?: string | null;
-  customerPhone?: string | null;
-  customerEmail?: string | null;
-  customerNationalId?: string | null;
-  workerAge?: number | null;
-  workerReligion?: number | null;
-  workerNationalityId?: number | null;
-  jobId?: number | null;
-  specialSpecifications?: string | null;
-}
-
-export interface ChoiceCustomerDto {
-  customerId: number;
-  requestId: number;
-}
-
-export interface ChoiceWorkerDto {
-  workerId: number;
-  requestId: number;
-}
-
-export interface RequestActionDto {
-  // `type` historically used; some endpoints use `requestStats` now.
-  // Keep both to accept either shape from callers.
-  type?: number;
-  requestStats?: number;
-  requestId: number;
-}
+// NOTE: the legacy RecruitmentRequest DTOs (RecruitmentRequest,
+// CreateRecruitmentRequestDto, ChoiceCustomerDto, ChoiceWorkerDto,
+// RequestActionDto) were removed alongside the `/api/RecruitmentRequest`
+// service. The current recruitment view uses `RecruitmentRequestItem` (defined
+// in the Mediation Contract section).
 
 // ==================== Operating Contract Offer Types ====================
 // (renamed from EmploymentContractOffer — endpoint is now /api/OperatingContractOffer)
@@ -712,7 +684,13 @@ export interface EmploymentOperatingContract {
   createdAt?: string | null;
   customerId?: number | string | null;
   customerNameAr?: string | null;
+  /** English customer name (ErpImprovementsJul2026). */
+  customerNameEn?: string | null;
   mobile?: string | null;
+  /** Customer phone (ErpImprovementsJul2026). */
+  customerPhone?: string | null;
+  /** Customer national ID (ErpImprovementsJul2026). */
+  customerNationalId?: string | null;
   customerIdentiy?: string | null;
   marketerId?: number | string | null;
   contractCategory?: number | null;
@@ -728,6 +706,13 @@ export interface EmploymentOperatingContract {
   jobId?: string | null;
   jobName?: string | null;
   duration?: number | null;
+  /** Readable duration labels from the API (1=Monthly, 3=Quarterly, 6=Semi, 12=Annual). */
+  durationNameAr?: string | null;
+  durationNameEn?: string | null;
+  /** Branch scoping fields (ErpImprovementsJul2026). */
+  branchId?: string | null;
+  branchNameAr?: string | null;
+  branchNameEn?: string | null;
   contractStartDate?: string | null;
   contractEndDate?: string | null;
   previousExperience?: number | null;
@@ -737,6 +722,8 @@ export interface EmploymentOperatingContract {
   workerNameEn?: string | null;
   workerNameAr?: string | null;
   workerPhone?: string | null;
+  /** Assigned worker photo (relative R2 key — resolve via resolveImageUrl). */
+  workerPhotoUrl?: string | null;
   workersCount?: number | null;
   customerAddress?: string | null;
   cost?: number | null;
@@ -745,6 +732,7 @@ export interface EmploymentOperatingContract {
   totalCostWithTax?: number | null;
   // ContractStatus: 1=Draft, 2=Signed, 3=Executing, 4=Finished
   contractStatus?: number | null;
+  contractStatusName?: string | null;
   isFinish?: boolean | null;
   finishBy?: string | null;
   finishDate?: string | null;
@@ -854,6 +842,44 @@ export interface ContractPrintReceiptData {
     nationalityName?: string;
     jobName?: string;
   };
+}
+
+/**
+ * GET /api/EmploymentOperatingContract/{id}/print-delivery-form
+ * Full data for the worker-delivery (handover) form. `workerPhotoUrl` is a
+ * relative R2 key — resolve via resolveImageUrl.
+ */
+export interface OperatingContractDeliveryFormDto {
+  contractId?: string | null;
+  contractNumber?: number | string | null;
+  deliveryDate?: string | null;
+  branchNameAr?: string | null;
+  branchNameEn?: string | null;
+  employeeName?: string | null;
+  customerNameAr?: string | null;
+  customerNameEn?: string | null;
+  customerPhone?: string | null;
+  customerNationalId?: string | null;
+  customerAddress?: string | null;
+  workerNameAr?: string | null;
+  workerNameEn?: string | null;
+  workerPhone?: string | null;
+  workerPassportNumber?: string | null;
+  workerPhotoUrl?: string | null;
+  customerSignedAt?: string | null;
+  workerSignedAt?: string | null;
+  companyRepresentativeSignedAt?: string | null;
+  notes?: string | null;
+}
+
+/** POST /api/EmploymentOperatingContract/{id}/delivery-form */
+export interface SaveDeliveryFormDto {
+  deliveryDate?: string | null;
+  employeeName?: string | null;
+  notes?: string | null;
+  customerSignedAt?: string | null;
+  workerSignedAt?: string | null;
+  companyRepresentativeSignedAt?: string | null;
 }
 
 // ==================== Complaint Types ====================
@@ -1106,6 +1132,17 @@ export interface MediationContract {
   jobNameAr?: string | null;
   agentName?: string | null;
   branchName?: string | null;
+  /** Branch scoping fields (ErpImprovementsJul2026). */
+  branchId?: string | null;
+  branchNameAr?: string | null;
+  branchNameEn?: string | null;
+  /** Current worker photo (relative R2 key — resolve via resolveImageUrl). */
+  workerPhotoUrl?: string | null;
+  /** True when a worker is currently assigned to the contract. */
+  hasAssignedWorker?: boolean | null;
+  /** True when the contract's invoice has been paid. */
+  isPaid?: boolean | null;
+  contractCategoryName?: string | null;
   createdByName?: string | null;
   daysSinceCreation?: number | null;
   contractEndNote?: string | null;
@@ -1128,7 +1165,7 @@ export interface CreateMediationContractDto {
   contractCategory?: number | null;
   visaNumber?: string | null;
   visaDate?: string | null;
-  visaType?: number | null;
+  // visaType removed from creation (ErpImprovementsJul2026) — no longer sent.
   visaDateHijri?: string | null;
   isComprehensiveQualificationVisa?: boolean | null;
   arrivalDestinationId?: number | null;
@@ -1147,6 +1184,36 @@ export interface ContractCancelDto {
   contractId: string;
   cancelBy?: number | null;
   cancelNote?: string | null;
+}
+
+// ==================== Mediation Worker Assignment ====================
+
+/** One row of a contract's worker-assignment history (`workerAssignments[]`). */
+export interface MediationWorkerAssignment {
+  id?: string | null;
+  workerId?: string | null;
+  workerNameAr?: string | null;
+  workerNameEn?: string | null;
+  workerPassportNumber?: string | null;
+  /** Relative R2 key — resolve via resolveImageUrl. */
+  workerPhotoUrl?: string | null;
+  assignedAt?: string | null;
+  endedAt?: string | null;
+  endReason?: string | null;
+  isActive?: boolean | null;
+}
+
+/** POST /api/Mediation/MediationContract/end-worker-service */
+export interface EndWorkerServiceDto {
+  contractId: string;
+  reason?: string | null;
+}
+
+/** POST /api/Mediation/MediationContract/assign-worker */
+export interface AssignWorkerDto {
+  contractId: string;
+  workerId: string;
+  workerPassportNumber: string;
 }
 
 // ==================== Mediation Contract Lifecycle DTOs ====================
@@ -1248,12 +1315,38 @@ export interface ContractWarrantyReturn {
 /** GET /api/Mediation/MediationContract/{id} — full detail response */
 export interface MediationContractDetail extends MediationContract {
   isCancel?: boolean | null;
-  contractCategoryName?: string | null;
   followUpItems?: ContractFollowUpItem[] | null;
   deliveryForm?: ContractDeliveryForm | null;
   warrantyReturn?: ContractWarrantyReturn | null;
   statusHistories?: ContractStatusHistory[] | null;
+  /** Worker-assignment history (end-service / re-assign trail). */
+  workerAssignments?: MediationWorkerAssignment[] | null;
   attachments?: string[] | null;
+}
+
+/** One row of GET /api/Mediation/MediationContract/recruitment-requests. */
+export interface RecruitmentRequestItem {
+  id: string;
+  contractNumber?: number | null;
+  statusName?: string | null;
+  createdAt?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  costDescription?: string | null;
+  branchId?: string | null;
+  branchNameAr?: string | null;
+  branchNameEn?: string | null;
+  /** True → a specific worker is attached; false → show `workerSelectionLabel`. */
+  hasSpecificWorker?: boolean | null;
+  /** Displayed when `hasSpecificWorker` is false (e.g. "أي عامل مطابق"). */
+  workerSelectionLabel?: string | null;
+  workerName?: string | null;
+  workerPassportNumber?: string | null;
+  /** Relative R2 key — resolve via resolveImageUrl. */
+  workerPhotoUrl?: string | null;
+  workerNationalityAr?: string | null;
+  workerTypeName?: string | null;
+  offerId?: string | null;
 }
 
 // ==================== Contract Creation Requirement ====================
@@ -1841,6 +1934,8 @@ export interface CreateDebitNoteDto {
 // ── Accounting Document Trace ────────────────────────────────────────────────
 
 export interface AccountingDocumentTraceJournalLine {
+  /** Line GUID — returned by the live trace API; used as a stable row key. */
+  id?: string | null;
   accountId?: string | null;
   accountCode?: string | null;
   accountName?: string | null;
@@ -1889,20 +1984,35 @@ export interface AccountingDocumentTrace {
 }
 
 // ==================== Period Closing Types ====================
+//
+// Period closing is now YEAR-based (previously month/year). Verified live
+// (2026-07) against GET/POST /api/V1/PeriodClosing[/close|/open|/status].
+// All endpoints are branch-scoped (require the X-Branch-Id header, injected
+// globally by the api client).
 
-export interface PeriodClosingStatusDto {
+/** A single row from GET /api/V1/PeriodClosing — one accounting year. */
+export interface PeriodYearStatus {
   year: number;
-  month: number;
+  isClosed: boolean;
+  /** ISO timestamp when the year was closed (null while open). */
+  closedAt?: string | null;
+  /** Display name of the user who closed the year (null while open). */
+  closedBy?: string | null;
+  /** GUID of the generated closing journal entry (null while open). */
+  closingJournalEntryId?: string | null;
 }
 
+/** Body for POST /close and POST /open — year only. */
 export interface ClosePeriodDto {
   year: number;
-  month: number;
 }
 
+/** Alias kept for readability at call sites (open uses the same body). */
+export type OpenPeriodDto = ClosePeriodDto;
+
+/** Response payload of POST /close and POST /open. */
 export interface PeriodClosingResult {
   year?: number | null;
-  month?: number | null;
   closingJournalEntryId?: string | null;
   netIncomeTransferred?: number | null;
   isClosed?: boolean | null;

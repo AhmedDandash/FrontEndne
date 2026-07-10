@@ -114,7 +114,7 @@ export default function PermissionsPage() {
     const adminRole = isAdminRole([role]);
     return {
       title: (
-        <Space direction="vertical" size={0} align="center">
+        <Space orientation="vertical" size={0} align="center">
           <Tag color={adminRole ? 'gold' : 'blue'} style={{ margin: 0 }}>
             {role}
           </Tag>

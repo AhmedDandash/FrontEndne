@@ -211,7 +211,7 @@ export default function HREmployeesPage() {
       title: 'الاسم',
       key: 'name',
       render: (_, r) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <span style={{ fontWeight: 500 }}>{r.nameAr || '—'}</span>
           {r.nameEn && <span style={{ color: '#888', fontSize: 12 }}>{r.nameEn}</span>}
         </Space>

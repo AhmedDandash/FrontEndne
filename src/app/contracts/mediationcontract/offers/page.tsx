@@ -644,7 +644,7 @@ export default function MediationOffersPage() {
         cancelText={t('cancel')}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
         width={800}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Row gutter={[16, 0]}>

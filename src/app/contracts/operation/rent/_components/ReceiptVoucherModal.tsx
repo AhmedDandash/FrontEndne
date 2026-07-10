@@ -96,7 +96,7 @@ export default function ReceiptVoucherModal({
         </Button>,
       ]}
       width={460}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form
         form={form}

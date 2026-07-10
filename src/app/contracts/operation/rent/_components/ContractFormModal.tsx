@@ -76,7 +76,7 @@ export default function ContractFormModal({
         </Button>,
       ]}
       width={isCreate ? 1000 : 900}
-      destroyOnClose
+      destroyOnHidden
     >
       {isCreate && (
         <div style={{ marginBottom: 24 }}>
