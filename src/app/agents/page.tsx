@@ -47,6 +47,7 @@ import { useAgents, useCreateAgent, useUpdateAgent, useDeleteAgent } from '@/hoo
 import { useNationalities } from '@/hooks/api/useNationalities';
 import type { Agent, CreateAgentDto, UpdateAgentDto } from '@/types/api.types';
 import { AGENT_CONTRACT_TYPE, getEnumLabel, toSelectOptions } from '@/constants/enums';
+import { useOpenIdParam } from '@/hooks/useOpenIdParam';
 import styles from './Agents.module.css';
 
 export default function AgentsPage() {
@@ -68,6 +69,14 @@ export default function AgentsPage() {
   const { mutate: createAgent, isPending: isCreating } = useCreateAgent();
   const { mutate: updateAgent, isPending: isUpdating } = useUpdateAgent();
   const { mutate: deleteAgent } = useDeleteAgent();
+
+  // Journal Entry "Go to source" deep-link: ?openId=<agentId> auto-opens the
+  // agent detail modal once the list has loaded.
+  useOpenIdParam((id) => {
+    const list = Array.isArray(agents) ? agents : [];
+    const match = list.find((a) => String(a.id) === id);
+    if (match) setViewingAgent(match);
+  }, Array.isArray(agents) && agents.length > 0);
 
   const nationalities = useMemo(() => {
     const raw = Array.isArray(nationalitiesData)

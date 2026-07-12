@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@/config/api.config';
 import {
   normalizeStatus,
   normalizeSource,
+  normalizeReferenceType,
   type JournalEntriesQuery,
   type JournalEntriesPage,
   type JournalEntryListItem,
@@ -49,6 +50,8 @@ export class JournalEntryService {
       description: raw?.description ?? '',
       status: normalizeStatus(raw?.status),
       source: normalizeSource(raw?.source),
+      referenceType: normalizeReferenceType(raw?.referenceType),
+      sourceId: raw?.sourceId ?? null,
       totalDebit,
       totalCredit,
       isBalanced:
@@ -78,22 +81,32 @@ export class JournalEntryService {
 
   /** GET /JournalEntries — paginated + filtered list. */
   static async getAll(query: JournalEntriesQuery = {}): Promise<JournalEntriesPage> {
+    // NOTE: status/source/referenceType are sent as NUMERIC codes. Verified live:
+    // `Source=System` (string) returned 0 rows, `Source=13` works. `RestrictionTypeId`
+    // is NOT a supported query param (ignored server-side) and is intentionally omitted.
     const response = await api.get<any>(API_ENDPOINTS.JOURNAL_ENTRIES.GET_ALL, {
       params: {
         pageNumber: query.pageNumber ?? 1,
         pageSize: query.pageSize ?? 10,
         from: query.from || undefined,
         to: query.to || undefined,
-        status: query.status || undefined,
-        source: query.source || undefined,
+        status: query.status ?? undefined,
+        source: query.source ?? undefined,
+        referenceType: query.referenceType ?? undefined,
+        sourceId: query.sourceId || undefined,
         customerId: query.customerId || undefined,
         agentId: query.agentId || undefined,
         workerId: query.workerId || undefined,
         employeeId: query.employeeId || undefined,
-        restrictionTypeId: query.restrictionTypeId || undefined,
+        entryNumber: query.entryNumber || undefined,
+        search: query.search || undefined,
         contractNumber: query.contractNumber || undefined,
         branchId: query.branchId || undefined,
         includeSubBranches: query.branchId ? query.includeSubBranches : undefined,
+        createdDateFrom: query.createdDateFrom || undefined,
+        createdDateTo: query.createdDateTo || undefined,
+        sortBy: query.sortBy || undefined,
+        sortDescending: query.sortDescending ?? undefined,
       },
     });
     const data = this.unwrap<any>(response.data);
@@ -113,11 +126,6 @@ export class JournalEntryService {
     const summary = this.toListItem(raw);
     return {
       ...summary,
-      customerId: raw?.customerId ?? null,
-      agentId: raw?.agentId ?? null,
-      workerId: raw?.workerId ?? null,
-      employeeId: raw?.employeeId ?? null,
-      restrictionTypeId: raw?.restrictionTypeId ?? null,
       createdBy: raw?.createdBy ?? null,
       createdDate: raw?.createdDate ?? null,
       lines: this.asArray(raw?.lines ?? raw?.lines?.$values).map((l) => this.toLine(l)),
@@ -148,23 +156,31 @@ export class JournalEntryService {
   /**
    * POST /JournalEntries — create a Draft entry.
    *
-   * NOTE: the live API returns the generated entry NUMBER (e.g. "JE-2026-0004")
-   * in `data`, not the GUID (despite the PDF stating "data: Guid"). Posting and
-   * getById both need the GUID, so we resolve it from the list by matching the
-   * entry number, and return the GUID to keep callers (Save & Post) working.
+   * The live API returns the generated entry NUMBER (e.g. "JE-2026-0004") in
+   * `data`, not the GUID. Posting and getById both need the GUID, so we resolve
+   * it via the server-side `EntryNumber` exact-match filter (verified live) and
+   * return the GUID to keep callers (Save & Post) working.
+   *
+   * If `data` already looks like a GUID (backend contract may change), it is
+   * returned directly without the extra round-trip.
    */
   static async create(data: JournalEntryInput): Promise<string> {
     const response = await api.post<any>(API_ENDPOINTS.JOURNAL_ENTRIES.CREATE, this.toBody(data));
-    const entryNumber = this.unwrap<string>(response.data);
-    return this.resolveIdByEntryNumber(entryNumber);
+    const payload = this.unwrap<any>(response.data);
+    const value = typeof payload === 'string' ? payload : payload?.id ?? payload?.entryNumber ?? '';
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+      return value; // already a GUID
+    }
+    return this.resolveIdByEntryNumber(value);
   }
 
   /** Resolve a journal entry's GUID from its server-generated entry number. */
   private static async resolveIdByEntryNumber(entryNumber: string): Promise<string> {
     if (!entryNumber) return '';
-    // New entries come back newest-first; a generous page size makes the match safe.
-    const page = await this.getAll({ pageNumber: 1, pageSize: 50 });
-    return page.items.find((e) => e.entryNumber === entryNumber)?.id ?? '';
+    // Exact-match server filter — robust regardless of list ordering / volume.
+    const page = await this.getAll({ pageNumber: 1, pageSize: 5, entryNumber });
+    const exact = page.items.find((e) => e.entryNumber === entryNumber);
+    return (exact ?? page.items[0])?.id ?? '';
   }
 
   /** PUT /JournalEntries/{id} — update a Draft entry. */

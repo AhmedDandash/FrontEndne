@@ -166,17 +166,24 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
     }
     const input = buildInput(values);
 
-    let id = entryId ?? null;
-    if (mode === 'create') {
-      id = await createEntry(input);
-    } else if (id) {
-      await updateEntry({ id, data: input });
-    }
+    try {
+      let id = entryId ?? null;
+      if (mode === 'create') {
+        id = await createEntry(input);
+      } else if (id) {
+        await updateEntry({ id, data: input });
+      }
 
-    if (postAfter && id) {
-      await postEntry(id);
+      if (postAfter && id) {
+        await postEntry(id);
+      }
+      onClose();
+    } catch {
+      // The mutation hooks already surface a bilingual error toast (server 500,
+      // validation, etc). Swallow the re-thrown rejection here so it doesn't
+      // bubble up as an unhandled promise rejection, and keep the drawer open so
+      // the user can adjust and retry (or cancel) instead of losing their input.
     }
-    onClose();
   };
 
   return (

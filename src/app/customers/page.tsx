@@ -75,6 +75,10 @@ import {
 import styles from './Customers.module.css';
 
 export default function CustomersPage() {
+  // Journal Entry "Go to source" party-fallback links here with ?openId=<customerId>.
+  // This page has no read-only customer detail view to auto-open (cards + edit
+  // modal only), so the deep-link intentionally lands on the list; useOpenIdParam
+  // is deliberately not wired.
   const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const userBranchId = useAuthStore((state) => state.branchId);

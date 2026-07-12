@@ -26,6 +26,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useHousings } from '@/hooks/api/useHousing';
+import { useOpenIdParam } from '@/hooks/useOpenIdParam';
 import type { Housing, HousingDto } from '@/types/housing.types';
 import styles from './HousingManagement.module.css';
 
@@ -76,6 +77,13 @@ export default function HousingManagementPage() {
     });
     setModalOpen(true);
   };
+
+  // Journal Entry "Go to source" deep-link: ?openId=<housingId> opens that
+  // housing record (edit modal) once the list has loaded.
+  useOpenIdParam((id) => {
+    const match = (housings ?? []).find((h) => String(h.id) === id);
+    if (match) openEdit(match);
+  }, !!housings && housings.length > 0);
 
   const handleSubmit = async () => {
     const values = await form.validateFields();

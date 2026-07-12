@@ -20,6 +20,7 @@ import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperat
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useCustomers } from '@/hooks/api/useCustomers';
+import { useOpenIdParam } from '@/hooks/useOpenIdParam';
 import type {
   EmploymentOperatingContract,
   EmploymentContractOffer,
@@ -140,6 +141,15 @@ export default function RentContractsPage() {
       mapContract(c, resolveNationality, resolveJob, resolveCustomer)
     );
   }, [contractsData, nationalities, jobs, customers]);
+
+  // Journal Entry "Go to source" deep-link: ?openId=<contractId> auto-opens the
+  // details modal. The modal is presentational (renders a full RentContract), so we
+  // look the record up in the fully-loaded list (this page fetches all contracts,
+  // filtering client-side, so the id is present regardless of the visible page).
+  useOpenIdParam((id) => {
+    const match = allContracts.find((c) => String(c.id) === id);
+    if (match) setDetailsModal({ open: true, contract: match });
+  }, allContracts.length > 0);
 
   const t = {
     pageTitle: isRtl ? 'عقود العاملات المقيمة ' : 'Operation Contracts',

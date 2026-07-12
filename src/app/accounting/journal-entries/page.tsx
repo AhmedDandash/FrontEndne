@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Card,
   Table,
@@ -38,13 +38,18 @@ import { BranchFilterSelect } from '@/components/filters';
 import {
   JOURNAL_STATUSES,
   JOURNAL_SOURCES,
+  JOURNAL_REFERENCE_TYPES,
+  JE_STATUS,
+  JE_SOURCE,
   getSourceLabel,
   type JournalEntryListItem,
   type JournalEntryStatus,
   type JournalEntrySource,
+  type JournalReferenceType,
 } from '@/types/journal-entry.types';
 import { EntryFormDrawer } from './_components/EntryFormDrawer';
 import { EntryDetailDrawer } from './_components/EntryDetailDrawer';
+import { GoToSourceButton } from './_components/GoToSourceButton';
 import styles from './JournalEntries.module.css';
 
 const { RangePicker } = DatePicker;
@@ -55,10 +60,11 @@ export default function JournalEntriesPage() {
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   // ── Query state ─────────────────────────────────────────────
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState(''); // debounced, server-side
   const [status, setStatus] = useState<JournalEntryStatus | undefined>();
   const [source, setSource] = useState<JournalEntrySource | undefined>();
-  const [restrictionTypeId, setRestrictionTypeId] = useState<string | undefined>();
+  const [referenceType, setReferenceType] = useState<JournalReferenceType | undefined>();
   const [contractNumber, setContractNumber] = useState<number | undefined>();
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
@@ -66,6 +72,15 @@ export default function JournalEntriesPage() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Debounce the search box into the server-side `search` param (400ms).
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPageNumber(1);
+    }, 400);
+    return () => clearTimeout(id);
+  }, [searchInput]);
 
   const { restrictionTypes } = useRestrictionTypes();
   // Posting/unposting is blocked by the backend inside a closed fiscal year;
@@ -75,10 +90,11 @@ export default function JournalEntriesPage() {
   const { items, totalCount, isLoading, isFetching, refetch } = useJournalEntries({
     pageNumber,
     pageSize,
-    searchTerm: search,
+    // Server-side free-text search (verified live: Search + EntryNumber work).
+    search: search || undefined,
     status,
     source,
-    restrictionTypeId,
+    referenceType,
     contractNumber,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
@@ -108,10 +124,11 @@ export default function JournalEntriesPage() {
   }, [restrictionTypes]);
 
   const resetFilters = () => {
+    setSearchInput('');
     setSearch('');
     setStatus(undefined);
     setSource(undefined);
-    setRestrictionTypeId(undefined);
+    setReferenceType(undefined);
     setContractNumber(undefined);
     setBranchId(undefined);
     setRange([dayjs().subtract(1, 'month'), dayjs()]);
@@ -119,9 +136,9 @@ export default function JournalEntriesPage() {
   };
 
   // ── Metrics (current page snapshot) ─────────────────────────
-  const draftCount = items.filter((e) => e.status === 'Draft').length;
-  const postedCount = items.filter((e) => e.status === 'Posted').length;
-  const systemCount = items.filter((e) => e.source === 'System').length;
+  const draftCount = items.filter((e) => e.status === JE_STATUS.Draft).length;
+  const postedCount = items.filter((e) => e.status === JE_STATUS.Posted).length;
+  const systemCount = items.filter((e) => e.source !== JE_SOURCE.Manual).length;
 
   // ── Columns ─────────────────────────────────────────────────
   const columns: ColumnsType<JournalEntryListItem> = [
@@ -212,7 +229,7 @@ export default function JournalEntriesPage() {
       key: 'status',
       width: 120,
       render: (v: JournalEntryStatus) =>
-        v === 'Posted' ? (
+        v === JE_STATUS.Posted ? (
           <Tag icon={<CheckCircleFilled />} color="success">
             {t('معمد', 'Posted')}
           </Tag>
@@ -237,7 +254,7 @@ export default function JournalEntriesPage() {
       width: 160,
       fixed: 'right',
       render: (_, record) => {
-        const isDraft = record.status === 'Draft';
+        const isDraft = record.status === JE_STATUS.Draft;
         const yearClosed = isYearClosed(record.date);
         return (
           <Space size={2}>
@@ -249,6 +266,19 @@ export default function JournalEntriesPage() {
                 onClick={() => setDetailId(record.id)}
               />
             </Tooltip>
+            <GoToSourceButton
+              variant="icon"
+              isAr={isAr}
+              entry={{
+                source: record.source,
+                referenceType: record.referenceType,
+                sourceId: record.sourceId,
+                customerId: record.customerId,
+                agentId: record.agentId,
+                workerId: record.workerId,
+                employeeId: record.employeeId,
+              }}
+            />
             {isDraft ? (
               <>
                 <Tooltip title={t('تعديل', 'Edit')}>
@@ -404,8 +434,8 @@ export default function JournalEntriesPage() {
             size="large"
             prefix={<SearchOutlined />}
             placeholder={t('ابحث بالوصف أو رقم القيد...', 'Search by description or entry no...')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className={styles.search}
           />
           <Select
@@ -471,20 +501,20 @@ export default function JournalEntriesPage() {
               }}
               placeholder={t('رقم العقد', 'Contract No.')}
             />
+            {/* Reference-type filter (drives source navigation). Replaces the old
+                restriction-type filter, which the backend ignored (no such param). */}
             <Select
               allowClear
-              showSearch
-              optionFilterProp="label"
-              style={{ minWidth: 220 }}
-              value={restrictionTypeId}
+              style={{ minWidth: 200 }}
+              value={referenceType}
               onChange={(v) => {
-                setRestrictionTypeId(v);
+                setReferenceType(v);
                 setPageNumber(1);
               }}
-              placeholder={t('نوع القيد', 'Restriction type')}
-              options={restrictionTypes.map((r) => ({
-                value: r.id,
-                label: isAr ? r.nameAr || r.name || r.id : r.name || r.nameAr || r.id,
+              placeholder={t('نوع المرجع', 'Reference type')}
+              options={JOURNAL_REFERENCE_TYPES.map((r) => ({
+                value: r.value,
+                label: isAr ? r.ar : r.en,
               }))}
             />
           </div>

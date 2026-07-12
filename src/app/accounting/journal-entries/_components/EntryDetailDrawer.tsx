@@ -15,11 +15,15 @@ import {
   useJournalEntryMutations,
 } from '@/hooks/api/useJournalEntries';
 import { useClosedYears } from '@/hooks/api/usePeriodClosing';
+import { useAuthStore } from '@/store/authStore';
 import {
   getStatusLabel,
   getSourceLabel,
+  getReferenceTypeLabel,
+  JE_STATUS,
   type JournalEntryLineDetail,
 } from '@/types/journal-entry.types';
+import { GoToSourceButton } from './GoToSourceButton';
 import styles from '../JournalEntries.module.css';
 
 interface EntryDetailDrawerProps {
@@ -31,13 +35,15 @@ interface EntryDetailDrawerProps {
 
 export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetailDrawerProps) {
   const t = (ar: string, en: string) => ar + ' / ' + en;
+  const language = useAuthStore((state) => state.language);
+  const isAr = language !== 'en';
 
   const { data: entry, isLoading } = useJournalEntryDetail(open ? entryId : null);
   const { deleteEntry, postEntry, unpostEntry, isDeleting, isPosting, isUnposting } =
     useJournalEntryMutations();
   const { isYearClosed } = useClosedYears();
 
-  const isDraft = entry?.status === 'Draft';
+  const isDraft = entry?.status === JE_STATUS.Draft;
   // Posting/unposting is rejected by the backend inside a closed fiscal year.
   const yearClosed = isYearClosed(entry?.date);
 
@@ -110,8 +116,20 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
       }
       footer={
         entry ? (
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-            <Space>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <Space wrap>
+              <GoToSourceButton
+                entry={{
+                  source: entry.source,
+                  referenceType: entry.referenceType,
+                  sourceId: entry.sourceId,
+                  customerId: entry.customerId,
+                  agentId: entry.agentId,
+                  workerId: entry.workerId,
+                  employeeId: entry.employeeId,
+                }}
+                isAr={isAr}
+              />
               {isDraft ? (
                 <Tooltip
                   title={
@@ -192,13 +210,14 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
           <div className={styles.detailFacts}>
             {fact(
               t('الحالة', 'Status'),
-              entry.status === 'Posted' ? (
-                <Tag color="success">{getStatusLabel('Posted', true)}</Tag>
+              entry.status === JE_STATUS.Posted ? (
+                <Tag color="success">{getStatusLabel(JE_STATUS.Posted, isAr)}</Tag>
               ) : (
-                <Tag color="warning">{getStatusLabel('Draft', true)}</Tag>
+                <Tag color="warning">{getStatusLabel(entry.status, isAr)}</Tag>
               )
             )}
-            {fact(t('المصدر', 'Source'), getSourceLabel(entry.source, true))}
+            {fact(t('المصدر', 'Source'), getSourceLabel(entry.source, isAr))}
+            {fact(t('نوع المرجع', 'Reference'), getReferenceTypeLabel(entry.referenceType, isAr))}
             {fact(t('التاريخ', 'Date'), entry.date ? new Date(entry.date).toLocaleDateString() : '—')}
             {fact(
               t('التوازن', 'Balanced'),

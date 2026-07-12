@@ -71,6 +71,7 @@ import {
   useMediationContract,
 } from '@/hooks/api/useMediationContracts';
 import { useCreateComplaint } from '@/hooks/api/useComplaints';
+import { useOpenIdParam } from '@/hooks/useOpenIdParam';
 import type {
   MediationContract,
   ContractCancelDto,
@@ -199,6 +200,15 @@ export default function MediationContractsPage() {
   const { data: contractDetail, isLoading: isLoadingDetail } = useMediationContract(
     showDetailsModal ? selectedContract?.id : undefined
   );
+
+  // Journal Entry "Go to source" deep-link: ?openId=<contractId> auto-opens the
+  // details modal. The modal self-fetches the contract by id (useMediationContract
+  // above keys off selectedContract?.id), so we open with a minimal {id} object —
+  // no dependency on the contract being in the current list page.
+  useOpenIdParam((id) => {
+    setSelectedContract({ id } as MediationContract);
+    setShowDetailsModal(true);
+  });
 
   const { customers: allCustomers, isLoading: isLoadingCustomers } = useCustomers();
 

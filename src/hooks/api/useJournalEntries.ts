@@ -14,17 +14,24 @@ const JOURNAL_ENTRIES_KEY = 'journal-entries';
  * so validation details (e.g. "debit total != credit total") arrive in `errors[]`.
  */
 function errorMessage(err: any, fallback: string): string {
+  const status = err?.response?.status;
   const data = err?.response?.data;
   const fromArray = Array.isArray(data?.errors) ? data.errors.filter(Boolean).join(' • ') : '';
-  return fromArray || data?.message || data?.title || fallback;
+  const detail = fromArray || data?.message || data?.title;
+  if (detail) return detail;
+  // A 500 with an empty body is a server-side failure (no validation detail).
+  if (status >= 500) {
+    return `${fallback} — خطأ في الخادم (${status}) / server error (${status})`;
+  }
+  return fallback;
 }
 
 /**
  * Journal Entries list hook (server-paginated + filtered).
  *
- * The API has no free-text param, so `searchTerm` is applied client-side over
- * the current page's entryNumber / description. `placeholderData` keeps the
- * previous page visible while the next loads.
+ * Search is now server-side (`Search` param, verified live) so results span the
+ * whole dataset, not just the loaded page. `placeholderData` keeps the previous
+ * page visible while the next loads.
  */
 export function useJournalEntries(query: JournalEntriesQuery) {
   const result = useQuery({
@@ -37,7 +44,8 @@ export function useJournalEntries(query: JournalEntriesQuery) {
       query.to ?? '',
       query.status ?? '',
       query.source ?? '',
-      query.restrictionTypeId ?? '',
+      query.referenceType ?? '',
+      query.search ?? '',
       query.customerId ?? '',
       query.agentId ?? '',
       query.workerId ?? '',
@@ -49,17 +57,8 @@ export function useJournalEntries(query: JournalEntriesQuery) {
     placeholderData: (previous) => previous,
   });
 
-  const term = (query.searchTerm ?? '').trim().toLowerCase();
-  const items = term
-    ? (result.data?.items ?? []).filter(
-        (e) =>
-          e.entryNumber.toLowerCase().includes(term) ||
-          (e.description ?? '').toLowerCase().includes(term)
-      )
-    : result.data?.items ?? [];
-
   return {
-    items,
+    items: result.data?.items ?? [],
     totalCount: result.data?.totalCount ?? 0,
     isLoading: result.isLoading,
     isFetching: result.isFetching,

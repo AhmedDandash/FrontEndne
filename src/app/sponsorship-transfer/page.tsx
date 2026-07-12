@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useOpenIdParam } from '@/hooks/useOpenIdParam';
 import {
   Card,
   Row,
@@ -888,6 +889,9 @@ export default function SponsorshipTransferPage() {
   const [detailId,    setDetailId]    = useState<string | null>(null);
   const [complaintId, setComplaintId] = useState<string | null>(null);
   const [authorityId, setAuthorityId] = useState<string | null>(null);
+
+  // Journal Entry "Go to source": ?openId=<contractId> auto-opens the detail view.
+  useOpenIdParam((id) => setDetailId(id));
 
   // All filters are applied server-side (TransferContractQuery).
   const transferParams = useMemo(

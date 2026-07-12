@@ -37,6 +37,7 @@ import {
   PAYMENT_METHOD_OPTIONS,
 } from '../_lib/accountingDocDisplay';
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
+import { useOpenIdParam } from '@/hooks/useOpenIdParam';
 import styles from '../accounting-doc.module.css';
 
 const { RangePicker } = DatePicker;
@@ -76,6 +77,8 @@ export default function PaymentVouchersPage() {
 
   const openDetail = (id: string) => setDetailId(id);
   const openTrace = (id: string) => { setDetailId(null); setTraceId(id); };
+  // Journal Entry "Go to source" deep-link: ?openId=<voucherId> auto-opens detail.
+  useOpenIdParam(openDetail);
 
   const handleCreate = async () => {
     const values = await form.validateFields();

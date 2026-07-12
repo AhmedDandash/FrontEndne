@@ -56,6 +56,10 @@ const YEARS = Array.from({ length: 5 }, (_, i) => ({
 }));
 
 export default function HRPayrollPage() {
+  // Journal Entry "Go to source" (Salary/Advance sources) links here with
+  // ?openId=<payrollRunId>. This page has no per-run detail view to auto-open —
+  // it's a month/year-scoped generator/list — so the deep-link intentionally
+  // lands on the list only; useOpenIdParam is deliberately not wired.
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);

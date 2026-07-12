@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useOpenIdParam } from '@/hooks/useOpenIdParam';
 import {
   Card,
   Table,
@@ -56,6 +57,8 @@ export default function HREmployeesPage() {
   const [form] = Form.useForm();
   const [detailId, setDetailId] = useState<string | null>(null);
   const { data: detailEmployee, isLoading: isLoadingDetail } = useHREmployee(detailId ?? '');
+  // Journal Entry "Go to source": ?openId=<employeeId> auto-opens the detail view.
+  useOpenIdParam((id) => setDetailId(id));
   const now = new Date();
   // Query the full-year balance (no `month`): with a `month` param the backend
   // reports usage for that calendar month only, so a leave taken in another

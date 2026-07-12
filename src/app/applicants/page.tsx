@@ -82,6 +82,7 @@ import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useHousingActiveList } from '@/hooks/api/useHousing';
 import { useAssignWorkerHousing } from '@/hooks/api/useWorkerHousing';
+import { useOpenIdParam } from '@/hooks/useOpenIdParam';
 import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type { Worker, WorkerDto } from '@/types/api.types';
@@ -611,6 +612,10 @@ export default function WorkersPage() {
 
   // Fetch single worker details when viewing
   const { data: viewingWorker, isLoading: isViewingLoading } = useWorker(viewingWorkerId ?? undefined);
+
+  // Journal Entry "Go to source" deep-link: ?openId=<workerId> auto-opens the
+  // worker detail modal (the modal fetches the worker by id independently).
+  useOpenIdParam((id) => setViewingWorkerId(id));
 
   // Tab items — keys match workerStatus values (1=Available, 2=Trial, 3-6 unchanged)
   const tabs = [
