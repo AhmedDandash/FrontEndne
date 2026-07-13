@@ -172,6 +172,14 @@
   font-weight: 600;
 }
 
+/* Rows whose entry has a navigable source: whole row clicks through to it. */
+.sourceRow {
+  cursor: pointer;
+}
+.sourceRow:hover > td {
+  background: #eff6ff !important;
+}
+
 /* ── Detail drawer ──────────────────────────────────────────── */
 .detailFacts {
   display: grid;

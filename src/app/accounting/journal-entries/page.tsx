@@ -47,9 +47,16 @@ import {
   type JournalEntrySource,
   type JournalReferenceType,
 } from '@/types/journal-entry.types';
+import { useRouter } from 'next/navigation';
+import { message } from 'antd';
+import {
+  resolveJournalEntryNavigation,
+  resolveContractRoute,
+  buildSourceUrl,
+  type JournalEntryNavInput,
+} from '@/lib/journal-entry-navigation';
 import { EntryFormDrawer } from './_components/EntryFormDrawer';
 import { EntryDetailDrawer } from './_components/EntryDetailDrawer';
-import { GoToSourceButton } from './_components/GoToSourceButton';
 import styles from './JournalEntries.module.css';
 
 const { RangePicker } = DatePicker;
@@ -115,6 +122,39 @@ export default function JournalEntriesPage() {
   const openEdit = (id: string) => {
     setDetailId(null);
     setFormState({ mode: 'edit', id });
+  };
+
+  // ── Row → source-document navigation ────────────────────────
+  // Clicking a row navigates to the entry's source (contract / voucher / …).
+  // The entry-number link and the action buttons keep their own behaviour
+  // (they're skipped via the interactive-target guard in `onRow`).
+  const router = useRouter();
+  const navInput = (record: JournalEntryListItem): JournalEntryNavInput => ({
+    source: record.source,
+    referenceType: record.referenceType,
+    sourceId: record.sourceId,
+    customerId: record.customerId,
+    agentId: record.agentId,
+    workerId: record.workerId,
+    employeeId: record.employeeId,
+  });
+  /** True when this entry has a screen we can navigate to. */
+  const isNavigable = (record: JournalEntryListItem): boolean => {
+    const nav = resolveJournalEntryNavigation(navInput(record));
+    return !!nav.route && !nav.disabled;
+  };
+  const goToSource = async (record: JournalEntryListItem) => {
+    const nav = resolveJournalEntryNavigation(navInput(record));
+    if (!nav.route || nav.disabled) return;
+    try {
+      let route = nav.route;
+      if (nav.needsContractResolve && nav.id) {
+        route = await resolveContractRoute(nav.id);
+      }
+      router.push(buildSourceUrl(route, nav.id));
+    } catch {
+      message.error(t('تعذّر فتح المصدر', 'Could not open the source'));
+    }
   };
 
   const restrictionLabel = useMemo(() => {
@@ -243,7 +283,7 @@ export default function JournalEntriesPage() {
       title: t('المصدر', 'Source'),
       dataIndex: 'source',
       key: 'source',
-      width: 90,
+      width: 110,
       render: (v: JournalEntrySource) => (
         <span className={styles.muted}>{getSourceLabel(v, isAr)}</span>
       ),
@@ -266,19 +306,6 @@ export default function JournalEntriesPage() {
                 onClick={() => setDetailId(record.id)}
               />
             </Tooltip>
-            <GoToSourceButton
-              variant="icon"
-              isAr={isAr}
-              entry={{
-                source: record.source,
-                referenceType: record.referenceType,
-                sourceId: record.sourceId,
-                customerId: record.customerId,
-                agentId: record.agentId,
-                workerId: record.workerId,
-                employeeId: record.employeeId,
-              }}
-            />
             {isDraft ? (
               <>
                 <Tooltip title={t('تعديل', 'Edit')}>
@@ -528,6 +555,20 @@ export default function JournalEntriesPage() {
           size="middle"
           bordered
           scroll={{ x: 1300 }}
+          onRow={(record) => {
+            const navigable = isNavigable(record);
+            return {
+              className: navigable ? styles.sourceRow : undefined,
+              onClick: (e) => {
+                // Let the entry-number link, action buttons, and any other
+                // interactive control handle their own clicks.
+                if ((e.target as HTMLElement).closest('a, button, .ant-btn, .ant-popover, input, .ant-select')) {
+                  return;
+                }
+                if (navigable) void goToSource(record);
+              },
+            };
+          }}
           pagination={{
             current: pageNumber,
             pageSize,
