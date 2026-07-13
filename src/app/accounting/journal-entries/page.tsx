@@ -193,22 +193,29 @@ export default function JournalEntriesPage() {
       dataIndex: 'entryNumber',
       key: 'entryNumber',
       width: 120,
-      render: (v: string, record) => (
-        <a
-          role="button"
-          tabIndex={0}
-          className={styles.entryNumber}
-          onClick={() => setDetailId(record.id)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setDetailId(record.id);
-            }
-          }}
-        >
-          {v || '—'}
-        </a>
-      ),
+      render: (v: string, record) => {
+        // Entry number goes to the source document (like the whole row). Manual
+        // entries have no source, so there it opens the JE detail instead.
+        // The eye icon (Actions) always opens the JE detail.
+        const navigable = isNavigable(record);
+        const activate = () => (navigable ? void goToSource(record) : setDetailId(record.id));
+        return (
+          <a
+            role="button"
+            tabIndex={0}
+            className={styles.entryNumber}
+            onClick={activate}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                activate();
+              }
+            }}
+          >
+            {v || '—'}
+          </a>
+        );
+      },
     },
     {
       title: t('التاريخ', 'Date'),
