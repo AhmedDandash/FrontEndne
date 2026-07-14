@@ -43,6 +43,7 @@ test('CustomerPayment + Payment → receipt voucher (not customer profile)', () 
   });
   assert.equal(t.route, JE_SOURCE_ROUTES.receiptVoucher);
   assert.equal(t.id, 'rv-1');
+  assert.equal(t.pathParam, true);
 });
 
 // ── Fixed bug #2: Escape + Adjustment → worker ────────────────────
@@ -76,6 +77,7 @@ test('Payment + Payment with customerId → receipt voucher', () => {
     customerId: 'c-1',
   });
   assert.equal(t.route, JE_SOURCE_ROUTES.receiptVoucher);
+  assert.equal(t.pathParam, true);
 });
 
 test('Payment + Payment without customerId → payment voucher', () => {
@@ -86,6 +88,7 @@ test('Payment + Payment without customerId → payment voucher', () => {
     agentId: 'a-1',
   });
   assert.equal(t.route, JE_SOURCE_ROUTES.paymentVoucher);
+  assert.equal(t.pathParam, true);
 });
 
 test('Payment + Contract → operating contract', () => {
@@ -106,6 +109,7 @@ test('Adjustment + Adjustment with agentId → debit note', () => {
     agentId: 'a-1',
   });
   assert.equal(t.route, JE_SOURCE_ROUTES.debitNote);
+  assert.equal(t.pathParam, true);
 });
 
 test('Adjustment + Adjustment with customerId (no agent) → credit note', () => {
@@ -116,6 +120,7 @@ test('Adjustment + Adjustment with customerId (no agent) → credit note', () =>
     customerId: 'c-1',
   });
   assert.equal(t.route, JE_SOURCE_ROUTES.creditNote);
+  assert.equal(t.pathParam, true);
 });
 
 test('Adjustment + Adjustment with employeeId → disabled commission adjustment', () => {
@@ -251,4 +256,33 @@ test('buildSourceUrl auto-detects a contract route without an explicit pathParam
 test('buildSourceUrl keeps ?openId= for non-migrated routes even without an explicit pathParam', () => {
   assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.housing, 'h-1'), '/housing/management?openId=h-1');
   assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.journalEntry, 'je-1'), '/accounting/journal-entries?openId=je-1');
+});
+
+// ── Phase 2: the 4 accounting documents are now real /{id} detail routes ──
+test('buildSourceUrl(JE_SOURCE_ROUTES.receiptVoucher) appends the id as a path segment', () => {
+  assert.equal(
+    buildSourceUrl(JE_SOURCE_ROUTES.receiptVoucher, 'x'),
+    '/accounting/receipt-vouchers/x'
+  );
+});
+
+test('buildSourceUrl(JE_SOURCE_ROUTES.paymentVoucher) appends the id as a path segment', () => {
+  assert.equal(
+    buildSourceUrl(JE_SOURCE_ROUTES.paymentVoucher, 'x'),
+    '/accounting/payment-vouchers/x'
+  );
+});
+
+test('buildSourceUrl(JE_SOURCE_ROUTES.creditNote) appends the id as a path segment', () => {
+  assert.equal(
+    buildSourceUrl(JE_SOURCE_ROUTES.creditNote, 'x'),
+    '/accounting/credit-notes/x'
+  );
+});
+
+test('buildSourceUrl(JE_SOURCE_ROUTES.debitNote) appends the id as a path segment', () => {
+  assert.equal(
+    buildSourceUrl(JE_SOURCE_ROUTES.debitNote, 'x'),
+    '/accounting/debit-notes/x'
+  );
 });

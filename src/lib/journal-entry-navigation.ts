@@ -161,13 +161,13 @@ export function resolveJournalEntryNavigation(entry: JournalEntryNavInput): Jour
   // ── Vouchers ──────────────────────────────────────────────────
   // §4.3: a customer payment (source=CustomerPayment) is always a receipt voucher.
   if (source === S.CustomerPayment && referenceType === R.Payment) {
-    return { route: JE_SOURCE_ROUTES.receiptVoucher, id: sourceId!, labelAr: 'سند قبض', labelEn: 'Receipt voucher' };
+    return { route: JE_SOURCE_ROUTES.receiptVoucher, id: sourceId!, labelAr: 'سند قبض', labelEn: 'Receipt voucher', pathParam: true };
   }
   if (source === S.Payment && referenceType === R.Payment) {
     if (customerId) {
-      return { route: JE_SOURCE_ROUTES.receiptVoucher, id: sourceId!, labelAr: 'سند قبض', labelEn: 'Receipt voucher' };
+      return { route: JE_SOURCE_ROUTES.receiptVoucher, id: sourceId!, labelAr: 'سند قبض', labelEn: 'Receipt voucher', pathParam: true };
     }
-    return { route: JE_SOURCE_ROUTES.paymentVoucher, id: sourceId!, labelAr: 'سند صرف', labelEn: 'Payment voucher' };
+    return { route: JE_SOURCE_ROUTES.paymentVoucher, id: sourceId!, labelAr: 'سند صرف', labelEn: 'Payment voucher', pathParam: true };
   }
   if (source === S.Payment && referenceType === R.Contract) {
     return { route: JE_SOURCE_ROUTES.operatingContract, id: sourceId!, labelAr: 'عقد تشغيل (دفعة)', labelEn: 'Operating contract (payment)', pathParam: true };
@@ -176,10 +176,10 @@ export function resolveJournalEntryNavigation(entry: JournalEntryNavInput): Jour
   // ── Credit / debit notes ──────────────────────────────────────
   if (source === S.Adjustment && referenceType === R.Adjustment) {
     if (agentId) {
-      return { route: JE_SOURCE_ROUTES.debitNote, id: sourceId!, labelAr: 'إشعار مدين', labelEn: 'Debit note' };
+      return { route: JE_SOURCE_ROUTES.debitNote, id: sourceId!, labelAr: 'إشعار مدين', labelEn: 'Debit note', pathParam: true };
     }
     if (customerId) {
-      return { route: JE_SOURCE_ROUTES.creditNote, id: sourceId!, labelAr: 'إشعار دائن', labelEn: 'Credit note' };
+      return { route: JE_SOURCE_ROUTES.creditNote, id: sourceId!, labelAr: 'إشعار دائن', labelEn: 'Credit note', pathParam: true };
     }
     if (employeeId) {
       return disabledTarget('تسوية عمولة', 'Commission adjustment');
@@ -254,17 +254,24 @@ export async function resolveContractRoute(sourceId: string): Promise<string> {
 }
 
 /**
- * List routes that are now real `/{id}` detail routes (Phase 1) rather than a
- * flat list read via `?openId=`. Used by `buildSourceUrl` as a fallback when
- * the caller doesn't know `pathParam` up front — e.g. after
- * `resolveContractRoute` resolves the generic-contract branch to one of these
- * three routes (or, for housing/journalEntry, to a route NOT in this set —
- * those correctly keep the `?openId=` form since they aren't migrated yet).
+ * List routes that are now real `/{id}` detail routes rather than a flat list
+ * read via `?openId=`. Used by `buildSourceUrl` as a fallback when the caller
+ * doesn't know `pathParam` up front — e.g. after `resolveContractRoute`
+ * resolves the generic-contract branch to one of the contract routes (or, for
+ * housing/journalEntry, to a route NOT in this set — those correctly keep the
+ * `?openId=` form since they aren't migrated yet).
+ *
+ * Phase 1 (2026-07): the 3 contract modules (mediation, operating/rent, transfer).
+ * Phase 2 (2026-07): the 4 accounting documents (receipt/payment vouchers, credit/debit notes).
  */
 const PATH_PARAM_ROUTES: ReadonlySet<string> = new Set([
   JE_SOURCE_ROUTES.mediationContract,
   JE_SOURCE_ROUTES.operatingContract,
   JE_SOURCE_ROUTES.transferContract,
+  JE_SOURCE_ROUTES.receiptVoucher,
+  JE_SOURCE_ROUTES.paymentVoucher,
+  JE_SOURCE_ROUTES.creditNote,
+  JE_SOURCE_ROUTES.debitNote,
 ]);
 
 /**

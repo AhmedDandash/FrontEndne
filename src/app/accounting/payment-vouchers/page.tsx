@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import {
   Card,
@@ -37,13 +38,12 @@ import {
   PAYMENT_METHOD_OPTIONS,
 } from '../_lib/accountingDocDisplay';
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
-import { useOpenIdParam } from '@/hooks/useOpenIdParam';
-import fullPage from '@/styles/fullPageModal.module.css';
 import styles from '../accounting-doc.module.css';
 
 const { RangePicker } = DatePicker;
 
 export default function PaymentVouchersPage() {
+  const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
@@ -69,17 +69,14 @@ export default function PaymentVouchersPage() {
   const { mutateAsync: createVoucher, isPending: isCreating } = useCreatePaymentVoucher();
 
   // ── Drawers ─────────────────────────────────────────────────
-  const [detailId, setDetailId] = useState<string | null>(null);
   const [traceId, setTraceId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [form] = Form.useForm();
 
   const { data: traceData, isLoading: isTraceLoading } = usePaymentVoucherTrace(traceId ?? undefined);
 
-  const openDetail = (id: string) => setDetailId(id);
-  const openTrace = (id: string) => { setDetailId(null); setTraceId(id); };
-  // Journal Entry "Go to source" deep-link: ?openId=<voucherId> auto-opens detail.
-  useOpenIdParam(openDetail);
+  const openDetail = (id: string) => router.push(`/accounting/payment-vouchers/${id}`);
+  const openTrace = (id: string) => setTraceId(id);
 
   const handleCreate = async () => {
     const values = await form.validateFields();
@@ -168,8 +165,6 @@ export default function PaymentVouchersPage() {
     },
   ];
 
-  const selectedVoucher = detailId ? vouchers.find((v) => v.id === detailId) : null;
-
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
@@ -240,51 +235,6 @@ export default function PaymentVouchersPage() {
           pagination={{ pageSize: 15, showSizeChanger: true, showTotal: (n) => t(`الإجمالي: ${n}`, `Total: ${n}`) }}
         />
       </Card>
-
-      {/* Detail Drawer */}
-      <Drawer
-        title={t('تفاصيل سند الصرف', 'Payment Voucher Details')}
-        open={!!selectedVoucher} onClose={() => setDetailId(null)} rootClassName={fullPage.drawerRoot} width="100%"
-      >
-        {selectedVoucher && (
-          <>
-            <div className={styles.facts}>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('رقم السند', 'Voucher No.')}</div>
-                <div className={styles.factValue}>{selectedVoucher.voucherNumber || '—'}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('التاريخ', 'Date')}</div>
-                <div className={styles.factValue}>{selectedVoucher.voucherDate ? new Date(selectedVoucher.voucherDate).toLocaleDateString() : '—'}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('المبلغ', 'Amount')}</div>
-                <div className={styles.factValue}>{selectedVoucher.amount?.toLocaleString()}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('طريقة الدفع', 'Payment')}</div>
-                <div className={styles.factValue}>{renderPaymentMethod(selectedVoucher.paymentMethod, isAr)}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('نوع المستفيد', 'Payee Type')}</div>
-                <div className={styles.factValue}>{selectedVoucher.payeeType ? <Tag>{selectedVoucher.payeeType}</Tag> : '—'}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('القيد المحاسبي', 'Journal')}</div>
-                <div className={styles.factValue}>{renderJournalLink(selectedVoucher.journalEntryId, isAr)}</div>
-              </div>
-            </div>
-            {selectedVoucher.notes && (
-              <div style={{ marginBottom: 12, padding: '8px 12px', background: '#e6f4ff', borderRadius: 6, color: '#0958d9', fontSize: 13 }}>
-                {selectedVoucher.notes}
-              </div>
-            )}
-            <Button block icon={<AuditOutlined />} onClick={() => openTrace(selectedVoucher.id)} style={{ marginTop: 8 }}>
-              {t('عرض سلسلة التتبع', 'View Audit Trail')}
-            </Button>
-          </>
-        )}
-      </Drawer>
 
       {/* Trace Drawer */}
       <DocumentTraceDrawer

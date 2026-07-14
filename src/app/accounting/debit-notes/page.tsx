@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import {
   Card,
@@ -31,13 +32,12 @@ import { useAuthStore } from '@/store/authStore';
 import type { DebitNote, CreateDebitNoteDto } from '@/types/api.types';
 import { renderJournalLink } from '../_lib/accountingDocDisplay';
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
-import { useOpenIdParam } from '@/hooks/useOpenIdParam';
-import fullPage from '@/styles/fullPageModal.module.css';
 import styles from '../accounting-doc.module.css';
 
 const { RangePicker } = DatePicker;
 
 export default function DebitNotesPage() {
+  const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
@@ -58,17 +58,14 @@ export default function DebitNotesPage() {
   const { data: agents = [] } = useAgents();
   const { mutateAsync: createNote, isPending: isCreating } = useCreateDebitNote();
 
-  const [detailId, setDetailId] = useState<string | null>(null);
   const [traceId, setTraceId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [form] = Form.useForm();
 
   const { data: traceData, isLoading: isTraceLoading } = useDebitNoteTrace(traceId ?? undefined);
 
-  const openDetail = (id: string) => setDetailId(id);
-  const openTrace = (id: string) => { setDetailId(null); setTraceId(id); };
-  // Journal Entry "Go to source" deep-link: ?openId=<noteId> auto-opens detail.
-  useOpenIdParam(openDetail);
+  const openDetail = (id: string) => router.push(`/accounting/debit-notes/${id}`);
+  const openTrace = (id: string) => setTraceId(id);
 
   const handleCreate = async () => {
     const values = await form.validateFields();
@@ -156,8 +153,6 @@ export default function DebitNotesPage() {
     },
   ];
 
-  const selected = detailId ? notes.find((n) => n.id === detailId) : null;
-
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
@@ -221,46 +216,6 @@ export default function DebitNotesPage() {
           pagination={{ pageSize: 15, showSizeChanger: true, showTotal: (n) => t(`الإجمالي: ${n}`, `Total: ${n}`) }}
         />
       </Card>
-
-      {/* Detail Drawer */}
-      <Drawer
-        title={t('تفاصيل إشعار المدين', 'Debit Note Details')}
-        open={!!selected} onClose={() => setDetailId(null)} rootClassName={fullPage.drawerRoot} width="100%"
-      >
-        {selected && (
-          <>
-            <div className={styles.facts}>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('رقم الإشعار', 'Note No.')}</div>
-                <div className={styles.factValue}>{selected.debitNoteNumber || '—'}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('التاريخ', 'Date')}</div>
-                <div className={styles.factValue}>{selected.debitNoteDate ? new Date(selected.debitNoteDate).toLocaleDateString() : '—'}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('المبلغ', 'Amount')}</div>
-                <div className={styles.factValue}>{selected.amount?.toLocaleString()}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('ضريبة القيمة', 'VAT')}</div>
-                <div className={styles.factValue}>{selected.vatAmount?.toLocaleString() || '—'}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('السبب', 'Reason')}</div>
-                <div className={styles.factValue}>{selected.reason || '—'}</div>
-              </div>
-              <div className={styles.factItem}>
-                <div className={styles.factLabel}>{t('القيد المحاسبي', 'Journal')}</div>
-                <div className={styles.factValue}>{renderJournalLink(selected.journalEntryId, isAr)}</div>
-              </div>
-            </div>
-            <Button block icon={<AuditOutlined />} onClick={() => openTrace(selected.id)} style={{ marginTop: 8 }}>
-              {t('عرض سلسلة التتبع', 'View Audit Trail')}
-            </Button>
-          </>
-        )}
-      </Drawer>
 
       {/* Trace Drawer */}
       <DocumentTraceDrawer
