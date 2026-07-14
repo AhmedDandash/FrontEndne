@@ -20,7 +20,6 @@ import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperat
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useCustomers } from '@/hooks/api/useCustomers';
-import { useOpenIdParam } from '@/hooks/useOpenIdParam';
 import type {
   EmploymentOperatingContract,
   EmploymentContractOffer,
@@ -46,7 +45,6 @@ import TerminateModal from './_components/TerminateModal';
 import CustomerRefundModal from './_components/CustomerRefundModal';
 import ContractReceiptsModal from './_components/ContractReceiptsModal';
 import PrintReceiptModal from './_components/PrintReceiptModal';
-import ContractDetailsModal from './_components/ContractDetailsModal';
 import DeliveryFormModal from './_components/DeliveryFormModal';
 import styles from './RentContracts.module.css';
 
@@ -82,7 +80,6 @@ export default function RentContractsPage() {
   const [printModal, setPrintModal] = useState<{ open: boolean; title: string }>({ open: false, title: '' });
   const [printData, setPrintData] = useState<ContractPrintReceiptData | null>(null);
   const [printLoading, setPrintLoading] = useState(false);
-  const [detailsModal, setDetailsModal] = useState<{ open: boolean; contract: RentContract | null }>({ open: false, contract: null });
   // Worker delivery-form modal
   const [deliveryModal, setDeliveryModal] = useState<{ open: boolean; id: string | null; title: string }>({ open: false, id: null, title: '' });
   const [deliveryData, setDeliveryData] = useState<OperatingContractDeliveryFormDto | null>(null);
@@ -141,15 +138,6 @@ export default function RentContractsPage() {
       mapContract(c, resolveNationality, resolveJob, resolveCustomer)
     );
   }, [contractsData, nationalities, jobs, customers]);
-
-  // Journal Entry "Go to source" deep-link: ?openId=<contractId> auto-opens the
-  // details modal. The modal is presentational (renders a full RentContract), so we
-  // look the record up in the fully-loaded list (this page fetches all contracts,
-  // filtering client-side, so the id is present regardless of the visible page).
-  useOpenIdParam((id) => {
-    const match = allContracts.find((c) => String(c.id) === id);
-    if (match) setDetailsModal({ open: true, contract: match });
-  }, allContracts.length > 0);
 
   const t = {
     pageTitle: isRtl ? 'عقود العاملات المقيمة ' : 'Operation Contracts',
@@ -371,7 +359,7 @@ export default function RentContractsPage() {
   };
 
   const cardActions = {
-    onView: (c: RentContract) => setDetailsModal({ open: true, contract: c }),
+    onView: (c: RentContract) => router.push(`/contracts/operation/rent/${c.id}`),
     onEdit: handleEditOpen,
     onDelete: (c: RentContract) => deleteContract(c.id),
     onSign: (c: RentContract) => signContract(c.id),
@@ -613,13 +601,6 @@ export default function RentContractsPage() {
         loading={printLoading}
         title={printModal.title}
         onClose={() => setPrintModal({ open: false, title: '' })}
-      />
-
-      <ContractDetailsModal
-        contract={detailsModal.contract}
-        open={detailsModal.open}
-        isRtl={isRtl}
-        onClose={() => setDetailsModal({ open: false, contract: null })}
       />
 
       <DeliveryFormModal

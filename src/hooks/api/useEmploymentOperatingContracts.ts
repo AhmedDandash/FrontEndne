@@ -26,6 +26,20 @@ import type {
 
 const QUERY_KEY = 'employment-operating-contracts';
 
+/**
+ * GET /api/EmploymentOperatingContract/{id} — standalone single-record hook.
+ * Mirrors `useMediationContract` / `useTransferContract` so the `[id]` route
+ * page doesn't need to mount the full (unpaginated) list hook just to fetch
+ * one record.
+ */
+export function useEmploymentOperatingContract(id: number | string | undefined | null) {
+  return useQuery({
+    queryKey: [QUERY_KEY, id],
+    queryFn: () => EmploymentOperatingContractService.getById(id!),
+    enabled: !!id,
+  });
+}
+
 export function useEmploymentOperatingContracts(
   params?: GetContractsParams | Record<string, any>
 ) {

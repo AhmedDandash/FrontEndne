@@ -151,7 +151,7 @@ export default function JournalEntriesPage() {
       if (nav.needsContractResolve && nav.id) {
         route = await resolveContractRoute(nav.id);
       }
-      router.push(buildSourceUrl(route, nav.id));
+      router.push(buildSourceUrl(route, nav.id, nav.pathParam));
     } catch {
       message.error(t('تعذّر فتح المصدر', 'Could not open the source'));
     }

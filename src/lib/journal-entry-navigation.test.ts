@@ -206,10 +206,49 @@ test('party fallback → agent profile when only agentId present', () => {
 });
 
 // ── buildSourceUrl ────────────────────────────────────────────────
-test('buildSourceUrl appends openId query param', () => {
+test('buildSourceUrl appends openId query param for a non-contract route', () => {
   assert.equal(buildSourceUrl('/agents', 'ag-1'), '/agents?openId=ag-1');
 });
 
 test('buildSourceUrl returns bare route when id is null', () => {
   assert.equal(buildSourceUrl('/agents', null), '/agents');
+});
+
+// ── Phase 1: contract routes are now real /{id} detail routes ─────
+test('mediation contract target carries pathParam: true', () => {
+  const t = resolveJournalEntryNavigation({ source: S.Visa, referenceType: R.Contract, sourceId: 'm-1' });
+  assert.equal(t.pathParam, true);
+});
+
+test('operating contract target carries pathParam: true', () => {
+  const t = resolveJournalEntryNavigation({ source: S.Payment, referenceType: R.Contract, sourceId: 'op-1' });
+  assert.equal(t.pathParam, true);
+});
+
+test('transfer contract target carries pathParam: true', () => {
+  const t = resolveJournalEntryNavigation({ source: S.Transfer, referenceType: R.Contract, sourceId: 'tc-1' });
+  assert.equal(t.pathParam, true);
+});
+
+test('buildSourceUrl(pathParam=true) appends the id as a path segment', () => {
+  assert.equal(
+    buildSourceUrl(JE_SOURCE_ROUTES.mediationContract, 'm-1', true),
+    '/contracts/mediationcontract/m-1'
+  );
+});
+
+test('buildSourceUrl auto-detects a contract route without an explicit pathParam (generic-contract branch)', () => {
+  assert.equal(
+    buildSourceUrl(JE_SOURCE_ROUTES.operatingContract, 'op-1'),
+    '/contracts/operation/rent/op-1'
+  );
+  assert.equal(
+    buildSourceUrl(JE_SOURCE_ROUTES.transferContract, 'tc-1'),
+    '/sponsorship-transfer/tc-1'
+  );
+});
+
+test('buildSourceUrl keeps ?openId= for non-migrated routes even without an explicit pathParam', () => {
+  assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.housing, 'h-1'), '/housing/management?openId=h-1');
+  assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.journalEntry, 'je-1'), '/accounting/journal-entries?openId=je-1');
 });

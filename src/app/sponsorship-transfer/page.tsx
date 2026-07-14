@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useOpenIdParam } from '@/hooks/useOpenIdParam';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   Row,
@@ -13,15 +13,11 @@ import {
   Pagination,
   Statistic,
   Modal,
-  Form,   
+  Form,
   Spin,
-  Divider,
   InputNumber,
   Avatar,
   Badge,
-  Tabs,
-  Descriptions,
-  Alert,
 } from 'antd';
 import {
   PlusOutlined,
@@ -70,30 +66,11 @@ import type {
   TransferContractListItem,
   CreateComplaintDto,
 } from '@/types/api.types';
-import fullPage from '@/styles/fullPageModal.module.css';
 import styles from './SponsorshipTransfer.module.css';
 import { useWorkersWantsTransfer } from '@/hooks/api/useWorkers';
+import { formatCurrency, formatDate, getStatusConfig } from './_lib/format';
 
 const { TextArea } = Input;
-
-// ────────────────────────────────────────────────────────────────────────────
-// Status helpers
-// ────────────────────────────────────────────────────────────────────────────
-function getStatusConfig(status: number | null | undefined) {
-  const configs: Record<
-    number,
-    { color: 'processing' | 'warning' | 'success' | 'error' | 'default'; tagColor: string }
-  > = {
-    1: { color: 'warning',    tagColor: 'warning' },
-    4: { color: 'processing', tagColor: 'processing' },
-    5: { color: 'success',    tagColor: 'success' },
-    6: { color: 'error',      tagColor: 'error' },
-    8: { color: 'success',    tagColor: 'success' },
-  };
-  return (
-    configs[status ?? 1] ?? configs[1]
-  );
-}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Translations
@@ -162,214 +139,6 @@ const TR: Record<string, Record<'ar' | 'en', string>> = {
 function useT() {
   const language = useAuthStore((s) => s.language);
   return (key: string) => TR[key]?.[language] ?? key;
-}
-
-function formatCurrency(amount: number | null | undefined, language: 'ar' | 'en') {
-  return new Intl.NumberFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
-    style: 'currency',
-    currency: 'SAR',
-    maximumFractionDigits: 0,
-  }).format(amount ?? 0);
-}
-
-function formatDate(dateStr: string | null | undefined, language: 'ar' | 'en') {
-  if (!dateStr) return '—';
-  try {
-    return new Date(dateStr).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Contract Details Modal (read-only, tabbed)
-// ────────────────────────────────────────────────────────────────────────────
-function ContractDetailsModal({
-  contractId,
-  onClose,
-}: {
-  contractId: string | null;
-  onClose: () => void;
-}) {
-  const t        = useT();
-  const language = useAuthStore((s) => s.language);
-  const { data: contract, isLoading } = useTransferContract(contractId);
-
-  const status  = contract?.contractStatus ?? 1;
-  const cfg     = getStatusConfig(status);
-  const paid    = contract?.paidAmount ?? 0;
-  const remaining = (contract?.totalAmount ?? 0) - paid;
-
-  return (
-    <Modal
-      open={!!contractId}
-      onCancel={onClose}
-      footer={
-        <Button type="primary" onClick={onClose}>
-          {t('close')}
-        </Button>
-      }
-      width="100%"
-      style={{ top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 }}
-      wrapClassName={fullPage.modalWrap}
-      styles={{ body: { minHeight: 'calc(100vh - 130px)', overflowY: 'auto' } }}
-      title={
-        <span>
-          {t('contractDetails')}
-          {contract?.contractNumber ? ` — #${contract.contractNumber}` : ''}
-          {contract && (
-            <Badge
-              status={cfg.color}
-              text={getEnumLabel(TRANSFER_CONTRACT_STATUS, status, language)}
-              style={{ marginInlineStart: 12, fontSize: 13 }}
-            />
-          )}
-        </span>
-      }
-      destroyOnHidden
-    >
-      {isLoading ? (
-        <div style={{ textAlign: 'center', padding: 48 }}>
-          <Spin size="large" />
-        </div>
-      ) : contract ? (
-        <Tabs
-          defaultActiveKey="info"
-          items={[
-            {
-              key: 'info',
-              label: language === 'ar' ? 'معلومات العقد' : 'Contract Info',
-              children: (
-                <div className={styles.detailsModal}>
-                  <Divider
-                    style={{ fontSize: 13, color: '#8c8c8c' }}
-                  >
-                    {language === 'ar' ? 'بيانات الأطراف' : 'Parties'}
-                  </Divider>
-                  <Descriptions column={2} size="small" bordered>
-                    <Descriptions.Item label={t('customerName')}>
-                      {contract.customerName ?? '—'}
-                    </Descriptions.Item>
-                    <Descriptions.Item label={t('workerName')}>
-                      {contract.workerName ?? '—'}
-                    </Descriptions.Item>
-                    {contract.workerIdNumber && (
-                      <Descriptions.Item label={language === 'ar' ? 'رقم الهوية' : 'ID Number'}>
-                        {contract.workerIdNumber}
-                      </Descriptions.Item>
-                    )}
-                    {contract.marketerName && (
-                      <Descriptions.Item label={t('marketer')}>
-                        {contract.marketerName}
-                      </Descriptions.Item>
-                    )}
-                  </Descriptions>
-
-                  <Divider
-                    style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}
-                  >
-                    {language === 'ar' ? 'بيانات العقد' : 'Contract Details'}
-                  </Divider>
-                  <Descriptions column={2} size="small" bordered>
-                    <Descriptions.Item label={t('contractNumber')}>
-                      {contract.contractNumber ?? '—'}
-                    </Descriptions.Item>
-                    <Descriptions.Item label={language === 'ar' ? 'الحالة' : 'Status'}>
-                      <Badge
-                        status={cfg.color}
-                        text={getEnumLabel(TRANSFER_CONTRACT_STATUS, status, language)}
-                      />
-                    </Descriptions.Item>
-                    <Descriptions.Item label={t('creationDate')}>
-                      {formatDate(contract.createdDate, language)}
-                    </Descriptions.Item>
-                    {contract.createdByName && (
-                      <Descriptions.Item label={t('createdBy')}>
-                        {contract.createdByName}
-                      </Descriptions.Item>
-                    )}
-                    <Descriptions.Item label={t('trialPeriod')}>
-                      {contract.trialPeriodDays
-                        ? `${contract.trialPeriodDays} ${t('trialDays')}`
-                        : '—'}
-                    </Descriptions.Item>
-                    {contract.approvalDate && (
-                      <Descriptions.Item label={t('transferDate')}>
-                        {formatDate(contract.approvalDate, language)}
-                      </Descriptions.Item>
-                    )}
-                    {contract.notes && (
-                      <Descriptions.Item
-                        label={t('notes')}
-                        span={2}
-                      >
-                        {contract.notes}
-                      </Descriptions.Item>
-                    )}
-                  </Descriptions>
-                </div>
-              ),
-            },
-            {
-              key: 'financial',
-              label: language === 'ar' ? 'المالية' : 'Financial',
-              children: (
-                <div className={styles.detailsModal}>
-                  <div className={styles.totalCostBanner}>
-                    <div className={styles.totalCostMeta}>
-                      <DollarOutlined className={styles.totalCostIcon} />
-                      <span className={styles.totalCostLabel}>{t('totalAmount')}</span>
-                    </div>
-                    <div className={styles.totalCostAmount}>
-                      {formatCurrency(contract.totalAmount, language)}
-                    </div>
-                  </div>
-                  <Descriptions column={3} size="small" bordered>
-                    <Descriptions.Item label={t('paidAmount')}>
-                      <span style={{ color: '#00aa64', fontWeight: 700 }}>
-                        {formatCurrency(paid, language)}
-                      </span>
-                    </Descriptions.Item>
-                    <Descriptions.Item label={t('remainingAmount')}>
-                      <span style={{ color: remaining > 0 ? '#ff4d4f' : '#00aa64', fontWeight: 700 }}>
-                        {formatCurrency(remaining, language)}
-                      </span>
-                    </Descriptions.Item>
-                    <Descriptions.Item label={t('paymentType')}>
-                      {contract.paymentMeansName ||
-                        getEnumLabel(PAYMENT_MEANS_CODE_TYPE, contract.paymentMeansCodeTypeId, language)}
-                    </Descriptions.Item>
-                    <Descriptions.Item label={t('transferFees')}>
-                      <span style={{ color: '#003366', fontWeight: 700 }}>
-                        {formatCurrency(contract.transferFees, language)}
-                      </span>
-                    </Descriptions.Item>
-                    <Descriptions.Item label={t('governmentFees')}>
-                      <span style={{ color: '#faad14', fontWeight: 700 }}>
-                        {formatCurrency(contract.governmentFees, language)}
-                      </span>
-                    </Descriptions.Item>
-                  </Descriptions>
-                  {remaining > 0 && (
-                    <Alert
-                      type="warning"
-                      showIcon
-                      message={language === 'ar' ? 'يوجد مبلغ متبقٍّ غير مدفوع' : 'There is an outstanding unpaid balance'}
-                      style={{ marginBlockStart: 16 }}
-                    />
-                  )}
-                </div>
-              ),
-            },
-          ]}
-        />
-      ) : null}
-    </Modal>
-  );
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -876,6 +645,7 @@ function ContractCard({
 export default function SponsorshipTransferPage() {
   const t        = useT();
   const language = useAuthStore((s) => s.language);
+  const router   = useRouter();
 
   const [searchText,    setSearchText]    = useState('');
   const [statusFilter,  setStatusFilter]  = useState<string>('all');
@@ -890,12 +660,8 @@ export default function SponsorshipTransferPage() {
   const [createModal,   setCreateModal]   = useState(false);
 
   // per-card modal state (one at a time)
-  const [detailId,    setDetailId]    = useState<string | null>(null);
   const [complaintId, setComplaintId] = useState<string | null>(null);
   const [authorityId, setAuthorityId] = useState<string | null>(null);
-
-  // Journal Entry "Go to source": ?openId=<contractId> auto-opens the detail view.
-  useOpenIdParam((id) => setDetailId(id));
 
   // All filters are applied server-side (TransferContractQuery).
   const transferParams = useMemo(
@@ -1109,7 +875,7 @@ export default function SponsorshipTransferPage() {
               key={contract.id}
               contract={contract}
               language={language}
-              onViewDetails={() => setDetailId(contract.id)}
+              onViewDetails={() => router.push(`/sponsorship-transfer/${contract.id}`)}
               onSign={() => handleSign(contract.id)}
               onComplete={() => completeMutation.mutate(contract.id)}
               onAuthority={() => setAuthorityId(contract.id)}
@@ -1139,11 +905,6 @@ export default function SponsorshipTransferPage() {
       )}
 
       {/* ── Modals ── */}
-      <ContractDetailsModal
-        contractId={detailId}
-        onClose={() => setDetailId(null)}
-      />
-
       <ComplaintModal
         contractId={complaintId}
         open={!!complaintId}

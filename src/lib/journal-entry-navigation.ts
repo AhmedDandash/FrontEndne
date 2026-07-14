@@ -5,9 +5,13 @@
  * fields (source, referenceType, sourceId + party ids) resolve which screen to
  * open and with which id. No new backend endpoint is used.
  *
- * Route reality (2026-07): the target modules are flat LIST pages, not `/{id}`
- * detail routes, so navigation targets a list route with an `?openId=<id>` query
- * param that the destination page reads to auto-open that record's detail view.
+ * Route reality (2026-07, Phase 1): the 3 contract modules (mediation,
+ * operating/rent, transfer) now have real `/{id}` detail routes, so navigation
+ * targets those with the id as a path segment. Every other module is still a
+ * flat LIST page, so navigation targets the list route with an `?openId=<id>`
+ * query param that the destination page reads to auto-open that record's
+ * (modal) detail view. `buildSourceUrl` picks between the two automatically —
+ * see its doc comment.
  *
  * Three source types referenced by the doc (§4.5) have neither a frontend page
  * nor a backend `GET /{id}` endpoint — LoanRequest, EntitlementsRequest,
@@ -51,7 +55,7 @@ export interface JournalEntryNavInput {
 export interface JournalEntryNavTarget {
   /** List route to navigate to (null = no navigation available). */
   route: string | null;
-  /** Id to pass as `?openId=` on the destination page. */
+  /** Id to append — as `/{id}` (pathParam) or `?openId={id}` — on the destination page. */
   id: string | null;
   /** Bilingual label describing the target, for the button/tooltip. */
   labelAr: string;
@@ -62,6 +66,14 @@ export interface JournalEntryNavTarget {
   disabled?: boolean;
   disabledReasonAr?: string;
   disabledReasonEn?: string;
+  /**
+   * True when `route` is a real `/{id}` detail route (Phase 1: the 3 contract
+   * modules) rather than a list page read via `?openId=`. Left undefined for
+   * the generic-contract branch (`needsContractResolve`) since the actual
+   * route is only known after `resolveContractRoute` runs at click time —
+   * `buildSourceUrl` falls back to detecting it from the resolved route.
+   */
+  pathParam?: boolean;
 }
 
 const S = JE_SOURCE;
@@ -121,7 +133,7 @@ export function resolveJournalEntryNavigation(entry: JournalEntryNavInput): Jour
 
   // ── Transfer contract ─────────────────────────────────────────
   if (source === S.Transfer) {
-    return { route: JE_SOURCE_ROUTES.transferContract, id: sourceId!, labelAr: 'عقد نقل كفالة', labelEn: 'Transfer contract' };
+    return { route: JE_SOURCE_ROUTES.transferContract, id: sourceId!, labelAr: 'عقد نقل كفالة', labelEn: 'Transfer contract', pathParam: true };
   }
 
   // ── Escape fine (state record) → worker profile ───────────────
@@ -138,7 +150,7 @@ export function resolveJournalEntryNavigation(entry: JournalEntryNavInput): Jour
     source === S.Escape ||
     (source === S.AgentPayment && referenceType === R.Contract)
   ) {
-    return { route: JE_SOURCE_ROUTES.mediationContract, id: sourceId!, labelAr: 'عقد وساطة', labelEn: 'Mediation contract' };
+    return { route: JE_SOURCE_ROUTES.mediationContract, id: sourceId!, labelAr: 'عقد وساطة', labelEn: 'Mediation contract', pathParam: true };
   }
 
   // ── Deportation ticket → worker profile ───────────────────────
@@ -158,7 +170,7 @@ export function resolveJournalEntryNavigation(entry: JournalEntryNavInput): Jour
     return { route: JE_SOURCE_ROUTES.paymentVoucher, id: sourceId!, labelAr: 'سند صرف', labelEn: 'Payment voucher' };
   }
   if (source === S.Payment && referenceType === R.Contract) {
-    return { route: JE_SOURCE_ROUTES.operatingContract, id: sourceId!, labelAr: 'عقد تشغيل (دفعة)', labelEn: 'Operating contract (payment)' };
+    return { route: JE_SOURCE_ROUTES.operatingContract, id: sourceId!, labelAr: 'عقد تشغيل (دفعة)', labelEn: 'Operating contract (payment)', pathParam: true };
   }
 
   // ── Credit / debit notes ──────────────────────────────────────
@@ -241,7 +253,33 @@ export async function resolveContractRoute(sourceId: string): Promise<string> {
   return JE_SOURCE_ROUTES.journalEntry;
 }
 
-/** Build the final navigable URL (`route?openId=id`) for a resolved target. */
-export function buildSourceUrl(route: string, id: string | null): string {
-  return id ? `${route}?openId=${encodeURIComponent(id)}` : route;
+/**
+ * List routes that are now real `/{id}` detail routes (Phase 1) rather than a
+ * flat list read via `?openId=`. Used by `buildSourceUrl` as a fallback when
+ * the caller doesn't know `pathParam` up front — e.g. after
+ * `resolveContractRoute` resolves the generic-contract branch to one of these
+ * three routes (or, for housing/journalEntry, to a route NOT in this set —
+ * those correctly keep the `?openId=` form since they aren't migrated yet).
+ */
+const PATH_PARAM_ROUTES: ReadonlySet<string> = new Set([
+  JE_SOURCE_ROUTES.mediationContract,
+  JE_SOURCE_ROUTES.operatingContract,
+  JE_SOURCE_ROUTES.transferContract,
+]);
+
+/**
+ * Build the final navigable URL for a resolved target: `route/id` for a real
+ * detail route, `route?openId=id` for a list page that auto-opens a modal.
+ *
+ * `pathParam` is normally taken from `JournalEntryNavTarget.pathParam`. Pass
+ * it explicitly as `undefined` (or omit it) to fall back to detecting it from
+ * `route` itself — needed for the generic-contract branch, where the real
+ * route is only known after `resolveContractRoute` runs.
+ */
+export function buildSourceUrl(route: string, id: string | null, pathParam?: boolean): string {
+  if (!id) return route;
+  const usePathParam = pathParam ?? PATH_PARAM_ROUTES.has(route);
+  return usePathParam
+    ? `${route}/${encodeURIComponent(id)}`
+    : `${route}?openId=${encodeURIComponent(id)}`;
 }
