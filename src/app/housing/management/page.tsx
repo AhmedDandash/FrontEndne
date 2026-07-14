@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   Button,
@@ -21,6 +22,7 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
+  EyeOutlined,
   HomeOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
@@ -40,9 +42,12 @@ const t = (ar: string, en: string, lang: Lang) => (lang === 'ar' ? ar : en);
 
 export default function HousingManagementPage() {
   const lang: Lang = 'ar';
+  const router = useRouter();
 
   const { housings, isLoading, createHousing, updateHousing, toggleActive, deleteHousing,
     isCreating, isUpdating } = useHousings();
+
+  const openDetail = (id: string) => router.push(`/housing/management/${id}`);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Housing | null>(null);
@@ -103,7 +108,9 @@ export default function HousingManagementPage() {
       key: 'name',
       render: (_, record) => (
         <Space orientation="vertical" size={0}>
-          <Text strong>{record.name}</Text>
+          <a onClick={() => openDetail(record.id)}>
+            <Text strong>{record.name}</Text>
+          </a>
           {record.address && <Text type="secondary" className={styles.addressText}>{record.address}</Text>}
         </Space>
       ),
@@ -148,6 +155,13 @@ export default function HousingManagementPage() {
       width: 110,
       render: (_, record) => (
         <Space>
+          <Tooltip title={t('عرض', 'View', lang)}>
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={() => openDetail(record.id)}
+            />
+          </Tooltip>
           <Tooltip title={t('تعديل', 'Edit', lang)}>
             <Button
               type="text"

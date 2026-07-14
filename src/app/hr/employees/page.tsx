@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useOpenIdParam } from '@/hooks/useOpenIdParam';
-import fullPage from '@/styles/fullPageModal.module.css';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   Table,
@@ -22,8 +21,6 @@ import {
   DatePicker,
   Select,
   Divider,
-  Descriptions,
-  Spin,
 } from 'antd';
 import {
   PlusOutlined,
@@ -36,38 +33,28 @@ import {
   IdcardOutlined,
   ApartmentOutlined,
   EyeOutlined,
-  CalendarOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useHREmployees, useHREmployee, useEmployeeLeaveBalances } from '@/hooks/api/useHR';
+import { useHREmployees } from '@/hooks/api/useHR';
 import { useAdminPositions, useDepartments } from '@/hooks/api/useAdmin';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useBranches } from '@/hooks/api/useBranches';
-import type { EmployeeDto, CreateEmployeeDto, UpdateEmployeeDto, EmployeeLeaveBalanceDto } from '@/types/hr.types';
+import type { EmployeeDto, CreateEmployeeDto, UpdateEmployeeDto } from '@/types/hr.types';
 
 const { Title } = Typography;
 
 const PAGE_SIZE = 10;
 
 export default function HREmployeesPage() {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<EmployeeDto | null>(null);
   const [form] = Form.useForm();
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const { data: detailEmployee, isLoading: isLoadingDetail } = useHREmployee(detailId ?? '');
-  // Journal Entry "Go to source": ?openId=<employeeId> auto-opens the detail view.
-  useOpenIdParam((id) => setDetailId(id));
-  const now = new Date();
-  // Query the full-year balance (no `month`): with a `month` param the backend
-  // reports usage for that calendar month only, so a leave taken in another
-  // month would wrongly show 0 used days.
-  const { data: leaveBalances, isLoading: isBalancesLoading } = useEmployeeLeaveBalances({
-    employeeId: detailId ?? undefined,
-    year: now.getFullYear(),
-  });
+
+  const openDetail = (id: string) => router.push(`/hr/employees/${id}`);
 
   const {
     employees,
@@ -216,7 +203,7 @@ export default function HREmployeesPage() {
       key: 'name',
       render: (_, r) => (
         <Space orientation="vertical" size={0}>
-          <span style={{ fontWeight: 500 }}>{r.nameAr || '—'}</span>
+          <a style={{ fontWeight: 500 }} onClick={() => openDetail(r.id)}>{r.nameAr || '—'}</a>
           {r.nameEn && <span style={{ color: '#888', fontSize: 12 }}>{r.nameEn}</span>}
         </Space>
       ),
@@ -260,7 +247,7 @@ export default function HREmployeesPage() {
       render: (_, record) => (
         <Space>
           <Tooltip title="عرض التفاصيل">
-            <Button type="text" icon={<EyeOutlined />} onClick={() => setDetailId(record.id)} />
+            <Button type="text" icon={<EyeOutlined />} onClick={() => openDetail(record.id)} />
           </Tooltip>
           <Tooltip title="تعديل">
             <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
@@ -346,130 +333,6 @@ export default function HREmployeesPage() {
           scroll={{ x: 900 }}
         />
       </Card>
-
-      <Modal
-        open={!!detailId}
-        onCancel={() => setDetailId(null)}
-        title={
-          <Space>
-            <IdcardOutlined style={{ color: '#1677ff' }} />
-            <span>تفاصيل الموظف</span>
-          </Space>
-        }
-        footer={null}
-        width="100%"
-        style={{ top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 }}
-        wrapClassName={fullPage.modalWrap}
-        destroyOnHidden
-        styles={{ body: { minHeight: 'calc(100vh - 130px)', overflowY: 'auto', paddingTop: 8 } }}
-      >
-        {isLoadingDetail ? (
-          <div style={{ textAlign: 'center', paddingTop: 60 }}>
-            <Spin size="large" />
-          </div>
-        ) : detailEmployee ? (
-          <>
-            <Descriptions
-              title="البيانات الشخصية"
-              bordered
-              column={2}
-              size="small"
-              style={{ marginBottom: 24 }}
-            >
-              <Descriptions.Item label="الاسم بالعربية">{detailEmployee.nameAr || '—'}</Descriptions.Item>
-              <Descriptions.Item label="الاسم بالإنجليزية">{detailEmployee.nameEn || '—'}</Descriptions.Item>
-              <Descriptions.Item label="رقم الموظف">{detailEmployee.employeeNumber || '—'}</Descriptions.Item>
-              <Descriptions.Item label="البريد الإلكتروني">{detailEmployee.email || '—'}</Descriptions.Item>
-              <Descriptions.Item label="اسم المستخدم">{detailEmployee.userName || '—'}</Descriptions.Item>
-              <Descriptions.Item label="رقم الهوية">{detailEmployee.idNumber || '—'}</Descriptions.Item>
-              <Descriptions.Item label="رقم الجوال">{detailEmployee.mobileNumber || '—'}</Descriptions.Item>
-              <Descriptions.Item label="تاريخ التعيين">
-                {detailEmployee.hiringDate ? dayjs(detailEmployee.hiringDate).format('YYYY-MM-DD') : '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="الحالة" span={2}>
-                {detailEmployee.isActive
-                  ? <Tag color="success">نشط</Tag>
-                  : <Tag color="default">معطّل</Tag>}
-              </Descriptions.Item>
-            </Descriptions>
-
-            <Descriptions
-              title="بيانات العمل"
-              bordered
-              column={2}
-              size="small"
-              style={{ marginBottom: 24 }}
-            >
-              <Descriptions.Item label="المسمى الوظيفي">
-                {detailEmployee.jobNameAr || detailEmployee.jobNameEn || '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="القسم">
-                {detailEmployee.departmentNameAr || detailEmployee.departmentNameEn || '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="الجنسية" span={2}>
-                {detailEmployee.nationalityNameAr || detailEmployee.nationalityNameEn || '—'}
-              </Descriptions.Item>
-            </Descriptions>
-
-            <Descriptions
-              title="الراتب والبدلات"
-              bordered
-              column={2}
-              size="small"
-              style={{ marginBottom: 24 }}
-            >
-              <Descriptions.Item label="الراتب الأساسي">
-                {detailEmployee.basicSalary != null ? detailEmployee.basicSalary.toLocaleString() : '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="بدل السكن">
-                {detailEmployee.housingAllowance != null ? detailEmployee.housingAllowance.toLocaleString() : '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="بدل المواصلات">
-                {detailEmployee.mobilityAllowance != null ? detailEmployee.mobilityAllowance.toLocaleString() : '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="بدلات أخرى">
-                {detailEmployee.otherAllowances != null ? detailEmployee.otherAllowances.toLocaleString() : '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="إجمالي الراتب" span={2}>
-                {detailEmployee.totalSalary != null ? detailEmployee.totalSalary.toLocaleString() : '—'}
-              </Descriptions.Item>
-            </Descriptions>
-
-            <Descriptions
-              title="البيانات البنكية"
-              bordered
-              column={2}
-              size="small"
-            >
-              <Descriptions.Item label="اسم البنك">{detailEmployee.bankName || '—'}</Descriptions.Item>
-              <Descriptions.Item label="رقم الحساب">{detailEmployee.bankAccountNumber || '—'}</Descriptions.Item>
-              <Descriptions.Item label="رقم الآيبان" span={2}>{detailEmployee.iban || '—'}</Descriptions.Item>
-            </Descriptions>
-
-            <Divider>
-              <Space size={6}>
-                <CalendarOutlined style={{ color: '#1677ff' }} />
-                <span style={{ fontSize: 13, fontWeight: 600 }}>رصيد الإجازات</span>
-              </Space>
-            </Divider>
-            {isBalancesLoading ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}><Spin /></div>
-            ) : !leaveBalances || leaveBalances.length === 0 ? (
-              <div style={{ color: '#999', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
-                لا يوجد رصيد إجازات متاح
-              </div>
-            ) : (
-              <Row gutter={[12, 12]}>
-                {leaveBalances.map((bal, idx) => (
-                  <Col key={bal.leaveTypeId ?? idx} xs={24} sm={12}>
-                    <LeaveBalanceTile balance={bal} />
-                  </Col>
-                ))}
-              </Row>
-            )}
-          </>
-        ) : null}
-      </Modal>
 
       <Modal
         open={modalOpen}
@@ -673,47 +536,6 @@ export default function HREmployeesPage() {
 
         </Form>
       </Modal>
-    </div>
-  );
-}
-
-function LeaveBalanceTile({ balance }: { balance: EmployeeLeaveBalanceDto }) {
-  const total = balance.totalBalance ?? 0;
-  const used = balance.usedBalance ?? 0;
-  const remaining = balance.remainingBalance ?? (total - used);
-  const pct = total > 0 ? Math.round((remaining / total) * 100) : 0;
-  const color = pct > 50 ? '#00aa64' : pct > 20 ? '#d97706' : '#dc2626';
-
-  return (
-    <div style={{
-      border: `1.5px solid ${color}30`,
-      borderRadius: 12,
-      padding: '14px 16px',
-      background: '#fafafa',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <CalendarOutlined style={{ color, fontSize: 16 }} />
-        <span style={{ fontWeight: 600, fontSize: 13 }}>
-          {balance.leaveTypeName ?? 'إجازة'}
-        </span>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#003366', lineHeight: 1 }}>{total}</div>
-          <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>الإجمالي</div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#dc2626', lineHeight: 1 }}>{used}</div>
-          <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>المستخدم</div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color, lineHeight: 1 }}>{remaining}</div>
-          <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>المتبقي</div>
-        </div>
-      </div>
-      <div style={{ background: '#e8e8e8', borderRadius: 100, height: 5, overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 100 }} />
-      </div>
     </div>
   );
 }

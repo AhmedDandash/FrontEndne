@@ -208,15 +208,21 @@ test('party fallback → agent profile when only agentId present', () => {
   const t = resolveJournalEntryNavigation({ source: S.System, referenceType: R.Payment, agentId: 'ag-1' });
   assert.equal(t.route, JE_SOURCE_ROUTES.agent);
   assert.equal(t.id, 'ag-1');
+  assert.equal(t.pathParam, true);
 });
 
 // ── buildSourceUrl ────────────────────────────────────────────────
-test('buildSourceUrl appends openId query param for a non-contract route', () => {
-  assert.equal(buildSourceUrl('/agents', 'ag-1'), '/agents?openId=ag-1');
+// `customer` has no detail route yet (out of Phase 3 scope), so it's still a
+// representative "non-migrated" route for these two tests.
+test('buildSourceUrl appends openId query param for a non-migrated route', () => {
+  assert.equal(
+    buildSourceUrl(JE_SOURCE_ROUTES.customer, 'c-1'),
+    '/customers?openId=c-1'
+  );
 });
 
 test('buildSourceUrl returns bare route when id is null', () => {
-  assert.equal(buildSourceUrl('/agents', null), '/agents');
+  assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.customer, null), '/customers');
 });
 
 // ── Phase 1: contract routes are now real /{id} detail routes ─────
@@ -254,7 +260,8 @@ test('buildSourceUrl auto-detects a contract route without an explicit pathParam
 });
 
 test('buildSourceUrl keeps ?openId= for non-migrated routes even without an explicit pathParam', () => {
-  assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.housing, 'h-1'), '/housing/management?openId=h-1');
+  assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.customer, 'c-1'), '/customers?openId=c-1');
+  assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.payroll, 'p-1'), '/hr/payroll?openId=p-1');
   assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.journalEntry, 'je-1'), '/accounting/journal-entries?openId=je-1');
 });
 
@@ -285,4 +292,64 @@ test('buildSourceUrl(JE_SOURCE_ROUTES.debitNote) appends the id as a path segmen
     buildSourceUrl(JE_SOURCE_ROUTES.debitNote, 'x'),
     '/accounting/debit-notes/x'
   );
+});
+
+// ── Phase 3: the party/HR entities are now real /{id} detail routes ───────
+test('buildSourceUrl(JE_SOURCE_ROUTES.agent) appends the id as a path segment', () => {
+  assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.agent, 'x'), '/agents/x');
+});
+
+test('buildSourceUrl(JE_SOURCE_ROUTES.worker) appends the id as a path segment', () => {
+  assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.worker, 'x'), '/applicants/x');
+});
+
+test('buildSourceUrl(JE_SOURCE_ROUTES.employee) appends the id as a path segment', () => {
+  assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.employee, 'x'), '/hr/employees/x');
+});
+
+test('buildSourceUrl(JE_SOURCE_ROUTES.housing) appends the id as a path segment', () => {
+  assert.equal(buildSourceUrl(JE_SOURCE_ROUTES.housing, 'x'), '/housing/management/x');
+});
+
+test('housing target (System + System) carries pathParam: true', () => {
+  const t = resolveJournalEntryNavigation({ source: S.System, referenceType: R.System, sourceId: 'h-1' });
+  assert.equal(t.pathParam, true);
+});
+
+test('Escape + Adjustment worker target carries pathParam: true', () => {
+  const t = resolveJournalEntryNavigation({
+    source: S.Escape,
+    referenceType: R.Adjustment,
+    sourceId: 'esc-1',
+    workerId: 'wk-1',
+  });
+  assert.equal(t.pathParam, true);
+});
+
+test('Ticket + System worker target carries pathParam: true', () => {
+  const t = resolveJournalEntryNavigation({
+    source: S.Ticket,
+    referenceType: R.System,
+    sourceId: 't-1',
+    workerId: 'wk-9',
+  });
+  assert.equal(t.pathParam, true);
+});
+
+test('party fallback → worker profile carries pathParam: true', () => {
+  const t = resolveJournalEntryNavigation({ source: S.System, referenceType: R.Payment, workerId: 'wk-1' });
+  assert.equal(t.route, JE_SOURCE_ROUTES.worker);
+  assert.equal(t.pathParam, true);
+});
+
+test('party fallback → employee profile carries pathParam: true', () => {
+  const t = resolveJournalEntryNavigation({ source: S.System, referenceType: R.Payment, employeeId: 'e-1' });
+  assert.equal(t.route, JE_SOURCE_ROUTES.employee);
+  assert.equal(t.pathParam, true);
+});
+
+test('party fallback → customer profile stays without pathParam (customer not yet migrated)', () => {
+  const t = resolveJournalEntryNavigation({ source: S.System, referenceType: R.Payment, customerId: 'c-1' });
+  assert.equal(t.route, JE_SOURCE_ROUTES.customer);
+  assert.equal(t.pathParam, undefined);
 });

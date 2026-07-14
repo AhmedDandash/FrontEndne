@@ -51,8 +51,12 @@ export class AgentService {
    * Get agent by ID
    */
   static async getById(id: number | string): Promise<Agent> {
-    const response = await api.get<Agent>(API_ENDPOINTS.AGENT.GET_BY_ID(id));
-    return response.data;
+    const response = await api.get<any>(API_ENDPOINTS.AGENT.GET_BY_ID(id));
+    // The backend wraps the record in an envelope ({ data: {...} } / { result } /
+    // { value }); unwrap it like getAll() does. Returning response.data raw left
+    // every field undefined on the /agents/[id] detail route.
+    const payload = response.data;
+    return (payload?.data ?? payload?.result ?? payload?.value ?? payload) as Agent;
   }
 
   /**

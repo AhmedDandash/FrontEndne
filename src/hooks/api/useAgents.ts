@@ -21,12 +21,17 @@ export const useAgents = () => {
 };
 
 /**
- * Fetch agent by ID
+ * Fetch agent by ID.
+ *
+ * Typed `id: string` (not `number`) even though `Agent.id` is declared as
+ * `number` — agent ids returned by the backend are GUID strings in practice,
+ * and this hook backs the `/agents/[id]` route where `params.id` is always a
+ * string. `AgentService.getById` already accepts `number | string`.
  */
-export const useAgent = (id: number) => {
+export const useAgent = (id: string | undefined) => {
   return useQuery<Agent, Error>({
     queryKey: [AGENTS_KEY, id],
-    queryFn: () => AgentService.getById(id),
+    queryFn: () => AgentService.getById(id as string),
     enabled: !!id,
   });
 };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   Row,
@@ -12,7 +13,6 @@ import {
   Avatar,
   Space,
   Dropdown,
-  Badge,
   Empty,
   Tooltip,
   Pagination,
@@ -21,7 +21,6 @@ import {
   Form,
   Switch,
   Spin,
-  Descriptions,
   Divider,
 } from 'antd';
 import type { MenuProps } from 'antd';
@@ -46,12 +45,11 @@ import { useAuthStore } from '@/store/authStore';
 import { useAgents, useCreateAgent, useUpdateAgent, useDeleteAgent } from '@/hooks/api/useAgents';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import type { Agent, CreateAgentDto, UpdateAgentDto } from '@/types/api.types';
-import { AGENT_CONTRACT_TYPE, getEnumLabel, toSelectOptions } from '@/constants/enums';
-import { useOpenIdParam } from '@/hooks/useOpenIdParam';
-import fullPage from '@/styles/fullPageModal.module.css';
+import { AGENT_CONTRACT_TYPE, toSelectOptions } from '@/constants/enums';
 import styles from './Agents.module.css';
 
 export default function AgentsPage() {
+  const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNationalities, setSelectedNationalities] = useState<string[]>([]);
@@ -61,7 +59,6 @@ export default function AgentsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
-  const [viewingAgent, setViewingAgent] = useState<Agent | null>(null);
   const [form] = Form.useForm();
 
   // Fetch agents data
@@ -71,13 +68,7 @@ export default function AgentsPage() {
   const { mutate: updateAgent, isPending: isUpdating } = useUpdateAgent();
   const { mutate: deleteAgent } = useDeleteAgent();
 
-  // Journal Entry "Go to source" deep-link: ?openId=<agentId> auto-opens the
-  // agent detail modal once the list has loaded.
-  useOpenIdParam((id) => {
-    const list = Array.isArray(agents) ? agents : [];
-    const match = list.find((a) => String(a.id) === id);
-    if (match) setViewingAgent(match);
-  }, Array.isArray(agents) && agents.length > 0);
+  const openDetail = (id: number | string) => router.push(`/agents/${id}`);
 
   const nationalities = useMemo(() => {
     const raw = Array.isArray(nationalitiesData)
@@ -286,18 +277,13 @@ export default function AgentsPage() {
     return id;
   };
 
-  const getContractTypeLabel = (contractType?: number | null) => {
-    if (contractType === null || contractType === undefined) return 'N/A';
-    return getEnumLabel([...AGENT_CONTRACT_TYPE], contractType, language);
-  };
-
   const getActionMenu = (agent: Agent): MenuProps => ({
     items: [
       {
         key: 'view',
         label: t('view'),
         icon: <EyeOutlined />,
-        onClick: () => setViewingAgent(agent),
+        onClick: () => openDetail(agent.id),
       },
       {
         key: 'edit',
@@ -476,7 +462,11 @@ export default function AgentsPage() {
                     <div className={styles.agentHeaderLeft}>
                       <Avatar size={56} icon={<UserOutlined />} className={styles.agentAvatar} />
                       <div className={styles.agentNameSection}>
-                        <h3 className={styles.agentName}>
+                        <h3
+                          className={styles.agentName}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => openDetail(agent.id)}
+                        >
                           {language === 'ar'
                             ? agent.agentNameAr
                             : agent.agentNameEn || agent.agentNameAr}
@@ -581,7 +571,7 @@ export default function AgentsPage() {
                     <Button
                       type="link"
                       icon={<EyeOutlined />}
-                      onClick={() => setViewingAgent(agent)}
+                      onClick={() => openDetail(agent.id)}
                     >
                       {t('view')}
                     </Button>
@@ -787,106 +777,6 @@ export default function AgentsPage() {
             </Button>
           </div>
         </Form>
-      </Modal>
-
-      {/* View Agent Details Modal */}
-      <Modal
-        title={
-          <Space>
-            <EyeOutlined />
-            <span>{t('viewAgent')}</span>
-          </Space>
-        }
-        open={!!viewingAgent}
-        onCancel={() => setViewingAgent(null)}
-        footer={
-          <Button type="primary" onClick={() => setViewingAgent(null)}>
-            {t('close')}
-          </Button>
-        }
-        width="100%"
-        style={{ top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 }}
-        wrapClassName={fullPage.modalWrap}
-        styles={{ body: { minHeight: 'calc(100vh - 130px)', overflowY: 'auto' } }}
-      >
-        {viewingAgent && (
-          <div>
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <Avatar size={120} icon={<UserOutlined />} style={{ backgroundColor: '#003366' }} />
-              <h2 style={{ margin: '12px 0 4px', color: '#003366' }}>
-                {language === 'ar'
-                  ? viewingAgent.agentNameAr
-                  : viewingAgent.agentNameEn || viewingAgent.agentNameAr}
-              </h2>
-              <Space>
-                <Tag color={viewingAgent.contractType === 0 ? 'blue' : 'green'}>
-                  {getContractTypeLabel(viewingAgent.contractType)}
-                </Tag>
-                <Badge
-                  status={viewingAgent.isActive ? 'success' : 'default'}
-                  text={viewingAgent.isActive ? t('active') : t('inactive')}
-                />
-              </Space>
-            </div>
-
-            <Divider />
-
-            <Descriptions
-              bordered
-              column={{ xs: 1, sm: 2 }}
-              size="small"
-              style={{ marginBottom: 16 }}
-            >
-              <Descriptions.Item label={t('username')}>
-                {viewingAgent.username || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('licenseNumber')}>
-                {viewingAgent.agentLicense || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('nationality')}>
-                {getNationalityLabel(viewingAgent.nationalityId)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('contractType')}>
-                {getContractTypeLabel(viewingAgent.contractType)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('email')}>{viewingAgent.email || '-'}</Descriptions.Item>
-              <Descriptions.Item label={t('phone')}>{viewingAgent.phone || '-'}</Descriptions.Item>
-              <Descriptions.Item label={t('mobile')}>
-                {viewingAgent.mobile || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('addressAr')}>
-                {viewingAgent.addressAr || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('addressEn')}>
-                {viewingAgent.addressEn || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('companyNameAr')}>
-                {viewingAgent.companyNameAr || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('companyNameEn')}>
-                {viewingAgent.companyNameEn || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('followUpEmails')}>
-                {viewingAgent.followUpEmails || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('warrantyEmails')}>
-                {viewingAgent.warrantyEmails || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('accountingEmails')}>
-                {viewingAgent.accountingEmails || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('sendAllEmails')}>
-                {viewingAgent.sendAllEmails ? t('active') : t('inactive')}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('contracts')}>
-                {viewingAgent.contractsCount || 0}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('files')}>
-                {viewingAgent.filesCount || 0}
-              </Descriptions.Item>
-            </Descriptions>
-          </div>
-        )}
       </Modal>
     </div>
   );

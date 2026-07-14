@@ -5,13 +5,16 @@
  * fields (source, referenceType, sourceId + party ids) resolve which screen to
  * open and with which id. No new backend endpoint is used.
  *
- * Route reality (2026-07, Phase 1): the 3 contract modules (mediation,
- * operating/rent, transfer) now have real `/{id}` detail routes, so navigation
- * targets those with the id as a path segment. Every other module is still a
- * flat LIST page, so navigation targets the list route with an `?openId=<id>`
- * query param that the destination page reads to auto-open that record's
- * (modal) detail view. `buildSourceUrl` picks between the two automatically —
- * see its doc comment.
+ * Route reality (2026-07): Phase 1 gave the 3 contract modules (mediation,
+ * operating/rent, transfer) real `/{id}` detail routes; Phase 2 did the same
+ * for the 4 accounting documents (receipt/payment vouchers, credit/debit
+ * notes); Phase 3 did the same for the party/HR entities (agents, workers,
+ * employees, housing). Navigation to any of those targets the route with the
+ * id as a path segment. `customer` and `payroll` are still flat LIST pages,
+ * so navigation targets the list route with an `?openId=<id>` query param
+ * that the destination page reads to auto-open that record's (modal) detail
+ * view. `buildSourceUrl` picks between the two automatically — see its doc
+ * comment.
  *
  * Three source types referenced by the doc (§4.5) have neither a frontend page
  * nor a backend `GET /{id}` endpoint — LoanRequest, EntitlementsRequest,
@@ -128,7 +131,7 @@ export function resolveJournalEntryNavigation(entry: JournalEntryNavInput): Jour
 
   // ── Housing ───────────────────────────────────────────────────
   if (source === S.System && referenceType === R.System) {
-    return { route: JE_SOURCE_ROUTES.housing, id: sourceId!, labelAr: 'إيواء', labelEn: 'Housing' };
+    return { route: JE_SOURCE_ROUTES.housing, id: sourceId!, labelAr: 'إيواء', labelEn: 'Housing', pathParam: true };
   }
 
   // ── Transfer contract ─────────────────────────────────────────
@@ -140,7 +143,7 @@ export function resolveJournalEntryNavigation(entry: JournalEntryNavInput): Jour
   // §4.6: source=Escape + referenceType=Adjustment is an escape-fine record with
   // no dedicated screen; navigate to the worker via workerId.
   if (source === S.Escape && referenceType === R.Adjustment && workerId) {
-    return { route: JE_SOURCE_ROUTES.worker, id: workerId, labelAr: 'غرامة هروب (عاملة)', labelEn: 'Escape fine (worker)' };
+    return { route: JE_SOURCE_ROUTES.worker, id: workerId, labelAr: 'غرامة هروب (عاملة)', labelEn: 'Escape fine (worker)', pathParam: true };
   }
 
   // ── Visa / Arrival / Escape / agent-commission → mediation ────
@@ -155,7 +158,7 @@ export function resolveJournalEntryNavigation(entry: JournalEntryNavInput): Jour
 
   // ── Deportation ticket → worker profile ───────────────────────
   if (source === S.Ticket && referenceType === R.System && workerId) {
-    return { route: JE_SOURCE_ROUTES.worker, id: workerId, labelAr: 'عاملة (ترحيل)', labelEn: 'Worker (deportation)' };
+    return { route: JE_SOURCE_ROUTES.worker, id: workerId, labelAr: 'عاملة (ترحيل)', labelEn: 'Worker (deportation)', pathParam: true };
   }
 
   // ── Vouchers ──────────────────────────────────────────────────
@@ -198,10 +201,12 @@ export function resolveJournalEntryNavigation(entry: JournalEntryNavInput): Jour
   }
 
   // ── Fallback: related party ───────────────────────────────────
+  // Customer stays out of Phase 3 scope (no detail page/route yet) and keeps
+  // the `?openId=` form; agent/worker/employee are now real `/{id}` routes.
   if (customerId) return { route: JE_SOURCE_ROUTES.customer, id: customerId, labelAr: 'عميل', labelEn: 'Customer' };
-  if (agentId) return { route: JE_SOURCE_ROUTES.agent, id: agentId, labelAr: 'وكيل', labelEn: 'Agent' };
-  if (workerId) return { route: JE_SOURCE_ROUTES.worker, id: workerId, labelAr: 'عاملة', labelEn: 'Worker' };
-  if (employeeId) return { route: JE_SOURCE_ROUTES.employee, id: employeeId, labelAr: 'موظف', labelEn: 'Employee' };
+  if (agentId) return { route: JE_SOURCE_ROUTES.agent, id: agentId, labelAr: 'وكيل', labelEn: 'Agent', pathParam: true };
+  if (workerId) return { route: JE_SOURCE_ROUTES.worker, id: workerId, labelAr: 'عاملة', labelEn: 'Worker', pathParam: true };
+  if (employeeId) return { route: JE_SOURCE_ROUTES.employee, id: employeeId, labelAr: 'موظف', labelEn: 'Employee', pathParam: true };
 
   return { route: null, id: sourceId ?? null, labelAr: 'مصدر غير معروف', labelEn: 'Unknown source' };
 }
@@ -263,6 +268,9 @@ export async function resolveContractRoute(sourceId: string): Promise<string> {
  *
  * Phase 1 (2026-07): the 3 contract modules (mediation, operating/rent, transfer).
  * Phase 2 (2026-07): the 4 accounting documents (receipt/payment vouchers, credit/debit notes).
+ * Phase 3 (2026-07): the party/HR entities — agents, workers, employees, housing.
+ *   `customer` and `payroll` are intentionally NOT in this set: neither has a
+ *   detail route yet, so they correctly keep the `?openId=` form.
  */
 const PATH_PARAM_ROUTES: ReadonlySet<string> = new Set([
   JE_SOURCE_ROUTES.mediationContract,
@@ -272,6 +280,10 @@ const PATH_PARAM_ROUTES: ReadonlySet<string> = new Set([
   JE_SOURCE_ROUTES.paymentVoucher,
   JE_SOURCE_ROUTES.creditNote,
   JE_SOURCE_ROUTES.debitNote,
+  JE_SOURCE_ROUTES.agent,
+  JE_SOURCE_ROUTES.worker,
+  JE_SOURCE_ROUTES.employee,
+  JE_SOURCE_ROUTES.housing,
 ]);
 
 /**

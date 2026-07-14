@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   Row,
@@ -58,7 +59,6 @@ import {
   FileImageOutlined,
   HomeOutlined,
   VideoCameraOutlined,
-  PlayCircleOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { resolveImageUrl } from '@/utils/image';
@@ -82,8 +82,6 @@ import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useHousingActiveList } from '@/hooks/api/useHousing';
 import { useAssignWorkerHousing } from '@/hooks/api/useWorkerHousing';
-import { useOpenIdParam } from '@/hooks/useOpenIdParam';
-import fullPage from '@/styles/fullPageModal.module.css';
 import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type { Worker, WorkerDto } from '@/types/api.types';
@@ -472,12 +470,12 @@ type WorkerAttachmentItem = {
 };
 
 export default function WorkersPage() {
+  const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const userBranchId = useAuthStore((state) => state.branchId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [editingWorkerId, setEditingWorkerId] = useState<string | null>(null);
-  const [viewingWorkerId, setViewingWorkerId] = useState<string | null>(null);
   const [medicalExamWorkerId, setMedicalExamWorkerId] = useState<number | string | null>(null);
   const [medicalExamId, setMedicalExamId] = useState<number | string | null>(null);
   /** true = view-only mode for existing record; false = edit/create mode */
@@ -611,12 +609,7 @@ export default function WorkersPage() {
   // Fetch editing worker details when opening edit modal
   const { data: editingWorker } = useWorker(editingWorkerId ?? undefined);
 
-  // Fetch single worker details when viewing
-  const { data: viewingWorker, isLoading: isViewingLoading } = useWorker(viewingWorkerId ?? undefined);
-
-  // Journal Entry "Go to source" deep-link: ?openId=<workerId> auto-opens the
-  // worker detail modal (the modal fetches the worker by id independently).
-  useOpenIdParam((id) => setViewingWorkerId(id));
+  const openDetail = (id: number | string) => router.push(`/applicants/${id}`);
 
   // Tab items — keys match workerStatus values (1=Available, 2=Trial, 3-6 unchanged)
   const tabs = [
@@ -928,7 +921,6 @@ export default function WorkersPage() {
 
   // Gender helper
   const getGenderLabel = (g?: number | null) => getEnumLabel(GENDER, g, language);
-  const getMaritalLabel = (m?: number | null) => getEnumLabel(MARITAL_STATUS, m, language);
 
   // Action menu
   const getActionMenu = (worker: Worker): MenuProps => ({
@@ -1377,7 +1369,11 @@ export default function WorkersPage() {
                   )}
                 </div>
 
-                <h3 className={styles.workerName}>
+                <h3
+                  className={styles.workerName}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => openDetail(worker.id)}
+                >
                   <UserOutlined />
                   {language === 'ar' ? worker.fullNameAr : worker.fullNameEn || worker.fullNameAr}
                 </h3>
@@ -1495,7 +1491,7 @@ export default function WorkersPage() {
                     type="text"
                     icon={<EyeOutlined />}
                     className={styles.actionButton}
-                    onClick={() => setViewingWorkerId(String(worker.id))}
+                    onClick={() => openDetail(worker.id)}
                   />
                 </Tooltip>
                 <Tooltip title={t('markRefused')}>
@@ -1623,307 +1619,6 @@ export default function WorkersPage() {
             <Input.TextArea rows={3} placeholder={language === 'ar' ? 'ملاحظات اختيارية...' : 'Optional notes...'} />
           </Form.Item>
         </Form>
-      </Modal>
-
-      {/* View Worker Details Modal */}
-      <Modal
-        title={
-          <Space>
-            <EyeOutlined />
-            <span>{t('viewWorker')}</span>
-          </Space>
-        }
-        open={!!viewingWorkerId}
-        onCancel={() => setViewingWorkerId(null)}
-        footer={
-          <Button
-            type="primary"
-            onClick={() => setViewingWorkerId(null)}
-            style={{ background: '#003366' }}
-          >
-            {t('close')}
-          </Button>
-        }
-        width="100%"
-        style={{ top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 }}
-        wrapClassName={fullPage.modalWrap}
-        styles={{ body: { minHeight: 'calc(100vh - 130px)', overflowY: 'auto' } }}
-        className={styles.modal}
-      >
-        {(isViewingLoading || viewingWorker) && (
-          <div>
-            {/* Worker Image */}
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              {viewingWorker?.uploadImage ? (
-                <Image
-                  src={resolveImageUrl(viewingWorker?.uploadImage)}
-                  alt={viewingWorker?.fullNameAr || 'Worker'}
-                  width={150}
-                  height={150}
-                  style={{ borderRadius: '50%', objectFit: 'cover', border: '4px solid #003366' }}
-                  preview={{ mask: <EyeOutlined style={{ fontSize: 20 }} /> }}
-                />
-              ) : (
-                <Avatar
-                  size={150}
-                  icon={<UserOutlined />}
-                  style={{
-                    backgroundColor:
-                      viewingWorker?.gender === GENDER[1].value ? '#f472b6' : '#003366',
-                  }}
-                />
-              )}
-              <h2 style={{ margin: '12px 0 4px', color: '#003366' }}>
-                {language === 'ar'
-                  ? viewingWorker?.fullNameAr
-                  : viewingWorker?.fullNameEn || viewingWorker?.fullNameAr}
-              </h2>
-              <p style={{ color: '#6b7280', margin: 0 }}>
-                {language === 'ar' ? viewingWorker?.fullNameEn : viewingWorker?.fullNameAr}
-              </p>
-              <div style={{ marginTop: 8 }}>{getStatusTag(viewingWorker?.workerStatus)}</div>
-            </div>
-
-            <Divider />
-
-            {/* Personal Details */}
-            <Descriptions
-              title={t('personalDetails')}
-              bordered
-              column={{ xs: 1, sm: 2 }}
-              size="small"
-              style={{ marginBottom: 16 }}
-            >
-              <Descriptions.Item label={t('referenceNo')}>
-                {viewingWorker?.referenceNo || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('gender')}>
-                {getGenderLabel(viewingWorker?.gender)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('age')}>
-                {viewingWorker?.age ? `${viewingWorker.age} ${t('years')}` : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('birthDate')}>
-                {viewingWorker?.birthDate
-                  ? dayjs(viewingWorker.birthDate).format('YYYY-MM-DD')
-                  : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('maritalStatus')}>
-                {getMaritalLabel(viewingWorker?.maritalStatus)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('childrenCount')}>
-                {viewingWorker?.childrenCount ?? '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('religion')}>
-                {viewingWorker?.religion
-                  ? getEnumLabel(RELIGION, viewingWorker.religion, language)
-                  : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('nationality')}>
-                {viewingWorker?.nationalityName ||
-                  (viewingWorker?.nationalityId
-                    ? (nationalities.find((n) => n.id === viewingWorker.nationalityId)?.[
-                        language === 'ar' ? 'nationalityNameAr' : 'nationalityNameEn'
-                      ] ?? '-')
-                    : '-')}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('nationalId')}>
-                {viewingWorker?.nationalId || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('educationLevelAr')}>
-                {viewingWorker?.educationLevelAr || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('educationLevelEn')}>
-                {viewingWorker?.educationLevelEn || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('weight')}>
-                {viewingWorker?.weight || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('height')}>
-                {viewingWorker?.height || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('experience')}>
-                {viewingWorker?.hasExperience ? t('hasExperience') : t('noExperience')}
-              </Descriptions.Item>
-            </Descriptions>
-
-            {/* Passport Details */}
-            <Descriptions
-              title={t('passportDetails')}
-              bordered
-              column={{ xs: 1, sm: 2 }}
-              size="small"
-              style={{ marginBottom: 16 }}
-            >
-              <Descriptions.Item label={t('passportNo')}>
-                {viewingWorker?.passportNo || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('passportIssueDate')}>
-                {viewingWorker?.passportIssueDate
-                  ? dayjs(viewingWorker.passportIssueDate).format('YYYY-MM-DD')
-                  : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('passportExpiryDate')}>
-                {viewingWorker?.passportExpiryDate
-                  ? dayjs(viewingWorker.passportExpiryDate).format('YYYY-MM-DD')
-                  : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('passportIssuePlaceAr')}>
-                {viewingWorker?.passportIssuePlaceAr || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('passportIssuePlaceEn')}>
-                {viewingWorker?.passportIssuePlaceEn || '-'}
-              </Descriptions.Item>
-            </Descriptions>
-
-            {/* Work Details */}
-            <Descriptions
-              title={t('workDetails')}
-              bordered
-              column={{ xs: 1, sm: 2 }}
-              size="small"
-              style={{ marginBottom: 16 }}
-            >
-              <Descriptions.Item label={t('jobname')}>
-                {viewingWorker?.jobName || viewingWorker?.jobname || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('basicSalary')}>
-                {viewingWorker?.basicSalary || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('agentName')}>
-                {viewingWorker?.agentName || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('createdBy')}>
-                {viewingWorker?.userName || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('workerType')}>
-                {viewingWorker?.workerType
-                  ? getEnumLabel(WORKER_CONTRACT_TYPE, viewingWorker.workerType, language)
-                  : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('boxNumber')}>
-                {viewingWorker?.boxNumber || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('borderNumber')}>
-                {viewingWorker?.borderNumber || '-'}
-              </Descriptions.Item>
-            </Descriptions>
-
-            {/* Contact Details */}
-            <Descriptions
-              title={t('contactDetails')}
-              bordered
-              column={{ xs: 1, sm: 2 }}
-              size="small"
-              style={{ marginBottom: 16 }}
-            >
-              <Descriptions.Item label={t('mobile')}>
-                {viewingWorker?.mobile || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('phone')}>
-                {viewingWorker?.phone || '-'}
-              </Descriptions.Item>
-            </Descriptions>
-
-            {/* Address Details */}
-            <Descriptions
-              title={t('addressDetails')}
-              bordered
-              column={{ xs: 1, sm: 2 }}
-              size="small"
-              style={{ marginBottom: 16 }}
-            >
-              <Descriptions.Item label={t('addressAr')}>
-                {viewingWorker?.addressAr || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('addressEn')}>
-                {viewingWorker?.addressEn || '-'}
-              </Descriptions.Item>
-            </Descriptions>
-
-            {/* Skills */}
-            {viewingWorker?.skills && (
-              <div style={{ marginTop: 16 }}>
-                <h4 style={{ color: '#003366', marginBottom: 8 }}>{t('skills')}</h4>
-                <Space wrap>
-                  {String(viewingWorker.skills)
-                    .split(',')
-                    .filter(Boolean)
-                    .map((skill, i) => (
-                      <Tag key={i} color="blue">
-                        {skill.trim()}
-                      </Tag>
-                    ))}
-                </Space>
-              </div>
-            )}
-
-            {/* Worker Video */}
-            {viewingWorker?.uploadVideo && (
-              <>
-                <Divider />
-                <div style={{ marginTop: 8 }}>
-                  <h4 style={{ color: '#003366', marginBottom: 12 }}>
-                    <PlayCircleOutlined style={{ marginInlineEnd: 6 }} />
-                    {t('videoSection')}
-                  </h4>
-                  <video
-                    src={viewingWorker.uploadVideo}
-                    controls
-                    style={{ width: '100%', maxHeight: 300, borderRadius: 8, border: '1px solid #e2e8f0', background: '#000' }}
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Documents / Attachments */}
-            <Divider />
-            <div style={{ marginTop: 8 }}>
-              <h4 style={{ color: '#003366', marginBottom: 12 }}>{t('documents')}</h4>
-              {(() => {
-                const allDocs = [
-                  ...(viewingWorker?.uploadImage ? [viewingWorker.uploadImage as string] : []),
-                  ...(viewingWorker?.attachments ?? []),
-                ];
-                return allDocs.length > 0 ? (
-                  <Image.PreviewGroup>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                      {allDocs.map((src, idx) => {
-                        const isPdf = src.startsWith('data:application/pdf') || src.endsWith('.pdf');
-                        return isPdf ? (
-                          <div
-                            key={idx}
-                            style={{
-                              width: 120, height: 120, borderRadius: 8, border: '1px solid #e2e8f0',
-                              background: '#fff0f0', display: 'flex', flexDirection: 'column',
-                              alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                            }}
-                            onClick={() => window.open(src, '_blank')}
-                          >
-                            <FilePdfOutlined style={{ fontSize: 36, color: '#e53e3e' }} />
-                            <span style={{ fontSize: 11, color: '#718096', marginTop: 6 }}>PDF</span>
-                          </div>
-                        ) : (
-                          <Image
-                            key={idx}
-                            src={src}
-                            alt={`${t('documents')} ${idx + 1}`}
-                            width={120}
-                            height={120}
-                            style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }}
-                            preview={{ mask: <EyeOutlined /> }}
-                          />
-                        );
-                      })}
-                    </div>
-                  </Image.PreviewGroup>
-                ) : (
-                  <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>{t('noDocuments')}</p>
-                );
-              })()}
-            </div>
-          </div>
-        )}
       </Modal>
 
       {/* Create/Edit Modal */}
