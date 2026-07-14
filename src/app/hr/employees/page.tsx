@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useOpenIdParam } from '@/hooks/useOpenIdParam';
+import fullPage from '@/styles/fullPageModal.module.css';
 import {
   Card,
   Table,
@@ -356,9 +357,11 @@ export default function HREmployeesPage() {
           </Space>
         }
         footer={null}
-        width={720}
+        width="100%"
+        style={{ top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 }}
+        wrapClassName={fullPage.modalWrap}
         destroyOnHidden
-        styles={{ body: { maxHeight: '70vh', overflowY: 'auto', paddingTop: 8 } }}
+        styles={{ body: { minHeight: 'calc(100vh - 130px)', overflowY: 'auto', paddingTop: 8 } }}
       >
         {isLoadingDetail ? (
           <div style={{ textAlign: 'center', paddingTop: 60 }}>

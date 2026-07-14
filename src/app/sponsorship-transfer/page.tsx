@@ -70,6 +70,7 @@ import type {
   TransferContractListItem,
   CreateComplaintDto,
 } from '@/types/api.types';
+import fullPage from '@/styles/fullPageModal.module.css';
 import styles from './SponsorshipTransfer.module.css';
 import { useWorkersWantsTransfer } from '@/hooks/api/useWorkers';
 
@@ -212,7 +213,10 @@ function ContractDetailsModal({
           {t('close')}
         </Button>
       }
-      width={920}
+      width="100%"
+      style={{ top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 }}
+      wrapClassName={fullPage.modalWrap}
+      styles={{ body: { minHeight: 'calc(100vh - 130px)', overflowY: 'auto' } }}
       title={
         <span>
           {t('contractDetails')}

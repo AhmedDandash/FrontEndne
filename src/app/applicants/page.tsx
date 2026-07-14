@@ -83,6 +83,7 @@ import { useNationalities } from '@/hooks/api/useNationalities';
 import { useHousingActiveList } from '@/hooks/api/useHousing';
 import { useAssignWorkerHousing } from '@/hooks/api/useWorkerHousing';
 import { useOpenIdParam } from '@/hooks/useOpenIdParam';
+import fullPage from '@/styles/fullPageModal.module.css';
 import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type { Worker, WorkerDto } from '@/types/api.types';
@@ -1643,7 +1644,10 @@ export default function WorkersPage() {
             {t('close')}
           </Button>
         }
-        width={900}
+        width="100%"
+        style={{ top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 }}
+        wrapClassName={fullPage.modalWrap}
+        styles={{ body: { minHeight: 'calc(100vh - 130px)', overflowY: 'auto' } }}
         className={styles.modal}
       >
         {(isViewingLoading || viewingWorker) && (

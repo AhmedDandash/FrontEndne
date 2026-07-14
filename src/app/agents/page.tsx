@@ -48,6 +48,7 @@ import { useNationalities } from '@/hooks/api/useNationalities';
 import type { Agent, CreateAgentDto, UpdateAgentDto } from '@/types/api.types';
 import { AGENT_CONTRACT_TYPE, getEnumLabel, toSelectOptions } from '@/constants/enums';
 import { useOpenIdParam } from '@/hooks/useOpenIdParam';
+import fullPage from '@/styles/fullPageModal.module.css';
 import styles from './Agents.module.css';
 
 export default function AgentsPage() {
@@ -803,7 +804,10 @@ export default function AgentsPage() {
             {t('close')}
           </Button>
         }
-        width={800}
+        width="100%"
+        style={{ top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 }}
+        wrapClassName={fullPage.modalWrap}
+        styles={{ body: { minHeight: 'calc(100vh - 130px)', overflowY: 'auto' } }}
       >
         {viewingAgent && (
           <div>

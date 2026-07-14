@@ -72,6 +72,7 @@ import {
 } from '@/hooks/api/useMediationContracts';
 import { useCreateComplaint } from '@/hooks/api/useComplaints';
 import { useOpenIdParam } from '@/hooks/useOpenIdParam';
+import fullPage from '@/styles/fullPageModal.module.css';
 import type {
   MediationContract,
   ContractCancelDto,
@@ -1126,8 +1127,11 @@ export default function MediationContractsPage() {
         open={showDetailsModal}
         onCancel={() => { setShowDetailsModal(false); setSelectedContract(null); }}
         footer={<Button type="primary" onClick={() => { setShowDetailsModal(false); setSelectedContract(null); }}>{t.close}</Button>}
-        width={960}
-        styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
+        // Full-page presentation (not a small centered popup): fills the viewport.
+        width="100%"
+        style={{ top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 }}
+        wrapClassName={fullPage.modalWrap}
+        styles={{ body: { minHeight: 'calc(100vh - 130px)', overflowY: 'auto' } }}
       >
         {isLoadingDetail ? (
           <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>

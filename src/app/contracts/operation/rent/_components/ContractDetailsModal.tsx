@@ -9,6 +9,7 @@ import type { RentContract } from './types';
 import { getStatusMeta } from './mapping';
 import { formatDate, formatCurrency } from './format';
 import { resolveImageUrl } from '@/utils/image';
+import fullPage from '@/styles/fullPageModal.module.css';
 import styles from '../RentContracts.module.css';
 
 interface Props {
@@ -49,7 +50,10 @@ export default function ContractDetailsModal({ contract, open, isRtl, onClose }:
           {isRtl ? 'إغلاق' : 'Close'}
         </Button>
       }
-      width={650}
+      width="100%"
+      style={{ top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 }}
+      wrapClassName={fullPage.modalWrap}
+      styles={{ body: { minHeight: 'calc(100vh - 130px)', overflowY: 'auto' } }}
     >
       {contract && (
         <div className={styles.detailsModal}>

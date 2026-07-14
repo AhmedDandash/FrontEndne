@@ -38,6 +38,7 @@ import {
 } from '../_lib/accountingDocDisplay';
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
 import { useOpenIdParam } from '@/hooks/useOpenIdParam';
+import fullPage from '@/styles/fullPageModal.module.css';
 import styles from '../accounting-doc.module.css';
 
 const { RangePicker } = DatePicker;
@@ -243,7 +244,7 @@ export default function PaymentVouchersPage() {
       {/* Detail Drawer */}
       <Drawer
         title={t('تفاصيل سند الصرف', 'Payment Voucher Details')}
-        open={!!selectedVoucher} onClose={() => setDetailId(null)} width={520}
+        open={!!selectedVoucher} onClose={() => setDetailId(null)} rootClassName={fullPage.drawerRoot} width="100%"
       >
         {selectedVoucher && (
           <>

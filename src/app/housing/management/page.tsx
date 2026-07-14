@@ -27,6 +27,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useHousings } from '@/hooks/api/useHousing';
 import { useOpenIdParam } from '@/hooks/useOpenIdParam';
+import fullPage from '@/styles/fullPageModal.module.css';
 import type { Housing, HousingDto } from '@/types/housing.types';
 import styles from './HousingManagement.module.css';
 
@@ -258,7 +259,11 @@ export default function HousingManagementPage() {
         confirmLoading={isCreating || isUpdating}
         okText={editingItem ? t('حفظ', 'Save', lang) : t('إضافة', 'Add', lang)}
         cancelText={t('إلغاء', 'Cancel', lang)}
-        width={560}
+        // Opening an existing housing unit (e.g. from a journal entry) fills the
+        // page; the "add new" form stays a compact dialog.
+        width={editingItem ? '100%' : 560}
+        style={editingItem ? { top: 0, maxWidth: '100vw', margin: 0, paddingBottom: 0 } : undefined}
+        wrapClassName={editingItem ? fullPage.modalWrap : undefined}
         destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>

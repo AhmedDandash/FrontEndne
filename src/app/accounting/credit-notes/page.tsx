@@ -32,6 +32,7 @@ import type { CreditNote, CreateCreditNoteDto } from '@/types/api.types';
 import { renderJournalLink } from '../_lib/accountingDocDisplay';
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
 import { useOpenIdParam } from '@/hooks/useOpenIdParam';
+import fullPage from '@/styles/fullPageModal.module.css';
 import styles from '../accounting-doc.module.css';
 
 const { RangePicker } = DatePicker;
@@ -225,7 +226,7 @@ export default function CreditNotesPage() {
       {/* Detail Drawer */}
       <Drawer
         title={t('تفاصيل إشعار الدائن', 'Credit Note Details')}
-        open={!!selected} onClose={() => setDetailId(null)} width={520}
+        open={!!selected} onClose={() => setDetailId(null)} rootClassName={fullPage.drawerRoot} width="100%"
       >
         {selected && (
           <>
