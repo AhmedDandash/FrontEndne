@@ -57,7 +57,9 @@ export default function Sidebar({
         }
         if (
           pathParts[0] === 'accounting' &&
-          ['receipt-vouchers', 'payment-vouchers', 'credit-notes', 'debit-notes'].includes(pathParts[1])
+          ['general-vouchers', 'receipt-vouchers', 'payment-vouchers', 'credit-notes', 'debit-notes'].includes(
+            pathParts[1]
+          )
         ) {
           keys.push('accounting-documents');
         }
@@ -419,6 +421,10 @@ export default function Sidebar({
           key: 'accounting-documents',
           label: language === 'ar' ? 'المستندات المحاسبية' : 'Accounting Documents',
           children: [
+            {
+              key: '/accounting/general-vouchers',
+              label: language === 'ar' ? 'السندات العامة' : 'General Vouchers',
+            },
             {
               key: '/accounting/receipt-vouchers',
               label: language === 'ar' ? 'سندات القبض' : 'Receipt Vouchers',

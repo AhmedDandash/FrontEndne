@@ -269,6 +269,24 @@ export const API_ENDPOINTS = {
     CREATE: '/api/Accounting/DebitNote',
   },
 
+  // General Voucher — /api/Accounting/GeneralVoucher
+  // Unified voucher module (6 types). Richer than the 4 legacy documents above:
+  // full CRUD + lookups + export + print + attachment + balance validation.
+  GENERAL_VOUCHER: {
+    GET_ALL: '/api/Accounting/GeneralVoucher',
+    GET_BY_ID: (id: string) => `/api/Accounting/GeneralVoucher/${id}`,
+    TRACE: (id: string) => `/api/Accounting/GeneralVoucher/${id}/trace`,
+    PRINT: (id: string) => `/api/Accounting/GeneralVoucher/${id}/print`,
+    TYPES: '/api/Accounting/GeneralVoucher/types',
+    PAYMENT_METHODS: '/api/Accounting/GeneralVoucher/payment-methods',
+    EXPORT: '/api/Accounting/GeneralVoucher/export',
+    CREATE: '/api/Accounting/GeneralVoucher',
+    UPDATE: (id: string) => `/api/Accounting/GeneralVoucher/${id}`,
+    DELETE: (id: string) => `/api/Accounting/GeneralVoucher/${id}`,
+    ATTACHMENT: (id: string) => `/api/Accounting/GeneralVoucher/${id}/attachment`,
+    VALIDATE_BALANCE: '/api/Accounting/GeneralVoucher/validate-balance',
+  },
+
   // ─── Period Closing — /api/V1/PeriodClosing/* ──────────────────────────────
   PERIOD_CLOSING: {
     GET_ALL: '/api/V1/PeriodClosing',
