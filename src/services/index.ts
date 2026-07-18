@@ -33,6 +33,7 @@ export {
   HRPayrollService,
 } from './hr.service';
 export { PaymentVoucherService } from './payment-voucher.service';
+export { GeneralVoucherService } from './general-voucher.service';
 export { HourlyWorkerService, HourlyWorkerRequestService } from './hourly-worker.service';
 export { CreditNoteService } from './credit-note.service';
 export { DebitNoteService } from './debit-note.service';
