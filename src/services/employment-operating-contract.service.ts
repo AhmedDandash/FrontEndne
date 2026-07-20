@@ -17,6 +17,7 @@
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
 import { unwrap, unwrapList } from '@/utils/api-response';
+import { buildListParams } from '@/lib/api/buildListParams';
 import type {
   EmploymentOperatingContract,
   CreateEmploymentOperatingContractDto,
@@ -27,6 +28,7 @@ import type {
   OperatingContractDeliveryFormDto,
   SaveDeliveryFormDto,
 } from '@/types/api.types';
+import type { PagedResponse } from '@/types/filters.types';
 
 export interface GetContractsParams {
   SearchWorkerName?: string;
@@ -39,6 +41,21 @@ export interface GetContractsParams {
   IsFinish?: boolean;
   PageNumber?: number;
   PageSize?: number;
+  // NOTE: the page currently fetches all rows (PageSize=9999) and filters
+  // client-side — these fields are accepted as pass-through for callers that
+  // want to send them server-side, but the rent page applies them locally
+  // instead (see contracts/operation/rent/page.tsx `filteredContracts`).
+  ContractNumber?: string | number;
+  MarketerId?: string | number;
+  ContractDateFrom?: string;
+  ContractDateTo?: string;
+  Search?: string;
+  CreatedDateFrom?: string;
+  CreatedDateTo?: string;
+  UpdatedDateFrom?: string;
+  UpdatedDateTo?: string;
+  SortBy?: string;
+  SortDescending?: boolean;
 }
 
 export class EmploymentOperatingContractService {
@@ -61,6 +78,28 @@ export class EmploymentOperatingContractService {
       params: mergedParams,
     });
     return unwrapList<EmploymentOperatingContract>(response.data);
+  }
+
+  /**
+   * GET /api/EmploymentOperatingContract — real server-side pagination.
+   * Kept separate from `getAll()` (which several other pages use as an
+   * unpaginated reference list) so this is purely additive. Only the rent
+   * contracts list page uses this for its primary table.
+   */
+  static async getPaged(
+    params?: GetContractsParams
+  ): Promise<PagedResponse<EmploymentOperatingContract>> {
+    const query = buildListParams(params as Record<string, unknown>);
+    const response = await api.get<any>(API_ENDPOINTS.EMPLOYMENT_OPERATING_CONTRACT.GET_ALL, {
+      params: query,
+    });
+    const page = unwrap<any>(response.data);
+    return {
+      items: Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : [],
+      totalCount: page?.totalCount ?? 0,
+      pageNumber: page?.pageNumber ?? params?.PageNumber ?? 1,
+      pageSize: page?.pageSize ?? params?.PageSize ?? 10,
+    };
   }
 
   /**

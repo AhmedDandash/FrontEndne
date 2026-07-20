@@ -37,3 +37,5 @@ export { HourlyWorkerService, HourlyWorkerRequestService } from './hourly-worker
 export { CreditNoteService } from './credit-note.service';
 export { DebitNoteService } from './debit-note.service';
 export { PeriodClosingService } from './period-closing.service';
+export { CommissionService } from './commission.service';
+export type { Commission, CommissionQuery } from './commission.service';

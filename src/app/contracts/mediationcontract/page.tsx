@@ -55,6 +55,8 @@ import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/
 import { API_ENDPOINTS } from '@/config/api.config';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { useAvailableMediationWorkers } from '@/hooks/api/useWorkers';
+import { useAgents } from '@/hooks/api/useAgents';
+import { useMarketers } from '@/hooks/api/useMarketers';
 import { useMediationContracts } from '@/hooks/api/useMediationContracts';
 import { useCreateComplaint } from '@/hooks/api/useComplaints';
 import { formatCurrency, formatDate, getStatusConfigFromName } from './_lib/format';
@@ -96,6 +98,12 @@ export default function MediationContractsPage() {
     undefined,
     undefined,
   ]);
+  const [updatedDateRange, setUpdatedDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [agentFilter, setAgentFilter] = useState<string | 'all'>('all');
+  const [marketerFilter, setMarketerFilter] = useState<string | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -175,6 +183,10 @@ export default function MediationContractsPage() {
     includeSubBranches: branchId ? includeSubBranches : undefined,
     createdDateFrom: dateRange[0],
     createdDateTo: dateRange[1],
+    updatedDateFrom: updatedDateRange[0],
+    updatedDateTo: updatedDateRange[1],
+    agentId: agentFilter === 'all' ? undefined : agentFilter,
+    marketerId: marketerFilter === 'all' ? undefined : marketerFilter,
     withoutAssignedWorker: withoutWorker || undefined,
     isPaid: paymentFilter === 'paid' ? true : undefined,
     isUnpaid: paymentFilter === 'unpaid' ? true : undefined,
@@ -183,6 +195,8 @@ export default function MediationContractsPage() {
   const { mutateAsync: createComplaint, isPending: isCreatingComplaint } = useCreateComplaint();
 
   const { customers: allCustomers, isLoading: isLoadingCustomers } = useCustomers();
+  const { data: agents = [] } = useAgents();
+  const { data: marketers = [] } = useMarketers();
 
   // Translations
   const t = {
@@ -199,6 +213,8 @@ export default function MediationContractsPage() {
         : 'Search by contract number or customer name...',
     allTypes: language === 'ar' ? 'جميع الأنواع' : 'All Types',
     allStatuses: language === 'ar' ? 'جميع الحالات' : 'All Statuses',
+    allAgents: language === 'ar' ? 'جميع الوكلاء' : 'All Agents',
+    allMarketers: language === 'ar' ? 'جميع المسوقين' : 'All Marketers',
     totalContracts: language === 'ar' ? 'إجمالي العقود' : 'Total Contracts',
     activeContracts: language === 'ar' ? 'عقود نشطة' : 'Active Contracts',
     pendingContracts: language === 'ar' ? 'عقود معلقة' : 'Pending Contracts',
@@ -949,6 +965,48 @@ export default function MediationContractsPage() {
               {t.withoutWorkerLabel}
             </Checkbox>
           </Col>
+          <Col xs={12} sm={6} md={4}>
+            <Select
+              value={agentFilter}
+              onChange={(v) => { setAgentFilter(v); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+              size="large"
+              showSearch
+              optionFilterProp="label"
+              options={[
+                { value: 'all', label: t.allAgents },
+                ...(agents as any[]).map((a) => ({
+                  value: String(a.id),
+                  label: (language === 'ar' ? a.agentNameAr : a.agentNameEn) || a.agentNameAr || a.agentNameEn || `#${a.id}`,
+                })),
+              ]}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={4}>
+            <Select
+              value={marketerFilter}
+              onChange={(v) => { setMarketerFilter(v); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+              size="large"
+              showSearch
+              optionFilterProp="label"
+              options={[
+                { value: 'all', label: t.allMarketers },
+                ...(marketers as any[]).map((m) => ({
+                  value: String(m.id),
+                  label: (language === 'ar' ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
+                })),
+              ]}
+            />
+          </Col>
+          <Col xs={24} md={10}>
+            <DateRangeFilter
+              value={updatedDateRange}
+              onChange={(range) => { setUpdatedDateRange(range); setCurrentPage(1); }}
+              placeholder={['حُدّث من', 'إلى']}
+              style={{ width: '100%' }}
+            />
+          </Col>
           <Col xs={24} md={6} style={{ textAlign: language === 'ar' ? 'left' : 'right' }}>
             <ExportButton
               endpoint={API_ENDPOINTS.MEDIATION_CONTRACT.EXPORT}
@@ -962,6 +1020,10 @@ export default function MediationContractsPage() {
                 IncludeSubBranches: branchId ? includeSubBranches : undefined,
                 CreatedDateFrom: dateRange[0],
                 CreatedDateTo: dateRange[1],
+                UpdatedDateFrom: updatedDateRange[0],
+                UpdatedDateTo: updatedDateRange[1],
+                AgentId: agentFilter === 'all' ? undefined : agentFilter,
+                MarketerId: marketerFilter === 'all' ? undefined : marketerFilter,
                 WithoutAssignedWorker: withoutWorker || undefined,
                 IsPaid: paymentFilter === 'paid' ? true : undefined,
                 IsUnpaid: paymentFilter === 'unpaid' ? true : undefined,

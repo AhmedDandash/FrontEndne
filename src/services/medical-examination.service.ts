@@ -9,12 +9,33 @@ import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type { MedicalExamination, MedicalExaminationDto } from '@/types/api.types';
 
+/**
+ * GET /api/V1/MedicalExamination filters — backend supports WorkerId,
+ * WorkerSearch, MedicalStatus (enum), FromDate, ToDate, PageNumber, PageSize.
+ */
+export interface MedicalExaminationQuery {
+  workerId?: number | string;
+  workerSearch?: string;
+  medicalStatus?: number;
+  fromDate?: string;
+  toDate?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
 export class MedicalExaminationService {
   /**
    * GET /api/V1/MedicalExamination
    */
-  static async getAll(params?: Record<string, any>): Promise<MedicalExamination[]> {
-    const response = await api.get<any>(API_ENDPOINTS.MEDICAL_EXAMINATION.GET_ALL, { params });
+  static async getAll(params?: MedicalExaminationQuery): Promise<MedicalExamination[]> {
+    const clean = params
+      ? Object.fromEntries(
+          Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+        )
+      : undefined;
+    const response = await api.get<any>(API_ENDPOINTS.MEDICAL_EXAMINATION.GET_ALL, {
+      params: clean,
+    });
 
     if (Array.isArray(response.data)) return response.data;
     if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;

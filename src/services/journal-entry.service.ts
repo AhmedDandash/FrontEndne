@@ -105,6 +105,8 @@ export class JournalEntryService {
         includeSubBranches: query.branchId ? query.includeSubBranches : undefined,
         createdDateFrom: query.createdDateFrom || undefined,
         createdDateTo: query.createdDateTo || undefined,
+        updatedDateFrom: query.updatedDateFrom || undefined,
+        updatedDateTo: query.updatedDateTo || undefined,
         sortBy: query.sortBy || undefined,
         sortDescending: query.sortDescending ?? undefined,
       },

@@ -21,7 +21,13 @@ function unwrap<T>(raw: any): T {
 }
 
 export class TransferContractService {
-  /** GET /api/TransferContract?pageNumber=&pageSize=&search= */
+  /**
+   * GET /api/TransferContract?pageNumber=&pageSize=&search=...
+   * Accepts any TransferContractQuery field as a plain object (ASP.NET query
+   * binding is case-insensitive) — see `useTransferContracts.ts`'s
+   * `TransferContractParams` for the full supported filter set, including
+   * customerId, workerId, marketerId, updatedDateFrom/To, sortBy, sortDescending.
+   */
   static async getAll(
     params?: Record<string, any>
   ): Promise<PaginatedTransferContractsResponse> {

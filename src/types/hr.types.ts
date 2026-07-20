@@ -153,6 +153,12 @@ export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | string;
 
 export interface AttendanceFilterDto {
   employeeId?: string | null;
+  // Backend-supported filter fields (verified live via FilterAttendanceDto).
+  attendanceDay?: string | null;
+  month?: number | null;
+  year?: number | null;
+  // NOTE: the backend does NOT support filtering by date-range or status —
+  // these are applied client-side on top of the server-filtered result set.
   fromDate?: string | null;
   toDate?: string | null;
   status?: AttendanceStatus | number | null;
@@ -266,6 +272,30 @@ export interface EmployeeLeaveBalanceDto {
   usedBalance?: number | null;
   remainingBalance?: number | null;
 }
+
+// ==================== Requests Inbox / Outbox Types ====================
+// Plumbing only — verified live via swagger (FilterInboxDto is reused as the
+// body for BOTH /api/V1/RequestsInbox/Filter and /api/HR/RequestsOutbox/Filter).
+// No inbox/outbox UI feature exists in the HR module yet; these types + the
+// corresponding service methods (HRRequestsInboxService / HRRequestsOutboxService
+// in hr.service.ts) only make the endpoints reachable. Building the actual
+// inbox/outbox screens is out of scope for this pass.
+
+// HRProcessState is a numeric enum (values 1-8); the spec does not surface
+// string labels for it, so it's kept as an opaque number until product defines
+// the mapping.
+export type HRProcessState = number;
+
+export interface FilterInboxDto {
+  processState?: HRProcessState | null;
+  processGroups?: number[] | null;
+  processResults?: number[] | null;
+  startsDate?: string | null;
+  endingDate?: string | null;
+}
+
+/** Same shape as FilterInboxDto — the backend reuses one schema for both endpoints. */
+export type FilterOutboxDto = FilterInboxDto;
 
 // ==================== Request Status (shared) ====================
 

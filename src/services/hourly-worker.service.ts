@@ -52,6 +52,10 @@ import type {
   HourlyWorkerUtilizationReport,
   HourlyDriverPerformanceReport,
   HourlyReportFilterParams,
+  HourlyWorkerAvailabilityParams,
+  HourlyCustomerOrderListParams,
+  HourlyCustomerOrder,
+  HourlyWorkerPortalAssignment,
 } from '@/types/hourly-worker.types';
 
 export interface Paged<T> {
@@ -89,6 +93,10 @@ export class HourlyWorkerService {
         sortDescending: params.sortDescending,
         branchId: params.branchId || undefined,
         includeSubBranches: params.branchId ? params.includeSubBranches : undefined,
+        createdDateFrom: params.createdDateFrom || undefined,
+        createdDateTo: params.createdDateTo || undefined,
+        updatedDateFrom: params.updatedDateFrom || undefined,
+        updatedDateTo: params.updatedDateTo || undefined,
         pageNumber: params.pageNumber ?? 1,
         pageSize: params.pageSize ?? 10,
       },
@@ -123,6 +131,16 @@ export class HourlyWorkerService {
   static async deactivate(id: string): Promise<void> {
     await api.post(API_ENDPOINTS.HOURLY_WORKERS.DEACTIVATE(id), {});
   }
+
+  /**
+   * Zero-footprint stub (service+type only, no UI — see architecture note):
+   * workers free for a given window. Availability-checking UI is a separate
+   * feature build, out of scope for this parameter-completion pass.
+   */
+  static async getAvailable(params: HourlyWorkerAvailabilityParams = {}): Promise<HourlyWorker[]> {
+    const response = await api.get<any>(API_ENDPOINTS.HOURLY_WORKERS.GET_AVAILABLE, { params });
+    return unwrapList<HourlyWorker>(response.data);
+  }
 }
 
 // ─── Requests ─────────────────────────────────────────────────────────────────
@@ -145,6 +163,14 @@ export class HourlyWorkerRequestService {
         search: params.search || undefined,
         customerPhone: params.customerPhone || undefined,
         serviceCity: params.serviceCity || undefined,
+        serviceDistrict: params.serviceDistrict || undefined,
+        packageId: params.packageId || undefined,
+        servingAreaId: params.servingAreaId || undefined,
+        paymentStatus: params.paymentStatus,
+        createdDateFrom: params.createdDateFrom || undefined,
+        createdDateTo: params.createdDateTo || undefined,
+        updatedDateFrom: params.updatedDateFrom || undefined,
+        updatedDateTo: params.updatedDateTo || undefined,
         pageNumber: params.pageNumber ?? 1,
         pageSize: params.pageSize ?? 10,
       },
@@ -420,6 +446,9 @@ export class HourlyServingAreaService {
       params: {
         search: params.search || undefined,
         isActive: params.isActive,
+        city: params.city || undefined,
+        sortBy: params.sortBy || undefined,
+        sortDescending: params.sortDescending,
         pageNumber: params.pageNumber ?? 1,
         pageSize: params.pageSize ?? 10,
       },
@@ -492,6 +521,8 @@ export class HourlyNotificationsService {
         deliveryStatus: params.deliveryStatus,
         recipientPhone: params.recipientPhone || undefined,
         search: params.search || undefined,
+        sortBy: params.sortBy || undefined,
+        sortDescending: params.sortDescending,
         pageNumber: params.pageNumber ?? 1,
         pageSize: params.pageSize ?? 10,
       },
@@ -535,5 +566,41 @@ export class HourlyReportsService {
       params,
     });
     return unwrapList<HourlyDriverPerformanceReport>(response.data);
+  }
+}
+
+// ─── Zero-footprint stubs (service + type only, no UI) ─────────────────────────
+// Per architectural ruling: worker self-service portal and customer order
+// history are separate feature builds, out of scope for this parameter-
+// completion pass. Typed here only so the capability is reachable.
+
+export class HourlyCustomerOrderService {
+  static async getAll(
+    params: HourlyCustomerOrderListParams = {}
+  ): Promise<Paged<HourlyCustomerOrder>> {
+    const response = await api.get<any>(API_ENDPOINTS.HOURLY_CUSTOMER.GET_ORDERS, {
+      params: {
+        status: params.status,
+        pageNumber: params.pageNumber ?? 1,
+        pageSize: params.pageSize ?? 10,
+      },
+    });
+    return unwrapPaged<HourlyCustomerOrder>(response.data, params);
+  }
+}
+
+export class HourlyWorkerPortalService {
+  /** The logged-in worker's own assignments (self-service). */
+  static async getMyAssignments(): Promise<HourlyWorkerPortalAssignment[]> {
+    const response = await api.get<any>(API_ENDPOINTS.HOURLY_WORKER_PORTAL.GET_MY_ASSIGNMENTS);
+    return unwrapList<HourlyWorkerPortalAssignment>(response.data);
+  }
+
+  /** Dashboard lookup of a specific worker's assignments by id. */
+  static async getAssignments(workerId: string): Promise<HourlyWorkerPortalAssignment[]> {
+    const response = await api.get<any>(
+      API_ENDPOINTS.HOURLY_WORKER_PORTAL.GET_ASSIGNMENTS(workerId)
+    );
+    return unwrapList<HourlyWorkerPortalAssignment>(response.data);
   }
 }

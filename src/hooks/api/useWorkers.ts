@@ -33,12 +33,15 @@ export interface WorkerFilterParams {
   MinAge?: number;
   MaxAge?: number;
   AgentId?: string;
+  EmployeeId?: string;
   // Branch scoping + shared advanced filters (see new edits2.md).
   BranchId?: string;
   IncludeSubBranches?: boolean;
   Search?: string;
   CreatedDateFrom?: string;
   CreatedDateTo?: string;
+  UpdatedDateFrom?: string;
+  UpdatedDateTo?: string;
   SortBy?: string;
   SortDescending?: boolean;
   PageNumber?: number;

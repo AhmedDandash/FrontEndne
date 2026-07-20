@@ -25,6 +25,8 @@ import {
   CheckCircleOutlined,
   StopOutlined,
   PhoneOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
 } from '@ant-design/icons';
 import { useHourlyDrivers, useHourlyDriverMutations } from '@/hooks/api/useHourlyDrivers';
 import { useHourlyPermissions } from '@/hooks/useHourlyPermissions';
@@ -43,11 +45,15 @@ export default function HourlyDriversPage() {
 
   const [search, setSearch] = useState('');
   const [isActive, setIsActive] = useState<boolean | undefined>();
+  const [sortBy, setSortBy] = useState<'fullName' | 'createdDate'>('createdDate');
+  const [sortDescending, setSortDescending] = useState(true);
   const [pageNumber, setPageNumber] = useState(1);
 
   const { data, isLoading, isFetching, refetch } = useHourlyDrivers({
     search: search || undefined,
     isActive,
+    sortBy,
+    sortDescending,
     pageNumber,
     pageSize: PAGE_SIZE,
   });
@@ -171,6 +177,19 @@ export default function HourlyDriversPage() {
           <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
             value={isActive} onChange={(v) => { setIsActive(v); setPageNumber(1); }}
             options={[{ value: true, label: t('نشط', 'Active') }, { value: false, label: t('غير نشط', 'Inactive') }]} />
+          <Select size="large" className={styles.filterSelect}
+            value={sortBy} onChange={(v) => { setSortBy(v); setPageNumber(1); }}
+            options={[
+              { value: 'createdDate', label: t('ترتيب: الأحدث', 'Sort: Newest') },
+              { value: 'fullName', label: t('ترتيب: الاسم', 'Sort: Name') },
+            ]} />
+          <Tooltip title={sortDescending ? t('تنازلي', 'Descending') : t('تصاعدي', 'Ascending')}>
+            <Button
+              size="large"
+              icon={sortDescending ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
+              onClick={() => { setSortDescending((d) => !d); setPageNumber(1); }}
+            />
+          </Tooltip>
         </div>
         <Table<HourlyDriver> rowKey="id" columns={columns} dataSource={drivers} loading={isLoading} size="middle" bordered scroll={{ x: 900 }}
           pagination={{ current: pageNumber, pageSize: PAGE_SIZE, total: totalCount, onChange: setPageNumber, showTotal: (n) => t(`الإجمالي: ${n}`, `Total: ${n}`) }} />

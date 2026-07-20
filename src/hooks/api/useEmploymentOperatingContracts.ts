@@ -9,7 +9,7 @@
  * mutation surfaces server validation messages consistently (bilingual fallback).
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { message } from 'antd';
 import {
   EmploymentOperatingContractService,
@@ -38,6 +38,35 @@ export function useEmploymentOperatingContract(id: number | string | undefined |
     queryFn: () => EmploymentOperatingContractService.getById(id!),
     enabled: !!id,
   });
+}
+
+/**
+ * Server-side paginated + filtered rent contracts (real PageNumber/PageSize,
+ * search/contractNumber/marketerId/date range pushed to the backend).
+ * Kept separate from `useEmploymentOperatingContracts` (used elsewhere as an
+ * unpaginated reference list) so this is purely additive.
+ */
+export function useEmploymentOperatingContractsFiltered(params?: GetContractsParams) {
+  const {
+    data,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['employment-operating-contracts', 'filtered', params],
+    queryFn: () => EmploymentOperatingContractService.getPaged(params),
+    placeholderData: keepPreviousData,
+  });
+
+  return {
+    contracts: data?.items ?? [],
+    total: data?.totalCount ?? 0,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  };
 }
 
 export function useEmploymentOperatingContracts(

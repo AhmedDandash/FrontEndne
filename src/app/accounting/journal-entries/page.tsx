@@ -33,8 +33,11 @@ import {
 import { useJournalEntries, useJournalEntryMutations } from '@/hooks/api/useJournalEntries';
 import { useRestrictionTypes } from '@/hooks/api/useRestrictionTypes';
 import { useClosedYears } from '@/hooks/api/usePeriodClosing';
+import { useCustomers } from '@/hooks/api/useCustomers';
+import { useAgents } from '@/hooks/api/useAgents';
+import { useWorkers } from '@/hooks/api/useWorkers';
 import { useAuthStore } from '@/store/authStore';
-import { BranchFilterSelect } from '@/components/filters';
+import { BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import {
   JOURNAL_STATUSES,
   JOURNAL_SOURCES,
@@ -76,6 +79,14 @@ export default function JournalEntriesPage() {
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
+  const [updatedRange, setUpdatedRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [customerId, setCustomerId] = useState<string | undefined>();
+  const [agentId, setAgentId] = useState<string | undefined>();
+  const [workerId, setWorkerId] = useState<string | undefined>();
+  const [employeeId, setEmployeeId] = useState<string | undefined>();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -93,6 +104,9 @@ export default function JournalEntriesPage() {
   // Posting/unposting is blocked by the backend inside a closed fiscal year;
   // gate those actions in the UI too (fails open if the list is unavailable).
   const { isYearClosed } = useClosedYears();
+  const { customers = [] } = useCustomers();
+  const { data: agents = [] } = useAgents();
+  const { data: workers = [] } = useWorkers();
 
   const { items, totalCount, isLoading, isFetching, refetch } = useJournalEntries({
     pageNumber,
@@ -107,6 +121,12 @@ export default function JournalEntriesPage() {
     includeSubBranches: branchId ? includeSubBranches : undefined,
     from: range?.[0]?.startOf('day').toISOString(),
     to: range?.[1]?.endOf('day').toISOString(),
+    updatedDateFrom: updatedRange[0],
+    updatedDateTo: updatedRange[1],
+    customerId,
+    agentId,
+    workerId,
+    employeeId,
   });
 
   const { deleteEntry, postEntry, unpostEntry, isDeleting, isPosting, isUnposting } =
@@ -172,6 +192,11 @@ export default function JournalEntriesPage() {
     setContractNumber(undefined);
     setBranchId(undefined);
     setRange([dayjs().subtract(1, 'month'), dayjs()]);
+    setUpdatedRange([undefined, undefined]);
+    setCustomerId(undefined);
+    setAgentId(undefined);
+    setWorkerId(undefined);
+    setEmployeeId(undefined);
     setPageNumber(1);
   };
 
@@ -550,6 +575,72 @@ export default function JournalEntriesPage() {
                 value: r.value,
                 label: isAr ? r.ar : r.en,
               }))}
+            />
+            <DateRangeFilter
+              value={updatedRange}
+              onChange={(v) => {
+                setUpdatedRange(v);
+                setPageNumber(1);
+              }}
+              placeholder={[t('تاريخ التعديل من', 'Updated from'), t('تاريخ التعديل إلى', 'Updated to')]}
+            />
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              style={{ minWidth: 200 }}
+              value={customerId}
+              onChange={(v) => {
+                setCustomerId(v);
+                setPageNumber(1);
+              }}
+              placeholder={t('العميل', 'Customer')}
+              options={(customers as any[]).map((c: any) => ({
+                value: c.id,
+                label: (isAr ? c.arabicName || c.englishName : c.englishName || c.arabicName) || String(c.id),
+              }))}
+            />
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              style={{ minWidth: 200 }}
+              value={agentId}
+              onChange={(v) => {
+                setAgentId(v);
+                setPageNumber(1);
+              }}
+              placeholder={t('الوكيل', 'Agent')}
+              options={(agents as any[]).map((a: any) => ({
+                value: a.id,
+                label: (isAr ? a.agentNameAr || a.agentNameEn : a.agentNameEn || a.agentNameAr) || String(a.id),
+              }))}
+            />
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              style={{ minWidth: 200 }}
+              value={workerId}
+              onChange={(v) => {
+                setWorkerId(v);
+                setPageNumber(1);
+              }}
+              placeholder={t('العاملة', 'Worker')}
+              options={(workers as any[]).map((w: any) => ({
+                value: w.id,
+                label: (isAr ? w.fullNameAr || w.fullNameEn : w.fullNameEn || w.fullNameAr) || String(w.id),
+              }))}
+            />
+            <Input
+              allowClear
+              style={{ minWidth: 200 }}
+              value={employeeId}
+              onChange={(e) => {
+                setEmployeeId(e.target.value || undefined);
+                setPageNumber(1);
+              }}
+              placeholder={t('معرف الموظف', 'Employee ID')}
             />
           </div>
         )}

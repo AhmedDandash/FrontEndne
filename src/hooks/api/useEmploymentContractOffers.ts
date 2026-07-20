@@ -10,7 +10,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
-import { OperatingContractOfferService } from '@/services/employment-contract-offer.service';
+import {
+  OperatingContractOfferService,
+  type OperatingContractOfferQuery,
+} from '@/services/employment-contract-offer.service';
 import type {
   CreateOperatingContractOfferDto,
   UpdateOperatingContractOfferDto,
@@ -18,7 +21,9 @@ import type {
 
 const QUERY_KEY = 'operating-contract-offers';
 
-export function useEmploymentContractOffers(params?: Record<string, any>) {
+export function useEmploymentContractOffers(
+  params?: OperatingContractOfferQuery | Record<string, any>
+) {
   const queryClient = useQueryClient();
 
   // Get all offers

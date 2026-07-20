@@ -26,6 +26,13 @@ export interface TransferContractParams {
   requestDateTo?: string;
   createdDateFrom?: string;
   createdDateTo?: string;
+  updatedDateFrom?: string;
+  updatedDateTo?: string;
+  customerId?: string;
+  workerId?: string;
+  marketerId?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
 }
 
 /** GET /api/TransferContract — paginated list */

@@ -30,12 +30,14 @@ import {
   StopOutlined,
   PhoneOutlined,
   ClockCircleOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
 } from '@ant-design/icons';
 import {
   useHourlyWorkers,
   useHourlyWorkerMutations,
 } from '@/hooks/api/useHourlyWorkers';
-import { BranchFilterSelect } from '@/components/filters';
+import { BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { useAuthStore } from '@/store/authStore';
 import type {
   HourlyWorker,
@@ -62,8 +64,11 @@ export default function HourlyWorkersPage() {
   const [isActive, setIsActive] = useState<boolean | undefined>();
   const [isAvailableNow, setIsAvailableNow] = useState<boolean | undefined>();
   const [sortBy, setSortBy] = useState<'fullName' | 'hourlyRate' | 'createdDate'>('createdDate');
+  const [sortDescending, setSortDescending] = useState(true);
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  const [createdRange, setCreatedRange] = useState<[string | undefined, string | undefined]>([undefined, undefined]);
+  const [updatedRange, setUpdatedRange] = useState<[string | undefined, string | undefined]>([undefined, undefined]);
   const [pageNumber, setPageNumber] = useState(1);
 
   const { data, isLoading, isFetching, refetch } = useHourlyWorkers({
@@ -71,8 +76,13 @@ export default function HourlyWorkersPage() {
     isActive,
     isAvailableNow,
     sortBy,
+    sortDescending,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
+    createdDateFrom: createdRange[0],
+    createdDateTo: createdRange[1],
+    updatedDateFrom: updatedRange[0],
+    updatedDateTo: updatedRange[1],
     pageNumber,
     pageSize: PAGE_SIZE,
   });
@@ -349,12 +359,29 @@ export default function HourlyWorkersPage() {
             size="large"
             className={styles.filterSelect}
             value={sortBy}
-            onChange={setSortBy}
+            onChange={(v) => { setSortBy(v); setPageNumber(1); }}
             options={[
               { value: 'createdDate', label: t('ترتيب: الأحدث', 'Sort: Newest') },
               { value: 'fullName', label: t('ترتيب: الاسم', 'Sort: Name') },
               { value: 'hourlyRate', label: t('ترتيب: الأجر', 'Sort: Rate') },
             ]}
+          />
+          <Tooltip title={sortDescending ? t('تنازلي', 'Descending') : t('تصاعدي', 'Ascending')}>
+            <Button
+              size="large"
+              icon={sortDescending ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
+              onClick={() => { setSortDescending((d) => !d); setPageNumber(1); }}
+            />
+          </Tooltip>
+          <DateRangeFilter
+            value={createdRange}
+            onChange={(range) => { setCreatedRange(range); setPageNumber(1); }}
+            placeholder={[t('إنشاء من', 'Created from'), t('إنشاء إلى', 'Created to')]}
+          />
+          <DateRangeFilter
+            value={updatedRange}
+            onChange={(range) => { setUpdatedRange(range); setPageNumber(1); }}
+            placeholder={[t('تحديث من', 'Updated from'), t('تحديث إلى', 'Updated to')]}
           />
           <BranchFilterSelect
             value={branchId}

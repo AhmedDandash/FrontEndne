@@ -29,6 +29,7 @@ import {
   FileTextOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { BranchFilterSelect } from '@/components/filters';
 import { useMediationFollowUpDashboard } from '@/hooks/api/useMediationFollowUp';
 import { MEDIATION_CONTRACT_STATUS, toSelectOptions } from '@/constants/enums';
 import type {
@@ -66,6 +67,7 @@ function useT(language: string) {
       filterByMusaned: { ar: 'رقم مساند', en: 'Musaned No.' },
       filterByPassport: { ar: 'رقم الجواز', en: 'Passport Number' },
       filterByNationalId: { ar: 'رقم هوية العميل', en: 'Customer National ID' },
+      searchPlaceholder: { ar: 'بحث...', en: 'Search...' },
       noData: { ar: 'لا توجد بيانات', en: 'No data' },
       selectStatus: { ar: 'اختر الحالة', en: 'Select Status' },
       selectWorkerType: { ar: 'اختر نوع العامل', en: 'Select Worker Type' },
@@ -100,6 +102,9 @@ export default function AutomaticFollowUpPage() {
   const [statusId, setStatusId] = useState<number | null>(null);
   const [workerType, setWorkerType] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState<[string, string] | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [branchId, setBranchId] = useState<string | undefined>(undefined);
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   // Applied params (updated only on Search click for server-side filtering)
   const [appliedParams, setAppliedParams] = useState<MediationFollowUpDashboardParams>({
@@ -137,8 +142,23 @@ export default function AutomaticFollowUpPage() {
       params.DateFrom = dateRange[0];
       params.DateTo = dateRange[1];
     }
+    if (searchText) params.Search = searchText;
+    if (branchId) {
+      params.BranchId = branchId;
+      params.IncludeSubBranches = includeSubBranches;
+    }
     setAppliedParams(params);
-  }, [contractNumber, musanedNumber, passportNumber, nationalId, workerType, dateRange]);
+  }, [
+    contractNumber,
+    musanedNumber,
+    passportNumber,
+    nationalId,
+    workerType,
+    dateRange,
+    searchText,
+    branchId,
+    includeSubBranches,
+  ]);
 
   const handleReset = useCallback(() => {
     setContractNumber(null);
@@ -148,6 +168,9 @@ export default function AutomaticFollowUpPage() {
     setStatusId(null);
     setWorkerType(null);
     setDateRange(null);
+    setSearchText('');
+    setBranchId(undefined);
+    setIncludeSubBranches(true);
     setAppliedParams({ Page: 1, PageSize: 15 });
   }, []);
 
@@ -327,6 +350,13 @@ export default function AutomaticFollowUpPage() {
       {/* ── Filters ── */}
       <Card className={styles.filtersCard} size="small">
         <div className={styles.filtersGrid}>
+          <Input
+            placeholder={t('searchPlaceholder')}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
+            prefix={<SearchOutlined />}
+          />
           <InputNumber
             placeholder={t('filterByContract')}
             value={contractNumber}
@@ -375,6 +405,13 @@ export default function AutomaticFollowUpPage() {
                 strings[0] && strings[1] ? [strings[0], strings[1]] : null
               )
             }
+          />
+          <BranchFilterSelect
+            value={branchId}
+            onChange={setBranchId}
+            includeSubBranches={includeSubBranches}
+            onIncludeSubBranchesChange={setIncludeSubBranches}
+            style={{ width: '100%' }}
           />
           <Space>
             <Button

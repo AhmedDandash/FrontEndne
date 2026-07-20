@@ -53,6 +53,8 @@ import type { CustomerQuery } from '@/types/filters.types';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import { useAgents } from '@/hooks/api/useAgents';
+import { useMarketers } from '@/hooks/api/useMarketers';
 import RentOfferSelector from '@/components/contracts/RentOfferSelector';
 import WorkerSelect from '@/components/contracts/WorkerSelect';
 import type {
@@ -92,6 +94,16 @@ export default function CustomersPage() {
     undefined,
     undefined,
   ]);
+  const [updatedDateRange, setUpdatedDateRange] = useState<
+    [string | undefined, string | undefined]
+  >([undefined, undefined]);
+  // Advanced filters — CustomerQuery fields not covered by quick filters.
+  const [idNumberFilter, setIdNumberFilter] = useState('');
+  const [mobileFilter, setMobileFilter] = useState('');
+  const [emailFilter, setEmailFilter] = useState('');
+  const [nationalityFilter, setNationalityFilter] = useState<string | undefined>(undefined);
+  const [agentIdFilter, setAgentIdFilter] = useState<string | undefined>(undefined);
+  const [marketerIdFilter, setMarketerIdFilter] = useState<string | undefined>(undefined);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -126,6 +138,20 @@ export default function CustomersPage() {
     return () => clearTimeout(id);
   }, [searchText]);
 
+  // Debounce the free-text advanced filters (idNumber/mobile/email) the same way.
+  const [debouncedIdNumber, setDebouncedIdNumber] = useState('');
+  const [debouncedMobile, setDebouncedMobile] = useState('');
+  const [debouncedEmail, setDebouncedEmail] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebouncedIdNumber(idNumberFilter.trim());
+      setDebouncedMobile(mobileFilter.trim());
+      setDebouncedEmail(emailFilter.trim());
+      setPageNumber(1);
+    }, 400);
+    return () => clearTimeout(id);
+  }, [idNumberFilter, mobileFilter, emailFilter]);
+
   const query: CustomerQuery = useMemo(
     () => ({
       branchId,
@@ -133,10 +159,32 @@ export default function CustomersPage() {
       search: debouncedSearch || undefined,
       createdDateFrom: dateRange[0],
       createdDateTo: dateRange[1],
+      updatedDateFrom: updatedDateRange[0],
+      updatedDateTo: updatedDateRange[1],
+      idNumber: debouncedIdNumber || undefined,
+      mobile: debouncedMobile || undefined,
+      email: debouncedEmail || undefined,
+      nationality: nationalityFilter || undefined,
+      agentId: agentIdFilter || undefined,
+      marketerId: marketerIdFilter || undefined,
       pageNumber,
       pageSize,
     }),
-    [branchId, includeSubBranches, debouncedSearch, dateRange, pageNumber, pageSize]
+    [
+      branchId,
+      includeSubBranches,
+      debouncedSearch,
+      dateRange,
+      updatedDateRange,
+      debouncedIdNumber,
+      debouncedMobile,
+      debouncedEmail,
+      nationalityFilter,
+      agentIdFilter,
+      marketerIdFilter,
+      pageNumber,
+      pageSize,
+    ]
   );
 
   // Server-side filtered + paginated list.
@@ -144,13 +192,29 @@ export default function CustomersPage() {
 
   // Count of active advanced filters (for the panel badge / clear button).
   const activeFilterCount =
-    (branchId ? 1 : 0) + (dateRange[0] || dateRange[1] ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0);
+    (branchId ? 1 : 0) +
+    (dateRange[0] || dateRange[1] ? 1 : 0) +
+    (updatedDateRange[0] || updatedDateRange[1] ? 1 : 0) +
+    (cityFilter !== 'all' ? 1 : 0) +
+    (idNumberFilter ? 1 : 0) +
+    (mobileFilter ? 1 : 0) +
+    (emailFilter ? 1 : 0) +
+    (nationalityFilter ? 1 : 0) +
+    (agentIdFilter ? 1 : 0) +
+    (marketerIdFilter ? 1 : 0);
 
   const clearFilters = () => {
     setBranchId(undefined);
     setIncludeSubBranches(true);
     setDateRange([undefined, undefined]);
+    setUpdatedDateRange([undefined, undefined]);
     setCityFilter('all');
+    setIdNumberFilter('');
+    setMobileFilter('');
+    setEmailFilter('');
+    setNationalityFilter(undefined);
+    setAgentIdFilter(undefined);
+    setMarketerIdFilter(undefined);
     setPageNumber(1);
   };
 
@@ -162,6 +226,10 @@ export default function CustomersPage() {
 
   // Nationalities API — customer dropdown shows active nationalities only.
   const { data: nationalitiesData = [] } = useNationalities({ isActiveOnly: true, pageSize: 100 });
+
+  // Agents/Marketers — for the advanced-filter dropdowns below.
+  const { data: agentsData = [] } = useAgents();
+  const { data: marketersData = [] } = useMarketers();
 
   // English-name auto-generation (from the Arabic name) state.
   const [isGeneratingName, setIsGeneratingName] = useState(false);
@@ -650,6 +718,90 @@ export default function CustomersPage() {
             setPageNumber(1);
           }}
           placeholder={['أُنشئ من', 'إلى']}
+        />
+        <DateRangeFilter
+          value={updatedDateRange}
+          onChange={(range) => {
+            setUpdatedDateRange(range);
+            setPageNumber(1);
+          }}
+          placeholder={
+            language === 'ar' ? ['تم التحديث من', 'إلى'] : ['Updated from', 'to']
+          }
+        />
+        <Input
+          placeholder={t('nationalId')}
+          value={idNumberFilter}
+          onChange={(e) => setIdNumberFilter(e.target.value)}
+          style={{ width: 160 }}
+          allowClear
+        />
+        <Input
+          placeholder={t('mobile')}
+          value={mobileFilter}
+          onChange={(e) => setMobileFilter(e.target.value)}
+          style={{ width: 160 }}
+          allowClear
+        />
+        <Input
+          placeholder={t('email')}
+          value={emailFilter}
+          onChange={(e) => setEmailFilter(e.target.value)}
+          style={{ width: 180 }}
+          allowClear
+        />
+        <Select
+          style={{ width: 180 }}
+          value={nationalityFilter}
+          onChange={(v) => {
+            setNationalityFilter(v);
+            setPageNumber(1);
+          }}
+          placeholder={t('nationality')}
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          options={nationalities.map((n: any) => ({
+            value: String(n.id ?? n.nationalityId ?? n.value),
+            label: getNationalityLabel(n),
+          }))}
+        />
+        <Select
+          style={{ width: 180 }}
+          value={agentIdFilter}
+          onChange={(v) => {
+            setAgentIdFilter(v);
+            setPageNumber(1);
+          }}
+          placeholder={language === 'ar' ? 'الوكيل' : 'Agent'}
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          options={(agentsData as any[]).map((a) => ({
+            value: String(a.id),
+            label:
+              (language === 'ar' ? a.agentNameAr : a.agentNameEn) ||
+              a.agentNameAr ||
+              a.agentNameEn ||
+              `#${a.id}`,
+          }))}
+        />
+        <Select
+          style={{ width: 180 }}
+          value={marketerIdFilter}
+          onChange={(v) => {
+            setMarketerIdFilter(v);
+            setPageNumber(1);
+          }}
+          placeholder={language === 'ar' ? 'المسوق' : 'Marketer'}
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          options={(marketersData as any[]).map((m) => ({
+            value: String(m.id),
+            label:
+              (language === 'ar' ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
+          }))}
         />
       </AdvancedFilterPanel>
 

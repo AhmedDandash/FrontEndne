@@ -6,12 +6,16 @@ import type { HousingDto } from '@/types/housing.types';
 const HOUSING_KEY = 'housing';
 const HOUSING_ACTIVE_KEY = 'housing-active';
 
-export function useHousings() {
+export function useHousings(params?: {
+  name?: string;
+  isActive?: boolean;
+  hasAvailableSlots?: boolean;
+}) {
   const queryClient = useQueryClient();
 
   const { data: housings, isLoading, error, refetch } = useQuery({
-    queryKey: [HOUSING_KEY],
-    queryFn: () => HousingService.getAll(),
+    queryKey: [HOUSING_KEY, params],
+    queryFn: () => HousingService.getAll(params),
   });
 
   const createMutation = useMutation({

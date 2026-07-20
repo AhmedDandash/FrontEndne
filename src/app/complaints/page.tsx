@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { BranchFilterSelect } from '@/components/filters';
+import { BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import {
   Input,
   Select,
@@ -502,16 +502,21 @@ export default function ComplaintsPage() {
   const [contractNumberFilter, setContractNumberFilter] = useState<string>('');
   const [branchId, setBranchId] = useState<string | undefined>(undefined);
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  const [updatedDateRange, setUpdatedDateRange] = useState<
+    [string | undefined, string | undefined]
+  >([undefined, undefined]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // API hooks — branch scoping is applied server-side; other filters below are
-  // refined client-side on the returned page.
+  // API hooks — branch scoping + updated-date range are applied server-side;
+  // other filters below are refined client-side on the returned page.
   const { data: complaintsData, isLoading } = useComplaints({
     pageNumber: currentPage,
     pageSize,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
+    updatedDateFrom: updatedDateRange[0],
+    updatedDateTo: updatedDateRange[1],
   });
   const complaints = complaintsData?.complaints ?? [];
   const serverTotal = complaintsData?.total ?? 0;
@@ -1278,6 +1283,22 @@ export default function ComplaintsPage() {
                 setCurrentPage(1);
               }}
               allowClear
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>
+              {isArabic ? 'تاريخ التحديث' : 'Updated Date'}
+            </label>
+            <DateRangeFilter
+              value={updatedDateRange}
+              onChange={(range) => {
+                setUpdatedDateRange(range);
+                setCurrentPage(1);
+              }}
+              style={{ width: '100%' }}
+              placeholder={
+                isArabic ? ['محدّث من', 'إلى'] : ['Updated from', 'to']
+              }
             />
           </Col>
         </Row>

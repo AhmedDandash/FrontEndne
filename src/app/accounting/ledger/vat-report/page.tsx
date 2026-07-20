@@ -7,7 +7,7 @@ import { PercentageOutlined } from '@ant-design/icons';
 import { useVatReport } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import { LedgerHeader } from '../_components/LedgerHeader';
-import { BranchFilterSelect } from '@/components/filters';
+import { BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { fmtAmount, fmtDate } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
 
@@ -21,12 +21,21 @@ export default function VatReportPage() {
   const [quarter, setQuarter] = useState<number>(Math.floor(now.month() / 3) + 1);
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  // Optional custom range, sent alongside Year/Quarter (which remain the
+  // primary period selector — the backend derives periodStart/periodEnd from
+  // them). From/To supplement rather than replace Year/Quarter.
+  const [customRange, setCustomRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
 
   const { data, isLoading, isFetching, refetch, error } = useVatReport({
     year,
     quarter,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
+    from: customRange[0],
+    to: customRange[1],
   });
 
   const quarters = [1, 2, 3, 4].map((q) => ({ value: q, label: `${t('الربع', 'Q')} ${q}` }));
@@ -68,6 +77,11 @@ export default function VatReportPage() {
             onChange={setBranchId}
             includeSubBranches={includeSubBranches}
             onIncludeSubBranchesChange={setIncludeSubBranches}
+          />
+          <DateRangeFilter
+            value={customRange}
+            onChange={setCustomRange}
+            placeholder={[t('نطاق مخصص من', 'Custom from (optional)'), t('إلى', 'to')]}
           />
         </div>
 

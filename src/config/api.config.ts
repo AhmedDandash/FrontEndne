@@ -79,6 +79,11 @@ export const API_ENDPOINTS = {
     DELETE: (id: number | string) => `/api/V1/Agent/${id}`,
   },
 
+  // Commission — GET /api/V1/Commission/GetAll (list only; no CRUD wired here)
+  COMMISSION: {
+    GET_ALL: '/api/V1/Commission/GetAll',
+  },
+
   // Jobs — RESTful /api/V1/Job
   JOB: {
     GET_ALL: '/api/V1/Job',
@@ -395,6 +400,7 @@ export const API_ENDPOINTS = {
   HR_PAYROLL: {
     GENERATE: '/api/V1/Payroll/generate',
     GET: '/api/V1/Payroll',
+    HISTORY: '/api/V1/Payroll/history',
     EXPORT: '/api/V1/Payroll/export',
     // Workflow is Generate → Approve → Close (verified live: Close returns
     // "Payroll must be approved before closing" until the run is approved).
@@ -424,6 +430,17 @@ export const API_ENDPOINTS = {
     GET_TYPES: '/api/V1/CustodyRequest/Types',
     GET_TYPE: (id: string) => `/api/V1/CustodyRequest/Types/${id}`,
     CREATE_TYPE: '/api/V1/CustodyRequest/Types/Create',
+  },
+
+  // Plumbing only — no inbox/outbox UI feature exists yet in the HR module
+  // (see HRRequestsInboxService / HRRequestsOutboxService in hr.service.ts).
+  HR_REQUESTS_INBOX: {
+    FILTER: '/api/V1/RequestsInbox/Filter',
+  },
+
+  HR_REQUESTS_OUTBOX: {
+    // NOTE: base path is `/api/HR/...`, not `/api/V1/...` (verified against spec).
+    FILTER: '/api/HR/RequestsOutbox/Filter',
   },
 
   // ─── Department (/api/V1/Department) ─────────────────────────────────────
@@ -551,6 +568,8 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/api/V1/HourlyWorkers/${id}`,
     ACTIVATE: (id: string) => `/api/V1/HourlyWorkers/${id}/Activate`,
     DEACTIVATE: (id: string) => `/api/V1/HourlyWorkers/${id}/Deactivate`,
+    // Zero-footprint stub (service+type only, no UI — see architecture note).
+    GET_AVAILABLE: '/api/V1/HourlyWorkers/Available',
   },
 
   // ─── Hourly Worker Requests — /api/V1/HourlyWorkerRequests/* ──────────────
@@ -646,10 +665,20 @@ export const API_ENDPOINTS = {
     DRIVER_PERFORMANCE: '/api/V1/HourlyWorkerReports/DriverPerformance',
   },
 
+  // ─── Hourly Customer — /api/V1/HourlyCustomer/* ──────────────────────────────
+  // Zero-footprint stub (service+type only, no UI — see architecture note):
+  // customer-facing order history, out of scope for the admin dashboard.
+  HOURLY_CUSTOMER: {
+    GET_ORDERS: '/api/V1/HourlyCustomer/Orders',
+  },
+
   // ─── Hourly Worker Portal — /api/V1/HourlyWorkerPortal/* ─────────────────────
   HOURLY_WORKER_PORTAL: {
     GET_ASSIGNMENTS: (workerId: string) =>
       `/api/V1/HourlyWorkerPortal/${workerId}/Assignments`,
+    // Zero-footprint stub (service+type only, no UI — see architecture note):
+    // the logged-in worker's own assignments (self-service portal).
+    GET_MY_ASSIGNMENTS: '/api/V1/HourlyWorkerPortal/me/Assignments',
     UPDATE_ASSIGNMENT_STATUS: (workerId: string, assignmentId: string) =>
       `/api/V1/HourlyWorkerPortal/${workerId}/Assignments/${assignmentId}/Status`,
     GET_SCHEDULE: (workerId: string) => `/api/V1/HourlyWorkerPortal/${workerId}/Schedule`,

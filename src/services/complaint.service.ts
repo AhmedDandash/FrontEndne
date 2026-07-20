@@ -178,6 +178,12 @@ export class ComplaintService {
     relatedContractId?: string;
     customerPhone?: string;
     customerNationalId?: string;
+    createdDateFrom?: string;
+    createdDateTo?: string;
+    updatedDateFrom?: string;
+    updatedDateTo?: string;
+    sortBy?: string;
+    sortDescending?: boolean;
   }): Promise<{ complaints: Complaint[]; total: number }> {
     // Drop empty values so the backend doesn't try to bind them.
     const clean = params

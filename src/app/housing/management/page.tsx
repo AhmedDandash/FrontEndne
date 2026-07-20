@@ -10,6 +10,7 @@ import {
   Form,
   Input,
   InputNumber,
+  Select,
   Switch,
   Space,
   Tooltip,
@@ -44,15 +45,24 @@ export default function HousingManagementPage() {
   const lang: Lang = 'ar';
   const router = useRouter();
 
-  const { housings, isLoading, createHousing, updateHousing, toggleActive, deleteHousing,
-    isCreating, isUpdating } = useHousings();
-
-  const openDetail = (id: string) => router.push(`/housing/management/${id}`);
-
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Housing | null>(null);
   const [search, setSearch] = useState('');
+  // Server-side filters (backend /api/Housing/GetAll supports IsActive and
+  // HasAvailableSlots as query params — `name` stays client-side below since
+  // the existing search box also matches on address, which the server-side
+  // `Name` filter cannot do).
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
+  const [hasAvailableSlotsFilter, setHasAvailableSlotsFilter] = useState<boolean | undefined>(undefined);
   const [form] = Form.useForm<HousingDto>();
+
+  const { housings, isLoading, createHousing, updateHousing, toggleActive, deleteHousing,
+    isCreating, isUpdating } = useHousings({
+    isActive: isActiveFilter,
+    hasAvailableSlots: hasAvailableSlotsFilter,
+  });
+
+  const openDetail = (id: string) => router.push(`/housing/management/${id}`);
 
   const filtered = useMemo(() => {
     if (!housings) return [];
@@ -234,13 +244,34 @@ export default function HousingManagementPage() {
           </Space>
         }
         extra={
-          <Space>
+          <Space wrap>
             <Input.Search
               placeholder={t('بحث...', 'Search...', lang)}
               allowClear
               style={{ width: 220 }}
               onSearch={setSearch}
               onChange={(e) => !e.target.value && setSearch('')}
+            />
+            <Select
+              placeholder={t('الحالة', 'Status', lang)}
+              allowClear
+              style={{ width: 130 }}
+              value={isActiveFilter === undefined ? undefined : String(isActiveFilter)}
+              onChange={(v) => setIsActiveFilter(v === undefined ? undefined : v === 'true')}
+              options={[
+                { value: 'true', label: t('مفعّل', 'Active', lang) },
+                { value: 'false', label: t('معطّل', 'Inactive', lang) },
+              ]}
+            />
+            <Select
+              placeholder={t('الإتاحة', 'Availability', lang)}
+              allowClear
+              style={{ width: 150 }}
+              value={hasAvailableSlotsFilter === undefined ? undefined : String(hasAvailableSlotsFilter)}
+              onChange={(v) => setHasAvailableSlotsFilter(v === undefined ? undefined : v === 'true')}
+              options={[
+                { value: 'true', label: t('يوجد مقاعد شاغرة', 'Has available slots', lang) },
+              ]}
             />
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
               {t('إضافة سكن', 'Add Housing', lang)}

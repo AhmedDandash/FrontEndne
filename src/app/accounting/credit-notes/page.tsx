@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import {
@@ -24,13 +24,15 @@ import {
   PlusOutlined,
   EyeOutlined,
   AuditOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { useCreditNotes, useCreditNoteTrace, useCreateCreditNote } from '@/hooks/api/useCreditNotes';
 import { BranchFilterSelect } from '@/components/filters';
 import { useCustomers } from '@/hooks/api/useCustomers';
+import { useAgents } from '@/hooks/api/useAgents';
 import { useAuthStore } from '@/store/authStore';
 import type { CreditNote, CreateCreditNoteDto } from '@/types/api.types';
-import { renderJournalLink } from '../_lib/accountingDocDisplay';
+import { renderJournalLink, DOCUMENT_TYPE_OPTIONS } from '../_lib/accountingDocDisplay';
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
 import styles from '../accounting-doc.module.css';
 
@@ -43,12 +45,29 @@ export default function CreditNotesPage() {
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   const [customerId, setCustomerId] = useState<string | undefined>();
+  const [agentId, setAgentId] = useState<string | undefined>();
+  const [contractId, setContractId] = useState<string | undefined>();
+  const [documentType, setDocumentType] = useState<number | undefined>();
+  const [documentNumber, setDocumentNumber] = useState<string | undefined>();
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
 
+  // Debounce the free-text search into the server-side `search` param.
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput.trim()), 400);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
   const { data: notes = [], isLoading, isFetching, refetch } = useCreditNotes({
     customerId,
+    agentId,
+    contractId,
+    documentType,
+    documentNumber: documentNumber || undefined,
+    search: search || undefined,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
     dateFrom: range?.[0]?.startOf('day').toISOString(),
@@ -56,6 +75,7 @@ export default function CreditNotesPage() {
   });
 
   const { customers = [] } = useCustomers();
+  const { data: agents = [] } = useAgents();
   const { mutateAsync: createNote, isPending: isCreating } = useCreateCreditNote();
 
   const [traceId, setTraceId] = useState<string | null>(null);
@@ -195,12 +215,51 @@ export default function CreditNotesPage() {
 
       <Card className={styles.tableCard}>
         <div className={styles.filters}>
+          <Input
+            allowClear
+            size="large"
+            prefix={<SearchOutlined />}
+            placeholder={t('بحث حر...', 'Free-text search...')}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className={styles.filterSelect}
+          />
+          <Input
+            allowClear
+            size="large"
+            placeholder={t('رقم الإشعار', 'Document Number')}
+            value={documentNumber}
+            onChange={(e) => setDocumentNumber(e.target.value || undefined)}
+            className={styles.filterSelect}
+          />
+          <Select
+            allowClear size="large"
+            placeholder={t('نوع المستند', 'Document Type')}
+            className={styles.filterSelect}
+            value={documentType} onChange={setDocumentType}
+            options={DOCUMENT_TYPE_OPTIONS(isAr)}
+          />
           <Select
             allowClear showSearch optionFilterProp="label" size="large"
             placeholder={t('فلتر بالعميل', 'Filter by customer')}
             className={styles.filterSelect}
             value={customerId} onChange={setCustomerId}
             options={(customers as any[]).map((c: any) => ({ value: c.id, label: (isAr ? c.arabicName || c.englishName : c.englishName || c.arabicName) || String(c.id) }))}
+          />
+          <Select
+            allowClear showSearch optionFilterProp="label" size="large"
+            placeholder={t('فلتر بالوكيل', 'Filter by agent')}
+            className={styles.filterSelect}
+            value={agentId} onChange={setAgentId}
+            options={(agents as any[]).map((a: any) => ({ value: a.id, label: (isAr ? a.agentNameAr || a.agentNameEn : a.agentNameEn || a.agentNameAr) || String(a.id) }))}
+          />
+          <Input
+            allowClear
+            size="large"
+            placeholder={t('معرف العقد', 'Contract ID')}
+            value={contractId}
+            onChange={(e) => setContractId(e.target.value || undefined)}
+            className={styles.filterSelect}
           />
           <BranchFilterSelect
             value={branchId}

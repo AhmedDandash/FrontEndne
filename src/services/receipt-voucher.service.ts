@@ -14,10 +14,24 @@ export class ReceiptVoucherService {
       params: {
         contractId: filters.contractId || undefined,
         customerId: filters.customerId || undefined,
+        // Added for parity with the other 3 accounting-document endpoints
+        // (previously missing from ReceiptVoucher entirely — verified live).
+        agentId: filters.agentId || undefined,
         dateFrom: filters.dateFrom || undefined,
         dateTo: filters.dateTo || undefined,
         branchId: filters.branchId || undefined,
         includeSubBranches: filters.branchId ? filters.includeSubBranches ?? undefined : undefined,
+        documentType: filters.documentType ?? undefined,
+        documentNumber: filters.documentNumber || undefined,
+        search: filters.search || undefined,
+        createdDateFrom: filters.createdDateFrom || undefined,
+        createdDateTo: filters.createdDateTo || undefined,
+        updatedDateFrom: filters.updatedDateFrom || undefined,
+        updatedDateTo: filters.updatedDateTo || undefined,
+        pageNumber: filters.pageNumber ?? undefined,
+        pageSize: filters.pageSize ?? undefined,
+        sortBy: filters.sortBy || undefined,
+        sortDescending: filters.sortDescending ?? undefined,
       },
     });
     return unwrapList<ReceiptVoucherDetail>(response.data);

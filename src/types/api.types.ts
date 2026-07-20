@@ -1571,6 +1571,7 @@ export interface MediationFollowUpDashboardParams {
   WorkerPassportNumber?: string | null;
   ContractId?: string | null;
   MusanedContractNumber?: string | null;
+  /** NOTE: ignored server-side by the dashboard endpoint — filter client-side instead. */
   StatusId?: number | null;
   NationalityId?: string | null;
   WorkerType?: number | null;
@@ -1578,6 +1579,24 @@ export interface MediationFollowUpDashboardParams {
   DateTo?: string | null;
   Page?: number;
   PageSize?: number;
+  // Mirrors FilterMediationContractDto (same shape as MediationContract's own
+  // GET params) — added per the ErpImprovementsJul2026 filter audit.
+  CustomerId?: string | null;
+  WorkerId?: string | null;
+  AgentId?: string | null;
+  MarketerId?: string | null;
+  ContractType?: number | null;
+  CustomerPhone?: string | null;
+  VisaNumber?: string | null;
+  BranchId?: string | null;
+  IncludeSubBranches?: boolean | null;
+  Search?: string | null;
+  CreatedDateFrom?: string | null;
+  CreatedDateTo?: string | null;
+  UpdatedDateFrom?: string | null;
+  UpdatedDateTo?: string | null;
+  SortBy?: string | null;
+  SortDescending?: boolean | null;
 }
 
 /**
@@ -1804,6 +1823,15 @@ export interface AccountingDocumentFilterDto {
   search?: string | null;
   documentType?: number | null;
   documentNumber?: string | null;
+  // Audit Phase 4: previously missing filter/paging/sort params (live OpenAPI).
+  createdDateFrom?: string | null;
+  createdDateTo?: string | null;
+  updatedDateFrom?: string | null;
+  updatedDateTo?: string | null;
+  pageNumber?: number | null;
+  pageSize?: number | null;
+  sortBy?: string | null;
+  sortDescending?: boolean | null;
 }
 
 // ── Receipt Voucher ──────────────────────────────────────────────────────────

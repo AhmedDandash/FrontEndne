@@ -5,7 +5,9 @@
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { buildListParams } from '@/lib/api/buildListParams';
 import type { Branch, BranchDto } from '@/types/api.types';
+import type { BranchQuery, PagedResponse } from '@/types/filters.types';
 
 export class BranchService {
   private static unwrap<T>(payload: any): T {
@@ -25,6 +27,23 @@ export class BranchService {
   static async getAll(): Promise<Branch[]> {
     const response = await api.get<any>(API_ENDPOINTS.BRANCH.GET_ALL);
     return this.unwrapList<Branch>(response.data);
+  }
+
+  /**
+   * GET /api/V1/Branch with server-side filters + pagination.
+   * Backend supports SearchName, Email, Mobile, PageNumber, PageSize.
+   * Kept alongside `getAll()` (unpaged) which existing dropdown code relies on.
+   */
+  static async getPaged(query?: BranchQuery): Promise<PagedResponse<Branch>> {
+    const params = buildListParams(query as Record<string, unknown>);
+    const response = await api.get<any>(API_ENDPOINTS.BRANCH.GET_ALL, { params });
+    const page = this.unwrap<any>(response.data);
+    return {
+      items: Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : [],
+      totalCount: page?.totalCount ?? 0,
+      pageNumber: page?.pageNumber ?? query?.pageNumber ?? 1,
+      pageSize: page?.pageSize ?? query?.pageSize ?? 10,
+    };
   }
 
   /**

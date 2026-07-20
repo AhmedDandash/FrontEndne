@@ -17,14 +17,22 @@ export class NationalityService {
    * GET /api/V1/Nationality
    * @param params Optional server-side filters. Pass `{ isActiveOnly: true }`
    *   for customer-facing dropdowns so disabled nationalities are excluded.
+   *   `searchName` and `pageNumber` complete backend support (SearchName,
+   *   PageNumber, PageSize) alongside the existing pageSize/isActiveOnly.
    */
   static async getAll(params?: {
     isActiveOnly?: boolean;
+    searchName?: string;
+    pageNumber?: number;
     pageSize?: number;
   }): Promise<Nationality[]> {
     const response = await api.get<any>(API_ENDPOINTS.NATIONALITY.GET_ALL, {
       params:
-        params && (params.isActiveOnly != null || params.pageSize != null)
+        params &&
+        (params.isActiveOnly != null ||
+          params.pageSize != null ||
+          params.searchName != null ||
+          params.pageNumber != null)
           ? params
           : undefined,
     });

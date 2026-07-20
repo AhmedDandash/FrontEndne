@@ -94,6 +94,12 @@ export class MediationContractService {
     VisaNumber?: string;
     CreatedDateFrom?: string;
     CreatedDateTo?: string;
+    UpdatedDateFrom?: string;
+    UpdatedDateTo?: string;
+    // Filter by the contract's own id (distinct from ContractNumber).
+    ContractId?: string;
+    SortBy?: string;
+    SortDescending?: boolean;
     // Advanced filters (ErpImprovementsJul2026).
     WithoutAssignedWorker?: boolean;
     IsPaid?: boolean;
@@ -130,6 +136,11 @@ export class MediationContractService {
           'VisaNumber',
           'CreatedDateFrom',
           'CreatedDateTo',
+          'UpdatedDateFrom',
+          'UpdatedDateTo',
+          'ContractId',
+          'SortBy',
+          'SortDescending',
           'WithoutAssignedWorker',
           'IsPaid',
           'IsUnpaid',

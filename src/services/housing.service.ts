@@ -33,9 +33,19 @@ export class HousingService {
     return [];
   }
 
-  static async getAll(): Promise<Housing[]> {
+  static async getAll(params?: {
+    name?: string;
+    isActive?: boolean;
+    hasAvailableSlots?: boolean;
+  }): Promise<Housing[]> {
     const response = await api.get<any>(API_ENDPOINTS.HOUSING.GET_ALL, {
-      params: { PageSize: 9999, PageNumber: 1 },
+      params: {
+        PageSize: 9999,
+        PageNumber: 1,
+        Name: params?.name || undefined,
+        IsActive: params?.isActive,
+        HasAvailableSlots: params?.hasAvailableSlots,
+      },
     });
     return this.unwrapList<Housing>(response.data);
   }

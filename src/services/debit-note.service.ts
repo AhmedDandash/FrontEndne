@@ -19,6 +19,17 @@ export class DebitNoteService {
         dateTo: filters.dateTo || undefined,
         branchId: filters.branchId || undefined,
         includeSubBranches: filters.branchId ? filters.includeSubBranches ?? undefined : undefined,
+        documentType: filters.documentType ?? undefined,
+        documentNumber: filters.documentNumber || undefined,
+        search: filters.search || undefined,
+        createdDateFrom: filters.createdDateFrom || undefined,
+        createdDateTo: filters.createdDateTo || undefined,
+        updatedDateFrom: filters.updatedDateFrom || undefined,
+        updatedDateTo: filters.updatedDateTo || undefined,
+        pageNumber: filters.pageNumber ?? undefined,
+        pageSize: filters.pageSize ?? undefined,
+        sortBy: filters.sortBy || undefined,
+        sortDescending: filters.sortDescending ?? undefined,
       },
     });
     return unwrapList<DebitNote>(response.data);

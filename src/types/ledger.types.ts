@@ -97,6 +97,8 @@ export interface TrialBalance {
 export interface TrialBalanceQuery extends DateRangeQuery {
   /** If true, only accounts flagged for grouped trial-balance display. */
   groupedOnly?: boolean;
+  /** If true, omit accounts whose closing balance is zero. */
+  excludeZeroBalances?: boolean;
 }
 
 // ==================== 3.6 Income Statement ====================
@@ -157,6 +159,8 @@ export interface BalanceSheetQuery {
   asOfDate: string;
   branchId?: string;
   includeSubBranches?: boolean;
+  /** If true, include the current (unclosed) year's net earnings in Equity. */
+  includeCurrentYearEarnings?: boolean;
 }
 
 // ==================== 3.8 VAT Report ====================
@@ -180,4 +184,7 @@ export interface VatReportQuery {
   quarter: number;
   branchId?: string;
   includeSubBranches?: boolean;
+  /** Optional custom date range, sent alongside year/quarter. */
+  from?: string;
+  to?: string;
 }

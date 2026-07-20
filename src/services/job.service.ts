@@ -5,7 +5,16 @@
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { buildListParams } from '@/lib/api/buildListParams';
 import type { Job, CreateJobDto, UpdateJobDto } from '@/types/api.types';
+import type { PagedResponse } from '@/types/filters.types';
+
+/** GET /api/V1/Job filters — backend supports SearchName, PageNumber, PageSize. */
+export interface JobQuery {
+  searchName?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
 
 export class JobService {
   /**
@@ -48,6 +57,29 @@ export class JobService {
       console.error('❌ Error fetching jobs:', error);
       return [];
     }
+  }
+
+  /**
+   * GET /api/V1/Job with server-side search + pagination.
+   * Kept alongside `getAll()` (unpaged) which existing dropdown code relies on.
+   */
+  static async getPaged(query?: JobQuery): Promise<PagedResponse<Job>> {
+    const params = buildListParams(query as Record<string, unknown>);
+    const response = await api.get<any>(API_ENDPOINTS.JOB.GET_ALL, { params });
+    const payload = response.data;
+    const page = payload?.data ?? payload;
+    return {
+      items: Array.isArray(page?.items)
+        ? page.items
+        : Array.isArray(page)
+          ? page
+          : Array.isArray(page?.$values)
+            ? page.$values
+            : [],
+      totalCount: page?.totalCount ?? 0,
+      pageNumber: page?.pageNumber ?? query?.pageNumber ?? 1,
+      pageSize: page?.pageSize ?? query?.pageSize ?? 10,
+    };
   }
 
   /**

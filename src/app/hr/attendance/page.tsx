@@ -31,7 +31,6 @@ import { useHRAttendance, useHREmployees } from '@/hooks/api/useHR';
 import type { AttendanceFilterDto, AttendanceRecord } from '@/types/hr.types';
 
 const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
 
 // Numeric status codes returned by the API
 const STATUS_COLOR: Record<number, string> = {
@@ -82,13 +81,22 @@ function renderLocation(
 
 export default function HRAttendancePage() {
   const [form] = Form.useForm();
-  // The applied filter drives both the server fetch (employeeId only — the
-  // backend ignores status/date filters) and client-side narrowing below.
+  // The applied filter drives both the server fetch (employeeId/attendanceDay/
+  // month/year — all honoured by the backend Filter endpoint) and client-side
+  // narrowing by status below (the backend does not support status filtering).
   const [filter, setFilter] = useState<AttendanceFilterDto>({});
   const [hasSearched, setHasSearched] = useState(false);
 
   const { records, isLoading, checkIn, checkOut, isCheckingIn, isCheckingOut } =
-    useHRAttendance({ employeeId: filter.employeeId ?? undefined }, hasSearched);
+    useHRAttendance(
+      {
+        employeeId: filter.employeeId ?? undefined,
+        attendanceDay: filter.attendanceDay ?? undefined,
+        month: filter.month ?? undefined,
+        year: filter.year ?? undefined,
+      },
+      hasSearched
+    );
 
   const { employees } = useHREmployees({ pageSize: 200 });
 
@@ -97,25 +105,23 @@ export default function HRAttendancePage() {
     label: `${e.nameAr || e.nameEn || '—'} ${e.employeeNumber ? `(${e.employeeNumber})` : ''}`.trim(),
   }));
 
-  // Status & date-range filters are NOT honoured by the backend, so apply them
-  // client-side on top of the (employee-filtered) result set.
+  // Status is NOT honoured by the backend Filter endpoint, so it's applied
+  // client-side on top of the (server-filtered) result set.
   const displayRecords = useMemo(() => {
     return records.filter((r) => {
       if (filter.status != null && r.status !== filter.status) return false;
-      if (filter.fromDate && (!r.attendanceDay || dayjs(r.attendanceDay).isBefore(dayjs(filter.fromDate), 'day')))
-        return false;
-      if (filter.toDate && (!r.attendanceDay || dayjs(r.attendanceDay).isAfter(dayjs(filter.toDate), 'day')))
-        return false;
       return true;
     });
-  }, [records, filter]);
+  }, [records, filter.status]);
 
   const handleFilter = () => {
     const values = form.getFieldsValue();
+    const monthYear: dayjs.Dayjs | undefined = values.monthYear;
     setFilter({
       employeeId: values.employeeId || undefined,
-      fromDate: values.dateRange?.[0]?.format('YYYY-MM-DD'),
-      toDate: values.dateRange?.[1]?.format('YYYY-MM-DD'),
+      month: monthYear ? monthYear.month() + 1 : undefined,
+      year: monthYear ? monthYear.year() : undefined,
+      attendanceDay: values.attendanceDay ? values.attendanceDay.format('YYYY-MM-DD') : undefined,
       status: values.status ?? undefined,
     });
     setHasSearched(true);
@@ -265,7 +271,7 @@ export default function HRAttendancePage() {
       <Card style={{ marginBottom: 16 }}>
         <Form form={form} layout="vertical">
           <Row gutter={16}>
-            <Col xs={24} sm={12} md={8}>
+            <Col xs={24} sm={12} md={6}>
               <Form.Item name="employeeId" label="الموظف">
                 <Select
                   allowClear
@@ -280,12 +286,17 @@ export default function HRAttendancePage() {
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} sm={12} md={8}>
-              <Form.Item name="dateRange" label="الفترة الزمنية">
-                <RangePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+            <Col xs={24} sm={12} md={6}>
+              <Form.Item name="monthYear" label="الشهر والسنة">
+                <DatePicker picker="month" style={{ width: '100%' }} format="YYYY-MM" placeholder="اختر الشهر (اختياري)" />
               </Form.Item>
             </Col>
-            <Col xs={24} sm={12} md={8}>
+            <Col xs={24} sm={12} md={6}>
+              <Form.Item name="attendanceDay" label="يوم محدد">
+                <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" placeholder="اختر يوماً محدداً (اختياري)" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
               <Form.Item name="status" label="الحالة">
                 <Select
                   allowClear

@@ -7,6 +7,23 @@ import type {
   MediationOfferAutoFillDto,
 } from '@/types/api.types';
 
+/**
+ * Optional server-side filters for GET /api/Mediation/MediationContractOffer.
+ * This is bounded reference/picker data so the service still fetches "all"
+ * (Page=1, PageSize=9999) — but sending these cheap query params server-side
+ * is strictly better than fetching everything and filtering client-side.
+ */
+export interface MediationOfferQuery {
+  OfferNumber?: number | string;
+  NationalityId?: string;
+  JobId?: string;
+  WorkerType?: number;
+  PreviousExperience?: number;
+  IsActive?: boolean;
+  ShowForExternalCustomers?: boolean;
+  ShowForReception?: boolean;
+}
+
 export class MediationContractOfferService {
   private static normalizeKeys<T extends Record<string, any>>(item: T): T {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
@@ -60,9 +77,27 @@ export class MediationContractOfferService {
     return [];
   }
 
-  static async getAll(): Promise<MediationContractOffer[]> {
+  static async getAll(params?: MediationOfferQuery): Promise<MediationContractOffer[]> {
+    const query: Record<string, any> = { PageSize: 9999, PageNumber: 1 };
+    if (params) {
+      (
+        [
+          'OfferNumber',
+          'NationalityId',
+          'JobId',
+          'WorkerType',
+          'PreviousExperience',
+          'IsActive',
+          'ShowForExternalCustomers',
+          'ShowForReception',
+        ] as const
+      ).forEach((key) => {
+        const value = params[key];
+        if (value != null && value !== '') query[key] = value;
+      });
+    }
     const response = await api.get<any>(API_ENDPOINTS.MEDIATION_CONTRACT_OFFER.GET_ALL, {
-      params: { PageSize: 9999, PageNumber: 1 },
+      params: query,
     });
     return this.unwrapList<MediationContractOffer>(response.data);
   }

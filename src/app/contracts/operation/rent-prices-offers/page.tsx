@@ -82,7 +82,13 @@ export default function RentPricesOffersPage() {
   const [editSalary, setEditSalary] = useState(0);
   const [editPeriodId, setEditPeriodId] = useState<number>(periodTypes[0].id);
 
-  // Data hooks
+  // Data hooks — nationality/job/branch are cheap enough to also apply
+  // server-side even though this is a fetch-all reference list; the
+  // client-side filter below still runs on top (harmless no-op once the
+  // server already filtered).
+  // NOTE: `searchText` is intentionally NOT sent as `SearchTitle` — the
+  // client-side search also matches nationality/job/branch *names* (not just
+  // offerTitle), so forwarding it server-side would over-restrict results.
   const {
     offers: offersRaw,
     isLoading,
@@ -91,7 +97,11 @@ export default function RentPricesOffersPage() {
     deleteOffer,
     isUpdating,
     isDeleting,
-  } = useEmploymentContractOffers();
+  } = useEmploymentContractOffers({
+    NationalityId: nationalityFilter === 'all' ? undefined : nationalityFilter,
+    JobId: jobFilter === 'all' ? undefined : jobFilter,
+    BranchId: branchFilter === 'all' ? undefined : branchFilter,
+  });
 
   const { branches } = useBranches();
   const { data: nationalities = [] } = useNationalities();

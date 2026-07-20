@@ -28,6 +28,8 @@ import type {
   CreateCustodyTypeDto,
   CustodyRequestDto,
   EmployeeLeaveBalanceDto,
+  FilterInboxDto,
+  FilterOutboxDto,
 } from '@/types/hr.types';
 
 // ─── Employee Service ────────────────────────────────────────────────────────
@@ -260,6 +262,13 @@ export class HRPayrollService {
     return unwrap<PayrollRunDto>(response.data);
   }
 
+  static async getHistory(year?: number): Promise<PayrollRunDto[]> {
+    const response = await api.get<any>(API_ENDPOINTS.HR_PAYROLL.HISTORY, {
+      params: { year },
+    });
+    return unwrapList<PayrollRunDto>(response.data);
+  }
+
   // Generate → Approve → Close. Approve must precede Close (verified live).
   static async approve(id: string): Promise<void> {
     await api.put(API_ENDPOINTS.HR_PAYROLL.APPROVE(id), {});
@@ -276,5 +285,24 @@ export class HRPayrollService {
       responseType: 'blob',
     });
     return response.data as Blob;
+  }
+}
+
+// ─── Requests Inbox / Outbox Service (plumbing only) ─────────────────────────
+// No inbox/outbox UI feature exists in the HR module yet. These methods only
+// make the backend capability reachable; building the actual screens is out of
+// scope for this pass.
+
+export class HRRequestsInboxService {
+  static async filter(dto: FilterInboxDto): Promise<unknown[]> {
+    const response = await api.post<any>(API_ENDPOINTS.HR_REQUESTS_INBOX.FILTER, dto);
+    return unwrapList<unknown>(response.data);
+  }
+}
+
+export class HRRequestsOutboxService {
+  static async filter(dto: FilterOutboxDto): Promise<unknown[]> {
+    const response = await api.post<any>(API_ENDPOINTS.HR_REQUESTS_OUTBOX.FILTER, dto);
+    return unwrapList<unknown>(response.data);
   }
 }

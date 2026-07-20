@@ -58,6 +58,11 @@ export interface HourlyWorkerListParams {
   // Branch scoping (FilterHourlyWorkerDto shared base fields).
   branchId?: string;
   includeSubBranches?: boolean;
+  // Date-range filters (ISO strings).
+  createdDateFrom?: string;
+  createdDateTo?: string;
+  updatedDateFrom?: string;
+  updatedDateTo?: string;
 }
 
 // ==================== Request ====================
@@ -133,6 +138,14 @@ export interface HourlyWorkerRequestListParams {
   search?: string;
   customerPhone?: string;
   serviceCity?: string;
+  serviceDistrict?: string;
+  packageId?: string;
+  servingAreaId?: string;
+  paymentStatus?: number;
+  createdDateFrom?: string;
+  createdDateTo?: string;
+  updatedDateFrom?: string;
+  updatedDateTo?: string;
 }
 
 // ==================== Status enum ====================
@@ -461,6 +474,9 @@ export type UpdateHourlyServingAreaDto = CreateHourlyServingAreaDto;
 export interface HourlyServingAreaListParams {
   search?: string;
   isActive?: boolean;
+  city?: string;
+  sortBy?: 'nameEn' | 'cityEn' | 'createdDate';
+  sortDescending?: boolean;
   pageNumber?: number;
   pageSize?: number;
 }
@@ -518,6 +534,8 @@ export interface HourlyNotificationListParams {
   deliveryStatus?: number;
   recipientPhone?: string;
   search?: string;
+  sortBy?: 'sentAt' | 'createdDate';
+  sortDescending?: boolean;
   pageNumber?: number;
   pageSize?: number;
 }
@@ -572,6 +590,21 @@ export interface HourlyReportFilterParams {
   // Branch scoping — verified live: OrdersSummary honors branchId (5 → 0).
   branchId?: string;
   includeSubBranches?: boolean;
+  // Additional filters shared by all 4 report endpoints (OrdersSummary, Revenue,
+  // WorkerUtilization, DriverPerformance) — same param shape across all of them.
+  ticketNumber?: string;
+  customerPhone?: string;
+  search?: string;
+  createdDateFrom?: string;
+  createdDateTo?: string;
+  updatedDateFrom?: string;
+  updatedDateTo?: string;
+  // Reports render aggregate cards/tables (not row lists) on the current page,
+  // but the backend accepts these — plumbed for completeness / future use.
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDescending?: boolean;
 }
 
 // ==================== Invoices ====================
@@ -684,4 +717,54 @@ export enum HourlyOrderPaymentStatus {
   Paid = 2,
   Refunded = 3,
   Failed = 4,
+}
+
+// ==================== Zero-footprint stubs (service + type only, no UI) ====================
+// Per architectural ruling, these endpoints have NO dashboard UI yet: worker
+// self-service portal, availability-checking, and customer order history are
+// separate feature builds out of scope for this parameter-completion pass.
+// Typed here (+ a service method) only so the capability is reachable.
+
+/** GET /api/V1/HourlyWorkers/Available — workers free for a given window. */
+export interface HourlyWorkerAvailabilityParams {
+  /** ISO date. */
+  date?: string;
+  /** "HH:mm:ss" */
+  startTime?: string;
+  /** "HH:mm:ss" */
+  endTime?: string;
+  branchId?: string;
+  includeSubBranches?: boolean;
+}
+
+/** GET /api/V1/HourlyCustomer/Orders — the authenticated customer's own order history. */
+export interface HourlyCustomerOrderListParams {
+  status?: HourlyRequestStatus;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface HourlyCustomerOrder {
+  id: string;
+  ticketNumber: string;
+  status: HourlyRequestStatus;
+  statusName: string;
+  requestDate: string;
+  totalAmount: number;
+  createdDate: string;
+}
+
+/**
+ * GET /api/V1/HourlyWorkerPortal/me/Assignments (the logged-in worker) and
+ * GET /api/V1/HourlyWorkerPortal/{workerId}/Assignments (dashboard lookup by id)
+ * — both return the same shape.
+ */
+export interface HourlyWorkerPortalAssignment {
+  id: string;
+  orderId: string;
+  ticketNumber: string;
+  assignmentStatus: number;
+  assignmentStatusName: string;
+  assignedDate: string;
+  confirmedAt: string | null;
 }

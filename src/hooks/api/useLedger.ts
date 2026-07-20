@@ -92,7 +92,15 @@ export function usePartyLedger(kind: PartyKind, id: string | undefined, range: D
 /** 3.5 Trial Balance. */
 export function useTrialBalance(query: TrialBalanceQuery) {
   return useQuery({
-    queryKey: [LEDGER_KEY, 'trial-balance', query.from ?? '', query.to ?? '', !!query.groupedOnly, query.branchId ?? ''],
+    queryKey: [
+      LEDGER_KEY,
+      'trial-balance',
+      query.from ?? '',
+      query.to ?? '',
+      !!query.groupedOnly,
+      !!query.excludeZeroBalances,
+      query.branchId ?? '',
+    ],
     queryFn: () => LedgerService.getTrialBalance(query),
   });
 }
@@ -117,7 +125,13 @@ export function useIncomeStatement(query: IncomeStatementQuery) {
 /** 3.7 Balance Sheet — requires asOfDate. */
 export function useBalanceSheet(query: Partial<BalanceSheetQuery>) {
   return useQuery({
-    queryKey: [LEDGER_KEY, 'balance-sheet', query.asOfDate, query.branchId ?? ''],
+    queryKey: [
+      LEDGER_KEY,
+      'balance-sheet',
+      query.asOfDate,
+      query.branchId ?? '',
+      !!query.includeCurrentYearEarnings,
+    ],
     queryFn: () => LedgerService.getBalanceSheet(query as BalanceSheetQuery),
     enabled: !!query.asOfDate,
   });
@@ -126,7 +140,15 @@ export function useBalanceSheet(query: Partial<BalanceSheetQuery>) {
 /** 3.8 VAT Report — requires year + quarter. */
 export function useVatReport(query: Partial<VatReportQuery>) {
   return useQuery({
-    queryKey: [LEDGER_KEY, 'vat-report', query.year, query.quarter, query.branchId ?? ''],
+    queryKey: [
+      LEDGER_KEY,
+      'vat-report',
+      query.year,
+      query.quarter,
+      query.branchId ?? '',
+      query.from ?? '',
+      query.to ?? '',
+    ],
     queryFn: () => LedgerService.getVatReport(query as VatReportQuery),
     enabled: !!query.year && !!query.quarter,
     retry: false,

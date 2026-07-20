@@ -44,6 +44,12 @@ export const useComplaints = (params?: {
   branchId?: string;
   includeSubBranches?: boolean;
   status?: number;
+  createdDateFrom?: string;
+  createdDateTo?: string;
+  updatedDateFrom?: string;
+  updatedDateTo?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
 }) => {
   return useQuery<{ complaints: Complaint[]; total: number }, Error>({
     queryKey: [QUERY_KEY, 'list', params],

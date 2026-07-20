@@ -80,6 +80,7 @@ import {
 import { useAgents } from '@/hooks/api/useAgents';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import { useHREmployees } from '@/hooks/api/useHR';
 import { useHousingActiveList } from '@/hooks/api/useHousing';
 import { useAssignWorkerHousing } from '@/hooks/api/useWorkerHousing';
 import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
@@ -505,6 +506,9 @@ export default function WorkersPage() {
     includeSubBranches?: boolean;
     createdDateFrom?: string;
     createdDateTo?: string;
+    employeeId?: string;
+    updatedDateFrom?: string;
+    updatedDateTo?: string;
   }>({ includeSubBranches: true });
   const [pageNumber, setPageNumber] = useState(1);
   const PAGE_SIZE = 50;
@@ -551,6 +555,9 @@ export default function WorkersPage() {
     }
     if (filters.createdDateFrom) p.CreatedDateFrom = filters.createdDateFrom;
     if (filters.createdDateTo) p.CreatedDateTo = filters.createdDateTo;
+    if (filters.employeeId) p.EmployeeId = filters.employeeId;
+    if (filters.updatedDateFrom) p.UpdatedDateFrom = filters.updatedDateFrom;
+    if (filters.updatedDateTo) p.UpdatedDateTo = filters.updatedDateTo;
     return p;
   }, [filters, activeTab, pageNumber]);
 
@@ -564,6 +571,7 @@ export default function WorkersPage() {
   const { data: jobs = [] } = useJobs();
   const { data: agents = [] } = useAgents();
   const { data: nationalities = [] } = useNationalities();
+  const { employees: hrEmployees } = useHREmployees({ pageSize: 200 });
   const { data: medicalExaminations = [] } = useMedicalExaminations();
   const { data: activeHousings = [] } = useHousingActiveList();
   const { mutateAsync: assignToHousing, isPending: isAssigning } = useAssignWorkerHousing();
@@ -592,6 +600,13 @@ export default function WorkersPage() {
             : a.agentNameEn || a.agentNameAr || '',
       }));
   }, [agents, language]);
+
+  const employeeOptions = useMemo(() => {
+    return hrEmployees.map((e) => ({
+      value: e.id,
+      label: `${e.nameAr || e.nameEn || '—'}${e.employeeNumber ? ` (${e.employeeNumber})` : ''}`,
+    }));
+  }, [hrEmployees]);
   const { mutate: createWorker, isPending: isCreating } = useCreateWorker();
   const { mutate: updateWorker, isPending: isUpdating } = useUpdateWorker();
   const { mutate: deleteWorker } = useDeleteWorker();
@@ -1144,6 +1159,24 @@ export default function WorkersPage() {
               </Col>
 
               <Col xs={24} md={6}>
+                <label className={styles.filterLabel}>{t('employee')}</label>
+                <Select
+                  size="large"
+                  placeholder={t('employee')}
+                  value={filters.employeeId}
+                  onChange={(value) => {
+                    setFilters({ ...filters, employeeId: value });
+                    setPageNumber(1);
+                  }}
+                  style={{ width: '100%' }}
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  options={employeeOptions}
+                />
+              </Col>
+
+              <Col xs={24} md={6}>
                 <label className={styles.filterLabel}>{t('gender')}</label>
                 <Select
                   size="large"
@@ -1271,6 +1304,20 @@ export default function WorkersPage() {
                   value={[filters.createdDateFrom, filters.createdDateTo]}
                   onChange={([from, to]) => {
                     setFilters({ ...filters, createdDateFrom: from, createdDateTo: to });
+                    setPageNumber(1);
+                  }}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+
+              <Col xs={24} md={12}>
+                <label className={styles.filterLabel}>
+                  {language === 'ar' ? 'تاريخ آخر تحديث' : 'Updated date'}
+                </label>
+                <DateRangeFilter
+                  value={[filters.updatedDateFrom, filters.updatedDateTo]}
+                  onChange={([from, to]) => {
+                    setFilters({ ...filters, updatedDateFrom: from, updatedDateTo: to });
                     setPageNumber(1);
                   }}
                   style={{ width: '100%' }}

@@ -9,6 +9,8 @@ import {
   ReloadOutlined,
   SearchOutlined,
   RedoOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
 } from '@ant-design/icons';
 import {
   useHourlyNotifications,
@@ -34,13 +36,19 @@ export default function HourlyNotificationsPage() {
 
   const [search, setSearch] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
+  const [orderId, setOrderId] = useState('');
   const [deliveryStatus, setDeliveryStatus] = useState<number | undefined>();
+  const [sortBy, setSortBy] = useState<'sentAt' | 'createdDate'>('createdDate');
+  const [sortDescending, setSortDescending] = useState(true);
   const [pageNumber, setPageNumber] = useState(1);
 
   const { data, isLoading, isFetching, refetch } = useHourlyNotifications({
     search: search || undefined,
     recipientPhone: recipientPhone || undefined,
+    orderId: orderId || undefined,
     deliveryStatus,
+    sortBy,
+    sortDescending,
     pageNumber,
     pageSize: PAGE_SIZE,
   });
@@ -104,9 +112,24 @@ export default function HourlyNotificationsPage() {
             className={styles.filterSelect} value={search} onChange={(e) => { setSearch(e.target.value); setPageNumber(1); }} />
           <Input allowClear size="large" prefix={<SearchOutlined />} placeholder={t('رقم الهاتف', 'Recipient phone')}
             className={styles.filterSelect} value={recipientPhone} onChange={(e) => { setRecipientPhone(e.target.value); setPageNumber(1); }} />
+          <Input allowClear size="large" placeholder={t('رقم الطلب', 'Order ID')}
+            className={styles.filterSelect} value={orderId} onChange={(e) => { setOrderId(e.target.value); setPageNumber(1); }} />
           <Select allowClear size="large" placeholder={t('حالة التسليم', 'Delivery status')} className={styles.filterSelect}
             value={deliveryStatus} onChange={(v) => { setDeliveryStatus(v); setPageNumber(1); }}
             options={Object.entries(NOTIFICATION_STATUS).map(([val, def]) => ({ value: Number(val), label: isAr ? def.ar : def.en }))} />
+          <Select size="large" className={styles.filterSelect}
+            value={sortBy} onChange={(v) => { setSortBy(v); setPageNumber(1); }}
+            options={[
+              { value: 'createdDate', label: t('ترتيب: الأحدث', 'Sort: Newest') },
+              { value: 'sentAt', label: t('ترتيب: تاريخ الإرسال', 'Sort: Sent At') },
+            ]} />
+          <Tooltip title={sortDescending ? t('تنازلي', 'Descending') : t('تصاعدي', 'Ascending')}>
+            <Button
+              size="large"
+              icon={sortDescending ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
+              onClick={() => { setSortDescending((d) => !d); setPageNumber(1); }}
+            />
+          </Tooltip>
         </div>
         <Table<HourlyOrderNotification> rowKey="id" columns={columns} dataSource={notifications} loading={isLoading} size="middle" bordered scroll={{ x: 1000 }}
           pagination={{ current: pageNumber, pageSize: PAGE_SIZE, total: totalCount, onChange: setPageNumber, showTotal: (n) => t(`الإجمالي: ${n}`, `Total: ${n}`) }} />

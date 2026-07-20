@@ -31,6 +31,18 @@ export interface PagedResponse<T> {
   pageSize: number;
 }
 
+// ─── Branches — GET /api/V1/Branch ────────────────────────────────────────────
+// Backend supports SearchName, Email, Mobile, PageNumber, PageSize only — no
+// branch scoping / date-range / sort on this endpoint, so this does NOT extend
+// PagedFilterQuery.
+export interface BranchQuery {
+  searchName?: string;
+  email?: string;
+  mobile?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
 // ─── Workers — GET /api/V1/Worker (+ /export) ────────────────────────────────
 export interface WorkerQuery extends PagedFilterQuery {
   searchName?: string;

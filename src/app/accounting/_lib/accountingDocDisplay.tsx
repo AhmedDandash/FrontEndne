@@ -90,6 +90,13 @@ export function renderJournalStatus(status: number | null | undefined, isAr: boo
 }
 
 // ── Document type (1=Receipt,2=Payment,3=Credit,4=Debit) ─────────────────────
+export const DOCUMENT_TYPE_OPTIONS = (isAr: boolean) => [
+  { value: 1, label: t(isAr, 'سند قبض', 'Receipt Voucher') },
+  { value: 2, label: t(isAr, 'سند صرف', 'Payment Voucher') },
+  { value: 3, label: t(isAr, 'إشعار دائن', 'Credit Note') },
+  { value: 4, label: t(isAr, 'إشعار مدين', 'Debit Note') },
+];
+
 export function documentTypeLabel(type: number | null | undefined, isAr: boolean) {
   switch (type) {
     case 1:

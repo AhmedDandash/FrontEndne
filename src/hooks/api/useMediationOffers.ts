@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MediationContractOfferService } from '@/services/mediation-contract-offer.service';
+import {
+  MediationContractOfferService,
+  type MediationOfferQuery,
+} from '@/services/mediation-contract-offer.service';
 import { getApiErrorMessage } from '@/utils/api-error';
 import type {
   MediationContractOffer,
@@ -10,10 +13,10 @@ import { message } from 'antd';
 
 const QUERY_KEY = 'mediationContractOffers';
 
-export const useMediationOffers = () => {
+export const useMediationOffers = (params?: MediationOfferQuery) => {
   return useQuery<MediationContractOffer[], Error>({
-    queryKey: [QUERY_KEY],
-    queryFn: () => MediationContractOfferService.getAll(),
+    queryKey: [QUERY_KEY, params],
+    queryFn: () => MediationContractOfferService.getAll(params),
   });
 };
 

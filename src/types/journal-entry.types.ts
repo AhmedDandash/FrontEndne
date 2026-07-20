@@ -244,6 +244,8 @@ export interface JournalEntriesQuery {
   includeSubBranches?: boolean;
   createdDateFrom?: string;
   createdDateTo?: string;
+  updatedDateFrom?: string;
+  updatedDateTo?: string;
   sortBy?: string;
   sortDescending?: boolean;
 }

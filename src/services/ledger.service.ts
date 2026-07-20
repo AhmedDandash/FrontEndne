@@ -139,7 +139,11 @@ export class LedgerService {
 
   static async getTrialBalance(query: TrialBalanceQuery = {}): Promise<TrialBalance> {
     const response = await api.get<any>(API_ENDPOINTS.LEDGER.TRIAL_BALANCE, {
-      params: { ...this.dateParams(query), groupedOnly: query.groupedOnly || undefined },
+      params: {
+        ...this.dateParams(query),
+        groupedOnly: query.groupedOnly || undefined,
+        excludeZeroBalances: query.excludeZeroBalances || undefined,
+      },
     });
     const d = this.unwrap<any>(response.data);
     return {
@@ -216,6 +220,7 @@ export class LedgerService {
         asOfDate: query.asOfDate,
         branchId: query.branchId || undefined,
         includeSubBranches: query.branchId ? query.includeSubBranches : undefined,
+        includeCurrentYearEarnings: query.includeCurrentYearEarnings || undefined,
       },
     });
     const d = this.unwrap<any>(response.data);
@@ -238,6 +243,8 @@ export class LedgerService {
         quarter: query.quarter,
         branchId: query.branchId || undefined,
         includeSubBranches: query.branchId ? query.includeSubBranches : undefined,
+        from: query.from || undefined,
+        to: query.to || undefined,
       },
     });
     const d = this.unwrap<any>(response.data);

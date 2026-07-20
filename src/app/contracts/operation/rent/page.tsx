@@ -20,6 +20,7 @@ import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperat
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useCustomers } from '@/hooks/api/useCustomers';
+import { useMarketers } from '@/hooks/api/useMarketers';
 import type {
   EmploymentOperatingContract,
   EmploymentContractOffer,
@@ -66,6 +67,18 @@ export default function RentContractsPage() {
   const [dateRange, setDateRange] = useState<[any, any] | null>(null);
   const [branchId, setBranchId] = useState<string | undefined>(undefined);
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  // ContractNumber / MarketerId / ContractDate — sent server-side (see the
+  // hook call below); Status/Nationality/free-text Search stay client-side
+  // because the API doesn't reliably return a contractStatus (derived from
+  // isFinish instead — see mapping.tsx) and has no NationalityId filter at all.
+  const [contractNumberFilter, setContractNumberFilter] = useState('');
+  const [debouncedContractNumber, setDebouncedContractNumber] = useState('');
+  const [marketerFilter, setMarketerFilter] = useState<string | 'all'>('all');
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedContractNumber(contractNumberFilter.trim()), 400);
+    return () => clearTimeout(id);
+  }, [contractNumberFilter]);
 
   // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -111,11 +124,16 @@ export default function RentContractsPage() {
   } = useEmploymentOperatingContracts({
     BranchId: branchId,
     IncludeSubBranches: branchId ? includeSubBranches : undefined,
+    ContractNumber: debouncedContractNumber || undefined,
+    MarketerId: marketerFilter !== 'all' ? marketerFilter : undefined,
+    ContractDateFrom: dateRange ? dateRange[0].startOf('day').toISOString() : undefined,
+    ContractDateTo: dateRange ? dateRange[1].endOf('day').toISOString() : undefined,
   });
 
   const { data: jobs = [] } = useJobs();
   const { data: nationalities = [] } = useNationalities();
   const { customers = [] } = useCustomers();
+  const { data: marketers = [] } = useMarketers();
 
   useEffect(() => setMounted(true), []);
 
@@ -150,6 +168,8 @@ export default function RentContractsPage() {
     executing: isRtl ? 'منفذ' : 'Executing',
     finished: isRtl ? 'منتهي' : 'Finished',
     allNationalities: isRtl ? 'جميع الجنسيات' : 'All Nationalities',
+    contractNumberFilter: isRtl ? 'رقم العقد' : 'Contract Number',
+    allMarketers: isRtl ? 'جميع المسوقين' : 'All Marketers',
     startDate: isRtl ? 'تاريخ البداية' : 'Start Date',
     endDate: isRtl ? 'تاريخ النهاية' : 'End Date',
     totalContracts: isRtl ? 'إجمالي العقود' : 'Total Contracts',
@@ -159,6 +179,11 @@ export default function RentContractsPage() {
     noResults: isRtl ? 'لا توجد نتائج' : 'No results found',
   };
 
+  // NOTE: ContractNumber, MarketerId and ContractDateFrom/To are now sent
+  // server-side (see the hook call above), so `allContracts` already reflects
+  // those constraints — only Search/Status/Nationality need client-side
+  // matching here (Status is derived from `isFinish`, not a real API field;
+  // Nationality has no backend query param at all — see mapping.tsx).
   const filteredContracts = useMemo(() => {
     return allContracts.filter((contract) => {
       if (customerId && String(contract.customerId) !== String(customerId)) return false;
@@ -172,14 +197,9 @@ export default function RentContractsPage() {
         contract.workerNameAr.includes(searchText);
       const matchesStatus = statusFilter === 'all' || contract.status === statusFilter;
       const matchesNationality = nationalityFilter === 'all' || contract.nationalityId === String(nationalityFilter);
-      const matchesDate =
-        !dateRange ||
-        (!!contract.startDate &&
-          new Date(contract.startDate) >= dateRange[0].toDate() &&
-          new Date(contract.startDate) <= dateRange[1].toDate());
-      return matchesSearch && matchesStatus && matchesNationality && matchesDate;
+      return matchesSearch && matchesStatus && matchesNationality;
     });
-  }, [allContracts, searchText, statusFilter, nationalityFilter, dateRange, customerId]);
+  }, [allContracts, searchText, statusFilter, nationalityFilter, customerId]);
 
   const stats = useMemo(
     () => ({
@@ -491,6 +511,32 @@ export default function RentContractsPage() {
               includeSubBranches={includeSubBranches}
               onIncludeSubBranchesChange={setIncludeSubBranches}
               style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={4}>
+            <Input
+              placeholder={t.contractNumberFilter}
+              value={contractNumberFilter}
+              onChange={(e) => setContractNumberFilter(e.target.value)}
+              allowClear
+              size="large"
+            />
+          </Col>
+          <Col xs={12} sm={6} md={4}>
+            <Select
+              value={marketerFilter}
+              onChange={setMarketerFilter}
+              style={{ width: '100%' }}
+              size="large"
+              showSearch
+              optionFilterProp="label"
+              options={[
+                { value: 'all', label: t.allMarketers },
+                ...(marketers as any[]).map((m) => ({
+                  value: String(m.id),
+                  label: (isRtl ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
+                })),
+              ]}
             />
           </Col>
         </Row>

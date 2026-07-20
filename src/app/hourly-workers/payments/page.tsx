@@ -18,6 +18,8 @@ import {
   ReloadOutlined,
   SearchOutlined,
   RollbackOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
 } from '@ant-design/icons';
 import { useHourlyPayments, useHourlyPaymentMutations } from '@/hooks/api/useHourlyPayments';
 import { useHourlyPermissions } from '@/hooks/useHourlyPermissions';
@@ -42,17 +44,21 @@ export default function HourlyPaymentsPage() {
   const canRefund = perms.isFullAccess;
 
   const [search, setSearch] = useState('');
+  const [orderId, setOrderId] = useState('');
   const [status, setStatus] = useState<number | undefined>();
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [sortBy, setSortBy] = useState<'amount' | 'status' | 'createdDate'>('createdDate');
+  const [sortDescending, setSortDescending] = useState(true);
   const [pageNumber, setPageNumber] = useState(1);
 
   const { data, isLoading, isFetching, refetch } = useHourlyPayments({
     search: search || undefined,
+    orderId: orderId || undefined,
     status,
     dateFrom: range?.[0]?.startOf('day').toISOString(),
     dateTo: range?.[1]?.endOf('day').toISOString(),
-    sortBy: 'createdDate',
-    sortDescending: true,
+    sortBy,
+    sortDescending,
     pageNumber,
     pageSize: PAGE_SIZE,
   });
@@ -111,10 +117,26 @@ export default function HourlyPaymentsPage() {
         <div className={styles.filters}>
           <Input allowClear size="large" prefix={<SearchOutlined />} placeholder={t('بحث بالمرجع أو التذكرة', 'Search reference or ticket')}
             className={styles.filterInput} value={search} onChange={(e) => { setSearch(e.target.value); setPageNumber(1); }} />
+          <Input allowClear size="large" placeholder={t('رقم الطلب', 'Order ID')}
+            className={styles.filterInput} value={orderId} onChange={(e) => { setOrderId(e.target.value); setPageNumber(1); }} />
           <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
             value={status} onChange={(v) => { setStatus(v); setPageNumber(1); }}
             options={Object.entries(PAYMENT_RECORD_STATUS).map(([val, def]) => ({ value: Number(val), label: isAr ? def.ar : def.en }))} />
           <RangePicker size="large" className={styles.filterDate} onChange={(d) => { setRange(d as [Dayjs | null, Dayjs | null] | null); setPageNumber(1); }} />
+          <Select size="large" className={styles.filterSelect}
+            value={sortBy} onChange={(v) => { setSortBy(v); setPageNumber(1); }}
+            options={[
+              { value: 'createdDate', label: t('ترتيب: الأحدث', 'Sort: Newest') },
+              { value: 'amount', label: t('ترتيب: المبلغ', 'Sort: Amount') },
+              { value: 'status', label: t('ترتيب: الحالة', 'Sort: Status') },
+            ]} />
+          <Tooltip title={sortDescending ? t('تنازلي', 'Descending') : t('تصاعدي', 'Ascending')}>
+            <Button
+              size="large"
+              icon={sortDescending ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
+              onClick={() => { setSortDescending((d) => !d); setPageNumber(1); }}
+            />
+          </Tooltip>
         </div>
         <Table<HourlyPaymentListItem> rowKey="id" columns={columns} dataSource={payments} loading={isLoading} size="middle" bordered scroll={{ x: 1100 }}
           pagination={{ current: pageNumber, pageSize: PAGE_SIZE, total: totalCount, onChange: setPageNumber, showTotal: (n) => t(`الإجمالي: ${n}`, `Total: ${n}`) }} />

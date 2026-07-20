@@ -134,6 +134,9 @@ const TR: Record<string, Record<'ar' | 'en', string>> = {
   showing:         { ar: 'عرض',    en: 'Showing' },
   of:              { ar: 'من',     en: 'of' },
   contracts:       { ar: 'عقد',    en: 'contracts' },
+  allCustomers:    { ar: 'جميع العملاء', en: 'All Customers' },
+  allWorkers:      { ar: 'جميع العمال',  en: 'All Workers' },
+  allMarketers:    { ar: 'جميع المسوقين', en: 'All Marketers' },
 };
 
 function useT() {
@@ -655,6 +658,13 @@ export default function SponsorshipTransferPage() {
     undefined,
     undefined,
   ]);
+  const [updatedDateRange, setUpdatedDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [customerFilter, setCustomerFilter] = useState<string | 'all'>('all');
+  const [workerFilter,   setWorkerFilter]   = useState<string | 'all'>('all');
+  const [marketerFilter, setMarketerFilter] = useState<string | 'all'>('all');
   const [currentPage,   setCurrentPage]   = useState(1);
   const [pageSize,      setPageSize]      = useState(10);
   const [createModal,   setCreateModal]   = useState(false);
@@ -662,6 +672,32 @@ export default function SponsorshipTransferPage() {
   // per-card modal state (one at a time)
   const [complaintId, setComplaintId] = useState<string | null>(null);
   const [authorityId, setAuthorityId] = useState<string | null>(null);
+
+  const isAr = language === 'ar';
+  const { customers: filterCustomers } = useCustomers();
+  const { data: filterWorkers } = useWorkersWantsTransfer();
+  const { data: filterMarketers } = useMarketers();
+
+  const customerFilterOpts = useMemo(
+    () =>
+      (filterCustomers ?? []).map((c: any) => ({
+        value: String(c.id),
+        label: (isAr ? c.arabicName : c.englishName) || c.arabicName || c.englishName || `#${c.id}`,
+      })),
+    [filterCustomers, isAr]
+  );
+  const workerFilterOpts = useMemo(
+    () => (filterWorkers ?? []).map((w) => ({ value: String(w.id), label: w.name || `#${w.id}` })),
+    [filterWorkers]
+  );
+  const marketerFilterOpts = useMemo(
+    () =>
+      (filterMarketers ?? []).map((m: any) => ({
+        value: String(m.id),
+        label: (isAr ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
+      })),
+    [filterMarketers, isAr]
+  );
 
   // All filters are applied server-side (TransferContractQuery).
   const transferParams = useMemo(
@@ -674,8 +710,25 @@ export default function SponsorshipTransferPage() {
       contractStatus: statusFilter !== 'all' ? Number(statusFilter) : undefined,
       createdDateFrom: dateRange[0],
       createdDateTo: dateRange[1],
+      updatedDateFrom: updatedDateRange[0],
+      updatedDateTo: updatedDateRange[1],
+      customerId: customerFilter === 'all' ? undefined : customerFilter,
+      workerId: workerFilter === 'all' ? undefined : workerFilter,
+      marketerId: marketerFilter === 'all' ? undefined : marketerFilter,
     }),
-    [currentPage, pageSize, searchText, branchId, includeSubBranches, statusFilter, dateRange]
+    [
+      currentPage,
+      pageSize,
+      searchText,
+      branchId,
+      includeSubBranches,
+      statusFilter,
+      dateRange,
+      updatedDateRange,
+      customerFilter,
+      workerFilter,
+      marketerFilter,
+    ]
   );
 
   const { data, isLoading, refetch } = useTransferContracts(transferParams);
@@ -839,6 +892,47 @@ export default function SponsorshipTransferPage() {
               value={dateRange}
               onChange={(range) => { setDateRange(range); setCurrentPage(1); }}
               placeholder={['أُنشئ من', 'إلى']}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={7}>
+            <Select
+              value={customerFilter}
+              onChange={(v) => { setCustomerFilter(v); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+              size="large"
+              showSearch
+              optionFilterProp="label"
+              options={[{ value: 'all', label: t('allCustomers') }, ...customerFilterOpts]}
+            />
+          </Col>
+          <Col xs={24} md={7}>
+            <Select
+              value={workerFilter}
+              onChange={(v) => { setWorkerFilter(v); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+              size="large"
+              showSearch
+              optionFilterProp="label"
+              options={[{ value: 'all', label: t('allWorkers') }, ...workerFilterOpts]}
+            />
+          </Col>
+          <Col xs={24} md={7}>
+            <Select
+              value={marketerFilter}
+              onChange={(v) => { setMarketerFilter(v); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+              size="large"
+              showSearch
+              optionFilterProp="label"
+              options={[{ value: 'all', label: t('allMarketers') }, ...marketerFilterOpts]}
+            />
+          </Col>
+          <Col xs={24} md={14}>
+            <DateRangeFilter
+              value={updatedDateRange}
+              onChange={(range) => { setUpdatedDateRange(range); setCurrentPage(1); }}
+              placeholder={['حُدّث من', 'إلى']}
               style={{ width: '100%' }}
             />
           </Col>

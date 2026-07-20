@@ -23,6 +23,7 @@ export default function TrialBalancePage() {
 
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
   const [groupedOnly, setGroupedOnly] = useState(false);
+  const [excludeZeroBalances, setExcludeZeroBalances] = useState(false);
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
@@ -30,6 +31,7 @@ export default function TrialBalancePage() {
     from: range?.[0]?.startOf('day').toISOString(),
     to: range?.[1]?.endOf('day').toISOString(),
     groupedOnly,
+    excludeZeroBalances,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
   });
@@ -141,6 +143,10 @@ export default function TrialBalancePage() {
           <Space>
             <Switch checked={groupedOnly} onChange={setGroupedOnly} />
             <span>{t('الحسابات المجمعة فقط', 'Grouped accounts only')}</span>
+          </Space>
+          <Space>
+            <Switch checked={excludeZeroBalances} onChange={setExcludeZeroBalances} />
+            <span>{t('استبعاد الأرصدة الصفرية', 'Exclude zero balances')}</span>
           </Space>
         </div>
 

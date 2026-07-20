@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, Table, DatePicker, Empty, Spin, Row, Col, Tag } from 'antd';
+import { Card, Table, DatePicker, Empty, Spin, Row, Col, Tag, Switch, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
 import { BankOutlined } from '@ant-design/icons';
@@ -20,11 +20,13 @@ export default function BalanceSheetPage() {
   const [asOf, setAsOf] = useState<Dayjs | null>(dayjs());
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  const [includeCurrentYearEarnings, setIncludeCurrentYearEarnings] = useState(false);
 
   const { data, isLoading, isFetching, refetch } = useBalanceSheet({
     asOfDate: asOf?.format('YYYY-MM-DD'),
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
+    includeCurrentYearEarnings,
   });
 
   const sectionColumns = (label: string): ColumnsType<BalanceSheetLine> => [
@@ -107,6 +109,10 @@ export default function BalanceSheetPage() {
               includeSubBranches={includeSubBranches}
               onIncludeSubBranchesChange={setIncludeSubBranches}
             />
+            <Space>
+              <Switch checked={includeCurrentYearEarnings} onChange={setIncludeCurrentYearEarnings} />
+              <span>{t('شمل أرباح السنة الحالية', 'Include current-year earnings')}</span>
+            </Space>
           </>
         }
       />

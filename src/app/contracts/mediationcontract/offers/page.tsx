@@ -56,20 +56,27 @@ export default function MediationOffersPage() {
   const { language } = useAuthStore();
   const isArabic = language === 'ar';
 
-  // API hooks
-  const { data: offers = [], isLoading } = useMediationOffers();
+  // Filter state — nationalityId is UUID string
+  const [nationalityFilter, setNationalityFilter] = useState<string | null>(null);
+  const [jobFilter, setJobFilter] = useState<string | null>(null);
+  const [workerTypeFilter, setWorkerTypeFilter] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // API hooks — nationality/job/workerType are cheap enough to also apply
+  // server-side even though this is a fetch-all picker list; the client-side
+  // filter below still runs on top (harmless no-op once the server already
+  // filtered) and keeps `searchTerm` (which has no direct server field) working.
+  const { data: offers = [], isLoading } = useMediationOffers({
+    NationalityId: nationalityFilter ?? undefined,
+    JobId: jobFilter ?? undefined,
+    WorkerType: workerTypeFilter ?? undefined,
+  });
   const { data: contractNationalities = [] } = useContractNationalities();
   const { data: jobs = [] } = useJobs();
   const createMutation = useCreateMediationOffer();
   const updateMutation = useUpdateMediationOffer();
   const deleteMutation = useDeleteMediationOffer();
   const toggleMutation = useToggleMediationOffer();
-
-  // Filter state — nationalityId is UUID string
-  const [nationalityFilter, setNationalityFilter] = useState<string | null>(null);
-  const [jobFilter, setJobFilter] = useState<string | null>(null);
-  const [workerTypeFilter, setWorkerTypeFilter] = useState<number | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);

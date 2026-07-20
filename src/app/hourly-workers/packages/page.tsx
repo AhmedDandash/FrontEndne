@@ -24,6 +24,8 @@ import {
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
 } from '@ant-design/icons';
 import { useHourlyPackages, useHourlyPackageMutations } from '@/hooks/api/useHourlyCatalog';
 import { useHourlyPermissions } from '@/hooks/useHourlyPermissions';
@@ -46,11 +48,15 @@ export default function HourlyPackagesPage() {
 
   const [search, setSearch] = useState('');
   const [isActive, setIsActive] = useState<boolean | undefined>();
+  const [sortBy, setSortBy] = useState<'code' | 'nameEn' | 'basePrice' | 'sortOrder' | 'createdDate'>('createdDate');
+  const [sortDescending, setSortDescending] = useState(true);
   const [pageNumber, setPageNumber] = useState(1);
 
   const { data, isLoading, isFetching, refetch } = useHourlyPackages({
     search: search || undefined,
     isActive,
+    sortBy,
+    sortDescending,
     pageNumber,
     pageSize: PAGE_SIZE,
   });
@@ -155,6 +161,22 @@ export default function HourlyPackagesPage() {
           <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
             value={isActive} onChange={(v) => { setIsActive(v); setPageNumber(1); }}
             options={[{ value: true, label: t('نشط', 'Active') }, { value: false, label: t('غير نشط', 'Inactive') }]} />
+          <Select size="large" className={styles.filterSelect}
+            value={sortBy} onChange={(v) => { setSortBy(v); setPageNumber(1); }}
+            options={[
+              { value: 'createdDate', label: t('ترتيب: الأحدث', 'Sort: Newest') },
+              { value: 'code', label: t('ترتيب: الرمز', 'Sort: Code') },
+              { value: 'nameEn', label: t('ترتيب: الاسم', 'Sort: Name') },
+              { value: 'basePrice', label: t('ترتيب: السعر الأساسي', 'Sort: Base Price') },
+              { value: 'sortOrder', label: t('ترتيب: الترتيب', 'Sort: Sort Order') },
+            ]} />
+          <Tooltip title={sortDescending ? t('تنازلي', 'Descending') : t('تصاعدي', 'Ascending')}>
+            <Button
+              size="large"
+              icon={sortDescending ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
+              onClick={() => { setSortDescending((d) => !d); setPageNumber(1); }}
+            />
+          </Tooltip>
         </div>
         <Table<HourlyServicePackage> rowKey="id" columns={columns} dataSource={packages} loading={isLoading} size="middle" bordered scroll={{ x: 1000 }}
           pagination={{ current: pageNumber, pageSize: PAGE_SIZE, total: totalCount, onChange: setPageNumber, showTotal: (n) => t(`الإجمالي: ${n}`, `Total: ${n}`) }} />

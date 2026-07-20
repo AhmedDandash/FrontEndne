@@ -46,12 +46,13 @@ export class PeriodClosingService {
   }
 
   /**
-   * Returns whether the given year is closed.
-   * `status` returns `{ success, data: <boolean> }` — a plain boolean flag.
+   * Returns whether the given year (optionally scoped to a specific month) is
+   * closed. `status` returns `{ success, data: <boolean> }` — a plain boolean flag.
+   * `month` (1–12) was previously never sent — added per the live OpenAPI spec.
    */
-  static async getStatus(year: number): Promise<boolean> {
+  static async getStatus(year: number, month?: number): Promise<boolean> {
     const response = await api.get<any>(API_ENDPOINTS.PERIOD_CLOSING.STATUS, {
-      params: { year },
+      params: { year, month: month || undefined },
     });
     return unwrap<boolean>(response.data) === true;
   }

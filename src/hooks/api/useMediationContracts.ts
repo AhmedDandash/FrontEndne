@@ -44,8 +44,16 @@ export interface MediationContractListParams {
   visaNumber?: string;
   createdDateFrom?: string;
   createdDateTo?: string;
+  updatedDateFrom?: string;
+  updatedDateTo?: string;
   customerId?: string;
   workerId?: string;
+  agentId?: string;
+  marketerId?: string;
+  /** Filter by the contract's own id (distinct from contractNumber). */
+  contractId?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
   // Advanced filters (ErpImprovementsJul2026).
   withoutAssignedWorker?: boolean;
   isPaid?: boolean;
@@ -84,8 +92,15 @@ export function useMediationContracts(params?: MediationContractListParams) {
       VisaNumber: params?.visaNumber,
       CreatedDateFrom: params?.createdDateFrom,
       CreatedDateTo: params?.createdDateTo,
+      UpdatedDateFrom: params?.updatedDateFrom,
+      UpdatedDateTo: params?.updatedDateTo,
       CustomerId: params?.customerId,
       WorkerId: params?.workerId,
+      AgentId: params?.agentId,
+      MarketerId: params?.marketerId,
+      ContractId: params?.contractId,
+      SortBy: params?.sortBy,
+      SortDescending: params?.sortDescending,
       WithoutAssignedWorker: params?.withoutAssignedWorker,
       IsPaid: params?.isPaid,
       IsUnpaid: params?.isUnpaid,

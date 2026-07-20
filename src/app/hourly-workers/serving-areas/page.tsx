@@ -24,6 +24,8 @@ import {
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
 } from '@ant-design/icons';
 import {
   useHourlyServingAreas,
@@ -48,11 +50,17 @@ export default function HourlyServingAreasPage() {
 
   const [search, setSearch] = useState('');
   const [isActive, setIsActive] = useState<boolean | undefined>();
+  const [city, setCity] = useState('');
+  const [sortBy, setSortBy] = useState<'nameEn' | 'cityEn' | 'createdDate'>('createdDate');
+  const [sortDescending, setSortDescending] = useState(true);
   const [pageNumber, setPageNumber] = useState(1);
 
   const { data, isLoading, isFetching, refetch } = useHourlyServingAreas({
     search: search || undefined,
     isActive,
+    city: city || undefined,
+    sortBy,
+    sortDescending,
     pageNumber,
     pageSize: PAGE_SIZE,
   });
@@ -153,6 +161,22 @@ export default function HourlyServingAreasPage() {
           <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
             value={isActive} onChange={(v) => { setIsActive(v); setPageNumber(1); }}
             options={[{ value: true, label: t('نشط', 'Active') }, { value: false, label: t('غير نشط', 'Inactive') }]} />
+          <Input allowClear size="large" placeholder={t('المدينة', 'City')} className={styles.filterInput}
+            value={city} onChange={(e) => { setCity(e.target.value); setPageNumber(1); }} />
+          <Select size="large" className={styles.filterSelect}
+            value={sortBy} onChange={(v) => { setSortBy(v); setPageNumber(1); }}
+            options={[
+              { value: 'createdDate', label: t('ترتيب: الأحدث', 'Sort: Newest') },
+              { value: 'nameEn', label: t('ترتيب: الاسم', 'Sort: Name') },
+              { value: 'cityEn', label: t('ترتيب: المدينة', 'Sort: City') },
+            ]} />
+          <Tooltip title={sortDescending ? t('تنازلي', 'Descending') : t('تصاعدي', 'Ascending')}>
+            <Button
+              size="large"
+              icon={sortDescending ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
+              onClick={() => { setSortDescending((d) => !d); setPageNumber(1); }}
+            />
+          </Tooltip>
         </div>
         <Table<HourlyServingArea> rowKey="id" columns={columns} dataSource={areas} loading={isLoading} size="middle" bordered scroll={{ x: 900 }}
           pagination={{ current: pageNumber, pageSize: PAGE_SIZE, total: totalCount, onChange: setPageNumber, showTotal: (n) => t(`الإجمالي: ${n}`, `Total: ${n}`) }} />

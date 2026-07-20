@@ -5,7 +5,16 @@
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { buildListParams } from '@/lib/api/buildListParams';
 import type { Marketer, CreateMarketerDto, UpdateMarketerDto } from '@/types/api.types';
+import type { PagedResponse } from '@/types/filters.types';
+
+/** GET /api/V1/Marketer filters — backend supports SearchName, PageNumber, PageSize. */
+export interface MarketerQuery {
+  searchName?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
 
 export class MarketerService {
   /**
@@ -22,6 +31,23 @@ export class MarketerService {
     if (response.data?.result && Array.isArray(response.data.result)) return response.data.result;
     if (response.data?.items && Array.isArray(response.data.items)) return response.data.items;
     return [];
+  }
+
+  /**
+   * GET /api/V1/Marketer with server-side search + pagination.
+   * Kept alongside `getAll()` (unpaged) which existing dropdown code relies on.
+   */
+  static async getPaged(query?: MarketerQuery): Promise<PagedResponse<Marketer>> {
+    const params = buildListParams(query as Record<string, unknown>);
+    const response = await api.get<any>(API_ENDPOINTS.MARKETER.GET_ALL, { params });
+    const payload = response.data;
+    const page = payload?.data ?? payload;
+    return {
+      items: Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : [],
+      totalCount: page?.totalCount ?? 0,
+      pageNumber: page?.pageNumber ?? query?.pageNumber ?? 1,
+      pageSize: page?.pageSize ?? query?.pageSize ?? 10,
+    };
   }
 
   /**

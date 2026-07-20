@@ -17,9 +17,13 @@ function extractArray<T>(responseData: any): T[] {
 }
 
 export class NationalityFollowUpConfigService {
-  static async getByNationality(contractNationalityId: number): Promise<NationalityFollowUpConfig[]> {
+  static async getByNationality(
+    contractNationalityId: number,
+    isActive?: boolean
+  ): Promise<NationalityFollowUpConfig[]> {
     const res = await api.get<any>(
-      API_ENDPOINTS.NATIONALITY_FOLLOWUP_CONFIG.GET_BY_NATIONALITY(contractNationalityId)
+      API_ENDPOINTS.NATIONALITY_FOLLOWUP_CONFIG.GET_BY_NATIONALITY(contractNationalityId),
+      { params: isActive != null ? { isActive } : undefined }
     );
     const items = extractArray<NationalityFollowUpConfig>(res.data);
     return items.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));

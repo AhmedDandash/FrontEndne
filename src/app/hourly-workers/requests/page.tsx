@@ -29,13 +29,16 @@ import {
   PlayCircleOutlined,
   CheckCircleOutlined,
   StopOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
 } from '@ant-design/icons';
 import {
   useHourlyWorkerRequests,
   useHourlyWorkerRequestActions,
 } from '@/hooks/api/useHourlyWorkers';
 import { useHourlyWorkers } from '@/hooks/api/useHourlyWorkers';
-import { BranchFilterSelect } from '@/components/filters';
+import { useHourlyPackages, useHourlyServingAreas } from '@/hooks/api/useHourlyCatalog';
+import { BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { useHourlyPermissions } from '@/hooks/useHourlyPermissions';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -48,7 +51,7 @@ import {
   type HourlyWorkerRequest,
   type HourlyRequestAction,
 } from '@/types/hourly-worker.types';
-import { fmtTime } from '../_lib/hourlyDisplay';
+import { fmtTime, ORDER_PAYMENT_STATUS } from '../_lib/hourlyDisplay';
 import styles from '../hourly-workers.module.css';
 
 const { RangePicker } = DatePicker;
@@ -73,6 +76,20 @@ export default function HourlyWorkerRequestsPage() {
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  // Additional filters (beyond ticket/customer/status/date-of-request above).
+  const [search, setSearch] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [serviceCity, setServiceCity] = useState('');
+  const [serviceDistrict, setServiceDistrict] = useState('');
+  const [packageId, setPackageId] = useState<string | undefined>();
+  const [servingAreaId, setServingAreaId] = useState<string | undefined>();
+  const [paymentStatus, setPaymentStatus] = useState<number | undefined>();
+  const [sortBy, setSortBy] = useState<
+    'ticketNumber' | 'customerName' | 'requestDate' | 'status' | 'createdDate'
+  >('createdDate');
+  const [sortDescending, setSortDescending] = useState(true);
+  const [createdRange, setCreatedRange] = useState<[string | undefined, string | undefined]>([undefined, undefined]);
+  const [updatedRange, setUpdatedRange] = useState<[string | undefined, string | undefined]>([undefined, undefined]);
   const [pageNumber, setPageNumber] = useState(1);
 
   const { data, isLoading, isFetching, refetch } = useHourlyWorkerRequests({
@@ -83,12 +100,32 @@ export default function HourlyWorkerRequestsPage() {
     includeSubBranches: branchId ? includeSubBranches : undefined,
     dateFrom: range?.[0]?.startOf('day').toISOString(),
     dateTo: range?.[1]?.endOf('day').toISOString(),
+    search: search || undefined,
+    customerPhone: customerPhone || undefined,
+    serviceCity: serviceCity || undefined,
+    serviceDistrict: serviceDistrict || undefined,
+    packageId,
+    servingAreaId,
+    paymentStatus,
+    sortBy,
+    sortDescending,
+    createdDateFrom: createdRange[0],
+    createdDateTo: createdRange[1],
+    updatedDateFrom: updatedRange[0],
+    updatedDateTo: updatedRange[1],
     pageNumber,
     pageSize: PAGE_SIZE,
   });
 
   const requests = useMemo(() => data?.items ?? [], [data]);
   const totalCount = data?.totalCount ?? 0;
+
+  // Package/serving-area dropdown data — fetched here (not reused from
+  // elsewhere on this page) for the filter selects below.
+  const { data: packageData } = useHourlyPackages({ isActive: true, pageSize: 100 });
+  const packageOptions = packageData?.items ?? [];
+  const { data: servingAreaData } = useHourlyServingAreas({ isActive: true, pageSize: 100 });
+  const servingAreaOptions = servingAreaData?.items ?? [];
 
   const actions = useHourlyWorkerRequestActions();
 
@@ -368,10 +405,109 @@ export default function HourlyWorkerRequestsPage() {
           <RangePicker
             size="large"
             className={styles.filterDate}
+            placeholder={[t('تاريخ الطلب من', 'Request date from'), t('تاريخ الطلب إلى', 'Request date to')]}
             onChange={(dates) => {
               setRange(dates as [Dayjs | null, Dayjs | null] | null);
               setPageNumber(1);
             }}
+          />
+          <Input
+            allowClear
+            size="large"
+            prefix={<SearchOutlined />}
+            placeholder={t('بحث عام', 'General search')}
+            className={styles.filterSelect}
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPageNumber(1); }}
+          />
+          <Input
+            allowClear
+            size="large"
+            prefix={<SearchOutlined />}
+            placeholder={t('هاتف العميل', 'Customer phone')}
+            className={styles.filterSelect}
+            value={customerPhone}
+            onChange={(e) => { setCustomerPhone(e.target.value); setPageNumber(1); }}
+          />
+          <Input
+            allowClear
+            size="large"
+            placeholder={t('مدينة الخدمة', 'Service city')}
+            className={styles.filterSelect}
+            value={serviceCity}
+            onChange={(e) => { setServiceCity(e.target.value); setPageNumber(1); }}
+          />
+          <Input
+            allowClear
+            size="large"
+            placeholder={t('حي الخدمة', 'Service district')}
+            className={styles.filterSelect}
+            value={serviceDistrict}
+            onChange={(e) => { setServiceDistrict(e.target.value); setPageNumber(1); }}
+          />
+          <Select
+            allowClear
+            showSearch
+            size="large"
+            placeholder={t('الباقة', 'Package')}
+            className={styles.filterSelect}
+            optionFilterProp="label"
+            value={packageId}
+            onChange={(v) => { setPackageId(v); setPageNumber(1); }}
+            options={packageOptions.map((p) => ({ value: p.id, label: isAr ? p.nameAr : p.nameEn }))}
+          />
+          <Select
+            allowClear
+            showSearch
+            size="large"
+            placeholder={t('منطقة الخدمة', 'Serving area')}
+            className={styles.filterSelect}
+            optionFilterProp="label"
+            value={servingAreaId}
+            onChange={(v) => { setServingAreaId(v); setPageNumber(1); }}
+            options={servingAreaOptions.map((a) => ({ value: a.id, label: isAr ? a.nameAr : a.nameEn }))}
+          />
+          <Select
+            allowClear
+            size="large"
+            placeholder={t('حالة الدفع', 'Payment status')}
+            className={styles.filterSelect}
+            value={paymentStatus}
+            onChange={(v) => { setPaymentStatus(v); setPageNumber(1); }}
+            options={Object.entries(ORDER_PAYMENT_STATUS).map(([val, def]) => ({
+              value: Number(val),
+              label: isAr ? def.ar : def.en,
+            }))}
+          />
+          <Select
+            size="large"
+            className={styles.filterSelect}
+            value={sortBy}
+            onChange={(v) => { setSortBy(v); setPageNumber(1); }}
+            options={[
+              { value: 'createdDate', label: t('ترتيب: الأحدث', 'Sort: Newest') },
+              { value: 'ticketNumber', label: t('ترتيب: رقم التذكرة', 'Sort: Ticket No.') },
+              { value: 'customerName', label: t('ترتيب: اسم العميل', 'Sort: Customer Name') },
+              { value: 'requestDate', label: t('ترتيب: تاريخ الطلب', 'Sort: Request Date') },
+              { value: 'status', label: t('ترتيب: الحالة', 'Sort: Status') },
+            ]}
+          />
+          <Tooltip title={sortDescending ? t('تنازلي', 'Descending') : t('تصاعدي', 'Ascending')}>
+            <Button
+              size="large"
+              icon={sortDescending ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
+              onClick={() => { setSortDescending((d) => !d); setPageNumber(1); }}
+            />
+          </Tooltip>
+          <DateRangeFilter
+            value={createdRange}
+            onChange={(r) => { setCreatedRange(r); setPageNumber(1); }}
+            placeholder={[t('إنشاء من', 'Created from'), t('إنشاء إلى', 'Created to')]}
+          />
+          <DateRangeFilter
+            value={updatedRange}
+            onChange={(r) => { setUpdatedRange(r); setPageNumber(1); }}
+            placeholder={[t('تحديث من', 'Updated from'), t('تحديث إلى', 'Updated to')]}
           />
           <BranchFilterSelect
             value={branchId}

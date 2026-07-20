@@ -17,11 +17,29 @@ import type {
   UpdateOperatingContractOfferDto,
 } from '@/types/api.types';
 
+/**
+ * Optional server-side filters for GET /api/OperatingContractOffer.
+ * This is bounded reference/picker data so the service still fetches "all"
+ * (PageSize=9999, PageNumber=1) — but sending these cheap query params
+ * server-side is strictly better than fetching everything and filtering
+ * client-side.
+ */
+export interface OperatingContractOfferQuery {
+  SearchTitle?: string;
+  OfferType?: number;
+  BranchId?: string;
+  NationalityId?: string;
+  JobId?: string;
+  IsActive?: boolean;
+}
+
 export class OperatingContractOfferService {
   /**
    * GET /api/OperatingContractOffer
    */
-  static async getAll(params?: Record<string, any>): Promise<OperatingContractOffer[]> {
+  static async getAll(
+    params?: OperatingContractOfferQuery | Record<string, any>
+  ): Promise<OperatingContractOffer[]> {
     // Always fetch all items — API defaults to pageSize=1 which would hide data
     const mergedParams = { PageSize: 9999, PageNumber: 1, ...params };
     const response = await api.get<any>(API_ENDPOINTS.OPERATING_CONTRACT_OFFER.GET_ALL, {
