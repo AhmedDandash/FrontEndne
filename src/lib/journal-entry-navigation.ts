@@ -33,6 +33,7 @@ export const JE_SOURCE_ROUTES = {
   mediationContract: '/contracts/mediationcontract',
   operatingContract: '/contracts/operation/rent',
   transferContract: '/sponsorship-transfer',
+  generalVoucher: '/accounting/general-vouchers',
   receiptVoucher: '/accounting/receipt-vouchers',
   paymentVoucher: '/accounting/payment-vouchers',
   creditNote: '/accounting/credit-notes',
@@ -273,6 +274,7 @@ export async function resolveContractRoute(sourceId: string): Promise<string> {
  *   detail route yet, so they correctly keep the `?openId=` form.
  */
 const PATH_PARAM_ROUTES: ReadonlySet<string> = new Set([
+  JE_SOURCE_ROUTES.generalVoucher,
   JE_SOURCE_ROUTES.mediationContract,
   JE_SOURCE_ROUTES.operatingContract,
   JE_SOURCE_ROUTES.transferContract,

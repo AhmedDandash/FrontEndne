@@ -106,6 +106,7 @@ export const PAGE_REGISTRY: PageDef[] = [
   { key: '/accounting/chart-of-accounts', labelAr: 'شجرة الحسابات', labelEn: 'Chart of Accounts', group: 'accounting', groupAr: 'المحاسبة', groupEn: 'Accounting' },
   { key: '/accounting/account-settings', labelAr: 'إعدادات الحسابات', labelEn: 'Account Settings', group: 'accounting', groupAr: 'المحاسبة', groupEn: 'Accounting' },
   { key: '/accounting/restriction-types', labelAr: 'أنواع القيود', labelEn: 'Restriction Types', group: 'accounting', groupAr: 'المحاسبة', groupEn: 'Accounting' },
+  { key: '/accounting/general-vouchers', labelAr: 'السندات العامة', labelEn: 'General Vouchers', group: 'accounting', groupAr: 'المحاسبة', groupEn: 'Accounting' },
   { key: '/accounting/receipt-vouchers', labelAr: 'سندات القبض', labelEn: 'Receipt Vouchers', group: 'accounting', groupAr: 'المحاسبة', groupEn: 'Accounting' },
   { key: '/accounting/payment-vouchers', labelAr: 'سندات الصرف', labelEn: 'Payment Vouchers', group: 'accounting', groupAr: 'المحاسبة', groupEn: 'Accounting' },
   { key: '/accounting/credit-notes', labelAr: 'إشعارات الدائن', labelEn: 'Credit Notes', group: 'accounting', groupAr: 'المحاسبة', groupEn: 'Accounting' },

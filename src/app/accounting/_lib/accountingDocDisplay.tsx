@@ -89,7 +89,13 @@ export function renderJournalStatus(status: number | null | undefined, isAr: boo
   }
 }
 
-// ── Document type (1=Receipt,2=Payment,3=Credit,4=Debit) ─────────────────────
+// ── Document type (1=Receipt,2=Payment,3=Credit,4=Debit,8=General Voucher) ───
+// 8 is what the General Voucher trace endpoint reports (verified live
+// 2026-07-17) — it is what distinguishes a general voucher from the legacy
+// Receipt(1)/Payment(2) documents, which reuse the same journal source.
+// DOCUMENT_TYPE_OPTIONS only lists 1-4: it feeds the DocumentType filter on
+// the legacy Receipt/Payment/Credit/Debit list screens, which never contain
+// General Vouchers (that module lives at a separate endpoint/screen).
 export const DOCUMENT_TYPE_OPTIONS = (isAr: boolean) => [
   { value: 1, label: t(isAr, 'سند قبض', 'Receipt Voucher') },
   { value: 2, label: t(isAr, 'سند صرف', 'Payment Voucher') },
@@ -107,6 +113,8 @@ export function documentTypeLabel(type: number | null | undefined, isAr: boolean
       return t(isAr, 'إشعار دائن', 'Credit Note');
     case 4:
       return t(isAr, 'إشعار مدين', 'Debit Note');
+    case 8:
+      return t(isAr, 'سند عام', 'General Voucher');
     default:
       return '—';
   }
