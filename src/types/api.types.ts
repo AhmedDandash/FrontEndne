@@ -1142,6 +1142,17 @@ export interface MediationContract {
   hasAssignedWorker?: boolean | null;
   /** True when the contract's invoice has been paid. */
   isPaid?: boolean | null;
+  // ── Customer-payment / financial summary fields (list + detail responses). ──
+  totalPaid?: number | null;
+  remainingAmount?: number | null;
+  /** 0-100 percentage of the total contract value paid so far. */
+  paymentPercentage?: number | null;
+  /** Arabic label: "غير مدفوع" / "مدفوع جزئياً" / "مدفوع بالكامل". */
+  paymentStatus?: string | null;
+  /** 0=Unpaid, 1=PartiallyPaid, 2=Paid. */
+  paymentStatusCode?: number | null;
+  currency?: string | null;
+  invoicePaymentDate?: string | null;
   contractCategoryName?: string | null;
   createdByName?: string | null;
   daysSinceCreation?: number | null;
@@ -1312,6 +1323,63 @@ export interface ContractWarrantyReturn {
   createdAt?: string | null;
 }
 
+// ==================== Mediation Contract Payments ====================
+
+/** One recorded customer payment (`payments[]` on the detail + record-payment response). */
+export interface MediationContractPayment {
+  id?: string | null;
+  paymentDate?: string | null;
+  amount: number;
+  /** PaymentMethodType enum 1-5 (see MEDIATION_PAYMENT_METHOD). */
+  paymentMethod?: number | null;
+  paymentMethodName?: string | null;
+  referenceNumber?: string | null;
+  notes?: string | null;
+  createdBy?: string | null;
+  status?: number | null;
+  accountingDocumentId?: string | null;
+  currency?: string | null;
+}
+
+/** `financialSummary` block on the contract detail + record-payment response. */
+export interface MediationContractFinancialSummary {
+  offerAmount?: number | null;
+  vat?: number | null;
+  otherCosts?: number | null;
+  salary?: number | null;
+  totalContractValue?: number | null;
+  totalPaid?: number | null;
+  remainingAmount?: number | null;
+  currency?: string | null;
+}
+
+/** POST /api/Mediation/MediationContract/customer-payment — request body. */
+export interface CreateMediationContractPaymentDto {
+  contractId: string;
+  amount: number;
+  /** ISO datetime string — optional/nullable. */
+  paymentDate?: string | null;
+  /** PaymentMethodType enum 1-5 — optional/nullable. */
+  paymentMethod?: number | null;
+  bankFees?: number | null;
+  referenceNumber?: string | null;
+  notes?: string | null;
+  description?: string | null;
+}
+
+/** POST /api/Mediation/MediationContract/customer-payment — response `data`. */
+export interface RecordMediationPaymentResult {
+  message?: string | null;
+  totalCost?: number | null;
+  totalPaid?: number | null;
+  remainingAmount?: number | null;
+  paymentPercentage?: number | null;
+  paymentStatus?: string | null;
+  paymentStatusCode?: number | null;
+  financialSummary?: MediationContractFinancialSummary | null;
+  payments?: MediationContractPayment[] | null;
+}
+
 /** GET /api/Mediation/MediationContract/{id} — full detail response */
 export interface MediationContractDetail extends MediationContract {
   isCancel?: boolean | null;
@@ -1321,6 +1389,10 @@ export interface MediationContractDetail extends MediationContract {
   statusHistories?: ContractStatusHistory[] | null;
   /** Worker-assignment history (end-service / re-assign trail). */
   workerAssignments?: MediationWorkerAssignment[] | null;
+  /** Recorded customer payments. */
+  payments?: MediationContractPayment[] | null;
+  /** Cost breakdown + paid/remaining totals. */
+  financialSummary?: MediationContractFinancialSummary | null;
   attachments?: string[] | null;
 }
 

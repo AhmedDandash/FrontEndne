@@ -9,7 +9,7 @@
  * Takes already-fetched data — no fetching here.
  */
 import React from 'react';
-import { Tabs, Divider, Descriptions, Alert, Image, Table, Timeline, Tag, Empty, Badge, Button } from 'antd';
+import { Tabs, Divider, Descriptions, Alert, Image, Table, Timeline, Tag, Empty, Badge, Button, Progress } from 'antd';
 import {
   DollarOutlined,
   EyeOutlined,
@@ -63,7 +63,22 @@ export default function MediationContractDetailView({
     newWorkerLocation: language === 'ar' ? 'موقع العامل الجديد' : 'New Worker Location',
     changedBy: language === 'ar' ? 'بواسطة' : 'Changed By',
     note: language === 'ar' ? 'ملاحظة' : 'Note',
+    totalPaid: language === 'ar' ? 'إجمالي المدفوع' : 'Total Paid',
+    remainingAmount: language === 'ar' ? 'المبلغ المتبقي' : 'Remaining',
+    paymentStatus: language === 'ar' ? 'حالة السداد' : 'Payment Status',
+    paymentProgress: language === 'ar' ? 'نسبة السداد' : 'Payment Progress',
+    paymentHistory: language === 'ar' ? 'سجل الدفعات' : 'Payment History',
+    paymentDate: language === 'ar' ? 'تاريخ الدفعة' : 'Date',
+    amount: language === 'ar' ? 'المبلغ' : 'Amount',
+    method: language === 'ar' ? 'طريقة الدفع' : 'Method',
+    referenceNumber: language === 'ar' ? 'رقم المرجع' : 'Reference #',
+    createdBy: language === 'ar' ? 'أُنشئ بواسطة' : 'Created By',
+    noPayments: language === 'ar' ? 'لا توجد دفعات مسجلة' : 'No payments recorded',
   };
+
+  // Payment-status tag colour: green = fully paid, orange = partial, red/default otherwise.
+  const paymentStatusColor =
+    contract.paymentStatusCode === 2 ? 'green' : contract.paymentStatusCode === 1 ? 'orange' : 'red';
 
   return (
     <Tabs
@@ -231,6 +246,49 @@ export default function MediationContractDetailView({
                 <div className={styles.totalCostAmount}>{fmtCurrency(contract.totalCost)}</div>
               </div>
 
+              {/* Payment progress */}
+              <div
+                style={{
+                  marginBlockEnd: 20,
+                  padding: 16,
+                  border: '1px solid #f0f0f0',
+                  borderRadius: 8,
+                  background: '#fafafa',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBlockEnd: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: '#8c8c8c' }}>{t.paymentProgress}</span>
+                  <Tag color={paymentStatusColor}>
+                    {contract.paymentStatus || t.paymentStatus}
+                  </Tag>
+                </div>
+                <Progress
+                  percent={Math.round(Math.min(100, contract.paymentPercentage ?? 0))}
+                  status={contract.paymentStatusCode === 2 ? 'success' : 'active'}
+                />
+                <div style={{ display: 'flex', gap: 24, marginBlockStart: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>{t.totalPaid}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#52c41a' }}>
+                      {fmtCurrency(contract.totalPaid)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>{t.remainingAmount}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#ff4d4f' }}>
+                      {fmtCurrency(contract.remainingAmount)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <Descriptions column={3} size="small" bordered>
                 <Descriptions.Item label={t.offerAmount}>
                   <span style={{ color: '#003366', fontWeight: 700 }}>{fmtCurrency(contract.offerAmount)}</span>
@@ -271,6 +329,55 @@ export default function MediationContractDetailView({
                   description={contract.costDescription}
                   style={{ marginBlockStart: 16 }}
                 />
+              )}
+
+              {/* Payment history */}
+              <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 24 }}>
+                {t.paymentHistory}
+              </Divider>
+              {contract.payments && contract.payments.length > 0 ? (
+                <Table
+                  dataSource={contract.payments}
+                  rowKey={(row, index) => row.id ?? String(index)}
+                  size="small"
+                  pagination={false}
+                  columns={[
+                    {
+                      title: t.paymentDate,
+                      dataIndex: 'paymentDate',
+                      render: (v: string) => fmtDate(v),
+                    },
+                    {
+                      title: t.amount,
+                      dataIndex: 'amount',
+                      render: (v: number) => (
+                        <span style={{ color: '#52c41a', fontWeight: 700 }}>{fmtCurrency(v)}</span>
+                      ),
+                    },
+                    {
+                      title: t.method,
+                      dataIndex: 'paymentMethodName',
+                      render: (v: string) => v || '-',
+                    },
+                    {
+                      title: t.referenceNumber,
+                      dataIndex: 'referenceNumber',
+                      render: (v: string) => v || '-',
+                    },
+                    {
+                      title: t.note,
+                      dataIndex: 'notes',
+                      render: (v: string) => v || '-',
+                    },
+                    {
+                      title: t.createdBy,
+                      dataIndex: 'createdBy',
+                      render: (v: string) => v || '-',
+                    },
+                  ]}
+                />
+              ) : (
+                <Empty description={t.noPayments} />
               )}
             </div>
           ),

@@ -199,6 +199,8 @@ export const API_ENDPOINTS = {
     // POST { contractId, workerId, workerPassportNumber } — assigns a new worker
     ASSIGN_WORKER: '/api/Mediation/MediationContract/assign-worker',
     CONTRACT_CANCEL: '/api/Mediation/MediationContract/cancel',
+    // POST { contractId, amount, ... } — records a customer payment against the contract
+    CUSTOMER_PAYMENT: '/api/Mediation/MediationContract/customer-payment',
     SIGN: '/api/Mediation/MediationContract/sign',
     UPDATE_STATUS: '/api/Mediation/MediationContract/update-status',
     DELIVERY_FORM: '/api/Mediation/MediationContract/delivery-form',

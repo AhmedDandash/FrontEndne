@@ -13,6 +13,8 @@ import type {
   EndWorkerServiceDto,
   AssignWorkerDto,
   RecruitmentRequestItem,
+  CreateMediationContractPaymentDto,
+  RecordMediationPaymentResult,
 } from '@/types/api.types';
 
 export class MediationContractService {
@@ -221,6 +223,28 @@ export class MediationContractService {
       cancelNote: data.cancelNote || null,
     });
     return this.unwrap<any>(response.data);
+  }
+
+  /** POST /api/Mediation/MediationContract/customer-payment — records a customer payment. */
+  static async recordPayment(
+    data: CreateMediationContractPaymentDto
+  ): Promise<RecordMediationPaymentResult> {
+    // NOTE: `paymentMethod` maps to a NON-nullable C# enum (PaymentMethodType) —
+    // swagger has no `nullable: true` on it, unlike the other optional fields.
+    // Sending JSON `null` breaks server-side deserialization (400 Bad Request),
+    // so the key is OMITTED entirely when the user doesn't pick a method.
+    const body: Record<string, any> = {
+      contractId: data.contractId,
+      amount: data.amount,
+      paymentDate: data.paymentDate ?? null,
+      bankFees: data.bankFees ?? null,
+      referenceNumber: data.referenceNumber || null,
+      notes: data.notes || null,
+      description: data.description || null,
+    };
+    if (data.paymentMethod != null) body.paymentMethod = Number(data.paymentMethod);
+    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.CUSTOMER_PAYMENT, body);
+    return this.unwrap<RecordMediationPaymentResult>(response.data);
   }
 
   // ==================== Lifecycle Transitions ====================

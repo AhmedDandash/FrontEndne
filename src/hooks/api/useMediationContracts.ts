@@ -18,6 +18,7 @@ import type {
   UpdateContractStatusDto,
   EndWorkerServiceDto,
   AssignWorkerDto,
+  CreateMediationContractPaymentDto,
 } from '@/types/api.types';
 
 const QUERY_KEY = 'mediation-contracts';
@@ -287,6 +288,27 @@ export function useMediationContract(id?: string | null) {
     queryFn: () => MediationContractService.getById(id!),
     enabled: !!id,
   });
+}
+
+/**
+ * POST /api/Mediation/MediationContract/customer-payment — standalone so the
+ * `[id]` detail route can record a payment without firing the paged list query.
+ * Invalidating `[QUERY_KEY]` refreshes both the list and the detail queries.
+ */
+export function useRecordMediationPayment() {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (data: CreateMediationContractPaymentDto) =>
+      MediationContractService.recordPayment(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      message.success('تم تسجيل الدفعة بنجاح / Payment recorded successfully');
+    },
+    onError: (error: any) => {
+      message.error(getApiErrorMessage(error, 'فشل تسجيل الدفعة / Failed to record payment'));
+    },
+  });
+  return { recordPayment: mutation.mutateAsync, isRecordingPayment: mutation.isPending };
 }
 
 // NOTE: a dedicated status-history hook was removed — the contract detail

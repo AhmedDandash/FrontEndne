@@ -259,6 +259,16 @@ export const PAYMENT_METHOD = [
   { value: 2, labelAr: 'دفعات', labelEn: 'Installments' },
 ] as const;
 
+// ==================== Mediation Contract Payment Method ====================
+// POST /api/Mediation/MediationContract/customer-payment — PaymentMethodType enum (1-5).
+export const MEDIATION_PAYMENT_METHOD = [
+  { value: 1, labelAr: 'نقدي', labelEn: 'Cash' },
+  { value: 2, labelAr: 'بنك', labelEn: 'Bank' },
+  { value: 3, labelAr: 'بطاقة', labelEn: 'Card' },
+  { value: 4, labelAr: 'تحويل', labelEn: 'Transfer' },
+  { value: 5, labelAr: 'شيك', labelEn: 'Cheque' },
+] as const;
+
 // ==================== Medical Status ====================
 // الحالة الطبية
 export const MEDICAL_STATUS = [

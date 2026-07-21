@@ -102,6 +102,10 @@ export default function MediationContractsPage() {
     undefined,
     undefined,
   ]);
+  const [paymentDateRange, setPaymentDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
   const [agentFilter, setAgentFilter] = useState<string | 'all'>('all');
   const [marketerFilter, setMarketerFilter] = useState<string | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -190,6 +194,8 @@ export default function MediationContractsPage() {
     withoutAssignedWorker: withoutWorker || undefined,
     isPaid: paymentFilter === 'paid' ? true : undefined,
     isUnpaid: paymentFilter === 'unpaid' ? true : undefined,
+    paymentDateFrom: paymentDateRange[0],
+    paymentDateTo: paymentDateRange[1],
   });
 
   const { mutateAsync: createComplaint, isPending: isCreatingComplaint } = useCreateComplaint();
@@ -289,6 +295,10 @@ export default function MediationContractsPage() {
     paid: language === 'ar' ? 'مدفوع' : 'Paid',
     unpaid: language === 'ar' ? 'غير مدفوع' : 'Unpaid',
     withoutWorkerLabel: language === 'ar' ? 'بدون عامل مسند' : 'Without Assigned Worker',
+    totalPaid: language === 'ar' ? 'المدفوع' : 'Total Paid',
+    remainingAmount: language === 'ar' ? 'المتبقي' : 'Remaining',
+    paymentDateLabel: language === 'ar' ? 'تاريخ الدفعة' : 'Payment Date',
+    partiallyPaid: language === 'ar' ? 'مدفوع جزئياً' : 'Partially Paid',
   };
 
   // Helper functions — formatCurrency/formatDate/getStatusConfigFromName live in
@@ -684,6 +694,23 @@ export default function MediationContractsPage() {
                       contract.branchName}
                   </Tag>
                 )}
+                {contract.paymentStatusCode != null && (
+                  <Tag
+                    color={
+                      contract.paymentStatusCode === 2
+                        ? 'green'
+                        : contract.paymentStatusCode === 1
+                        ? 'orange'
+                        : 'default'
+                    }
+                  >
+                    {contract.paymentStatusCode === 2
+                      ? t.paid
+                      : contract.paymentStatusCode === 1
+                      ? t.partiallyPaid
+                      : t.unpaid}
+                  </Tag>
+                )}
               </div>
 
               <div className={styles.customerSection}>
@@ -762,6 +789,20 @@ export default function MediationContractsPage() {
                   <span className={styles.costLabel}>{t.otherCosts}</span>
                   <span className={styles.costValue} style={{ color: '#722ed1' }}>
                     {fmtCurrency(contract.otherCosts)}
+                  </span>
+                </div>
+                <div className={styles.costRow}>
+                  <span className={styles.costDot} style={{ background: '#52c41a' }} />
+                  <span className={styles.costLabel}>{t.totalPaid}</span>
+                  <span className={styles.costValue} style={{ color: '#52c41a' }}>
+                    {fmtCurrency(contract.totalPaid)}
+                  </span>
+                </div>
+                <div className={styles.costRow}>
+                  <span className={styles.costDot} style={{ background: '#ff4d4f' }} />
+                  <span className={styles.costLabel}>{t.remainingAmount}</span>
+                  <span className={styles.costValue} style={{ color: '#ff4d4f' }}>
+                    {fmtCurrency(contract.remainingAmount)}
                   </span>
                 </div>
               </div>
@@ -957,6 +998,17 @@ export default function MediationContractsPage() {
               ]}
             />
           </Col>
+          <Col xs={24} md={8}>
+            <div style={{ fontSize: 12, color: '#8c8c8c', marginBlockEnd: 4 }}>
+              {t.paymentDateLabel}
+            </div>
+            <DateRangeFilter
+              value={paymentDateRange}
+              onChange={(range) => { setPaymentDateRange(range); setCurrentPage(1); }}
+              placeholder={['دفعة من', 'إلى']}
+              style={{ width: '100%' }}
+            />
+          </Col>
           <Col xs={12} sm={6} md={4}>
             <Checkbox
               checked={withoutWorker}
@@ -1027,6 +1079,8 @@ export default function MediationContractsPage() {
                 WithoutAssignedWorker: withoutWorker || undefined,
                 IsPaid: paymentFilter === 'paid' ? true : undefined,
                 IsUnpaid: paymentFilter === 'unpaid' ? true : undefined,
+                PaymentDateFrom: paymentDateRange[0],
+                PaymentDateTo: paymentDateRange[1],
               }}
               fileName="MediationContracts.xlsx"
               pageParam="page"
