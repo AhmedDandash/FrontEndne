@@ -38,7 +38,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useHREmployees } from '@/hooks/api/useHR';
 import { useAdminPositions, useDepartments } from '@/hooks/api/useAdmin';
-import { useNationalities } from '@/hooks/api/useNationalities';
+import NationalitySelect from '@/components/common/NationalitySelect';
 import { useBranches } from '@/hooks/api/useBranches';
 import type { EmployeeDto, CreateEmployeeDto, UpdateEmployeeDto } from '@/types/hr.types';
 
@@ -72,7 +72,6 @@ export default function HREmployeesPage() {
 
   const { positions } = useAdminPositions();
   const { departments } = useDepartments();
-  const { data: nationalities = [] } = useNationalities();
   const { branches = [] } = useBranches();
 
   const handleSearch = useCallback((val: string) => {
@@ -184,11 +183,6 @@ export default function HREmployeesPage() {
   const branchOptions = (branches as any[]).map((b) => ({
     value: String(b.id),
     label: b.nameAr || b.nameEn || String(b.id),
-  }));
-
-  const nationalityOptions = (nationalities as any[]).map((nat) => ({
-    value: nat.id,
-    label: nat.nationalityNameAr || nat.nationalityNameEn || nat.id,
   }));
 
   const columns: ColumnsType<EmployeeDto> = [
@@ -463,13 +457,7 @@ export default function HREmployeesPage() {
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item name="nationalityId" label="الجنسية">
-                <Select
-                  allowClear
-                  showSearch
-                  placeholder="اختر الجنسية"
-                  options={nationalityOptions}
-                  filterOption={filterOption}
-                />
+                <NationalitySelect placeholder="اختر الجنسية" />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>

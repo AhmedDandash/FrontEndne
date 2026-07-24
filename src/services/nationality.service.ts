@@ -66,10 +66,15 @@ export class NationalityService {
   /**
    * POST /api/V1/Nationality
    * Body: { nationalityNameAr, nationalityNameEn, isActive }
+   *
+   * Response is wrapped in the standard `{ success, data, errors, statusCode }`
+   * envelope (no global unwrap interceptor exists), so the created entity —
+   * and its `id` — must be pulled out of `body.data` before returning.
    */
   static async create(data: CreateNationalityDto): Promise<Nationality> {
-    const response = await api.post<Nationality>(API_ENDPOINTS.NATIONALITY.CREATE, data);
-    return response.data;
+    const response = await api.post<any>(API_ENDPOINTS.NATIONALITY.CREATE, data);
+    const body = response.data;
+    return (body?.data ?? body?.result ?? body) as Nationality;
   }
 
   /**

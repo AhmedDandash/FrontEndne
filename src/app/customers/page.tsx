@@ -53,6 +53,7 @@ import type { CustomerQuery } from '@/types/filters.types';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import NationalitySelect from '@/components/common/NationalitySelect';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useMarketers } from '@/hooks/api/useMarketers';
 import RentOfferSelector from '@/components/contracts/RentOfferSelector';
@@ -1100,17 +1101,7 @@ export default function CustomersPage() {
             name="nationality"
             rules={[{ required: true, message: 'Please select nationality' }]}
           >
-            <Select
-              placeholder={t('nationality')}
-              showSearch
-              optionFilterProp="label"
-              options={nationalities
-                .filter((n: any) => n.isActive !== false)
-                .map((n: any) => ({
-                  value: String(n.id ?? n.nationalityId ?? n.value),
-                  label: getNationalityLabel(n),
-                }))}
-            />
+            <NationalitySelect isActiveOnly placeholder={t('nationality')} />
           </Form.Item>
 
           <Row gutter={16}>
@@ -1346,14 +1337,8 @@ export default function CustomersPage() {
                   },
                 ]}
               >
-                <Select
-                  showSearch
-                  optionFilterProp="label"
+                <NationalitySelect
                   placeholder={language === 'ar' ? 'اختر الجنسية' : 'Select Nationality'}
-                  options={nationalities.map((n: any) => ({
-                    value: n.id ?? n.nationalityId ?? n.value,
-                    label: getNationalityLabel(n),
-                  }))}
                 />
               </Form.Item>
             </Col>

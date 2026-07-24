@@ -580,7 +580,6 @@ export default function RentContractsPage() {
         loading={isCreating}
         customers={customers as any[]}
         jobs={jobs as any[]}
-        nationalities={nationalities as any[]}
         selectedOffer={createSelectedOffer}
         onOfferSelect={handleCreateOfferSelect}
         onCancel={() => {
@@ -600,7 +599,6 @@ export default function RentContractsPage() {
         loading={isUpdating}
         customers={customers as any[]}
         jobs={jobs as any[]}
-        nationalities={nationalities as any[]}
         onCancel={() => {
           setEditModal({ open: false, raw: null });
           editForm.resetFields();

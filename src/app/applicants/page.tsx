@@ -80,6 +80,7 @@ import {
 import { useAgents } from '@/hooks/api/useAgents';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import NationalitySelect from '@/components/common/NationalitySelect';
 import { useHREmployees } from '@/hooks/api/useHR';
 import { useHousingActiveList } from '@/hooks/api/useHousing';
 import { useAssignWorkerHousing } from '@/hooks/api/useWorkerHousing';
@@ -1952,19 +1953,7 @@ export default function WorkersPage() {
             </Col>
             <Col xs={24} md={6}>
               <Form.Item label={t('nationality')} name="nationalityId">
-                <Select
-                  size="large"
-                  placeholder={t('nationality')}
-                  showSearch
-                  optionFilterProp="label"
-                  options={nationalities.map((n) => ({
-                    value: n.id,
-                    label:
-                      language === 'ar'
-                        ? n.nationalityNameAr || n.nationalityNameEn || ''
-                        : n.nationalityNameEn || n.nationalityNameAr || '',
-                  }))}
-                />
+                <NationalitySelect size="large" placeholder={t('nationality')} />
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>

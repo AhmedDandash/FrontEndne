@@ -11,6 +11,7 @@ import type {
   UpdateNationalityDto,
 } from '@/types/api.types';
 import { message } from 'antd';
+import { getApiErrorMessage } from '@/utils/api-error';
 
 const QUERY_KEY = 'nationalities';
 
@@ -50,9 +51,7 @@ export const useCreateNationality = () => {
       message.success('تمت إضافة الجنسية بنجاح / Nationality created successfully');
     },
     onError: (error: any) => {
-      message.error(
-        error?.response?.data?.message || 'فشل إضافة الجنسية / Failed to create nationality'
-      );
+      message.error(getApiErrorMessage(error, 'فشل إضافة الجنسية / Failed to create nationality'));
     },
   });
 };
@@ -70,9 +69,7 @@ export const useUpdateNationality = () => {
       message.success('تم تحديث الجنسية بنجاح / Nationality updated successfully');
     },
     onError: (error: any) => {
-      message.error(
-        error?.response?.data?.message || 'فشل تحديث الجنسية / Failed to update nationality'
-      );
+      message.error(getApiErrorMessage(error, 'فشل تحديث الجنسية / Failed to update nationality'));
     },
   });
 };
@@ -90,9 +87,7 @@ export const useDeleteNationality = () => {
       message.success('تم حذف الجنسية بنجاح / Nationality deleted successfully');
     },
     onError: (error: any) => {
-      message.error(
-        error?.response?.data?.message || 'فشل حذف الجنسية / Failed to delete nationality'
-      );
+      message.error(getApiErrorMessage(error, 'فشل حذف الجنسية / Failed to delete nationality'));
     },
   });
 };
@@ -112,7 +107,7 @@ export const useToggleNationalityStatus = () => {
     },
     onError: (error: any) => {
       message.error(
-        error?.response?.data?.message || 'فشل تغيير حالة الجنسية / Failed to toggle nationality status'
+        getApiErrorMessage(error, 'فشل تغيير حالة الجنسية / Failed to toggle nationality status')
       );
     },
   });

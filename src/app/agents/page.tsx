@@ -44,6 +44,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useAgents, useCreateAgent, useUpdateAgent, useDeleteAgent } from '@/hooks/api/useAgents';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import NationalitySelect from '@/components/common/NationalitySelect';
 import type { Agent, CreateAgentDto, UpdateAgentDto } from '@/types/api.types';
 import { AGENT_CONTRACT_TYPE, toSelectOptions } from '@/constants/enums';
 import styles from './Agents.module.css';
@@ -655,17 +656,11 @@ export default function AgentsPage() {
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label={t('nationality')} name="nationalityId">
-                <Select
+                <NationalitySelect
                   size="large"
                   placeholder={t('nationality')}
-                  showSearch
-                  optionFilterProp="label"
-                  options={nationalities
-                    .filter((n: any) => n.isActive !== false)
-                    .map((n: any) => ({
-                      value: getNationalityOptionValue(n),
-                      label: getNationalityName(n),
-                    }))}
+                  isActiveOnly
+                  getOptionValue={getNationalityOptionValue}
                 />
               </Form.Item>
             </Col>

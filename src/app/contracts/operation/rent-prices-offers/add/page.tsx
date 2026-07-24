@@ -28,7 +28,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useEmploymentContractOffers } from '@/hooks/api/useEmploymentContractOffers';
 import { useBranches } from '@/hooks/api/useBranches';
 import { useJobs } from '@/hooks/api/useJobs';
-import { useNationalities } from '@/hooks/api/useNationalities';
+import NationalitySelect from '@/components/common/NationalitySelect';
 import styles from '../RentPricesOffers.module.css';
 
 // Period types with months count
@@ -57,17 +57,6 @@ export default function AddOfferPage() {
   const { createOfferAsync } = useEmploymentContractOffers();
   const { branches } = useBranches();
   const { data: jobsData, isLoading: isLoadingJobs } = useJobs();
-  const { data: nationalitiesData = [] } = useNationalities();
-  // Build nationality options from API
-  const dynamicNationalityOptions = useMemo(() => {
-    return nationalitiesData.map((n) => ({
-      value: String(n.id),
-      label: {
-        ar: n.nationalityNameAr || n.nationalityNameEn || String(n.id),
-        en: n.nationalityNameEn || n.nationalityNameAr || String(n.id),
-      },
-    }));
-  }, [nationalitiesData]);
 
   // Safely extract jobs array from API response and filter active jobs only
   const jobs = useMemo(() => {
@@ -249,16 +238,7 @@ export default function AddOfferPage() {
                 name="nationalityId"
                 rules={[{ required: true, message: t('nationalityRequired') }]}
               >
-                <Select
-                  showSearch
-                  optionFilterProp="label"
-                  placeholder={t('choose')}
-                  options={dynamicNationalityOptions.map((n) => ({
-                    value: n.value,
-                    label: n.label[language],
-                  }))}
-                  size="large"
-                />
+                <NationalitySelect placeholder={t('choose')} size="large" />
               </Form.Item>
 
               <Form.Item

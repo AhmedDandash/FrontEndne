@@ -44,6 +44,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useEmploymentContractOffers } from '@/hooks/api/useEmploymentContractOffers';
 import { useBranches } from '@/hooks/api/useBranches';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import NationalitySelect from '@/components/common/NationalitySelect';
 import { useJobs } from '@/hooks/api/useJobs';
 import type { EmploymentContractOffer, UpdateOperatingContractOfferDto } from '@/types/api.types';
 import styles from './RentPricesOffers.module.css';
@@ -335,13 +336,7 @@ export default function RentPricesOffersPage() {
     }));
   }, [jobsData, isAr]);
 
-  // nationality + job options for edit modal
-  const natEditOptions = useMemo(() =>
-    nationalities.map((n) => ({
-      value: String(n.id),
-      label: isAr ? n.nationalityNameAr || n.nationalityNameEn : n.nationalityNameEn || n.nationalityNameAr,
-    })), [nationalities, isAr]);
-
+  // job options for edit modal
   const jobEditOptions = useMemo(() => {
     const arr = Array.isArray(jobsData) ? jobsData : ((jobsData as any)?.data ?? []);
     return (arr as any[]).map((j: any) => ({
@@ -698,7 +693,7 @@ export default function RentPricesOffersPage() {
               {/* Left */}
               <Col xs={24} md={12}>
                 <Form.Item label={t('nationality')} name="nationalityId">
-                  <Select showSearch optionFilterProp="label" options={natEditOptions} size="large" />
+                  <NationalitySelect size="large" />
                 </Form.Item>
                 <Form.Item label={t('job')} name="jobId">
                   <Select showSearch optionFilterProp="label" options={jobEditOptions} size="large" />

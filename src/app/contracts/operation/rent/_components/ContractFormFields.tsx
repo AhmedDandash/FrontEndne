@@ -8,15 +8,15 @@ import React from 'react';
 import { Row, Col, Form, Input, InputNumber, Select, DatePicker, Alert } from 'antd';
 import { OPERATING_PAYMENT_METHOD, OPERATION_DURATION, toSelectOptions } from '@/constants/enums';
 import WorkerSelect from '@/components/contracts/WorkerSelect';
+import NationalitySelect from '@/components/common/NationalitySelect';
 
 interface Props {
   isRtl: boolean;
   customers: any[];
   jobs: any[];
-  nationalities: any[];
 }
 
-export default function ContractFormFields({ isRtl, customers, jobs, nationalities }: Props) {
+export default function ContractFormFields({ isRtl, customers, jobs }: Props) {
   const lang = isRtl ? 'ar' : 'en';
 
   return (
@@ -47,15 +47,7 @@ export default function ContractFormFields({ isRtl, customers, jobs, nationaliti
         </Col>
         <Col xs={24} sm={12}>
           <Form.Item name="nationalityId" label={isRtl ? 'الجنسية' : 'Nationality'}>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              placeholder={isRtl ? 'اختر الجنسية' : 'Select Nationality'}
-              options={nationalities.map((n) => ({
-                value: String(n.id),
-                label: isRtl ? n.nationalityNameAr : n.nationalityNameEn,
-              }))}
-            />
+            <NationalitySelect placeholder={isRtl ? 'اختر الجنسية' : 'Select Nationality'} />
           </Form.Item>
         </Col>
       </Row>

@@ -22,7 +22,6 @@ interface Props {
   loading: boolean;
   customers: any[];
   jobs: any[];
-  nationalities: any[];
   onCancel: () => void;
   onSubmit: () => void;
   /** create mode only */
@@ -39,7 +38,6 @@ export default function ContractFormModal({
   loading,
   customers,
   jobs,
-  nationalities,
   onCancel,
   onSubmit,
   selectedOffer,
@@ -117,12 +115,7 @@ export default function ContractFormModal({
           />
         )}
         <Form form={form} layout="vertical" requiredMark="optional" dir={isRtl ? 'rtl' : 'ltr'}>
-          <ContractFormFields
-            isRtl={isRtl}
-            customers={customers}
-            jobs={jobs}
-            nationalities={nationalities}
-          />
+          <ContractFormFields isRtl={isRtl} customers={customers} jobs={jobs} />
         </Form>
       </div>
     </Modal>
