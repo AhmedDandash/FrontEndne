@@ -141,6 +141,14 @@
   min-inline-size: 240px;
 }
 
+.filterLabel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
+}
+
 /* ── Table cells ─────────────────────────────────────────────── */
 .docNumber {
   font-family: 'Courier New', monospace;

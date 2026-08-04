@@ -1,19 +1,16 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { Card, Table, Select, DatePicker, Empty, Spin, Alert, Tag } from 'antd';
+import { Card, Table, Select, Empty, Spin, Alert, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import type { Dayjs } from 'dayjs';
 import { usePartyLedger, usePartyOptions } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import type { PartyKind, PartyLedgerLine } from '@/types/ledger.types';
 import { LedgerHeader } from './LedgerHeader';
-import { BranchFilterSelect } from '@/components/filters';
+import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { fmtAmount, fmtDate } from './ledgerFormat';
 import styles from '../Ledger.module.css';
-
-const { RangePicker } = DatePicker;
 
 interface PartyLedgerViewProps {
   kind: PartyKind;
@@ -30,18 +27,30 @@ export function PartyLedgerView({ kind, icon, title, subtitle, idLabel }: PartyL
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   const [selectedId, setSelectedId] = useState<string | undefined>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
+  const [range, setRange] = useState<[string | undefined, string | undefined]>([
+    dayjs().subtract(1, 'month').startOf('day').toISOString(),
+    dayjs().endOf('day').toISOString(),
+  ]);
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   const { data: partyOptions = [], isLoading: optionsLoading } = usePartyOptions(kind);
 
   const { data, isLoading, isFetching, refetch, error } = usePartyLedger(kind, selectedId, {
-    from: range?.[0]?.startOf('day').toISOString(),
-    to: range?.[1]?.endOf('day').toISOString(),
+    from: range[0],
+    to: range[1],
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
   });
+
+  const activeFilterCount = [selectedId, range[0]].filter(Boolean).length;
+  const clearFilters = () => {
+    setSelectedId(undefined);
+    setRange([
+      dayjs().subtract(1, 'month').startOf('day').toISOString(),
+      dayjs().endOf('day').toISOString(),
+    ]);
+  };
 
   const columns: ColumnsType<PartyLedgerLine> = [
     { title: t('التاريخ', 'Date'), dataIndex: 'date', key: 'date', width: 105, render: fmtDate },
@@ -107,34 +116,40 @@ export function PartyLedgerView({ kind, icon, title, subtitle, idLabel }: PartyL
         refreshLabel={t('تحديث', 'Refresh')}
       />
 
-      <Card className={styles.tableCard}>
-        <div className={styles.filters}>
-          <Select
-            showSearch
-            allowClear
-            size="large"
-            loading={optionsLoading}
-            style={{ flex: '1 1 320px', maxWidth: 460 }}
-            placeholder={idLabel}
-            value={selectedId}
-            onChange={(v) => setSelectedId(v)}
-            optionFilterProp="label"
-            options={partyOptions}
-            notFoundContent={optionsLoading ? <Spin size="small" /> : undefined}
-          />
-          <RangePicker
-            value={range as any}
-            onChange={(v) => setRange(v as any)}
-            placeholder={[t('من', 'From'), t('إلى', 'To')]}
-          />
-          <BranchFilterSelect
-            value={branchId}
-            onChange={setBranchId}
-            includeSubBranches={includeSubBranches}
-            onIncludeSubBranchesChange={setIncludeSubBranches}
-          />
-        </div>
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        quickFilters={
+          <>
+            <Select
+              showSearch
+              allowClear
+              size="large"
+              loading={optionsLoading}
+              style={{ flex: '1 1 320px', maxWidth: 460 }}
+              placeholder={idLabel}
+              value={selectedId}
+              onChange={(v) => setSelectedId(v)}
+              optionFilterProp="label"
+              options={partyOptions}
+              notFoundContent={optionsLoading ? <Spin size="small" /> : undefined}
+            />
+            <DateRangeFilter
+              value={range}
+              onChange={setRange}
+              placeholder={[t('من', 'From'), t('إلى', 'To')]}
+            />
+            <BranchFilterSelect
+              value={branchId}
+              onChange={setBranchId}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+            />
+          </>
+        }
+      />
 
+      <Card className={styles.tableCard}>
         {!selectedId ? (
           <div className={styles.promptState}>
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={idLabel} />

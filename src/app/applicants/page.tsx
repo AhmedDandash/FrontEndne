@@ -32,7 +32,6 @@ import type { MenuProps } from 'antd';
 import {
   PlusOutlined,
   SearchOutlined,
-  FilterOutlined,
   TeamOutlined,
   UserOutlined,
   IdcardOutlined,
@@ -84,7 +83,7 @@ import NationalitySelect from '@/components/common/NationalitySelect';
 import { useHREmployees } from '@/hooks/api/useHR';
 import { useHousingActiveList } from '@/hooks/api/useHousing';
 import { useAssignWorkerHousing } from '@/hooks/api/useWorkerHousing';
-import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
+import { BranchFilterSelect, DateRangeFilter, ExportButton, AdvancedFilterPanel } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type { Worker, WorkerDto } from '@/types/api.types';
 import {
@@ -476,7 +475,6 @@ export default function WorkersPage() {
   const language = useAuthStore((state) => state.language);
   const userBranchId = useAuthStore((state) => state.branchId);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [editingWorkerId, setEditingWorkerId] = useState<string | null>(null);
   const [medicalExamWorkerId, setMedicalExamWorkerId] = useState<number | string | null>(null);
   const [medicalExamId, setMedicalExamId] = useState<number | string | null>(null);
@@ -862,6 +860,11 @@ export default function WorkersPage() {
     setPageNumber(1);
   };
 
+  // Count of active filters (for the AdvancedFilterPanel badge / clear button).
+  const activeFilterCount = Object.values(filters).filter(
+    (v) => v !== undefined && v !== '' && v !== null
+  ).length;
+
   const handlePrintCV = async (worker: Worker) => {
     const { printWorkerCVPDF } = await import('@/utils/pdf');
     await printWorkerCVPDF(worker);
@@ -1069,9 +1072,12 @@ export default function WorkersPage() {
       
 
       {/* Search and Filters */}
-      <Card className={styles.filterCard}>
-        <div className={styles.filterHeader}>
-          <Space wrap>
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={handleClearFilters}
+        contentLayout="block"
+        quickFilters={
+          <>
             <Input
               size="large"
               placeholder={t('searchPlaceholder')}
@@ -1092,23 +1098,16 @@ export default function WorkersPage() {
                 setFilters({ ...filters, includeSubBranches: v })
               }
             />
-            <Button
-              icon={<FilterOutlined />}
-              onClick={() => setShowFilters(!showFilters)}
-              type={showFilters ? 'primary' : 'default'}
-              size="large"
-            >
-              {t('filters')}
-            </Button>
-            <ExportButton
-              endpoint={API_ENDPOINTS.WORKERS.EXPORT}
-              filters={workerApiParams}
-              fileName="Workers.xlsx"
-            />
-          </Space>
-        </div>
-
-        {showFilters && (
+          </>
+        }
+        actions={
+          <ExportButton
+            endpoint={API_ENDPOINTS.WORKERS.EXPORT}
+            filters={workerApiParams}
+            fileName="Workers.xlsx"
+          />
+        }
+      >
           <div className={styles.filterContent}>
             <Row gutter={[16, 16]}>
               <Col xs={24} md={6}>
@@ -1325,14 +1324,8 @@ export default function WorkersPage() {
                 />
               </Col>
             </Row>
-            <div className={styles.filterActions}>
-              <Button icon={<ClearOutlined />} onClick={handleClearFilters}>
-                {t('clearFilters')}
-              </Button>
-            </div>
           </div>
-        )}
-      </Card>
+      </AdvancedFilterPanel>
 
       {/* Active Filters Display */}
       {Object.values(filters).some((v) => v !== undefined && v !== '') && (

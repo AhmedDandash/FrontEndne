@@ -724,6 +724,8 @@ export interface EmploymentOperatingContract {
   workerPhone?: string | null;
   /** Assigned worker photo (relative R2 key — resolve via resolveImageUrl). */
   workerPhotoUrl?: string | null;
+  /** FEdits-2 successor field; resolves from the same source as workerPhotoUrl. */
+  workerImageUrl?: string | null;
   workersCount?: number | null;
   customerAddress?: string | null;
   cost?: number | null;
@@ -866,6 +868,8 @@ export interface OperatingContractDeliveryFormDto {
   workerPhone?: string | null;
   workerPassportNumber?: string | null;
   workerPhotoUrl?: string | null;
+  /** FEdits-2 successor field; resolves from the same source as workerPhotoUrl. */
+  workerImageUrl?: string | null;
   customerSignedAt?: string | null;
   workerSignedAt?: string | null;
   companyRepresentativeSignedAt?: string | null;
@@ -880,6 +884,89 @@ export interface SaveDeliveryFormDto {
   customerSignedAt?: string | null;
   workerSignedAt?: string | null;
   companyRepresentativeSignedAt?: string | null;
+}
+
+// ==================== Worker Delivery Record (FEdits-2 §5) ====================
+// Separate entity from OperatingContractDeliveryFormDto above — that one is the
+// contract-scoped internal handover checklist (signature timestamps, blank
+// print lines); this one is the signed receipt of custody, proving who
+// physically took the worker (often not the contract customer — a relative,
+// driver, or company rep), with a captured signature image. Both coexist.
+//
+// All shapes below confirmed against the LIVE API on 2026-08-03 (create via
+// swagger + a real POST; read/print via a real GET on a created record —
+// swagger has no response schema for those). Two corrections from an earlier
+// swagger-only pass: the print DTO uses flat `workerName`/`customerName`
+// (not Ar/En split) and `operationContractNumber` (not `contractNumber`);
+// there is no `workerPhone`/`customerAddress` in the print response.
+//
+// KNOWN BACKEND BUG: `signatureImage` crashes the create/update endpoint with
+// an unhandled 500 (empty response body) once the payload exceeds roughly a
+// few hundred bytes of base64 — confirmed live: 638 chars → 201, 7100 chars →
+// 500. Frontend mitigates with ink-bounding-box trimming (SignaturePad) plus
+// a retry-without-signature fallback (WorkerDeliveryRecordModal) — but this
+// is a real server defect that should be reported to the backend team (looks
+// like a column-length limit throwing instead of returning 400).
+
+export interface CreateWorkerDeliveryRecordDto {
+  operationContractId: string;
+  workerId: string;
+  customerId: string;
+  /** ISO date-time */
+  deliveryDate: string;
+  receiverName: string;
+  receiverNationalId: string;
+  notes?: string | null;
+  /** data:image/png;base64,… or null. See the known-bug note above. */
+  signatureImage?: string | null;
+}
+
+export interface UpdateWorkerDeliveryRecordDto {
+  deliveryDate: string;
+  receiverName: string;
+  receiverNationalId: string;
+  notes?: string | null;
+  signatureImage?: string | null;
+}
+
+/** GET /api/WorkerDeliveryRecord/{id} — confirmed live. */
+export interface WorkerDeliveryRecordDto {
+  id: string;
+  operationContractId: string;
+  workerId: string;
+  customerId: string;
+  deliveryDate?: string | null;
+  receiverName?: string | null;
+  receiverNationalId?: string | null;
+  notes?: string | null;
+  signatureImage?: string | null;
+  createdBy?: string | null;
+  createdAt?: string | null;
+}
+
+/** GET /api/WorkerDeliveryRecord/{id}/print — confirmed live (flat DTO: the entity's own fields plus joined display fields). */
+export interface WorkerDeliveryRecordPrintDto {
+  id?: string | null;
+  operationContractId?: string | null;
+  operationContractNumber?: number | string | null;
+  workerId?: string | null;
+  workerName?: string | null;
+  workerPassportNumber?: string | null;
+  /** Relative R2 key — resolve via resolveImageUrl. */
+  workerImageUrl?: string | null;
+  customerId?: string | null;
+  customerName?: string | null;
+  customerNationalId?: string | null;
+  customerPhone?: string | null;
+  branchNameAr?: string | null;
+  branchNameEn?: string | null;
+  deliveryDate?: string | null;
+  receiverName?: string | null;
+  receiverNationalId?: string | null;
+  signatureImage?: string | null;
+  notes?: string | null;
+  createdBy?: string | null;
+  createdAt?: string | null;
 }
 
 // ==================== Complaint Types ====================
@@ -1138,6 +1225,8 @@ export interface MediationContract {
   branchNameEn?: string | null;
   /** Current worker photo (relative R2 key — resolve via resolveImageUrl). */
   workerPhotoUrl?: string | null;
+  /** FEdits-2 successor field; resolves from the same source as workerPhotoUrl. */
+  workerImageUrl?: string | null;
   /** True when a worker is currently assigned to the contract. */
   hasAssignedWorker?: boolean | null;
   /** True when the contract's invoice has been paid. */
@@ -1208,6 +1297,8 @@ export interface MediationWorkerAssignment {
   workerPassportNumber?: string | null;
   /** Relative R2 key — resolve via resolveImageUrl. */
   workerPhotoUrl?: string | null;
+  /** FEdits-2 successor field; resolves from the same source as workerPhotoUrl. */
+  workerImageUrl?: string | null;
   assignedAt?: string | null;
   endedAt?: string | null;
   endReason?: string | null;
@@ -1416,6 +1507,8 @@ export interface RecruitmentRequestItem {
   workerPassportNumber?: string | null;
   /** Relative R2 key — resolve via resolveImageUrl. */
   workerPhotoUrl?: string | null;
+  /** FEdits-2 successor field; resolves from the same source as workerPhotoUrl. */
+  workerImageUrl?: string | null;
   workerNationalityAr?: string | null;
   workerTypeName?: string | null;
   offerId?: string | null;

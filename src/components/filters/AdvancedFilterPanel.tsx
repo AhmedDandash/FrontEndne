@@ -16,6 +16,13 @@ export interface AdvancedFilterPanelProps {
   /** Number of active filters — shown as a badge on the toggle. */
   activeCount?: number;
   defaultOpen?: boolean;
+  /**
+   * 'inline' (default) = flex-wrap row of controls, matching Customers' unlabelled
+   * fields. 'block' = plain container — pass this when `children` is already a
+   * labelled `<Row>/<Col>` grid (e.g. Applicants), so it isn't flattened and
+   * stripped of labels.
+   */
+  contentLayout?: 'inline' | 'block';
 }
 
 /**
@@ -30,6 +37,7 @@ export default function AdvancedFilterPanel({
   onClear,
   activeCount = 0,
   defaultOpen = false,
+  contentLayout = 'inline',
 }: AdvancedFilterPanelProps) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -74,10 +82,9 @@ export default function AdvancedFilterPanel({
             marginTop: 16,
             paddingTop: 16,
             borderTop: '1px solid #f0f0f0',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 12,
-            alignItems: 'center',
+            ...(contentLayout === 'inline'
+              ? { display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }
+              : { display: 'block' }),
           }}
         >
           {children}

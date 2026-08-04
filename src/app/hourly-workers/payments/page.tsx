@@ -8,22 +8,22 @@ import {
   Select,
   Button,
   Tooltip,
-  DatePicker,
   Popconfirm,
+  Row,
+  Col,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs, { type Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import {
   DollarOutlined,
   ReloadOutlined,
   SearchOutlined,
   RollbackOutlined,
-  SortAscendingOutlined,
-  SortDescendingOutlined,
 } from '@ant-design/icons';
 import { useHourlyPayments, useHourlyPaymentMutations } from '@/hooks/api/useHourlyPayments';
 import { useHourlyPermissions } from '@/hooks/useHourlyPermissions';
 import { useAuthStore } from '@/store/authStore';
+import { AdvancedFilterPanel, DateRangeFilter } from '@/components/filters';
 import {
   fmtMoney,
   EnumTag,
@@ -33,7 +33,6 @@ import {
 import { HourlyPaymentRecordStatus, type HourlyPaymentListItem } from '@/types/hourly-worker.types';
 import styles from '../hourly-workers.module.css';
 
-const { RangePicker } = DatePicker;
 const PAGE_SIZE = 10;
 
 export default function HourlyPaymentsPage() {
@@ -46,7 +45,10 @@ export default function HourlyPaymentsPage() {
   const [search, setSearch] = useState('');
   const [orderId, setOrderId] = useState('');
   const [status, setStatus] = useState<number | undefined>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [range, setRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
   const [sortBy, setSortBy] = useState<'amount' | 'status' | 'createdDate'>('createdDate');
   const [sortDescending, setSortDescending] = useState(true);
   const [pageNumber, setPageNumber] = useState(1);
@@ -55,8 +57,8 @@ export default function HourlyPaymentsPage() {
     search: search || undefined,
     orderId: orderId || undefined,
     status,
-    dateFrom: range?.[0]?.startOf('day').toISOString(),
-    dateTo: range?.[1]?.endOf('day').toISOString(),
+    dateFrom: range[0],
+    dateTo: range[1],
     sortBy,
     sortDescending,
     pageNumber,
@@ -70,11 +72,27 @@ export default function HourlyPaymentsPage() {
   const columns: ColumnsType<HourlyPaymentListItem> = [
     { title: t('رقم التذكرة', 'Ticket'), dataIndex: 'ticketNumber', key: 'ticket', width: 160,
       render: (v) => <span className={styles.docNumber}>{v}</span> },
-    { title: t('المبلغ', 'Amount'), dataIndex: 'amount', key: 'amount', width: 130, align: 'right', render: (v) => fmtMoney(v) },
+    {
+      title: t('المبلغ', 'Amount'),
+      dataIndex: 'amount',
+      key: 'amount',
+      width: 130,
+      align: 'right',
+      sorter: true,
+      sortOrder: sortBy === 'amount' ? (sortDescending ? 'descend' : 'ascend') : null,
+      render: (v) => fmtMoney(v),
+    },
     { title: t('الطريقة', 'Method'), dataIndex: 'paymentMethod', key: 'method', width: 130,
       render: (v) => <EnumTag map={PAYMENT_METHOD} value={v} isAr={isAr} /> },
-    { title: t('الحالة', 'Status'), dataIndex: 'status', key: 'status', width: 120,
-      render: (v) => <EnumTag map={PAYMENT_RECORD_STATUS} value={v} isAr={isAr} /> },
+    {
+      title: t('الحالة', 'Status'),
+      dataIndex: 'status',
+      key: 'status',
+      width: 120,
+      sorter: true,
+      sortOrder: sortBy === 'status' ? (sortDescending ? 'descend' : 'ascend') : null,
+      render: (v) => <EnumTag map={PAYMENT_RECORD_STATUS} value={v} isAr={isAr} />,
+    },
     { title: t('المرجع', 'Reference'), dataIndex: 'transactionReference', key: 'ref', render: (v) => v || '—' },
     { title: t('إثبات', 'Proof'), dataIndex: 'transferProofUrl', key: 'proof', width: 80,
       render: (v) => (v ? <a href={v} target="_blank" rel="noreferrer">{t('عرض', 'View')}</a> : '—') },
@@ -113,32 +131,49 @@ export default function HourlyPaymentsPage() {
         </div>
       </div>
 
+      <AdvancedFilterPanel
+        activeCount={[orderId !== '', status !== undefined].filter(Boolean).length + (range[0] ? 1 : 0)}
+        onClear={() => { setOrderId(''); setStatus(undefined); setRange([undefined, undefined]); }}
+        contentLayout="block"
+        quickFilters={
+          <>
+            <Input allowClear size="large" prefix={<SearchOutlined />} placeholder={t('بحث بالمرجع أو التذكرة', 'Search reference or ticket')}
+              style={{ width: 240 }} value={search} onChange={(e) => { setSearch(e.target.value); setPageNumber(1); }} />
+            <div>
+              <label className={styles.filterLabel}>{t('التاريخ', 'Date')}</label>
+              <DateRangeFilter value={range} onChange={(d) => { setRange(d); setPageNumber(1); }} style={{ minWidth: 240 }} />
+            </div>
+          </>
+        }
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('رقم الطلب', 'Order ID')}</label>
+            <Input allowClear size="large" placeholder={t('رقم الطلب', 'Order ID')}
+              style={{ width: '100%' }} value={orderId} onChange={(e) => { setOrderId(e.target.value); setPageNumber(1); }} />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('الحالة', 'Status')}</label>
+            <Select allowClear size="large" placeholder={t('الحالة', 'Status')} style={{ width: '100%' }}
+              value={status} onChange={(v) => { setStatus(v); setPageNumber(1); }}
+              options={Object.entries(PAYMENT_RECORD_STATUS).map(([val, def]) => ({ value: Number(val), label: isAr ? def.ar : def.en }))} />
+          </Col>
+        </Row>
+      </AdvancedFilterPanel>
+
       <Card className={styles.tableCard}>
-        <div className={styles.filters}>
-          <Input allowClear size="large" prefix={<SearchOutlined />} placeholder={t('بحث بالمرجع أو التذكرة', 'Search reference or ticket')}
-            className={styles.filterInput} value={search} onChange={(e) => { setSearch(e.target.value); setPageNumber(1); }} />
-          <Input allowClear size="large" placeholder={t('رقم الطلب', 'Order ID')}
-            className={styles.filterInput} value={orderId} onChange={(e) => { setOrderId(e.target.value); setPageNumber(1); }} />
-          <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
-            value={status} onChange={(v) => { setStatus(v); setPageNumber(1); }}
-            options={Object.entries(PAYMENT_RECORD_STATUS).map(([val, def]) => ({ value: Number(val), label: isAr ? def.ar : def.en }))} />
-          <RangePicker size="large" className={styles.filterDate} onChange={(d) => { setRange(d as [Dayjs | null, Dayjs | null] | null); setPageNumber(1); }} />
-          <Select size="large" className={styles.filterSelect}
-            value={sortBy} onChange={(v) => { setSortBy(v); setPageNumber(1); }}
-            options={[
-              { value: 'createdDate', label: t('ترتيب: الأحدث', 'Sort: Newest') },
-              { value: 'amount', label: t('ترتيب: المبلغ', 'Sort: Amount') },
-              { value: 'status', label: t('ترتيب: الحالة', 'Sort: Status') },
-            ]} />
-          <Tooltip title={sortDescending ? t('تنازلي', 'Descending') : t('تصاعدي', 'Ascending')}>
-            <Button
-              size="large"
-              icon={sortDescending ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
-              onClick={() => { setSortDescending((d) => !d); setPageNumber(1); }}
-            />
-          </Tooltip>
-        </div>
         <Table<HourlyPaymentListItem> rowKey="id" columns={columns} dataSource={payments} loading={isLoading} size="middle" bordered scroll={{ x: 1100 }}
+          onChange={(_, __, sorter) => {
+            const s = Array.isArray(sorter) ? sorter[0] : sorter;
+            if (s?.order) {
+              setSortBy(s.columnKey as 'amount' | 'status' | 'createdDate');
+              setSortDescending(s.order === 'descend');
+            } else {
+              setSortBy('createdDate');
+              setSortDescending(true);
+            }
+            setPageNumber(1);
+          }}
           pagination={{ current: pageNumber, pageSize: PAGE_SIZE, total: totalCount, onChange: setPageNumber, showTotal: (n) => t(`الإجمالي: ${n}`, `Total: ${n}`) }} />
       </Card>
     </div>

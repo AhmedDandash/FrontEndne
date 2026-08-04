@@ -141,32 +141,7 @@
   color: #003366;
 }
 
-/* Filter Card */
-.filterCard {
-  max-width: 1400px;
-  margin: 0 auto 20px;
-  margin-left: auto;
-  margin-right: auto;
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-}
-
-.filterContent {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.filterLeft {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  flex: 1;
-}
-
+/* Filter bar */
 .searchInput {
   width: 320px;
   border-radius: 8px;
@@ -176,10 +151,12 @@
   min-width: 180px;
 }
 
-.filterRight {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.filterLabel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
 }
 
 .resultCount {
@@ -635,27 +612,13 @@
     padding: 0 16px;
   }
 
-  .collectionCard,
-  .filterCard {
+  .collectionCard {
     margin-left: 16px;
     margin-right: 16px;
   }
 
-  .filterContent {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filterLeft {
-    flex-direction: column;
-  }
-
   .searchInput {
     width: 100%;
-  }
-
-  .filterRight {
-    justify-content: space-between;
   }
 
   .contractsGrid {

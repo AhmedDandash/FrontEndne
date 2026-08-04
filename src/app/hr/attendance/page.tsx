@@ -19,7 +19,6 @@ import {
 } from 'antd';
 import {
   SearchOutlined,
-  ReloadOutlined,
   ClockCircleOutlined,
   LoginOutlined,
   LogoutOutlined,
@@ -27,6 +26,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { AdvancedFilterPanel } from '@/components/filters';
 import { useHRAttendance, useHREmployees } from '@/hooks/api/useHR';
 import type { AttendanceFilterDto, AttendanceRecord } from '@/types/hr.types';
 
@@ -132,6 +132,17 @@ export default function HRAttendancePage() {
     setFilter({});
     setHasSearched(true);
   };
+
+  // Pull-to-apply page (kept intentionally — this drives report generation,
+  // not list narrowing). Per convention, activeCount reflects the *applied*
+  // filter, not the draft form values, so the badge only counts what's
+  // actually affecting the table.
+  const activeFilterCount = [
+    filter.employeeId,
+    filter.month,
+    filter.attendanceDay,
+    filter.status,
+  ].filter((v) => v !== undefined && v !== null).length;
 
   const columns: ColumnsType<AttendanceRecord> = [
     {
@@ -268,11 +279,17 @@ export default function HRAttendancePage() {
       <Divider style={{ margin: '0 0 16px' }} />
 
       {/* ── Filter panel ── */}
-      <Card style={{ marginBottom: 16 }}>
-        <Form form={form} layout="vertical">
-          <Row gutter={16}>
-            <Col xs={24} sm={12} md={6}>
-              <Form.Item name="employeeId" label="الموظف">
+      {/* Pull-to-apply, kept intentionally (report generation, not list
+          narrowing) — all fields stay always-visible in quickFilters rather
+          than behind the advanced-filters toggle, since composing the query
+          is the point, not an optional narrowing step. */}
+      <Form form={form} layout="vertical">
+        <AdvancedFilterPanel
+          activeCount={activeFilterCount}
+          onClear={handleReset}
+          quickFilters={
+            <>
+              <Form.Item name="employeeId" label="الموظف" style={{ marginBottom: 0 }}>
                 <Select
                   allowClear
                   showSearch
@@ -283,21 +300,16 @@ export default function HRAttendancePage() {
                       .toLowerCase()
                       .includes(input.toLowerCase())
                   }
+                  style={{ width: 220 }}
                 />
               </Form.Item>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Form.Item name="monthYear" label="الشهر والسنة">
-                <DatePicker picker="month" style={{ width: '100%' }} format="YYYY-MM" placeholder="اختر الشهر (اختياري)" />
+              <Form.Item name="monthYear" label="الشهر والسنة" style={{ marginBottom: 0 }}>
+                <DatePicker picker="month" style={{ width: 160 }} format="YYYY-MM" placeholder="اختر الشهر (اختياري)" />
               </Form.Item>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Form.Item name="attendanceDay" label="يوم محدد">
-                <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" placeholder="اختر يوماً محدداً (اختياري)" />
+              <Form.Item name="attendanceDay" label="يوم محدد" style={{ marginBottom: 0 }}>
+                <DatePicker style={{ width: 160 }} format="YYYY-MM-DD" placeholder="اختر يوماً محدداً (اختياري)" />
               </Form.Item>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Form.Item name="status" label="الحالة">
+              <Form.Item name="status" label="الحالة" style={{ marginBottom: 0 }}>
                 <Select
                   allowClear
                   placeholder="اختر الحالة"
@@ -308,29 +320,23 @@ export default function HRAttendancePage() {
                     { value: 4, label: 'إجازة رسمية' },
                     { value: 5, label: 'في إجازة' },
                   ]}
+                  style={{ width: 160 }}
                 />
               </Form.Item>
-            </Col>
-            <Col xs={24}>
-              <Form.Item label=" " style={{ marginTop: 2 }}>
-                <Space>
-                  <Button
-                    type="primary"
-                    icon={<SearchOutlined />}
-                    loading={isLoading}
-                    onClick={handleFilter}
-                  >
-                    بحث
-                  </Button>
-                  <Button icon={<ReloadOutlined />} onClick={handleReset}>
-                    إعادة تعيين
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </Card>
+            </>
+          }
+          actions={
+            <Button
+              type="primary"
+              icon={<SearchOutlined />}
+              loading={isLoading}
+              onClick={handleFilter}
+            >
+              بحث
+            </Button>
+          }
+        />
+      </Form>
 
       {displayRecords.length > 0 && (
         <Row gutter={16} style={{ marginBottom: 16 }}>

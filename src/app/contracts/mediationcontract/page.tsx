@@ -51,7 +51,7 @@ import {
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
-import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
+import { BranchFilterSelect, DateRangeFilter, ExportButton, AdvancedFilterPanel } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { useAvailableMediationWorkers } from '@/hooks/api/useWorkers';
@@ -133,6 +133,34 @@ export default function MediationContractsPage() {
   // Advanced filters (ErpImprovementsJul2026)
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
   const [withoutWorker, setWithoutWorker] = useState(false);
+
+  // Count of active advanced filters (for the panel badge / clear button).
+  const activeFilterCount =
+    (branchId ? 1 : 0) +
+    (typeFilter !== 'all' ? 1 : 0) +
+    (statusFilter !== 'all' ? 1 : 0) +
+    (dateRange[0] || dateRange[1] ? 1 : 0) +
+    (updatedDateRange[0] || updatedDateRange[1] ? 1 : 0) +
+    (paymentFilter !== 'all' ? 1 : 0) +
+    (paymentDateRange[0] || paymentDateRange[1] ? 1 : 0) +
+    (withoutWorker ? 1 : 0) +
+    (agentFilter !== 'all' ? 1 : 0) +
+    (marketerFilter !== 'all' ? 1 : 0);
+
+  const clearFilters = () => {
+    setBranchId(undefined);
+    setIncludeSubBranches(true);
+    setTypeFilter('all');
+    setStatusFilter('all');
+    setDateRange([undefined, undefined]);
+    setUpdatedDateRange([undefined, undefined]);
+    setPaymentFilter('all');
+    setPaymentDateRange([undefined, undefined]);
+    setWithoutWorker(false);
+    setAgentFilter('all');
+    setMarketerFilter('all');
+    setCurrentPage(1);
+  };
 
   // Assign-worker passport search (available workers only)
   const [assignPassportSearch, setAssignPassportSearch] = useState('');
@@ -236,6 +264,7 @@ export default function MediationContractsPage() {
     musanedNumber: language === 'ar' ? 'رقم مساند' : 'Musaned #',
     visaNumber: language === 'ar' ? 'رقم التأشيرة' : 'Visa Number',
     arrivalCity: language === 'ar' ? 'مدينة الوصول' : 'Arrival City',
+    createdBy: language === 'ar' ? 'أُنشئ بواسطة' : 'Created By',
     noResults: language === 'ar' ? 'لا توجد نتائج' : 'No results found',
     save: language === 'ar' ? 'حفظ' : 'Save',
     cancel: language === 'ar' ? 'إلغاء' : 'Cancel',
@@ -747,6 +776,15 @@ export default function MediationContractsPage() {
                     </div>
                   </div>
                 )}
+                {contract.createdByName && (
+                  <div className={styles.detailItem}>
+                    <UserOutlined className={styles.detailIcon} />
+                    <div className={styles.detailText}>
+                      <span className={styles.detailLabel}>{t.createdBy}</span>
+                      <span className={styles.detailValue}>{contract.createdByName}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -931,163 +969,180 @@ export default function MediationContractsPage() {
       </Row>
 
       {/* Filters */}
-      <Card className={styles.filterCard}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} md={10}>
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        contentLayout="block"
+        quickFilters={
+          <>
             <Input
               placeholder={t.search}
               prefix={<SearchOutlined />}
               value={searchText}
               onChange={(e) => { setSearchText(e.target.value); setCurrentPage(1); }}
               allowClear
-              size="large"
-              className={styles.searchInput}
+              style={{ width: 260 }}
             />
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <Select
-              value={typeFilter}
-              onChange={(v) => { setTypeFilter(v); setCurrentPage(1); }}
-              style={{ width: '100%' }}
-              size="large"
-              options={[
-                { value: 'all', label: t.allTypes },
-                ...toSelectOptions([...MEDIATION_CONTRACT_TYPE], language).map((o) => ({ ...o, value: String(o.value) })),
-              ]}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <Select
-              value={statusFilter}
-              onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}
-              style={{ width: '100%' }}
-              size="large"
-              options={[
-                { value: 'all', label: t.allStatuses },
-                ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
-              ]}
-            />
-          </Col>
-          <Col xs={24} md={8}>
             <BranchFilterSelect
               value={branchId}
               onChange={(v) => { setBranchId(v); setCurrentPage(1); }}
               includeSubBranches={includeSubBranches}
               onIncludeSubBranchesChange={setIncludeSubBranches}
-              style={{ width: '100%' }}
             />
-          </Col>
-          <Col xs={24} md={10}>
-            <DateRangeFilter
-              value={dateRange}
-              onChange={(range) => { setDateRange(range); setCurrentPage(1); }}
-              placeholder={['أُنشئ من', 'إلى']}
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <Select
-              value={paymentFilter}
-              onChange={(v) => { setPaymentFilter(v); setCurrentPage(1); }}
-              style={{ width: '100%' }}
-              size="large"
-              options={[
-                { value: 'all', label: t.paymentStatus },
-                { value: 'paid', label: t.paid },
-                { value: 'unpaid', label: t.unpaid },
-              ]}
-            />
-          </Col>
-          <Col xs={24} md={8}>
-            <div style={{ fontSize: 12, color: '#8c8c8c', marginBlockEnd: 4 }}>
-              {t.paymentDateLabel}
-            </div>
-            <DateRangeFilter
-              value={paymentDateRange}
-              onChange={(range) => { setPaymentDateRange(range); setCurrentPage(1); }}
-              placeholder={['دفعة من', 'إلى']}
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <Checkbox
-              checked={withoutWorker}
-              onChange={(e) => { setWithoutWorker(e.target.checked); setCurrentPage(1); }}
-            >
-              {t.withoutWorkerLabel}
-            </Checkbox>
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <Select
-              value={agentFilter}
-              onChange={(v) => { setAgentFilter(v); setCurrentPage(1); }}
-              style={{ width: '100%' }}
-              size="large"
-              showSearch
-              optionFilterProp="label"
-              options={[
-                { value: 'all', label: t.allAgents },
-                ...(agents as any[]).map((a) => ({
-                  value: String(a.id),
-                  label: (language === 'ar' ? a.agentNameAr : a.agentNameEn) || a.agentNameAr || a.agentNameEn || `#${a.id}`,
-                })),
-              ]}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <Select
-              value={marketerFilter}
-              onChange={(v) => { setMarketerFilter(v); setCurrentPage(1); }}
-              style={{ width: '100%' }}
-              size="large"
-              showSearch
-              optionFilterProp="label"
-              options={[
-                { value: 'all', label: t.allMarketers },
-                ...(marketers as any[]).map((m) => ({
-                  value: String(m.id),
-                  label: (language === 'ar' ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
-                })),
-              ]}
-            />
-          </Col>
-          <Col xs={24} md={10}>
-            <DateRangeFilter
-              value={updatedDateRange}
-              onChange={(range) => { setUpdatedDateRange(range); setCurrentPage(1); }}
-              placeholder={['حُدّث من', 'إلى']}
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={24} md={6} style={{ textAlign: language === 'ar' ? 'left' : 'right' }}>
-            <ExportButton
-              endpoint={API_ENDPOINTS.MEDIATION_CONTRACT.EXPORT}
-              filters={{
-                Page: currentPage,
-                PageSize: pageSize,
-                StatusId: statusFilter === 'all' ? undefined : Number(statusFilter),
-                ContractType: typeFilter === 'all' ? undefined : Number(typeFilter),
-                Search: searchText || undefined,
-                BranchId: branchId,
-                IncludeSubBranches: branchId ? includeSubBranches : undefined,
-                CreatedDateFrom: dateRange[0],
-                CreatedDateTo: dateRange[1],
-                UpdatedDateFrom: updatedDateRange[0],
-                UpdatedDateTo: updatedDateRange[1],
-                AgentId: agentFilter === 'all' ? undefined : agentFilter,
-                MarketerId: marketerFilter === 'all' ? undefined : marketerFilter,
-                WithoutAssignedWorker: withoutWorker || undefined,
-                IsPaid: paymentFilter === 'paid' ? true : undefined,
-                IsUnpaid: paymentFilter === 'unpaid' ? true : undefined,
-                PaymentDateFrom: paymentDateRange[0],
-                PaymentDateTo: paymentDateRange[1],
-              }}
-              fileName="MediationContracts.xlsx"
-              pageParam="page"
-            />
-          </Col>
-        </Row>
-      </Card>
+          </>
+        }
+        actions={
+          <ExportButton
+            endpoint={API_ENDPOINTS.MEDIATION_CONTRACT.EXPORT}
+            filters={{
+              Page: currentPage,
+              PageSize: pageSize,
+              StatusId: statusFilter === 'all' ? undefined : Number(statusFilter),
+              ContractType: typeFilter === 'all' ? undefined : Number(typeFilter),
+              Search: searchText || undefined,
+              BranchId: branchId,
+              IncludeSubBranches: branchId ? includeSubBranches : undefined,
+              CreatedDateFrom: dateRange[0],
+              CreatedDateTo: dateRange[1],
+              UpdatedDateFrom: updatedDateRange[0],
+              UpdatedDateTo: updatedDateRange[1],
+              AgentId: agentFilter === 'all' ? undefined : agentFilter,
+              MarketerId: marketerFilter === 'all' ? undefined : marketerFilter,
+              WithoutAssignedWorker: withoutWorker || undefined,
+              IsPaid: paymentFilter === 'paid' ? true : undefined,
+              IsUnpaid: paymentFilter === 'unpaid' ? true : undefined,
+              PaymentDateFrom: paymentDateRange[0],
+              PaymentDateTo: paymentDateRange[1],
+            }}
+            fileName="MediationContracts.xlsx"
+            pageParam="page"
+          />
+        }
+      >
+        <div className={styles.filterContent}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t.type}</label>
+              <Select
+                value={typeFilter}
+                onChange={(v) => { setTypeFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: t.allTypes },
+                  ...toSelectOptions([...MEDIATION_CONTRACT_TYPE], language).map((o) => ({ ...o, value: String(o.value) })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t.status}</label>
+              <Select
+                value={statusFilter}
+                onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: t.allStatuses },
+                  ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>
+                {language === 'ar' ? 'تاريخ الإنشاء' : 'Created date'}
+              </label>
+              <DateRangeFilter
+                value={dateRange}
+                onChange={(range) => { setDateRange(range); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>
+                {language === 'ar' ? 'تاريخ آخر تحديث' : 'Updated date'}
+              </label>
+              <DateRangeFilter
+                value={updatedDateRange}
+                onChange={(range) => { setUpdatedDateRange(range); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t.paymentStatus}</label>
+              <Select
+                value={paymentFilter}
+                onChange={(v) => { setPaymentFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: t.paymentStatus },
+                  { value: 'paid', label: t.paid },
+                  { value: 'unpaid', label: t.unpaid },
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>{t.paymentDateLabel}</label>
+              <DateRangeFilter
+                value={paymentDateRange}
+                onChange={(range) => { setPaymentDateRange(range); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={6} style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 4 }}>
+              <Checkbox
+                checked={withoutWorker}
+                onChange={(e) => { setWithoutWorker(e.target.checked); setCurrentPage(1); }}
+              >
+                {t.withoutWorkerLabel}
+              </Checkbox>
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>
+                {language === 'ar' ? 'الوكيل' : 'Agent'}
+              </label>
+              <Select
+                value={agentFilter}
+                onChange={(v) => { setAgentFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="label"
+                options={[
+                  { value: 'all', label: t.allAgents },
+                  ...(agents as any[]).map((a) => ({
+                    value: String(a.id),
+                    label: (language === 'ar' ? a.agentNameAr : a.agentNameEn) || a.agentNameAr || a.agentNameEn || `#${a.id}`,
+                  })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>
+                {language === 'ar' ? 'المسوق' : 'Marketer'}
+              </label>
+              <Select
+                value={marketerFilter}
+                onChange={(v) => { setMarketerFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="label"
+                options={[
+                  { value: 'all', label: t.allMarketers },
+                  ...(marketers as any[]).map((m) => ({
+                    value: String(m.id),
+                    label: (language === 'ar' ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
+                  })),
+                ]}
+              />
+            </Col>
+          </Row>
+        </div>
+      </AdvancedFilterPanel>
 
       {/* Results Info */}
       <div className={styles.resultsInfo}>

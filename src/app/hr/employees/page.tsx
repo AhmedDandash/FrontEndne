@@ -36,6 +36,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { AdvancedFilterPanel } from '@/components/filters';
 import { useHREmployees } from '@/hooks/api/useHR';
 import { useAdminPositions, useDepartments } from '@/hooks/api/useAdmin';
 import NationalitySelect from '@/components/common/NationalitySelect';
@@ -298,8 +299,10 @@ export default function HREmployeesPage() {
         </Button>
       </div>
 
-      <Card>
-        <div style={{ marginBottom: 16 }}>
+      <AdvancedFilterPanel
+        activeCount={0}
+        onClear={() => handleSearch('')}
+        quickFilters={
           <Input.Search
             placeholder="البحث بالاسم أو رقم الموظف..."
             allowClear
@@ -308,8 +311,10 @@ export default function HREmployeesPage() {
             onSearch={handleSearch}
             onChange={(e) => !e.target.value && handleSearch('')}
           />
-        </div>
+        }
+      />
 
+      <Card>
         <Table<EmployeeDto>
           dataSource={employees}
           columns={columns}

@@ -8,6 +8,7 @@ import { message } from 'antd';
 import { CustomerService } from '@/services';
 import type { CreateCustomerDto, UpdateCustomerDto } from '@/types/api.types';
 import type { CustomerQuery } from '@/types/filters.types';
+import { getApiErrorMessage } from '@/utils/api-error';
 
 const QUERY_KEY = 'customers';
 
@@ -70,9 +71,7 @@ export function useCustomers() {
       message.success('تمت إضافة العميل بنجاح / Customer created successfully');
     },
     onError: (error: any) => {
-      message.error(
-        error.response?.data?.message || 'فشل إضافة العميل / Failed to create customer'
-      );
+      message.error(getApiErrorMessage(error, 'فشل إضافة العميل / Failed to create customer'));
     },
   });
 
@@ -85,9 +84,7 @@ export function useCustomers() {
       message.success('تم تحديث العميل بنجاح / Customer updated successfully');
     },
     onError: (error: any) => {
-      message.error(
-        error.response?.data?.message || 'فشل تحديث العميل / Failed to update customer'
-      );
+      message.error(getApiErrorMessage(error, 'فشل تحديث العميل / Failed to update customer'));
     },
   });
 
@@ -99,7 +96,7 @@ export function useCustomers() {
       message.success('تم حذف العميل بنجاح / Customer deleted successfully');
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'فشل حذف العميل / Failed to delete customer');
+      message.error(getApiErrorMessage(error, 'فشل حذف العميل / Failed to delete customer'));
     },
   });
 

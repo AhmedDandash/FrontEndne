@@ -54,6 +54,8 @@ import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperat
 import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import NationalitySelect from '@/components/common/NationalitySelect';
+import { CUSTOMER_COMMON_NATIONALITIES } from '@/constants/nationalities';
+import HijriDatePicker from '@/components/common/HijriDatePicker';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useMarketers } from '@/hooks/api/useMarketers';
 import RentOfferSelector from '@/components/contracts/RentOfferSelector';
@@ -670,6 +672,7 @@ export default function CustomersPage() {
       <AdvancedFilterPanel
         activeCount={activeFilterCount}
         onClear={clearFilters}
+        contentLayout="block"
         quickFilters={
           <>
             <Input
@@ -699,111 +702,156 @@ export default function CustomersPage() {
           />
         }
       >
-        <Select
-          style={{ width: 200 }}
-          value={cityFilter}
-          onChange={(v) => setCityFilter(v)}
-          placeholder={t('city')}
-        >
-          <Select.Option value="all">{t('allCities')}</Select.Option>
-          {cities.map((city) => (
-            <Select.Option key={city} value={city}>
-              {city}
-            </Select.Option>
-          ))}
-        </Select>
-        <DateRangeFilter
-          value={dateRange}
-          onChange={(range) => {
-            setDateRange(range);
-            setPageNumber(1);
-          }}
-          placeholder={['أُنشئ من', 'إلى']}
-        />
-        <DateRangeFilter
-          value={updatedDateRange}
-          onChange={(range) => {
-            setUpdatedDateRange(range);
-            setPageNumber(1);
-          }}
-          placeholder={
-            language === 'ar' ? ['تم التحديث من', 'إلى'] : ['Updated from', 'to']
-          }
-        />
-        <Input
-          placeholder={t('nationalId')}
-          value={idNumberFilter}
-          onChange={(e) => setIdNumberFilter(e.target.value)}
-          style={{ width: 160 }}
-          allowClear
-        />
-        <Input
-          placeholder={t('mobile')}
-          value={mobileFilter}
-          onChange={(e) => setMobileFilter(e.target.value)}
-          style={{ width: 160 }}
-          allowClear
-        />
-        <Input
-          placeholder={t('email')}
-          value={emailFilter}
-          onChange={(e) => setEmailFilter(e.target.value)}
-          style={{ width: 180 }}
-          allowClear
-        />
-        <Select
-          style={{ width: 180 }}
-          value={nationalityFilter}
-          onChange={(v) => {
-            setNationalityFilter(v);
-            setPageNumber(1);
-          }}
-          placeholder={t('nationality')}
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          options={nationalities.map((n: any) => ({
-            value: String(n.id ?? n.nationalityId ?? n.value),
-            label: getNationalityLabel(n),
-          }))}
-        />
-        <Select
-          style={{ width: 180 }}
-          value={agentIdFilter}
-          onChange={(v) => {
-            setAgentIdFilter(v);
-            setPageNumber(1);
-          }}
-          placeholder={language === 'ar' ? 'الوكيل' : 'Agent'}
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          options={(agentsData as any[]).map((a) => ({
-            value: String(a.id),
-            label:
-              (language === 'ar' ? a.agentNameAr : a.agentNameEn) ||
-              a.agentNameAr ||
-              a.agentNameEn ||
-              `#${a.id}`,
-          }))}
-        />
-        <Select
-          style={{ width: 180 }}
-          value={marketerIdFilter}
-          onChange={(v) => {
-            setMarketerIdFilter(v);
-            setPageNumber(1);
-          }}
-          placeholder={language === 'ar' ? 'المسوق' : 'Marketer'}
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          options={(marketersData as any[]).map((m) => ({
-            value: String(m.id),
-            label:
-              (language === 'ar' ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
-          }))}
-        />
+        <div className={styles.filterContent}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t('city')}</label>
+              <Select
+                style={{ width: '100%' }}
+                value={cityFilter}
+                onChange={(v) => setCityFilter(v)}
+                placeholder={t('city')}
+              >
+                <Select.Option value="all">{t('allCities')}</Select.Option>
+                {cities.map((city) => (
+                  <Select.Option key={city} value={city}>
+                    {city}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t('nationalId')}</label>
+              <Input
+                placeholder={t('nationalId')}
+                value={idNumberFilter}
+                onChange={(e) => setIdNumberFilter(e.target.value)}
+                style={{ width: '100%' }}
+                allowClear
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t('mobile')}</label>
+              <Input
+                placeholder={t('mobile')}
+                value={mobileFilter}
+                onChange={(e) => setMobileFilter(e.target.value)}
+                style={{ width: '100%' }}
+                allowClear
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t('email')}</label>
+              <Input
+                placeholder={t('email')}
+                value={emailFilter}
+                onChange={(e) => setEmailFilter(e.target.value)}
+                style={{ width: '100%' }}
+                allowClear
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t('nationality')}</label>
+              <Select
+                style={{ width: '100%' }}
+                value={nationalityFilter}
+                onChange={(v) => {
+                  setNationalityFilter(v);
+                  setPageNumber(1);
+                }}
+                placeholder={t('nationality')}
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                options={nationalities.map((n: any) => ({
+                  value: String(n.id ?? n.nationalityId ?? n.value),
+                  label: getNationalityLabel(n),
+                }))}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>
+                {language === 'ar' ? 'الوكيل' : 'Agent'}
+              </label>
+              <Select
+                style={{ width: '100%' }}
+                value={agentIdFilter}
+                onChange={(v) => {
+                  setAgentIdFilter(v);
+                  setPageNumber(1);
+                }}
+                placeholder={language === 'ar' ? 'الوكيل' : 'Agent'}
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                options={(agentsData as any[]).map((a) => ({
+                  value: String(a.id),
+                  label:
+                    (language === 'ar' ? a.agentNameAr : a.agentNameEn) ||
+                    a.agentNameAr ||
+                    a.agentNameEn ||
+                    `#${a.id}`,
+                }))}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>
+                {language === 'ar' ? 'المسوق' : 'Marketer'}
+              </label>
+              <Select
+                style={{ width: '100%' }}
+                value={marketerIdFilter}
+                onChange={(v) => {
+                  setMarketerIdFilter(v);
+                  setPageNumber(1);
+                }}
+                placeholder={language === 'ar' ? 'المسوق' : 'Marketer'}
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                options={(marketersData as any[]).map((m) => ({
+                  value: String(m.id),
+                  label:
+                    (language === 'ar' ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
+                }))}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>
+                {language === 'ar' ? 'تاريخ الإنشاء' : 'Created date'}
+              </label>
+              <DateRangeFilter
+                value={dateRange}
+                onChange={(range) => {
+                  setDateRange(range);
+                  setPageNumber(1);
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>
+                {language === 'ar' ? 'تاريخ آخر تحديث' : 'Updated date'}
+              </label>
+              <DateRangeFilter
+                value={updatedDateRange}
+                onChange={(range) => {
+                  setUpdatedDateRange(range);
+                  setPageNumber(1);
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+          </Row>
+        </div>
       </AdvancedFilterPanel>
 
       {/* Stats Overview */}
@@ -1101,7 +1149,11 @@ export default function CustomersPage() {
             name="nationality"
             rules={[{ required: true, message: 'Please select nationality' }]}
           >
-            <NationalitySelect isActiveOnly placeholder={t('nationality')} />
+            <NationalitySelect
+              isActiveOnly
+              placeholder={t('nationality')}
+              priorityNames={CUSTOMER_COMMON_NATIONALITIES}
+            />
           </Form.Item>
 
           <Row gutter={16}>
@@ -1112,7 +1164,7 @@ export default function CustomersPage() {
             </Col>
             <Col span={12}>
               <Form.Item label={t('dateOfBirth')} name="dateOfBirth">
-                <Input type="date" />
+                <HijriDatePicker placeholder={t('dateOfBirth')} />
               </Form.Item>
             </Col>
           </Row>

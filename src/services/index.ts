@@ -15,6 +15,7 @@ export { ReceiptVoucherService } from './receipt-voucher.service';
 export { TransferContractService } from './transfer-contract.service';
 export { MedicalExaminationService } from './medical-examination.service';
 export { EmploymentOperatingContractService } from './employment-operating-contract.service';
+export { WorkerDeliveryRecordService } from './worker-delivery-record.service';
 export { ComplaintService } from './complaint.service';
 export { NationalityService } from './nationality.service';
 export { MediationContractOfferService } from './mediation-contract-offer.service';

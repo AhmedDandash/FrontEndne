@@ -7,7 +7,7 @@ import { PercentageOutlined } from '@ant-design/icons';
 import { useVatReport } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import { LedgerHeader } from '../_components/LedgerHeader';
-import { BranchFilterSelect, DateRangeFilter } from '@/components/filters';
+import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { fmtAmount, fmtDate } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
 
@@ -40,6 +40,18 @@ export default function VatReportPage() {
 
   const quarters = [1, 2, 3, 4].map((q) => ({ value: q, label: `${t('الربع', 'Q')} ${q}` }));
 
+  const defaultQuarter = Math.floor(now.month() / 3) + 1;
+  const activeFilterCount = [
+    year !== now.year() ? year : undefined,
+    quarter !== defaultQuarter ? quarter : undefined,
+    customRange[0],
+  ].filter((v) => v !== undefined).length;
+  const clearFilters = () => {
+    setYear(now.year());
+    setQuarter(defaultQuarter);
+    setCustomRange([undefined, undefined]);
+  };
+
   return (
     <div className={styles.page}>
       <LedgerHeader
@@ -54,37 +66,55 @@ export default function VatReportPage() {
         refreshLabel={t('تحديث', 'Refresh')}
       />
 
-      <Card className={styles.tableCard} style={{ marginBlockEnd: 16 }}>
-        <div className={styles.filters}>
-          <InputNumber
-            size="large"
-            min={2000}
-            max={2100}
-            value={year}
-            onChange={(v) => v && setYear(v)}
-            style={{ width: 140 }}
-            prefix={t('السنة', 'Year')}
-          />
-          <Select
-            size="large"
-            value={quarter}
-            onChange={setQuarter}
-            options={quarters}
-            style={{ width: 140 }}
-          />
-          <BranchFilterSelect
-            value={branchId}
-            onChange={setBranchId}
-            includeSubBranches={includeSubBranches}
-            onIncludeSubBranchesChange={setIncludeSubBranches}
-          />
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        quickFilters={
+          <>
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel}>{t('السنة', 'Year')}</label>
+              <InputNumber
+                size="large"
+                min={2000}
+                max={2100}
+                value={year}
+                onChange={(v) => v && setYear(v)}
+                style={{ width: 140 }}
+                prefix={t('السنة', 'Year')}
+              />
+            </div>
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel}>{t('الربع', 'Quarter')}</label>
+              <Select
+                size="large"
+                value={quarter}
+                onChange={setQuarter}
+                options={quarters}
+                style={{ width: 140 }}
+              />
+            </div>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={setBranchId}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+            />
+          </>
+        }
+      >
+        <div className={styles.filterField}>
+          <label className={styles.filterLabel}>
+            {t('نطاق مخصص (اختياري)', 'Custom range (optional)')}
+          </label>
           <DateRangeFilter
             value={customRange}
             onChange={setCustomRange}
             placeholder={[t('نطاق مخصص من', 'Custom from (optional)'), t('إلى', 'to')]}
           />
         </div>
+      </AdvancedFilterPanel>
 
+      <Card className={styles.tableCard} style={{ marginBlockEnd: 16 }}>
         {isLoading ? (
           <div className={styles.promptState}>
             <Spin size="large" />

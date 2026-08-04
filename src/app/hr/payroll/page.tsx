@@ -29,6 +29,7 @@ import {
 } from '@ant-design/icons';
 import Link from 'next/link';
 import type { ColumnsType } from 'antd/es/table';
+import { AdvancedFilterPanel } from '@/components/filters';
 import { useHRPayroll } from '@/hooks/api/useHR';
 import { PayrollStatus, type PayrollEmployeeDto } from '@/types/hr.types';
 
@@ -237,27 +238,33 @@ export default function HRPayrollPage() {
         </Button>
       </div>
 
-      <Card style={{ marginBottom: 16 }}>
-        <Space size={16}>
-          <Space>
-            <Text strong>الشهر:</Text>
-            <Select
-              value={selectedMonth}
-              onChange={setSelectedMonth}
-              options={MONTHS}
-              style={{ width: 120 }}
-            />
-          </Space>
-          <Space>
-            <Text strong>السنة:</Text>
-            <Select
-              value={selectedYear}
-              onChange={setSelectedYear}
-              options={YEARS}
-              style={{ width: 100 }}
-            />
-          </Space>
-          {payroll && (
+      <AdvancedFilterPanel
+        activeCount={0}
+        onClear={() => {}}
+        quickFilters={
+          <>
+            <Space>
+              <Text strong>الشهر:</Text>
+              <Select
+                value={selectedMonth}
+                onChange={setSelectedMonth}
+                options={MONTHS}
+                style={{ width: 120 }}
+              />
+            </Space>
+            <Space>
+              <Text strong>السنة:</Text>
+              <Select
+                value={selectedYear}
+                onChange={setSelectedYear}
+                options={YEARS}
+                style={{ width: 100 }}
+              />
+            </Space>
+          </>
+        }
+        actions={
+          payroll && (
             <Space>
               <Tag color={isClosed ? 'error' : isApproved ? 'blue' : 'warning'}>
                 {isClosed ? 'مغلق' : isApproved ? 'معتمد' : 'مسودة'}
@@ -334,9 +341,9 @@ export default function HRPayrollPage() {
                 تصدير Excel
               </Button>
             </Space>
-          )}
-        </Space>
-      </Card>
+          )
+        }
+      />
 
       {payroll && employees.length > 0 && (
         <Row gutter={16} style={{ marginBottom: 16 }}>

@@ -259,6 +259,9 @@ export default function PermissionsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <label className={styles.filterLabel}>
+            {isAr ? 'تصفية بالوحدة' : 'Filter by module'}
+          </label>
           <Select
             placeholder={isAr ? 'تصفية بالوحدة' : 'Filter by module'}
             allowClear

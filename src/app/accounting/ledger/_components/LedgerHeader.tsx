@@ -12,8 +12,6 @@ interface LedgerHeaderProps {
   isFetching?: boolean;
   onRefresh?: () => void;
   refreshLabel: string;
-  /** Optional extra actions rendered before the refresh button. */
-  extra?: ReactNode;
 }
 
 /** Shared navy page header used by every ledger report. */
@@ -24,7 +22,6 @@ export function LedgerHeader({
   isFetching,
   onRefresh,
   refreshLabel,
-  extra,
 }: LedgerHeaderProps) {
   return (
     <div className={styles.pageHeader}>
@@ -37,7 +34,6 @@ export function LedgerHeader({
           </div>
         </div>
         <div className={styles.headerActions}>
-          {extra}
           {onRefresh && (
             <Button
               icon={<ReloadOutlined spin={isFetching} />}

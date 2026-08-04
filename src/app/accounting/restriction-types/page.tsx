@@ -28,6 +28,7 @@ import {
 } from '@ant-design/icons';
 import { useRestrictionTypes } from '@/hooks/api/useRestrictionTypes';
 import { useAccountTree } from '@/hooks/api/useAccounts';
+import { AdvancedFilterPanel } from '@/components/filters';
 import type {
   RestrictionType,
   RestrictionTypeCreateDto,
@@ -119,6 +120,13 @@ export default function RestrictionTypesPage() {
       return matchesSearch && matchesMode && matchesStatus;
     });
   }, [restrictionTypes, search, modeFilter, statusFilter]);
+
+  const activeFilterCount = [modeFilter !== 'all' ? modeFilter : undefined, statusFilter !== 'all' ? statusFilter : undefined]
+    .filter((v) => v !== undefined).length;
+  const clearFilters = () => {
+    setModeFilter('all');
+    setStatusFilter('all');
+  };
 
   // ── Create / Edit modal (shared) ────────────────────────────
   const [editOpen, setEditOpen] = useState(false);
@@ -331,42 +339,55 @@ export default function RestrictionTypesPage() {
         </div>
       </div>
 
-      {/* ── Filters + Table ──────────────────────────────────── */}
-      <Card className={styles.tableCard}>
-        <div className={styles.filters}>
-          <Input
-            allowClear
-            size="large"
-            prefix={<SearchOutlined />}
-            placeholder={t('ابحث بالاسم...', 'Search by name...')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={styles.search}
-          />
-          <Select
-            size="large"
-            value={modeFilter}
-            onChange={setModeFilter}
-            className={styles.filterSelect}
-            options={[
-              { value: 'all', label: t('كل الأوضاع', 'All modes') },
-              { value: 'manual', label: t('يدوي', 'Manual') },
-              { value: 'event', label: t('مرتبط بحدث', 'Event-driven') },
-            ]}
-          />
-          <Select
-            size="large"
-            value={statusFilter}
-            onChange={setStatusFilter}
-            className={styles.filterSelect}
-            options={[
-              { value: 'all', label: t('كل الحالات', 'All statuses') },
-              { value: 'active', label: t('مفعّل', 'Active') },
-              { value: 'inactive', label: t('معطّل', 'Inactive') },
-            ]}
-          />
-        </div>
+      {/* ── Filters ──────────────────────────────────────────── */}
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        quickFilters={
+          <>
+            <Input
+              allowClear
+              size="large"
+              prefix={<SearchOutlined />}
+              placeholder={t('ابحث بالاسم...', 'Search by name...')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={styles.search}
+            />
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel}>{t('وضع القيد', 'Entry Mode')}</label>
+              <Select
+                size="large"
+                value={modeFilter}
+                onChange={setModeFilter}
+                className={styles.filterSelect}
+                options={[
+                  { value: 'all', label: t('كل الأوضاع', 'All modes') },
+                  { value: 'manual', label: t('يدوي', 'Manual') },
+                  { value: 'event', label: t('مرتبط بحدث', 'Event-driven') },
+                ]}
+              />
+            </div>
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel}>{t('الحالة', 'Status')}</label>
+              <Select
+                size="large"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                className={styles.filterSelect}
+                options={[
+                  { value: 'all', label: t('كل الحالات', 'All statuses') },
+                  { value: 'active', label: t('مفعّل', 'Active') },
+                  { value: 'inactive', label: t('معطّل', 'Inactive') },
+                ]}
+              />
+            </div>
+          </>
+        }
+      />
 
+      {/* ── Table ────────────────────────────────────────────── */}
+      <Card className={styles.tableCard}>
         <Table<RestrictionType>
           rowKey="id"
           columns={columns}

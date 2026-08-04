@@ -9,7 +9,7 @@ import { useBalanceSheet } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import type { BalanceSheetLine, BalanceSheetSection } from '@/types/ledger.types';
 import { LedgerHeader } from '../_components/LedgerHeader';
-import { BranchFilterSelect } from '@/components/filters';
+import { AdvancedFilterPanel, BranchFilterSelect } from '@/components/filters';
 import { fmtAmount, fmtBalance } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
 
@@ -82,6 +82,16 @@ export default function BalanceSheetPage() {
     !!data &&
     Math.round((data.totalAssets - (data.totalLiabilities + data.totalEquity)) * 100) === 0;
 
+  const activeFilterCount = [
+    asOf && !asOf.isSame(dayjs(), 'day') ? asOf : undefined,
+    includeCurrentYearEarnings || undefined,
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setAsOf(dayjs());
+    setIncludeCurrentYearEarnings(false);
+  };
+
   return (
     <div className={styles.page}>
       <LedgerHeader
@@ -94,28 +104,37 @@ export default function BalanceSheetPage() {
         isFetching={isFetching}
         onRefresh={() => refetch()}
         refreshLabel={t('تحديث', 'Refresh')}
-        extra={
+      />
+
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        quickFilters={
           <>
-            <DatePicker
-              value={asOf}
-              onChange={(v) => setAsOf(v)}
-              allowClear={false}
-              format="YYYY-MM-DD"
-              placeholder={t('حتى تاريخ', 'As of date')}
-            />
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel}>{t('حتى تاريخ', 'As of date')}</label>
+              <DatePicker
+                value={asOf}
+                onChange={(v) => setAsOf(v)}
+                allowClear={false}
+                format="YYYY-MM-DD"
+                placeholder={t('حتى تاريخ', 'As of date')}
+              />
+            </div>
             <BranchFilterSelect
               value={branchId}
               onChange={setBranchId}
               includeSubBranches={includeSubBranches}
               onIncludeSubBranchesChange={setIncludeSubBranches}
             />
-            <Space>
-              <Switch checked={includeCurrentYearEarnings} onChange={setIncludeCurrentYearEarnings} />
-              <span>{t('شمل أرباح السنة الحالية', 'Include current-year earnings')}</span>
-            </Space>
           </>
         }
-      />
+      >
+        <Space>
+          <Switch checked={includeCurrentYearEarnings} onChange={setIncludeCurrentYearEarnings} />
+          <span>{t('شمل أرباح السنة الحالية', 'Include current-year earnings')}</span>
+        </Space>
+      </AdvancedFilterPanel>
 
       {!asOf ? (
         <Card className={styles.tableCard}>

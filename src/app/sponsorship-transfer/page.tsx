@@ -39,7 +39,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
-import { BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
+import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter, ExportButton } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import {
   useTransferContracts,
@@ -749,6 +749,24 @@ export default function SponsorshipTransferPage() {
     rejected:  contracts.filter((c) => c.contractStatus === 6).length,
   }), [contracts, totalCount]);
 
+  // Search, Status, Branch, and Creation Date are quick filters and stay
+  // untouched by Clear. Customer/Worker/Marketer/Updated-date are the
+  // "advanced" tier — they count toward the badge and reset on Clear.
+  const activeFilterCount = [
+    customerFilter !== 'all',
+    workerFilter !== 'all',
+    marketerFilter !== 'all',
+    Boolean(updatedDateRange[0]),
+  ].filter(Boolean).length;
+
+  const clearAdvancedFilters = () => {
+    setCustomerFilter('all');
+    setWorkerFilter('all');
+    setMarketerFilter('all');
+    setUpdatedDateRange([undefined, undefined]);
+    setCurrentPage(1);
+  };
+
   const handleSign = (id: string) => {
     Modal.confirm({
       title:   t('confirmSignTitle'),
@@ -850,9 +868,19 @@ export default function SponsorshipTransferPage() {
       </Row>
 
       {/* ── Filters ── */}
-      <Card className={styles.filterCard}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} md={10}>
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearAdvancedFilters}
+        contentLayout="block"
+        actions={
+          <ExportButton
+            endpoint={API_ENDPOINTS.TRANSFER_CONTRACT.EXPORT}
+            filters={transferParams}
+            fileName="TransferContracts.xlsx"
+          />
+        }
+        quickFilters={
+          <>
             <Input
               placeholder={t('search')}
               prefix={<SearchOutlined />}
@@ -862,12 +890,10 @@ export default function SponsorshipTransferPage() {
               size="large"
               className={styles.searchInput}
             />
-          </Col>
-          <Col xs={24} md={7}>
             <Select
               value={statusFilter}
               onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}
-              style={{ width: '100%' }}
+              style={{ width: 200 }}
               size="large"
               options={[
                 { value: 'all', label: t('allStatuses') },
@@ -877,25 +903,23 @@ export default function SponsorshipTransferPage() {
                 })),
               ]}
             />
-          </Col>
-          <Col xs={24} md={7}>
             <BranchFilterSelect
               value={branchId}
               onChange={(v) => { setBranchId(v); setCurrentPage(1); }}
               includeSubBranches={includeSubBranches}
               onIncludeSubBranchesChange={setIncludeSubBranches}
-              style={{ width: '100%' }}
             />
-          </Col>
-          <Col xs={24} md={14}>
             <DateRangeFilter
               value={dateRange}
               onChange={(range) => { setDateRange(range); setCurrentPage(1); }}
               placeholder={['أُنشئ من', 'إلى']}
-              style={{ width: '100%' }}
             />
-          </Col>
-          <Col xs={24} md={7}>
+          </>
+        }
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('allCustomers')}</label>
             <Select
               value={customerFilter}
               onChange={(v) => { setCustomerFilter(v); setCurrentPage(1); }}
@@ -906,7 +930,8 @@ export default function SponsorshipTransferPage() {
               options={[{ value: 'all', label: t('allCustomers') }, ...customerFilterOpts]}
             />
           </Col>
-          <Col xs={24} md={7}>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('allWorkers')}</label>
             <Select
               value={workerFilter}
               onChange={(v) => { setWorkerFilter(v); setCurrentPage(1); }}
@@ -917,7 +942,8 @@ export default function SponsorshipTransferPage() {
               options={[{ value: 'all', label: t('allWorkers') }, ...workerFilterOpts]}
             />
           </Col>
-          <Col xs={24} md={7}>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('allMarketers')}</label>
             <Select
               value={marketerFilter}
               onChange={(v) => { setMarketerFilter(v); setCurrentPage(1); }}
@@ -928,7 +954,10 @@ export default function SponsorshipTransferPage() {
               options={[{ value: 'all', label: t('allMarketers') }, ...marketerFilterOpts]}
             />
           </Col>
-          <Col xs={24} md={14}>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>
+              {language === 'ar' ? 'تاريخ آخر تحديث' : 'Updated date'}
+            </label>
             <DateRangeFilter
               value={updatedDateRange}
               onChange={(range) => { setUpdatedDateRange(range); setCurrentPage(1); }}
@@ -936,15 +965,8 @@ export default function SponsorshipTransferPage() {
               style={{ width: '100%' }}
             />
           </Col>
-          <Col xs={24} md={10} style={{ textAlign: language === 'ar' ? 'left' : 'right' }}>
-            <ExportButton
-              endpoint={API_ENDPOINTS.TRANSFER_CONTRACT.EXPORT}
-              filters={transferParams}
-              fileName="TransferContracts.xlsx"
-            />
-          </Col>
         </Row>
-      </Card>
+      </AdvancedFilterPanel>
 
       {/* Results count */}
       <div className={styles.resultsInfo}>

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { BranchFilterSelect, DateRangeFilter } from '@/components/filters';
+import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import {
   Input,
   Select,
@@ -841,6 +841,30 @@ export default function ComplaintsPage() {
     return { total, open, closed, pending };
   }, [complaints]);
 
+  // Search + Branch are quick filters and stay untouched by Clear, matching the
+  // AdvancedFilterPanel convention used app-wide. Updated Date is also a quick
+  // filter (this page's only date range, applied server-side) but still counts
+  // toward activeCount / gets reset by Clear since it's the primary period
+  // scope rather than an orthogonal control like Search/Branch.
+  const activeFilterCount = [
+    statusFilter !== 'all',
+    contractTypeFilter !== 'all',
+    complaintFromFilter !== 'all',
+    workerLocationFilter !== 'all',
+    contractNumberFilter !== '',
+    Boolean(updatedDateRange[0]),
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setContractTypeFilter('all');
+    setComplaintFromFilter('all');
+    setWorkerLocationFilter('all');
+    setContractNumberFilter('');
+    setUpdatedDateRange([undefined, undefined]);
+    setCurrentPage(1);
+  };
+
   const getStatusBadge = (complaint: Complaint) => {
     const status = getComplaintStatus(complaint);
     const statusConfig: Record<number, { color: string; icon: React.ReactNode }> = {
@@ -1171,34 +1195,58 @@ export default function ComplaintsPage() {
       {/* Type tabs removed — `type` field no longer in new API complaint response */}
 
       {/* Filters */}
-      <div className={styles.filtersCard}>
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        contentLayout="block"
+        quickFilters={
+          <>
+            <div style={{ minWidth: 240 }}>
+              <label className={styles.filterLabel}>{t('search')}</label>
+              <Input
+                placeholder={t('search')}
+                prefix={<SearchOutlined />}
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                allowClear
+              />
+            </div>
+            <div style={{ minWidth: 240 }}>
+              <label className={styles.filterLabel}>
+                {language === 'ar' ? 'الفرع' : 'Branch'}
+              </label>
+              <BranchFilterSelect
+                value={branchId}
+                onChange={(v) => { setBranchId(v); setCurrentPage(1); }}
+                includeSubBranches={includeSubBranches}
+                onIncludeSubBranchesChange={setIncludeSubBranches}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div style={{ minWidth: 240 }}>
+              <label className={styles.filterLabel}>
+                {isArabic ? 'تاريخ التحديث' : 'Updated Date'}
+              </label>
+              <DateRangeFilter
+                value={updatedDateRange}
+                onChange={(range) => {
+                  setUpdatedDateRange(range);
+                  setCurrentPage(1);
+                }}
+                style={{ width: '100%' }}
+                placeholder={
+                  isArabic ? ['محدّث من', 'إلى'] : ['Updated from', 'to']
+                }
+              />
+            </div>
+          </>
+        }
+      >
         <Row gutter={[16, 16]}>
-          <Col xs={24} md={8}>
-            <label className={styles.filterLabel}>{t('search')}</label>
-            <Input
-              placeholder={t('search')}
-              prefix={<SearchOutlined />}
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} md={8}>
-            <label className={styles.filterLabel}>
-              {language === 'ar' ? 'الفرع' : 'Branch'}
-            </label>
-            <BranchFilterSelect
-              value={branchId}
-              onChange={(v) => { setBranchId(v); setCurrentPage(1); }}
-              includeSubBranches={includeSubBranches}
-              onIncludeSubBranchesChange={setIncludeSubBranches}
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={24} md={8}>
+          <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{t('status')}</label>
             <Select
               style={{ width: '100%' }}
@@ -1216,7 +1264,7 @@ export default function ComplaintsPage() {
               ]}
             />
           </Col>
-          <Col xs={24} md={8}>
+          <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{t('contractType')}</label>
             <Select
               style={{ width: '100%' }}
@@ -1234,7 +1282,7 @@ export default function ComplaintsPage() {
               ]}
             />
           </Col>
-          <Col xs={24} md={8}>
+          <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{t('complaintFrom')}</label>
             <Select
               style={{ width: '100%' }}
@@ -1252,7 +1300,7 @@ export default function ComplaintsPage() {
               ]}
             />
           </Col>
-          <Col xs={24} md={8}>
+          <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{t('workerLocation')}</label>
             <Select
               style={{ width: '100%' }}
@@ -1270,7 +1318,7 @@ export default function ComplaintsPage() {
               ]}
             />
           </Col>
-          <Col xs={24} md={8}>
+          <Col xs={24} md={6}>
             <label className={styles.filterLabel}>
               {isArabic ? 'رقم العقد' : 'Contract #'}
             </label>
@@ -1285,24 +1333,8 @@ export default function ComplaintsPage() {
               allowClear
             />
           </Col>
-          <Col xs={24} md={8}>
-            <label className={styles.filterLabel}>
-              {isArabic ? 'تاريخ التحديث' : 'Updated Date'}
-            </label>
-            <DateRangeFilter
-              value={updatedDateRange}
-              onChange={(range) => {
-                setUpdatedDateRange(range);
-                setCurrentPage(1);
-              }}
-              style={{ width: '100%' }}
-              placeholder={
-                isArabic ? ['محدّث من', 'إلى'] : ['Updated from', 'to']
-              }
-            />
-          </Col>
         </Row>
-      </div>
+      </AdvancedFilterPanel>
 
       {/* Complaints List */}
       <div className={styles.complaintsList}>

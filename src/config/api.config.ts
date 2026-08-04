@@ -147,6 +147,16 @@ export const API_ENDPOINTS = {
       `/api/EmploymentOperatingContract/${id}/delivery-form`,
   },
 
+  // Worker Delivery Record — signed handover receipt (FEdits-2 §5). No list/
+  // by-contract lookup endpoint exists; the frontend tracks the created id
+  // itself (see useWorkerDeliveryRecord.ts).
+  WORKER_DELIVERY_RECORD: {
+    CREATE: '/api/WorkerDeliveryRecord',
+    GET_BY_ID: (id: string) => `/api/WorkerDeliveryRecord/${id}`,
+    UPDATE: (id: string) => `/api/WorkerDeliveryRecord/${id}`,
+    PRINT: (id: string) => `/api/WorkerDeliveryRecord/${id}/print`,
+  },
+
   // Complaint
   COMPLAINT: {
     GET_ALL: '/api/Complaint',

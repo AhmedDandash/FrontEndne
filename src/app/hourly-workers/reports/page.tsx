@@ -11,7 +11,7 @@ import {
   useHourlyWorkerUtilization,
   useHourlyDriverPerformance,
 } from '@/hooks/api/useHourlyReports';
-import { BranchFilterSelect } from '@/components/filters';
+import { AdvancedFilterPanel, BranchFilterSelect } from '@/components/filters';
 import { useAuthStore } from '@/store/authStore';
 import { fmtMoney } from '../_lib/hourlyDisplay';
 import {
@@ -49,6 +49,29 @@ export default function HourlyReportsPage() {
       branchId,
       includeSubBranches: branchId ? includeSubBranches : undefined,
     });
+  };
+
+  // Pull-to-apply, kept intentionally (fans out to 4 separate aggregate
+  // endpoints per filter change). activeCount reflects the *applied* filters
+  // object, not the draft controls, per convention.
+  const activeFilterCount = [
+    filters.dateFrom,
+    filters.serviceCity,
+    filters.ticketNumber,
+    filters.customerPhone,
+    filters.status,
+    filters.branchId,
+  ].filter((v) => v !== undefined && v !== null && v !== '').length;
+
+  const clearFilters = () => {
+    setRange(null);
+    setServiceCity('');
+    setTicketNumber('');
+    setCustomerPhone('');
+    setStatus(undefined);
+    setBranchId(undefined);
+    setIncludeSubBranches(true);
+    setFilters({});
   };
 
   const summary = useHourlyOrdersSummary(filters);
@@ -127,27 +150,48 @@ export default function HourlyReportsPage() {
         </div>
       </div>
 
-      <Card className={styles.tableCard} style={{ marginBottom: 16 }}>
-        <div className={styles.filters}>
-          <RangePicker size="large" className={styles.filterDate} onChange={(d) => setRange(d as [Dayjs | null, Dayjs | null] | null)} />
-          <Input allowClear size="large" placeholder={t('المدينة', 'City')} className={styles.filterSelect}
-            value={serviceCity} onChange={(e) => setServiceCity(e.target.value)} />
-          <Input allowClear size="large" placeholder={t('رقم التذكرة', 'Ticket number')} className={styles.filterSelect}
-            value={ticketNumber} onChange={(e) => setTicketNumber(e.target.value)} />
-          <Input allowClear size="large" placeholder={t('هاتف العميل', 'Customer phone')} className={styles.filterSelect}
-            value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-          <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
-            value={status} onChange={setStatus}
-            options={HOURLY_REQUEST_STATUSES.map((s) => ({ value: s.value, label: isAr ? s.ar : s.en }))} />
-          <BranchFilterSelect
-            value={branchId}
-            onChange={setBranchId}
-            includeSubBranches={includeSubBranches}
-            onIncludeSubBranchesChange={setIncludeSubBranches}
-          />
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        actions={
           <Button type="primary" size="large" onClick={applyFilters}>{t('تطبيق', 'Apply')}</Button>
-        </div>
-      </Card>
+        }
+        quickFilters={
+          <>
+            <div>
+              <label className={styles.filterLabel}>{t('التاريخ', 'Date')}</label>
+              <RangePicker size="large" className={styles.filterDate} value={range} onChange={(d) => setRange(d as [Dayjs | null, Dayjs | null] | null)} />
+            </div>
+            <div>
+              <label className={styles.filterLabel}>{t('المدينة', 'City')}</label>
+              <Input allowClear size="large" placeholder={t('المدينة', 'City')} className={styles.filterSelect}
+                value={serviceCity} onChange={(e) => setServiceCity(e.target.value)} />
+            </div>
+            <div>
+              <label className={styles.filterLabel}>{t('رقم التذكرة', 'Ticket number')}</label>
+              <Input allowClear size="large" placeholder={t('رقم التذكرة', 'Ticket number')} className={styles.filterSelect}
+                value={ticketNumber} onChange={(e) => setTicketNumber(e.target.value)} />
+            </div>
+            <div>
+              <label className={styles.filterLabel}>{t('هاتف العميل', 'Customer phone')}</label>
+              <Input allowClear size="large" placeholder={t('هاتف العميل', 'Customer phone')} className={styles.filterSelect}
+                value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+            </div>
+            <div>
+              <label className={styles.filterLabel}>{t('الحالة', 'Status')}</label>
+              <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
+                value={status} onChange={setStatus}
+                options={HOURLY_REQUEST_STATUSES.map((s) => ({ value: s.value, label: isAr ? s.ar : s.en }))} />
+            </div>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={setBranchId}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+            />
+          </>
+        }
+      />
 
       {/* Orders summary */}
       <Card className={styles.tableCard} title={t('ملخص الطلبات', 'Orders Summary')} style={{ marginBottom: 16 }}>

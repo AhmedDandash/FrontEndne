@@ -24,6 +24,7 @@ import {
   MoreOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
+  BankOutlined,
   TeamOutlined,
   ReloadOutlined,
   HomeOutlined,
@@ -32,6 +33,7 @@ import {
   FileDoneOutlined,
   DollarOutlined,
   SolutionOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import type { RentContract } from './types';
 import { getStatusMeta } from './mapping';
@@ -50,6 +52,7 @@ export interface ContractCardActions {
   onReceipts: (c: RentContract) => void;
   onPrint: (c: RentContract) => void;
   onDeliveryForm: (c: RentContract) => void;
+  onHandoverReceipt: (c: RentContract) => void;
 }
 
 interface Props {
@@ -72,7 +75,8 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
     edit: isRtl ? 'تعديل' : 'Edit',
     delete: isRtl ? 'حذف' : 'Delete',
     printReceipt: isRtl ? 'طباعة الإيصال' : 'Print Receipt',
-    deliveryForm: isRtl ? 'نموذج التسليم' : 'Delivery Form',
+    deliveryForm: isRtl ? 'نموذج تسليم العامل' : 'Worker Delivery Form',
+    handoverReceipt: isRtl ? 'إيصال استلام موقّع' : 'Signed Handover Receipt',
     signContract: isRtl ? 'توقيع العقد' : 'Sign Contract',
     startExecution: isRtl ? 'بدء التنفيذ' : 'Start Execution',
     renewContract: isRtl ? 'تجديد العقد' : 'Renew Contract',
@@ -118,6 +122,15 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
       label: t.deliveryForm,
       icon: <SolutionOutlined />,
       onClick: () => actions.onDeliveryForm(contract),
+    });
+  }
+  // Signed handover receipt — needs an assigned worker and a Signed/Executing contract.
+  if (contract.workerId && (contract.contractStatus === 2 || contract.contractStatus === 3)) {
+    menuItems.push({
+      key: 'handover-receipt',
+      label: t.handoverReceipt,
+      icon: <SafetyCertificateOutlined />,
+      onClick: () => actions.onHandoverReceipt(contract),
     });
   }
   if (contract.contractStatus === 1) {
@@ -244,6 +257,11 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
               {contract.contractStatus === 3 && !!contract.endDate && contract.daysRemaining < 30 && (
                 <Tag color="warning" icon={<ClockCircleOutlined />}>
                   {contract.daysRemaining} {t.daysLeft}
+                </Tag>
+              )}
+              {!!(isRtl ? contract.branchAr : contract.branch) && (
+                <Tag icon={<BankOutlined />} color="blue">
+                  {isRtl ? contract.branchAr : contract.branch}
                 </Tag>
               )}
             </div>

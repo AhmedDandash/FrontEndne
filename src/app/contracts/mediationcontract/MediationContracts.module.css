@@ -114,6 +114,20 @@
   border-radius: 8px;
 }
 
+.filterContent {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.filterLabel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
+}
+
 /* Results Info */
 .resultsInfo {
   margin-block-end: 16px;

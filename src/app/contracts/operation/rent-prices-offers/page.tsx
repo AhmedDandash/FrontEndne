@@ -41,6 +41,7 @@ import {
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
+import { AdvancedFilterPanel } from '@/components/filters';
 import { useEmploymentContractOffers } from '@/hooks/api/useEmploymentContractOffers';
 import { useBranches } from '@/hooks/api/useBranches';
 import { useNationalities } from '@/hooks/api/useNationalities';
@@ -558,48 +559,25 @@ export default function RentPricesOffersPage() {
       </Row>
 
       {/* ── Filters ── */}
-      <Card className={styles.filterPanel} style={{ marginBottom: 16 }}>
-        <Row gutter={[16, 12]} align="middle">
-          <Col xs={24} md={7}>
+      <AdvancedFilterPanel
+        activeCount={[nationalityFilter, jobFilter].filter((v) => v !== 'all').length}
+        onClear={() => {
+          setNationalityFilter('all');
+          setJobFilter('all');
+        }}
+        contentLayout="block"
+        quickFilters={
+          <>
             <Input
               placeholder={t('search')}
               prefix={<SearchOutlined />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               allowClear
+              style={{ width: 260 }}
             />
-          </Col>
-          <Col xs={24} md={5}>
             <Select
-              style={{ width: '100%' }}
-              placeholder={t('nationality')}
-              showSearch
-              optionFilterProp="label"
-              value={nationalityFilter}
-              onChange={setNationalityFilter}
-              options={[
-                { value: 'all', label: `— ${t('all')} —` },
-                ...natOptions,
-              ]}
-            />
-          </Col>
-          <Col xs={24} md={5}>
-            <Select
-              style={{ width: '100%' }}
-              placeholder={t('job')}
-              showSearch
-              optionFilterProp="label"
-              value={jobFilter}
-              onChange={setJobFilter}
-              options={[
-                { value: 'all', label: `— ${t('all')} —` },
-                ...jobOptions,
-              ]}
-            />
-          </Col>
-          <Col xs={24} md={5}>
-            <Select
-              style={{ width: '100%' }}
+              style={{ width: 220 }}
               placeholder={t('branch')}
               showSearch
               optionFilterProp="label"
@@ -613,23 +591,42 @@ export default function RentPricesOffersPage() {
                 })),
               ]}
             />
+          </>
+        }
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={12}>
+            <label className={styles.filterLabel}>{t('nationality')}</label>
+            <Select
+              style={{ width: '100%' }}
+              placeholder={t('nationality')}
+              showSearch
+              optionFilterProp="label"
+              value={nationalityFilter}
+              onChange={setNationalityFilter}
+              options={[
+                { value: 'all', label: `— ${t('all')} —` },
+                ...natOptions,
+              ]}
+            />
           </Col>
-          <Col xs={24} md={2}>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => {
-                setSearchText('');
-                setNationalityFilter('all');
-                setJobFilter('all');
-                setBranchFilter('all');
-                refetch();
-              }}
-            >
-              {t('refresh')}
-            </Button>
+          <Col xs={24} md={12}>
+            <label className={styles.filterLabel}>{t('job')}</label>
+            <Select
+              style={{ width: '100%' }}
+              placeholder={t('job')}
+              showSearch
+              optionFilterProp="label"
+              value={jobFilter}
+              onChange={setJobFilter}
+              options={[
+                { value: 'all', label: `— ${t('all')} —` },
+                ...jobOptions,
+              ]}
+            />
           </Col>
         </Row>
-      </Card>
+      </AdvancedFilterPanel>
 
       {/* ── Table ── */}
       <Card

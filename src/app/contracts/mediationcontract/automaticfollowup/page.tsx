@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Button,
   Input,
   Select,
   Tag,
-  DatePicker,
-  Space,
   Card,
+  Row,
+  Col,
   Tooltip,
   InputNumber,
   Pagination,
@@ -29,7 +29,7 @@ import {
   FileTextOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
-import { BranchFilterSelect } from '@/components/filters';
+import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { useMediationFollowUpDashboard } from '@/hooks/api/useMediationFollowUp';
 import { MEDIATION_CONTRACT_STATUS, toSelectOptions } from '@/constants/enums';
 import type {
@@ -37,8 +37,6 @@ import type {
   MediationFollowUpDashboardRow,
 } from '@/types/api.types';
 import styles from './AutomaticFollowUp.module.css';
-
-const { RangePicker } = DatePicker;
 
 // ── Translations ──────────────────────────────────────────────────────────────
 
@@ -94,25 +92,75 @@ export default function AutomaticFollowUpPage() {
   const isRTL = language === 'ar';
   const t = useT(language);
 
-  // Filter state — kept in component, passed to query on Search click
+  // Filter state — live: every change re-queries directly (no Search button).
+  // Converted from the previous pull-to-search pattern per architectural
+  // review: this is an ordinary paginated list ("shows rows on load, one
+  // filter change = one list request"), which is the idiom used everywhere
+  // else in the app. See project memory for the full rationale.
   const [contractNumber, setContractNumber] = useState<number | null>(null);
   const [musanedNumber, setMusanedNumber] = useState('');
   const [passportNumber, setPassportNumber] = useState('');
   const [nationalId, setNationalId] = useState('');
   const [statusId, setStatusId] = useState<number | null>(null);
   const [workerType, setWorkerType] = useState<number | null>(null);
-  const [dateRange, setDateRange] = useState<[string, string] | null>(null);
-  const [searchText, setSearchText] = useState('');
+  const [dateRange, setDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState(''); // debounced, feeds the query
   const [branchId, setBranchId] = useState<string | undefined>(undefined);
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
-  // Applied params (updated only on Search click for server-side filtering)
-  const [appliedParams, setAppliedParams] = useState<MediationFollowUpDashboardParams>({
-    Page: 1,
-    PageSize: 15,
-  });
+  // Debounce the free-text search box into the live query (400ms, matching
+  // the app-wide convention); every other control applies immediately.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPageNumber(1);
+    }, 400);
+    return () => clearTimeout(id);
+  }, [searchInput]);
 
-  const { data, isLoading, refetch } = useMediationFollowUpDashboard(appliedParams);
+  const params = useMemo((): MediationFollowUpDashboardParams => {
+    const p: MediationFollowUpDashboardParams = { Page: pageNumber, PageSize: pageSize };
+    if (contractNumber) p.ContractNumber = contractNumber;
+    if (musanedNumber) p.MusanedContractNumber = musanedNumber;
+    if (passportNumber) p.WorkerPassportNumber = passportNumber;
+    if (nationalId) p.CustomerNationalId = nationalId;
+    // NOTE: StatusId is intentionally NOT sent — the dashboard ignores it
+    // server-side (known backend bug). Status is filtered client-side below,
+    // which only covers the current page's rows, not the full result set.
+    // Kept exactly as before this conversion — not fixed here, since the fix
+    // requires backend support.
+    if (workerType != null) p.WorkerType = workerType;
+    if (dateRange[0] && dateRange[1]) {
+      p.DateFrom = dateRange[0];
+      p.DateTo = dateRange[1];
+    }
+    if (search) p.Search = search;
+    if (branchId) {
+      p.BranchId = branchId;
+      p.IncludeSubBranches = includeSubBranches;
+    }
+    return p;
+  }, [
+    pageNumber,
+    pageSize,
+    contractNumber,
+    musanedNumber,
+    passportNumber,
+    nationalId,
+    workerType,
+    dateRange,
+    search,
+    branchId,
+    includeSubBranches,
+  ]);
+
+  const { data, isLoading, refetch } = useMediationFollowUpDashboard(params);
   const rows = data?.rows ?? [];
   const total = data?.total ?? 0;
 
@@ -126,56 +174,34 @@ export default function AutomaticFollowUpPage() {
     return rows.filter((r) => (r.statusName || '').toLowerCase() === label);
   }, [rows, statusId]);
 
-  const handleSearch = useCallback(() => {
-    const params: MediationFollowUpDashboardParams = {
-      Page: 1,
-      PageSize: 15,
-    };
-    if (contractNumber) params.ContractNumber = contractNumber;
-    if (musanedNumber) params.MusanedContractNumber = musanedNumber;
-    if (passportNumber) params.WorkerPassportNumber = passportNumber;
-    if (nationalId) params.CustomerNationalId = nationalId;
-    // NOTE: StatusId is intentionally NOT sent — the dashboard ignores it.
-    // Status is filtered client-side via `displayedRows`.
-    if (workerType != null) params.WorkerType = workerType;
-    if (dateRange) {
-      params.DateFrom = dateRange[0];
-      params.DateTo = dateRange[1];
-    }
-    if (searchText) params.Search = searchText;
-    if (branchId) {
-      params.BranchId = branchId;
-      params.IncludeSubBranches = includeSubBranches;
-    }
-    setAppliedParams(params);
-  }, [
-    contractNumber,
-    musanedNumber,
-    passportNumber,
-    nationalId,
-    workerType,
-    dateRange,
-    searchText,
-    branchId,
-    includeSubBranches,
-  ]);
+  // Search and Branch are quick filters and stay untouched by Clear. The
+  // primary date range counts toward the badge/reset even though it's also a
+  // quick filter, matching the convention used on the other Contracts pages
+  // in this wave.
+  const activeFilterCount = [
+    contractNumber != null,
+    musanedNumber !== '',
+    passportNumber !== '',
+    nationalId !== '',
+    statusId != null,
+    workerType != null,
+    Boolean(dateRange[0]),
+  ].filter(Boolean).length;
 
-  const handleReset = useCallback(() => {
+  const clearFilters = useCallback(() => {
     setContractNumber(null);
     setMusanedNumber('');
     setPassportNumber('');
     setNationalId('');
     setStatusId(null);
     setWorkerType(null);
-    setDateRange(null);
-    setSearchText('');
-    setBranchId(undefined);
-    setIncludeSubBranches(true);
-    setAppliedParams({ Page: 1, PageSize: 15 });
+    setDateRange([undefined, undefined]);
+    setPageNumber(1);
   }, []);
 
-  const handlePageChange = useCallback((page: number, pageSize: number) => {
-    setAppliedParams((prev) => ({ ...prev, Page: page, PageSize: pageSize }));
+  const handlePageChange = useCallback((page: number, size: number) => {
+    setPageNumber(page);
+    setPageSize(size);
   }, []);
 
   const handleViewDetails = useCallback(
@@ -348,84 +374,95 @@ export default function AutomaticFollowUpPage() {
       </div>
 
       {/* ── Filters ── */}
-      <Card className={styles.filtersCard} size="small">
-        <div className={styles.filtersGrid}>
-          <Input
-            placeholder={t('searchPlaceholder')}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            allowClear
-            prefix={<SearchOutlined />}
-          />
-          <InputNumber
-            placeholder={t('filterByContract')}
-            value={contractNumber}
-            onChange={(v) => setContractNumber(v)}
-            style={{ width: '100%' }}
-            min={0}
-          />
-          <Input
-            placeholder={t('filterByMusaned')}
-            value={musanedNumber}
-            onChange={(e) => setMusanedNumber(e.target.value)}
-            allowClear
-          />
-          <Input
-            placeholder={t('filterByPassport')}
-            value={passportNumber}
-            onChange={(e) => setPassportNumber(e.target.value)}
-            allowClear
-          />
-          <Input
-            placeholder={t('filterByNationalId')}
-            value={nationalId}
-            onChange={(e) => setNationalId(e.target.value)}
-            allowClear
-          />
-          <Select
-            placeholder={t('selectStatus')}
-            allowClear
-            value={statusId}
-            onChange={(v) => setStatusId(v ?? null)}
-            style={{ width: '100%' }}
-            options={toSelectOptions([...MEDIATION_CONTRACT_STATUS], language)}
-          />
-          <Select
-            placeholder={t('selectWorkerType')}
-            allowClear
-            value={workerType}
-            onChange={(v) => setWorkerType(v ?? null)}
-            style={{ width: '100%' }}
-            options={WORKER_TYPE_OPTIONS}
-          />
-          <RangePicker
-            style={{ width: '100%' }}
-            onChange={(_, strings) =>
-              setDateRange(
-                strings[0] && strings[1] ? [strings[0], strings[1]] : null
-              )
-            }
-          />
-          <BranchFilterSelect
-            value={branchId}
-            onChange={setBranchId}
-            includeSubBranches={includeSubBranches}
-            onIncludeSubBranchesChange={setIncludeSubBranches}
-            style={{ width: '100%' }}
-          />
-          <Space>
-            <Button
-              type="primary"
-              icon={<SearchOutlined />}
-              onClick={handleSearch}
-              style={{ background: '#003366', borderColor: '#003366' }}
-            >
-              {t('search')}
-            </Button>
-            <Button onClick={handleReset}>{t('reset')}</Button>
-          </Space>
-        </div>
-      </Card>
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        contentLayout="block"
+        quickFilters={
+          <>
+            <Input
+              placeholder={t('searchPlaceholder')}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              allowClear
+              prefix={<SearchOutlined />}
+              style={{ width: 240 }}
+            />
+            <BranchFilterSelect
+              value={branchId}
+              onChange={(v) => { setBranchId(v); setPageNumber(1); }}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+            />
+            <DateRangeFilter
+              value={dateRange}
+              onChange={(v) => { setDateRange(v); setPageNumber(1); }}
+            />
+          </>
+        }
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('filterByContract')}</label>
+            <InputNumber
+              placeholder={t('filterByContract')}
+              value={contractNumber}
+              onChange={(v) => { setContractNumber(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              min={0}
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('filterByMusaned')}</label>
+            <Input
+              placeholder={t('filterByMusaned')}
+              value={musanedNumber}
+              onChange={(e) => { setMusanedNumber(e.target.value); setPageNumber(1); }}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('filterByPassport')}</label>
+            <Input
+              placeholder={t('filterByPassport')}
+              value={passportNumber}
+              onChange={(e) => { setPassportNumber(e.target.value); setPageNumber(1); }}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('filterByNationalId')}</label>
+            <Input
+              placeholder={t('filterByNationalId')}
+              value={nationalId}
+              onChange={(e) => { setNationalId(e.target.value); setPageNumber(1); }}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('selectStatus')}</label>
+            <Select
+              placeholder={t('selectStatus')}
+              allowClear
+              value={statusId}
+              onChange={(v) => setStatusId(v ?? null)}
+              style={{ width: '100%' }}
+              options={toSelectOptions([...MEDIATION_CONTRACT_STATUS], language)}
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('selectWorkerType')}</label>
+            <Select
+              placeholder={t('selectWorkerType')}
+              allowClear
+              value={workerType}
+              onChange={(v) => { setWorkerType(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              options={WORKER_TYPE_OPTIONS}
+            />
+          </Col>
+        </Row>
+      </AdvancedFilterPanel>
 
       {/* ── Cards Grid ── */}
       <Spin spinning={isLoading}>
@@ -443,8 +480,8 @@ export default function AutomaticFollowUpPage() {
       {total > 0 && (
         <div className={styles.paginationBar}>
           <Pagination
-            current={appliedParams.Page ?? 1}
-            pageSize={appliedParams.PageSize ?? 15}
+            current={pageNumber}
+            pageSize={pageSize}
             total={total}
             onChange={handlePageChange}
             showSizeChanger

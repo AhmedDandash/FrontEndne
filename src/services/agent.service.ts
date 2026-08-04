@@ -38,6 +38,9 @@ export class AgentService {
         agents = data.items;
       } else if (Array.isArray(data.agents)) {
         agents = data.agents;
+      } else if (Array.isArray(data.data?.items)) {
+        // Paginated envelope: { success, data: { items, totalCount, ... }, errors, statusCode }
+        agents = data.data.items;
       } else {
         console.warn('⚠️ Unexpected response structure for agents:', response.data);
       }

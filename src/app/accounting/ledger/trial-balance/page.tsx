@@ -1,40 +1,52 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, Table, DatePicker, Switch, Space } from 'antd';
+import { Card, Table, Switch, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import type { Dayjs } from 'dayjs';
 import { TableOutlined } from '@ant-design/icons';
 import { useTrialBalance } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import { getAccountType } from '@/types/accounting.types';
 import type { TrialBalanceLine } from '@/types/ledger.types';
 import { LedgerHeader } from '../_components/LedgerHeader';
-import { BranchFilterSelect } from '@/components/filters';
+import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { fmtAmount, fmtBalance } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
-
-const { RangePicker } = DatePicker;
 
 export default function TrialBalancePage() {
   const isAr = useAuthStore((s) => s.language) !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
+  const [range, setRange] = useState<[string | undefined, string | undefined]>([
+    dayjs().subtract(1, 'month').startOf('day').toISOString(),
+    dayjs().endOf('day').toISOString(),
+  ]);
   const [groupedOnly, setGroupedOnly] = useState(false);
   const [excludeZeroBalances, setExcludeZeroBalances] = useState(false);
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   const { data, isLoading, isFetching, refetch } = useTrialBalance({
-    from: range?.[0]?.startOf('day').toISOString(),
-    to: range?.[1]?.endOf('day').toISOString(),
+    from: range[0],
+    to: range[1],
     groupedOnly,
     excludeZeroBalances,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
   });
+
+  const activeFilterCount = [range[0], groupedOnly || undefined, excludeZeroBalances || undefined].filter(
+    Boolean
+  ).length;
+  const clearFilters = () => {
+    setRange([
+      dayjs().subtract(1, 'month').startOf('day').toISOString(),
+      dayjs().endOf('day').toISOString(),
+    ]);
+    setGroupedOnly(false);
+    setExcludeZeroBalances(false);
+  };
 
   const balanced =
     !!data && Math.round((data.totalDebit - data.totalCredit) * 100) === 0;
@@ -110,36 +122,29 @@ export default function TrialBalancePage() {
         refreshLabel={t('تحديث', 'Refresh')}
       />
 
-      <div className={styles.metrics}>
-        <div className={`${styles.metricCard} ${styles.debit}`}>
-          <div className={styles.metricLabel}>{t('إجمالي المدين', 'Total Debit')}</div>
-          <div className={styles.metricValue}>{fmtAmount(data?.totalDebit)}</div>
-        </div>
-        <div className={`${styles.metricCard} ${styles.credit}`}>
-          <div className={styles.metricLabel}>{t('إجمالي الدائن', 'Total Credit')}</div>
-          <div className={styles.metricValue}>{fmtAmount(data?.totalCredit)}</div>
-        </div>
-        <div className={`${styles.metricCard} ${balanced ? styles.balance : styles.warn}`}>
-          <div className={styles.metricLabel}>{t('الحالة', 'Status')}</div>
-          <div className={styles.metricValue} style={{ fontSize: 18 }}>
-            {balanced ? t('متوازن', 'Balanced') : t('غير متوازن', 'Unbalanced')}
-          </div>
-        </div>
-      </div>
-
-      <Card className={styles.tableCard}>
-        <div className={styles.filters}>
-          <RangePicker
-            value={range as any}
-            onChange={(v) => setRange(v as any)}
-            placeholder={[t('من', 'From'), t('إلى', 'To')]}
-          />
-          <BranchFilterSelect
-            value={branchId}
-            onChange={setBranchId}
-            includeSubBranches={includeSubBranches}
-            onIncludeSubBranchesChange={setIncludeSubBranches}
-          />
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        quickFilters={
+          <>
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel}>{t('الفترة', 'Period')}</label>
+              <DateRangeFilter
+                value={range}
+                onChange={setRange}
+                placeholder={[t('من', 'From'), t('إلى', 'To')]}
+              />
+            </div>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={setBranchId}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+            />
+          </>
+        }
+      >
+        <Space size={24} wrap>
           <Space>
             <Switch checked={groupedOnly} onChange={setGroupedOnly} />
             <span>{t('الحسابات المجمعة فقط', 'Grouped accounts only')}</span>
@@ -148,6 +153,25 @@ export default function TrialBalancePage() {
             <Switch checked={excludeZeroBalances} onChange={setExcludeZeroBalances} />
             <span>{t('استبعاد الأرصدة الصفرية', 'Exclude zero balances')}</span>
           </Space>
+        </Space>
+      </AdvancedFilterPanel>
+
+      <Card className={styles.tableCard}>
+        <div className={styles.metrics}>
+          <div className={`${styles.metricCard} ${styles.debit}`}>
+            <div className={styles.metricLabel}>{t('إجمالي المدين', 'Total Debit')}</div>
+            <div className={styles.metricValue}>{fmtAmount(data?.totalDebit)}</div>
+          </div>
+          <div className={`${styles.metricCard} ${styles.credit}`}>
+            <div className={styles.metricLabel}>{t('إجمالي الدائن', 'Total Credit')}</div>
+            <div className={styles.metricValue}>{fmtAmount(data?.totalCredit)}</div>
+          </div>
+          <div className={`${styles.metricCard} ${balanced ? styles.balance : styles.warn}`}>
+            <div className={styles.metricLabel}>{t('الحالة', 'Status')}</div>
+            <div className={styles.metricValue} style={{ fontSize: 18 }}>
+              {balanced ? t('متوازن', 'Balanced') : t('غير متوازن', 'Unbalanced')}
+            </div>
+          </div>
         </div>
 
         <Table<TrialBalanceLine>

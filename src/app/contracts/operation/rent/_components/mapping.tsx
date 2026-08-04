@@ -146,6 +146,7 @@ export function mapContract(
   return {
     id: String(contract.id),
     customerId: contract.customerId != null ? String(contract.customerId) : '',
+    workerId: contract.workerId != null ? String(contract.workerId) : '',
     contractNumber: contract.contractNumber != null ? String(contract.contractNumber) : String(contract.id),
     customerName: cust.en,
     customerNameAr: cust.ar,

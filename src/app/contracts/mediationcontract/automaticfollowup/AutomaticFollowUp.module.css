@@ -40,16 +40,12 @@
 }
 
 /* ── Filters ── */
-.filtersCard {
-  margin-bottom: 16px;
-  border-radius: 8px;
-}
-
-.filtersGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-  align-items: end;
+.filterLabel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
 }
 
 /* ── Empty fallback card ── */

@@ -81,13 +81,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
-.filters {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-block-end: 16px;
-}
-
 .search {
   flex: 1 1 280px;
   border-radius: 8px;
@@ -96,6 +89,19 @@
 
 .filterSelect {
   min-inline-size: 170px;
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+}
+
+.filterLabel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
 }
 
 /* ── Table cells ────────────────────────────────────────────── */

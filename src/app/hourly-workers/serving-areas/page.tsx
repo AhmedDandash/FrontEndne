@@ -24,9 +24,8 @@ import {
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
-  SortAscendingOutlined,
-  SortDescendingOutlined,
 } from '@ant-design/icons';
+import { AdvancedFilterPanel } from '@/components/filters';
 import {
   useHourlyServingAreas,
   useHourlyServingAreaMutations,
@@ -110,8 +109,21 @@ export default function HourlyServingAreasPage() {
   };
 
   const columns: ColumnsType<HourlyServingArea> = [
-    { title: t('الاسم', 'Name'), key: 'name', render: (_, r) => (isAr ? r.nameAr : r.nameEn) },
-    { title: t('المدينة', 'City'), key: 'city', width: 150, render: (_, r) => (isAr ? r.cityAr : r.cityEn) },
+    {
+      title: t('الاسم', 'Name'),
+      key: 'nameEn',
+      sorter: true,
+      sortOrder: sortBy === 'nameEn' ? (sortDescending ? 'descend' : 'ascend') : null,
+      render: (_, r) => (isAr ? r.nameAr : r.nameEn),
+    },
+    {
+      title: t('المدينة', 'City'),
+      key: 'cityEn',
+      width: 150,
+      sorter: true,
+      sortOrder: sortBy === 'cityEn' ? (sortDescending ? 'descend' : 'ascend') : null,
+      render: (_, r) => (isAr ? r.cityAr : r.cityEn),
+    },
     { title: t('الحي', 'District'), key: 'district', width: 150, render: (_, r) => (isAr ? r.districtAr : r.districtEn) || '—' },
     { title: t('نطاق (كم)', 'Radius (km)'), dataIndex: 'radiusKm', key: 'radius', width: 110, align: 'center', render: (v) => v ?? '—' },
     { title: t('الحالة', 'Status'), dataIndex: 'isActive', key: 'active', width: 90,
@@ -154,31 +166,42 @@ export default function HourlyServingAreasPage() {
         </div>
       </div>
 
-      <Card className={styles.tableCard}>
-        <div className={styles.filters}>
+      <AdvancedFilterPanel
+        activeCount={[isActive !== undefined, city !== ''].filter(Boolean).length}
+        onClear={() => { setIsActive(undefined); setCity(''); }}
+        quickFilters={
           <Input allowClear size="large" prefix={<SearchOutlined />} placeholder={t('بحث بالاسم أو المدينة', 'Search name or city')}
             className={styles.filterInput} value={search} onChange={(e) => { setSearch(e.target.value); setPageNumber(1); }} />
-          <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
-            value={isActive} onChange={(v) => { setIsActive(v); setPageNumber(1); }}
-            options={[{ value: true, label: t('نشط', 'Active') }, { value: false, label: t('غير نشط', 'Inactive') }]} />
-          <Input allowClear size="large" placeholder={t('المدينة', 'City')} className={styles.filterInput}
-            value={city} onChange={(e) => { setCity(e.target.value); setPageNumber(1); }} />
-          <Select size="large" className={styles.filterSelect}
-            value={sortBy} onChange={(v) => { setSortBy(v); setPageNumber(1); }}
-            options={[
-              { value: 'createdDate', label: t('ترتيب: الأحدث', 'Sort: Newest') },
-              { value: 'nameEn', label: t('ترتيب: الاسم', 'Sort: Name') },
-              { value: 'cityEn', label: t('ترتيب: المدينة', 'Sort: City') },
-            ]} />
-          <Tooltip title={sortDescending ? t('تنازلي', 'Descending') : t('تصاعدي', 'Ascending')}>
-            <Button
-              size="large"
-              icon={sortDescending ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
-              onClick={() => { setSortDescending((d) => !d); setPageNumber(1); }}
-            />
-          </Tooltip>
-        </div>
+        }
+      >
+        <Space wrap size={12}>
+          <div>
+            <label className={styles.filterLabel}>{t('الحالة', 'Status')}</label>
+            <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
+              value={isActive} onChange={(v) => { setIsActive(v); setPageNumber(1); }}
+              options={[{ value: true, label: t('نشط', 'Active') }, { value: false, label: t('غير نشط', 'Inactive') }]} />
+          </div>
+          <div>
+            <label className={styles.filterLabel}>{t('المدينة', 'City')}</label>
+            <Input allowClear size="large" placeholder={t('المدينة', 'City')} className={styles.filterInput}
+              value={city} onChange={(e) => { setCity(e.target.value); setPageNumber(1); }} />
+          </div>
+        </Space>
+      </AdvancedFilterPanel>
+
+      <Card className={styles.tableCard}>
         <Table<HourlyServingArea> rowKey="id" columns={columns} dataSource={areas} loading={isLoading} size="middle" bordered scroll={{ x: 900 }}
+          onChange={(_, __, sorter) => {
+            const s = Array.isArray(sorter) ? sorter[0] : sorter;
+            if (s?.order) {
+              setSortBy(s.columnKey as 'nameEn' | 'cityEn' | 'createdDate');
+              setSortDescending(s.order === 'descend');
+            } else {
+              setSortBy('createdDate');
+              setSortDescending(true);
+            }
+            setPageNumber(1);
+          }}
           pagination={{ current: pageNumber, pageSize: PAGE_SIZE, total: totalCount, onChange: setPageNumber, showTotal: (n) => t(`الإجمالي: ${n}`, `Total: ${n}`) }} />
       </Card>
 

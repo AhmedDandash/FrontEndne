@@ -32,6 +32,7 @@ import {
   IdcardOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { AdvancedFilterPanel } from '@/components/filters';
 import { useRecruitmentRequests } from '@/hooks/api/useMediationContracts';
 import { resolveImageUrl } from '@/utils/image';
 import type { RecruitmentRequestItem } from '@/types/api.types';
@@ -319,21 +320,21 @@ export default function MediationRequestsPage() {
       </Row>
 
       {/* Filters */}
-      <Card className={styles.filterCard}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24}>
-            <Input
-              placeholder={t.search}
-              prefix={<SearchOutlined />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              allowClear
-              size="large"
-              className={styles.searchInput}
-            />
-          </Col>
-        </Row>
-      </Card>
+      <AdvancedFilterPanel
+        activeCount={0}
+        onClear={() => setSearchText('')}
+        quickFilters={
+          <Input
+            placeholder={t.search}
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
+            size="large"
+            className={styles.searchInput}
+          />
+        }
+      />
 
       {/* Count */}
       <div className={styles.resultsInfo}>

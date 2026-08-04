@@ -25,9 +25,8 @@ import {
   CheckCircleOutlined,
   StopOutlined,
   PhoneOutlined,
-  SortAscendingOutlined,
-  SortDescendingOutlined,
 } from '@ant-design/icons';
+import { AdvancedFilterPanel } from '@/components/filters';
 import { useHourlyDrivers, useHourlyDriverMutations } from '@/hooks/api/useHourlyDrivers';
 import { useHourlyPermissions } from '@/hooks/useHourlyPermissions';
 import { useAuthStore } from '@/store/authStore';
@@ -107,7 +106,13 @@ export default function HourlyDriversPage() {
 
   const columns: ColumnsType<HourlyDriver> = [
     { title: '#', key: 'i', width: 52, render: (_, __, idx) => (pageNumber - 1) * PAGE_SIZE + idx + 1 },
-    { title: t('الاسم', 'Name'), dataIndex: 'fullName', key: 'fullName' },
+    {
+      title: t('الاسم', 'Name'),
+      dataIndex: 'fullName',
+      key: 'fullName',
+      sorter: true,
+      sortOrder: sortBy === 'fullName' ? (sortDescending ? 'descend' : 'ascend') : null,
+    },
     { title: t('الهاتف', 'Phone'), dataIndex: 'phoneNumber', key: 'phone', width: 150,
       render: (v) => <span className={styles.assignmentPhone}>{v}</span> },
     { title: t('رقم الرخصة', 'License'), dataIndex: 'licenseNumber', key: 'lic', width: 130, render: (v) => v || '—' },
@@ -170,28 +175,36 @@ export default function HourlyDriversPage() {
         </div>
       </div>
 
+      <AdvancedFilterPanel
+        activeCount={isActive !== undefined ? 1 : 0}
+        onClear={() => setIsActive(undefined)}
+        quickFilters={
+          <>
+            <Input allowClear size="large" prefix={<SearchOutlined />} placeholder={t('بحث بالاسم أو الهاتف أو اللوحة', 'Search name, phone, plate')}
+              className={styles.filterInput} value={search} onChange={(e) => { setSearch(e.target.value); setPageNumber(1); }} />
+            <div>
+              <label className={styles.filterLabel}>{t('الحالة', 'Status')}</label>
+              <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
+                value={isActive} onChange={(v) => { setIsActive(v); setPageNumber(1); }}
+                options={[{ value: true, label: t('نشط', 'Active') }, { value: false, label: t('غير نشط', 'Inactive') }]} />
+            </div>
+          </>
+        }
+      />
+
       <Card className={styles.tableCard}>
-        <div className={styles.filters}>
-          <Input allowClear size="large" prefix={<SearchOutlined />} placeholder={t('بحث بالاسم أو الهاتف أو اللوحة', 'Search name, phone, plate')}
-            className={styles.filterInput} value={search} onChange={(e) => { setSearch(e.target.value); setPageNumber(1); }} />
-          <Select allowClear size="large" placeholder={t('الحالة', 'Status')} className={styles.filterSelect}
-            value={isActive} onChange={(v) => { setIsActive(v); setPageNumber(1); }}
-            options={[{ value: true, label: t('نشط', 'Active') }, { value: false, label: t('غير نشط', 'Inactive') }]} />
-          <Select size="large" className={styles.filterSelect}
-            value={sortBy} onChange={(v) => { setSortBy(v); setPageNumber(1); }}
-            options={[
-              { value: 'createdDate', label: t('ترتيب: الأحدث', 'Sort: Newest') },
-              { value: 'fullName', label: t('ترتيب: الاسم', 'Sort: Name') },
-            ]} />
-          <Tooltip title={sortDescending ? t('تنازلي', 'Descending') : t('تصاعدي', 'Ascending')}>
-            <Button
-              size="large"
-              icon={sortDescending ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
-              onClick={() => { setSortDescending((d) => !d); setPageNumber(1); }}
-            />
-          </Tooltip>
-        </div>
         <Table<HourlyDriver> rowKey="id" columns={columns} dataSource={drivers} loading={isLoading} size="middle" bordered scroll={{ x: 900 }}
+          onChange={(_, __, sorter) => {
+            const s = Array.isArray(sorter) ? sorter[0] : sorter;
+            if (s?.order) {
+              setSortBy(s.columnKey as 'fullName' | 'createdDate');
+              setSortDescending(s.order === 'descend');
+            } else {
+              setSortBy('createdDate');
+              setSortDescending(true);
+            }
+            setPageNumber(1);
+          }}
           pagination={{ current: pageNumber, pageSize: PAGE_SIZE, total: totalCount, onChange: setPageNumber, showTotal: (n) => t(`الإجمالي: ${n}`, `Total: ${n}`) }} />
       </Card>
 

@@ -1,40 +1,49 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, Table, DatePicker } from 'antd';
+import { Card, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import type { Dayjs } from 'dayjs';
 import { LineChartOutlined } from '@ant-design/icons';
 import { useIncomeStatement } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import { getAccountType } from '@/types/accounting.types';
 import type { IncomeStatementLine } from '@/types/ledger.types';
 import { LedgerHeader } from '../_components/LedgerHeader';
-import { BranchFilterSelect } from '@/components/filters';
+import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { fmtAmount, fmtBalance } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
-
-const { RangePicker } = DatePicker;
 
 export default function IncomeStatementPage() {
   const isAr = useAuthStore((s) => s.language) !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
+  const [range, setRange] = useState<[string | undefined, string | undefined]>([
+    dayjs().subtract(1, 'month').startOf('day').toISOString(),
+    dayjs().endOf('day').toISOString(),
+  ]);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   const { data, isLoading, isFetching, refetch } = useIncomeStatement({
-    from: range?.[0]?.startOf('day').toISOString(),
-    to: range?.[1]?.endOf('day').toISOString(),
+    from: range[0],
+    to: range[1],
     pageNumber,
     pageSize,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
   });
+
+  const activeFilterCount = range[0] ? 1 : 0;
+  const clearFilters = () => {
+    setRange([
+      dayjs().subtract(1, 'month').startOf('day').toISOString(),
+      dayjs().endOf('day').toISOString(),
+    ]);
+    setPageNumber(1);
+  };
 
   const columns: ColumnsType<IncomeStatementLine> = [
     {
@@ -119,24 +128,33 @@ export default function IncomeStatementPage() {
         refreshLabel={t('تحديث', 'Refresh')}
       />
 
-      <Card className={styles.tableCard}>
-        <div className={styles.filters}>
-          <RangePicker
-            value={range as any}
-            onChange={(v) => {
-              setRange(v as any);
-              setPageNumber(1);
-            }}
-            placeholder={[t('من', 'From'), t('إلى', 'To')]}
-          />
-          <BranchFilterSelect
-            value={branchId}
-            onChange={(v) => { setBranchId(v); setPageNumber(1); }}
-            includeSubBranches={includeSubBranches}
-            onIncludeSubBranchesChange={setIncludeSubBranches}
-          />
-        </div>
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        quickFilters={
+          <>
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel}>{t('الفترة', 'Period')}</label>
+              <DateRangeFilter
+                value={range}
+                onChange={(v) => {
+                  setRange(v);
+                  setPageNumber(1);
+                }}
+                placeholder={[t('من', 'From'), t('إلى', 'To')]}
+              />
+            </div>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={(v) => { setBranchId(v); setPageNumber(1); }}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
+            />
+          </>
+        }
+      />
 
+      <Card className={styles.tableCard}>
         <Table<IncomeStatementLine>
           rowKey="accountId"
           columns={columns}

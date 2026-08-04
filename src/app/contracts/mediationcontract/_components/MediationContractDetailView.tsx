@@ -107,10 +107,10 @@ export default function MediationContractDetailView({
               <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
                 {language === 'ar' ? 'بيانات العامل' : 'Worker'}
               </Divider>
-              {contract.workerPhotoUrl && (
+              {(contract.workerImageUrl || contract.workerPhotoUrl) && (
                 <div style={{ marginBlockEnd: 12 }}>
                   <Image
-                    src={resolveImageUrl(contract.workerPhotoUrl)}
+                    src={resolveImageUrl(contract.workerImageUrl || contract.workerPhotoUrl)}
                     alt={contract.workerName || 'worker'}
                     width={96}
                     height={96}
@@ -482,9 +482,9 @@ export default function MediationContractDetailView({
                     label: fmtDate(a.assignedAt),
                     children: (
                       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                        {a.workerPhotoUrl && (
+                        {(a.workerImageUrl || a.workerPhotoUrl) && (
                           <Image
-                            src={resolveImageUrl(a.workerPhotoUrl)}
+                            src={resolveImageUrl(a.workerImageUrl || a.workerPhotoUrl)}
                             alt={a.workerNameAr || 'worker'}
                             width={48}
                             height={48}

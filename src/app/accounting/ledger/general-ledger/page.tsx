@@ -1,21 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, Table, DatePicker, Empty, Spin, Alert } from 'antd';
+import { Card, Table, Empty, Spin, Alert } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import type { Dayjs } from 'dayjs';
 import { ProfileOutlined } from '@ant-design/icons';
 import { useGeneralLedger } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import type { GeneralLedgerLine } from '@/types/ledger.types';
-import { AccountSelect } from '../../journal-entries/_components/AccountSelect';
+import { AccountSelect, AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { LedgerHeader } from '../_components/LedgerHeader';
-import { BranchFilterSelect } from '@/components/filters';
 import { fmtAmount, fmtBalance, fmtDate } from '../_components/ledgerFormat';
 import styles from '../Ledger.module.css';
-
-const { RangePicker } = DatePicker;
 
 export default function GeneralLedgerPage() {
   const language = useAuthStore((s) => s.language);
@@ -23,17 +19,29 @@ export default function GeneralLedgerPage() {
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   const [accountId, setAccountId] = useState<string | undefined>();
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
+  const [range, setRange] = useState<[string | undefined, string | undefined]>([
+    dayjs().subtract(1, 'month').startOf('day').toISOString(),
+    dayjs().endOf('day').toISOString(),
+  ]);
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   const { data, isLoading, isFetching, refetch, error } = useGeneralLedger({
     accountId,
-    from: range?.[0]?.startOf('day').toISOString(),
-    to: range?.[1]?.endOf('day').toISOString(),
+    from: range[0],
+    to: range[1],
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
   });
+
+  const activeFilterCount = [accountId, range[0]].filter(Boolean).length;
+  const clearFilters = () => {
+    setAccountId(undefined);
+    setRange([
+      dayjs().subtract(1, 'month').startOf('day').toISOString(),
+      dayjs().endOf('day').toISOString(),
+    ]);
+  };
 
   const columns: ColumnsType<GeneralLedgerLine> = [
     { title: t('التاريخ', 'Date'), dataIndex: 'date', key: 'date', width: 110, render: fmtDate },
@@ -94,28 +102,37 @@ export default function GeneralLedgerPage() {
         refreshLabel={t('تحديث', 'Refresh')}
       />
 
-      <Card className={styles.tableCard}>
-        <div className={styles.filters}>
-          <div style={{ flex: '1 1 320px', maxWidth: 460 }}>
-            <AccountSelect
-              value={accountId}
-              onChange={setAccountId}
-              placeholder={t('اختر حسابًا لعرض حركاته...', 'Select an account to view movements...')}
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        quickFilters={
+          <>
+            <div style={{ flex: '1 1 320px', maxWidth: 460 }}>
+              <AccountSelect
+                value={accountId}
+                onChange={setAccountId}
+                placeholder={t('اختر حسابًا لعرض حركاته...', 'Select an account to view movements...')}
+              />
+            </div>
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel}>{t('التاريخ', 'Date')}</label>
+              <DateRangeFilter
+                value={range}
+                onChange={setRange}
+                placeholder={[t('من', 'From'), t('إلى', 'To')]}
+              />
+            </div>
+            <BranchFilterSelect
+              value={branchId}
+              onChange={setBranchId}
+              includeSubBranches={includeSubBranches}
+              onIncludeSubBranchesChange={setIncludeSubBranches}
             />
-          </div>
-          <RangePicker
-            value={range as any}
-            onChange={(v) => setRange(v as any)}
-            placeholder={[t('من', 'From'), t('إلى', 'To')]}
-          />
-          <BranchFilterSelect
-            value={branchId}
-            onChange={setBranchId}
-            includeSubBranches={includeSubBranches}
-            onIncludeSubBranchesChange={setIncludeSubBranches}
-          />
-        </div>
+          </>
+        }
+      />
 
+      <Card className={styles.tableCard}>
         {!accountId ? (
           <div className={styles.promptState}>
             <Empty

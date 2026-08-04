@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { AdvancedFilterPanel } from '@/components/filters';
 import {
   Table,
   Select,
@@ -564,19 +565,27 @@ export default function MediationOffersPage() {
       </Row>
 
       {/* Filters */}
-      <div className={styles.filtersCard}>
+      <AdvancedFilterPanel
+        activeCount={[nationalityFilter, jobFilter, workerTypeFilter].filter((v) => v !== null).length}
+        onClear={() => {
+          setNationalityFilter(null);
+          setJobFilter(null);
+          setWorkerTypeFilter(null);
+        }}
+        contentLayout="block"
+        quickFilters={
+          <Input
+            placeholder={t('search')}
+            prefix={<SearchOutlined />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            allowClear
+            style={{ width: 260 }}
+          />
+        }
+      >
         <Row gutter={[16, 16]}>
-          <Col xs={24} md={6}>
-            <label className={styles.filterLabel}>{t('search')}</label>
-            <Input
-              placeholder={t('search')}
-              prefix={<SearchOutlined />}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} md={6}>
+          <Col xs={24} md={8}>
             <label className={styles.filterLabel}>{t('nationality')}</label>
             <Select
               style={{ width: '100%' }}
@@ -591,7 +600,7 @@ export default function MediationOffersPage() {
               options={nationalityOptions}
             />
           </Col>
-          <Col xs={24} md={6}>
+          <Col xs={24} md={8}>
             <label className={styles.filterLabel}>{t('job')}</label>
             <Select
               style={{ width: '100%' }}
@@ -606,7 +615,7 @@ export default function MediationOffersPage() {
               options={jobOptions}
             />
           </Col>
-          <Col xs={24} md={6}>
+          <Col xs={24} md={8}>
             <label className={styles.filterLabel}>{t('workerType')}</label>
             <Select
               style={{ width: '100%' }}
@@ -618,7 +627,7 @@ export default function MediationOffersPage() {
             />
           </Col>
         </Row>
-      </div>
+      </AdvancedFilterPanel>
 
       {/* Offers Table */}
       <div className={styles.tableCard}>

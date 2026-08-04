@@ -144,7 +144,7 @@ export function useWorkers() {
 }
 
 /** Fetch workers with server-side filtering and pagination */
-export function useWorkersFiltered(params?: WorkerFilterParams) {
+export function useWorkersFiltered(params?: WorkerFilterParams, options?: { enabled?: boolean }) {
   const cleanParams: Record<string, string | number> = {};
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
@@ -156,6 +156,7 @@ export function useWorkersFiltered(params?: WorkerFilterParams) {
 
   return useQuery<WorkerPagedResult>({
     queryKey: [...WORKERS_KEY, 'filtered', cleanParams],
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const response = await api.get(API_ENDPOINTS.WORKERS.GET_ALL, {
         params: Object.keys(cleanParams).length > 0 ? cleanParams : undefined,

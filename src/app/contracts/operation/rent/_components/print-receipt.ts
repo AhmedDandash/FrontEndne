@@ -105,9 +105,21 @@ export function toReceiptSections(
     {
       title: isRtl ? 'مدة العقد' : 'Contract Period',
       rows: [
-        { label: isRtl ? 'المدة (أيام)' : 'Duration (days)', value: formatValue(c.duration) },
+        {
+          label: isRtl ? 'المدة' : 'Duration',
+          value: formatValue((isRtl ? c.durationNameAr : c.durationNameEn) ?? c.duration),
+        },
         { label: isRtl ? 'تاريخ البداية' : 'Start Date', value: formatValue(c.contractStartDate) },
         { label: isRtl ? 'تاريخ النهاية' : 'End Date', value: formatValue(c.contractEndDate) },
+      ],
+    },
+    {
+      title: isRtl ? 'الفرع' : 'Branch',
+      rows: [
+        {
+          label: isRtl ? 'الفرع' : 'Branch',
+          value: formatValue((isRtl ? c.branchNameAr : c.branchNameEn) ?? undefined),
+        },
       ],
     },
   ];

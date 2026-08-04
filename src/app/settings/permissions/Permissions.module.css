@@ -92,6 +92,14 @@
   margin-block-end: 16px;
 }
 
+.filterLabel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
+}
+
 .spinWrapper {
   display: flex;
   justify-content: center;

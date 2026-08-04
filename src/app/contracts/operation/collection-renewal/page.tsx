@@ -43,6 +43,7 @@ import {
   UnorderedListOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { AdvancedFilterPanel } from '@/components/filters';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { unwrapList } from '@/utils/api-response';
@@ -351,9 +352,11 @@ export default function CollectionRenewalPage() {
       </Row>
 
       {/* Filter Section */}
-      <Card className={styles.filterCard}>
-        <div className={styles.filterContent}>
-          <div className={styles.filterLeft}>
+      <AdvancedFilterPanel
+        activeCount={statusFilter !== 'all' ? 1 : 0}
+        onClear={() => setStatusFilter('all')}
+        quickFilters={
+          <>
             <Input
               placeholder={
                 isRTL
@@ -366,43 +369,51 @@ export default function CollectionRenewalPage() {
               className={styles.searchInput}
               allowClear
             />
-            <Select
-              value={statusFilter}
-              onChange={setStatusFilter}
-              className={styles.statusSelect}
-              options={[
-                { value: 'all', label: isRTL ? 'جميع الحالات' : 'All Statuses' },
-                { value: 'valid', label: isRTL ? 'عقود سارية' : 'Valid Contracts' },
-                { value: 'expiring-soon', label: isRTL ? 'تنتهي قريباً' : 'Expiring Soon' },
-                { value: 'expired', label: isRTL ? 'عقود منتهية' : 'Expired Contracts' },
-              ]}
-            />
-          </div>
-          <div className={styles.filterRight}>
-            <Segmented
-              value={viewMode}
-              onChange={(value) => setViewMode(value as string)}
-              options={[
-                {
-                  value: 'cards',
-                  icon: <AppstoreOutlined />,
-                  label: isRTL ? 'بطاقات' : 'Cards',
-                },
-                {
-                  value: 'compact',
-                  icon: <UnorderedListOutlined />,
-                  label: isRTL ? 'مضغوط' : 'Compact',
-                },
-              ]}
-            />
-            <span className={styles.resultCount}>
-              {isRTL
-                ? `عرض ${paginatedContracts.length} من ${filteredContracts.length}`
-                : `Showing ${paginatedContracts.length} of ${filteredContracts.length}`}
-            </span>
-          </div>
-        </div>
-      </Card>
+            <div>
+              <label className={styles.filterLabel}>
+                {isRTL ? 'جميع الحالات' : 'All Statuses'}
+              </label>
+              <Select
+                value={statusFilter}
+                onChange={setStatusFilter}
+                className={styles.statusSelect}
+                options={[
+                  { value: 'all', label: isRTL ? 'جميع الحالات' : 'All Statuses' },
+                  { value: 'valid', label: isRTL ? 'عقود سارية' : 'Valid Contracts' },
+                  { value: 'expiring-soon', label: isRTL ? 'تنتهي قريباً' : 'Expiring Soon' },
+                  { value: 'expired', label: isRTL ? 'عقود منتهية' : 'Expired Contracts' },
+                ]}
+              />
+            </div>
+          </>
+        }
+        actions={
+          <Segmented
+            value={viewMode}
+            onChange={(value) => setViewMode(value as string)}
+            options={[
+              {
+                value: 'cards',
+                icon: <AppstoreOutlined />,
+                label: isRTL ? 'بطاقات' : 'Cards',
+              },
+              {
+                value: 'compact',
+                icon: <UnorderedListOutlined />,
+                label: isRTL ? 'مضغوط' : 'Compact',
+              },
+            ]}
+          />
+        }
+      />
+
+      <div style={{ marginBlockEnd: 16 }}>
+        <span className={styles.resultCount}>
+          {isRTL
+            ? `عرض ${paginatedContracts.length} من ${filteredContracts.length}`
+            : `Showing ${paginatedContracts.length} of ${filteredContracts.length}`}
+        </span>
+      </div>
 
       {/* Contracts Grid/List */}
       {paginatedContracts.length === 0 ? (

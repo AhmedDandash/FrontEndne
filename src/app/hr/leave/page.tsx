@@ -27,9 +27,11 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { AdvancedFilterPanel } from '@/components/filters';
 import { useHRLeave, useHRLeaveTypes, useHREmployees } from '@/hooks/api/useHR';
 import { LeaveStatus } from '@/types/hr.types';
 import type { LeaveRequestDto, CreateLeaveRequestDto } from '@/types/hr.types';
+import styles from './Leave.module.css';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -266,31 +268,40 @@ export default function HRLeavePage() {
         </Col>
       </Row>
 
-      <Card>
-        <Space wrap style={{ marginBottom: 16 }}>
-          <Input
-            placeholder="بحث بالموظف أو النوع أو السبب..."
-            allowClear
-            prefix={<SearchOutlined />}
-            style={{ width: 300 }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-          <Select
-            placeholder="تصفية بالحالة"
-            allowClear
-            style={{ width: 180 }}
-            value={statusFilter}
-            onChange={(v) => setStatusFilter(v)}
-            options={[
-              { value: LeaveStatus.Pending, label: 'قيد الانتظار' },
-              { value: LeaveStatus.Approved, label: 'موافق عليه' },
-              { value: LeaveStatus.Rejected, label: 'مرفوض' },
-              { value: LeaveStatus.Cancelled, label: 'ملغى' },
-            ]}
-          />
-        </Space>
+      <AdvancedFilterPanel
+        activeCount={statusFilter != null ? 1 : 0}
+        onClear={() => setStatusFilter(undefined)}
+        quickFilters={
+          <>
+            <Input
+              placeholder="بحث بالموظف أو النوع أو السبب..."
+              allowClear
+              prefix={<SearchOutlined />}
+              style={{ width: 300 }}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+            <div>
+              <label className={styles.filterLabel}>تصفية بالحالة</label>
+              <Select
+                placeholder="تصفية بالحالة"
+                allowClear
+                style={{ width: 180 }}
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v)}
+                options={[
+                  { value: LeaveStatus.Pending, label: 'قيد الانتظار' },
+                  { value: LeaveStatus.Approved, label: 'موافق عليه' },
+                  { value: LeaveStatus.Rejected, label: 'مرفوض' },
+                  { value: LeaveStatus.Cancelled, label: 'ملغى' },
+                ]}
+              />
+            </div>
+          </>
+        }
+      />
 
+      <Card>
         <Table<LeaveRequestDto>
           dataSource={filteredRequests}
           columns={columns}

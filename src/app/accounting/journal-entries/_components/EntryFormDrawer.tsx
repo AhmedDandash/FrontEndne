@@ -27,7 +27,7 @@ import {
   useJournalEntryMutations,
 } from '@/hooks/api/useJournalEntries';
 import { sumLines, type JournalEntryInput } from '@/types/journal-entry.types';
-import { AccountSelect } from './AccountSelect';
+import { AccountSelect } from '@/components/filters';
 import styles from '../JournalEntries.module.css';
 
 interface EntryFormDrawerProps {

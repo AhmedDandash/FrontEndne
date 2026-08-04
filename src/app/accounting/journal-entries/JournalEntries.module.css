@@ -118,32 +118,12 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
-.filters {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-block-end: 12px;
-}
-
-.search {
-  flex: 1 1 260px;
-  border-radius: 8px;
-  max-inline-size: 360px;
-}
-
-.filterSelect {
-  min-inline-size: 160px;
-}
-
-.advancedRow {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-block-end: 16px;
-  padding-block-start: 12px;
-  border-block-start: 1px dashed #eee;
+.filterLabel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
 }
 
 /* ── Table cells ────────────────────────────────────────────── */
@@ -327,12 +307,6 @@
   .headerActions {
     width: 100%;
     justify-content: flex-end;
-  }
-
-  .search,
-  .filterSelect {
-    max-inline-size: 100%;
-    inline-size: 100%;
   }
 
   .lineRow,

@@ -12,11 +12,11 @@ import {
   Space,
   Tooltip,
   Popconfirm,
-  DatePicker,
+  Row,
+  Col,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import type { Dayjs } from 'dayjs';
 import {
   BookOutlined,
   ReloadOutlined,
@@ -37,7 +37,7 @@ import { useCustomers } from '@/hooks/api/useCustomers';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useWorkers } from '@/hooks/api/useWorkers';
 import { useAuthStore } from '@/store/authStore';
-import { BranchFilterSelect, DateRangeFilter } from '@/components/filters';
+import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import {
   JOURNAL_STATUSES,
   JOURNAL_SOURCES,
@@ -62,8 +62,6 @@ import { EntryFormDrawer } from './_components/EntryFormDrawer';
 import { EntryDetailDrawer } from './_components/EntryDetailDrawer';
 import styles from './JournalEntries.module.css';
 
-const { RangePicker } = DatePicker;
-
 export default function JournalEntriesPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
@@ -78,7 +76,10 @@ export default function JournalEntriesPage() {
   const [contractNumber, setContractNumber] = useState<number | undefined>();
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([dayjs().subtract(1, 'month'), dayjs()]);
+  const [range, setRange] = useState<[string | undefined, string | undefined]>([
+    dayjs().subtract(1, 'month').startOf('day').toISOString(),
+    dayjs().endOf('day').toISOString(),
+  ]);
   const [updatedRange, setUpdatedRange] = useState<[string | undefined, string | undefined]>([
     undefined,
     undefined,
@@ -89,7 +90,6 @@ export default function JournalEntriesPage() {
   const [employeeId, setEmployeeId] = useState<string | undefined>();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Debounce the search box into the server-side `search` param (400ms).
   useEffect(() => {
@@ -119,8 +119,8 @@ export default function JournalEntriesPage() {
     contractNumber,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
-    from: range?.[0]?.startOf('day').toISOString(),
-    to: range?.[1]?.endOf('day').toISOString(),
+    from: range[0],
+    to: range[1],
     updatedDateFrom: updatedRange[0],
     updatedDateTo: updatedRange[1],
     customerId,
@@ -183,15 +183,33 @@ export default function JournalEntriesPage() {
     return map;
   }, [restrictionTypes]);
 
-  const resetFilters = () => {
-    setSearchInput('');
-    setSearch('');
+  // Search + Branch are quick filters and stay untouched by Clear, matching
+  // the AdvancedFilterPanel convention used app-wide. Everything below is an
+  // "advanced" field: Clear returns each to its mount-time default (the date
+  // range back to the last-month window, not to empty — that's this page's
+  // baseline "no explicit filter" state).
+  const activeFilterCount = [
+    status,
+    source,
+    contractNumber,
+    referenceType,
+    customerId,
+    agentId,
+    workerId,
+    employeeId,
+    range[0],
+    updatedRange[0],
+  ].filter((v) => v !== undefined && v !== null && v !== '').length;
+
+  const clearFilters = () => {
     setStatus(undefined);
     setSource(undefined);
     setReferenceType(undefined);
     setContractNumber(undefined);
-    setBranchId(undefined);
-    setRange([dayjs().subtract(1, 'month'), dayjs()]);
+    setRange([
+      dayjs().subtract(1, 'month').startOf('day').toISOString(),
+      dayjs().endOf('day').toISOString(),
+    ]);
     setUpdatedRange([undefined, undefined]);
     setCustomerId(undefined);
     setAgentId(undefined);
@@ -485,52 +503,22 @@ export default function JournalEntriesPage() {
         </div>
       </div>
 
-      {/* ── Filters + table ──────────────────────────────────── */}
-      <Card className={styles.tableCard}>
-        <div className={styles.filters}>
-          <Input
-            allowClear
-            size="large"
-            prefix={<SearchOutlined />}
-            placeholder={t('ابحث بالوصف أو رقم القيد...', 'Search by description or entry no...')}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className={styles.search}
-          />
-          <Select
-            size="large"
-            allowClear
-            value={status}
-            onChange={(v) => {
-              setStatus(v);
-              setPageNumber(1);
-            }}
-            placeholder={t('الحالة', 'Status')}
-            className={styles.filterSelect}
-            options={JOURNAL_STATUSES.map((s) => ({ value: s.value, label: isAr ? s.ar : s.en }))}
-          />
-          <Select
-            size="large"
-            allowClear
-            value={source}
-            onChange={(v) => {
-              setSource(v);
-              setPageNumber(1);
-            }}
-            placeholder={t('المصدر', 'Source')}
-            className={styles.filterSelect}
-            options={JOURNAL_SOURCES.map((s) => ({ value: s.value, label: isAr ? s.ar : s.en }))}
-          />
-          <Button size="large" onClick={() => setShowAdvanced((v) => !v)}>
-            {showAdvanced ? t('إخفاء الفلاتر', 'Hide filters') : t('فلاتر متقدمة', 'More filters')}
-          </Button>
-          <Button size="large" type="text" onClick={resetFilters}>
-            {t('مسح', 'Clear')}
-          </Button>
-        </div>
-
-        {showAdvanced && (
-          <div className={styles.advancedRow}>
+      {/* ── Filters ──────────────────────────────────────────── */}
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        contentLayout="block"
+        quickFilters={
+          <>
+            <Input
+              allowClear
+              size="large"
+              prefix={<SearchOutlined />}
+              placeholder={t('ابحث بالوصف أو رقم القيد...', 'Search by description or entry no...')}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              style={{ width: 280 }}
+            />
             <BranchFilterSelect
               value={branchId}
               onChange={(v) => {
@@ -540,19 +528,60 @@ export default function JournalEntriesPage() {
               includeSubBranches={includeSubBranches}
               onIncludeSubBranchesChange={setIncludeSubBranches}
             />
-            <RangePicker
-              value={range as any}
+          </>
+        }
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('الحالة', 'Status')}</label>
+            <Select
+              size="large"
+              allowClear
+              style={{ width: '100%' }}
+              value={status}
               onChange={(v) => {
-                setRange(v as any);
+                setStatus(v);
+                setPageNumber(1);
+              }}
+              placeholder={t('الحالة', 'Status')}
+              options={JOURNAL_STATUSES.map((s) => ({ value: s.value, label: isAr ? s.ar : s.en }))}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('المصدر', 'Source')}</label>
+            <Select
+              size="large"
+              allowClear
+              style={{ width: '100%' }}
+              value={source}
+              onChange={(v) => {
+                setSource(v);
+                setPageNumber(1);
+              }}
+              placeholder={t('المصدر', 'Source')}
+              options={JOURNAL_SOURCES.map((s) => ({ value: s.value, label: isAr ? s.ar : s.en }))}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('التاريخ', 'Date')}</label>
+            <DateRangeFilter
+              value={range}
+              onChange={(v) => {
+                setRange(v);
                 setPageNumber(1);
               }}
               placeholder={[t('من', 'From'), t('إلى', 'To')]}
+              style={{ width: '100%' }}
             />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('رقم العقد', 'Contract No.')}</label>
             <InputNumber
               min={1}
               precision={0}
               controls={false}
-              style={{ minWidth: 160 }}
+              size="large"
+              style={{ width: '100%' }}
               value={contractNumber ?? null}
               onChange={(v) => {
                 setContractNumber(v ? Number(v) : undefined);
@@ -560,11 +589,15 @@ export default function JournalEntriesPage() {
               }}
               placeholder={t('رقم العقد', 'Contract No.')}
             />
-            {/* Reference-type filter (drives source navigation). Replaces the old
-                restriction-type filter, which the backend ignored (no such param). */}
+          </Col>
+          {/* Reference-type filter (drives source navigation). Replaces the old
+              restriction-type filter, which the backend ignored (no such param). */}
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('نوع المرجع', 'Reference type')}</label>
             <Select
               allowClear
-              style={{ minWidth: 200 }}
+              size="large"
+              style={{ width: '100%' }}
               value={referenceType}
               onChange={(v) => {
                 setReferenceType(v);
@@ -576,6 +609,9 @@ export default function JournalEntriesPage() {
                 label: isAr ? r.ar : r.en,
               }))}
             />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('تاريخ التعديل', 'Updated date')}</label>
             <DateRangeFilter
               value={updatedRange}
               onChange={(v) => {
@@ -583,12 +619,17 @@ export default function JournalEntriesPage() {
                 setPageNumber(1);
               }}
               placeholder={[t('تاريخ التعديل من', 'Updated from'), t('تاريخ التعديل إلى', 'Updated to')]}
+              style={{ width: '100%' }}
             />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('العميل', 'Customer')}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              style={{ minWidth: 200 }}
+              size="large"
+              style={{ width: '100%' }}
               value={customerId}
               onChange={(v) => {
                 setCustomerId(v);
@@ -600,11 +641,15 @@ export default function JournalEntriesPage() {
                 label: (isAr ? c.arabicName || c.englishName : c.englishName || c.arabicName) || String(c.id),
               }))}
             />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('الوكيل', 'Agent')}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              style={{ minWidth: 200 }}
+              size="large"
+              style={{ width: '100%' }}
               value={agentId}
               onChange={(v) => {
                 setAgentId(v);
@@ -616,11 +661,15 @@ export default function JournalEntriesPage() {
                 label: (isAr ? a.agentNameAr || a.agentNameEn : a.agentNameEn || a.agentNameAr) || String(a.id),
               }))}
             />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('العاملة', 'Worker')}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              style={{ minWidth: 200 }}
+              size="large"
+              style={{ width: '100%' }}
               value={workerId}
               onChange={(v) => {
                 setWorkerId(v);
@@ -632,9 +681,13 @@ export default function JournalEntriesPage() {
                 label: (isAr ? w.fullNameAr || w.fullNameEn : w.fullNameEn || w.fullNameAr) || String(w.id),
               }))}
             />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('معرف الموظف', 'Employee ID')}</label>
             <Input
               allowClear
-              style={{ minWidth: 200 }}
+              size="large"
+              style={{ width: '100%' }}
               value={employeeId}
               onChange={(e) => {
                 setEmployeeId(e.target.value || undefined);
@@ -642,9 +695,12 @@ export default function JournalEntriesPage() {
               }}
               placeholder={t('معرف الموظف', 'Employee ID')}
             />
-          </div>
-        )}
+          </Col>
+        </Row>
+      </AdvancedFilterPanel>
 
+      {/* ── Table ────────────────────────────────────────────── */}
+      <Card className={styles.tableCard}>
         <Table<JournalEntryListItem>
           rowKey="id"
           columns={columns}

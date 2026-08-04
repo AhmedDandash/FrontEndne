@@ -103,6 +103,23 @@ export const DOCUMENT_TYPE_OPTIONS = (isAr: boolean) => [
   { value: 4, label: t(isAr, 'إشعار مدين', 'Debit Note') },
 ];
 
+// ── Contract option label (shared by the filter Select and any future picker) ─
+// Receipt Vouchers previously formatted this as `#123 - name` (hyphen, always
+// Arabic name); the general-vouchers ContractPicker used `#123 — party`
+// (em-dash, language-aware). Converged on the em-dash/language-aware form.
+export function contractOptionLabel(
+  contract: any,
+  isAr: boolean,
+  kind?: 'mediation'
+): string {
+  const number = contract?.contractNumber ?? contract?.number ?? contract?.id;
+  const party = isAr
+    ? contract?.customerNameAr ?? contract?.customerName ?? contract?.customerNameEn
+    : contract?.customerNameEn ?? contract?.customerName ?? contract?.customerNameAr;
+  const base = party ? `#${number} — ${party}` : `#${number}`;
+  return kind === 'mediation' ? `${base} (${t(isAr, 'وساطة', 'Mediation')})` : base;
+}
+
 export function documentTypeLabel(type: number | null | undefined, isAr: boolean) {
   switch (type) {
     case 1:

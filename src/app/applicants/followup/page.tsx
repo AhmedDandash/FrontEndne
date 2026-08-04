@@ -37,14 +37,17 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { DateRangeFilter } from '@/components/filters';
 import {
   useWorkers,
+  useWorkersFiltered,
   useMedicalExaminations,
   useUpdateMedicalExamination,
   useDeleteMedicalExamination,
 } from '@/hooks/api/useWorkers';
 import type { Worker } from '@/types/api.types';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import { useAgents } from '@/hooks/api/useAgents';
 import {
   MEDICAL_STATUS,
   WORKER_SATUS,
@@ -83,7 +86,7 @@ const translations = {
     agent: 'Agent',
     contractNo: 'Contract No.',
     visaNo: 'Visa No.',
-    arrivalDate: 'Arrival Date',
+    arrivalDate: 'Date Added',
     borderNo: 'Border No.',
     arrivalCity: 'Arrival City',
     residency: 'Residency',
@@ -176,7 +179,7 @@ const translations = {
     agent: 'الوكيل',
     contractNo: 'رقم العقد',
     visaNo: 'رقم التأشيرة',
-    arrivalDate: 'تاريخ الوصول',
+    arrivalDate: 'تاريخ الإضافة',
     borderNo: 'رقم الحدود',
     arrivalCity: 'مدينة الوصول',
     residency: 'الإقامة',
@@ -257,8 +260,8 @@ export default function WorkersFollowupPage() {
     agent?: string;
     dataCompletion?: string;
     createdBy?: string;
-    arrivalDateFrom?: dayjs.Dayjs;
-    arrivalDateTo?: dayjs.Dayjs;
+    dateAddedFrom?: string;
+    dateAddedTo?: string;
   }>({});
   const [editingExamId, setEditingExamId] = useState<number | null>(null);
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
@@ -289,6 +292,37 @@ export default function WorkersFollowupPage() {
         })),
     [nationalities, language]
   );
+  // Agent dropdown from the API — same value/label shape as nationality above,
+  // matched against `worker.agentName` since Worker.agentId's UUID space doesn't
+  // reliably line up with Agent.id (declared as legacy `number`).
+  const { data: agents = [] } = useAgents();
+  const agentOptions = useMemo(
+    () =>
+      (Array.isArray(agents) ? agents : []).map((a) => ({
+        value: a.agentNameAr || a.agentNameEn || String(a.id),
+        label: (language === 'ar' ? a.agentNameAr : a.agentNameEn) ||
+          a.agentNameAr || a.agentNameEn || String(a.id),
+      })),
+    [agents, language]
+  );
+
+  // "Date Added" filter: the plain worker list has no date field at all (not
+  // even under a different name), but the same endpoint accepts CreatedDateFrom/
+  // CreatedDateTo as server-side query params. Fetch the matching id set only
+  // when a range is picked, and intersect it with the client-filtered list below.
+  const hasDateAddedFilter = Boolean(filters.dateAddedFrom || filters.dateAddedTo);
+  const { data: dateAddedResult } = useWorkersFiltered(
+    {
+      CreatedDateFrom: filters.dateAddedFrom,
+      CreatedDateTo: filters.dateAddedTo,
+      PageSize: 1000,
+    },
+    { enabled: hasDateAddedFilter }
+  );
+  const dateAddedIds = useMemo(
+    () => (dateAddedResult ? new Set(dateAddedResult.workers.map((w) => String(w.id))) : null),
+    [dateAddedResult]
+  );
 
   // Filter workers
   const filteredWorkers = useMemo(() => {
@@ -307,10 +341,42 @@ export default function WorkersFollowupPage() {
         !filters.nationality ||
         (worker.nationalityName || '').toLowerCase() === String(filters.nationality).toLowerCase();
       const matchesJob = !filters.job || worker.jobname === filters.job;
+      const matchesAgent =
+        !filters.agent ||
+        (worker.agentName || '').toLowerCase() === String(filters.agent).toLowerCase();
 
-      return matchesSearch && matchesStatus && matchesNationality && matchesJob;
+      // "Complete" = the fields staff actually need to place/match a worker are
+      // filled in. Name/gender/passport are required at creation so they'd never
+      // discriminate; these five are the optional-but-load-bearing ones. The
+      // worker list endpoint only projects nationalityName/jobName (not the
+      // …Id fields), so completeness is checked against what's actually here.
+      const isProfileComplete =
+        Boolean(worker.nationalityName) &&
+        Boolean(worker.jobName || worker.jobname) &&
+        Boolean(worker.agentId) &&
+        Boolean(worker.mobile) &&
+        Boolean(worker.birthDate);
+      const matchesDataCompletion =
+        !filters.dataCompletion ||
+        (filters.dataCompletion === 'complete' ? isProfileComplete : !isProfileComplete);
+
+      // Worker records carry no date field client-side; matched against the
+      // server-filtered id set fetched above instead. Fails open while that
+      // fetch is in flight (dateAddedIds === null) to avoid a full-table flash.
+      const matchesDateAdded =
+        !hasDateAddedFilter || !dateAddedIds || dateAddedIds.has(String(worker.id));
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesNationality &&
+        matchesJob &&
+        matchesAgent &&
+        matchesDataCompletion &&
+        matchesDateAdded
+      );
     });
-  }, [workers, filters]);
+  }, [workers, filters, hasDateAddedFilter, dateAddedIds]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -730,19 +796,19 @@ export default function WorkersFollowupPage() {
                   allowClear
                   showSearch
                   optionFilterProp="label"
+                  options={agentOptions}
                 />
               </Col>
 
               <Col xs={24} md={6}>
                 <label className={styles.filterLabel}>{t('arrivalDate')}</label>
-                <DatePicker.RangePicker
-                  size="large"
-                  style={{ width: '100%' }}
-                  onChange={(dates) => {
+                <DateRangeFilter
+                  value={[filters.dateAddedFrom, filters.dateAddedTo]}
+                  onChange={([from, to]) => {
                     setFilters({
                       ...filters,
-                      arrivalDateFrom: dates?.[0] || undefined,
-                      arrivalDateTo: dates?.[1] || undefined,
+                      dateAddedFrom: from,
+                      dateAddedTo: to,
                     });
                   }}
                 />

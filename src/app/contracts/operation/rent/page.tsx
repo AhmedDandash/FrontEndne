@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, Row, Col, Button, Input, Select, Statistic, Empty, DatePicker, Spin, Form } from 'antd';
+import { Card, Row, Col, Button, Input, Select, Statistic, Empty, Spin, Form } from 'antd';
 import {
   FileTextOutlined,
   SearchOutlined,
@@ -16,6 +16,7 @@ import dayjs from 'dayjs';
 
 import { useAuthStore } from '@/store/authStore';
 import { BranchFilterSelect } from '@/components/filters';
+import DateRangeFilter from '@/components/filters/DateRangeFilter';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
@@ -47,9 +48,8 @@ import CustomerRefundModal from './_components/CustomerRefundModal';
 import ContractReceiptsModal from './_components/ContractReceiptsModal';
 import PrintReceiptModal from './_components/PrintReceiptModal';
 import DeliveryFormModal from './_components/DeliveryFormModal';
+import WorkerDeliveryRecordModal from './_components/WorkerDeliveryRecordModal';
 import styles from './RentContracts.module.css';
-
-const { RangePicker } = DatePicker;
 
 export default function RentContractsPage() {
   const router = useRouter();
@@ -64,7 +64,10 @@ export default function RentContractsPage() {
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [nationalityFilter, setNationalityFilter] = useState<string | 'all'>('all');
-  const [dateRange, setDateRange] = useState<[any, any] | null>(null);
+  const [dateRange, setDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
   const [branchId, setBranchId] = useState<string | undefined>(undefined);
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
   // ContractNumber / MarketerId / ContractDate — sent server-side (see the
@@ -97,6 +100,8 @@ export default function RentContractsPage() {
   const [deliveryModal, setDeliveryModal] = useState<{ open: boolean; id: string | null; title: string }>({ open: false, id: null, title: '' });
   const [deliveryData, setDeliveryData] = useState<OperatingContractDeliveryFormDto | null>(null);
   const [deliveryLoading, setDeliveryLoading] = useState(false);
+  // Signed handover receipt modal (separate entity from the delivery form above)
+  const [handoverModal, setHandoverModal] = useState<{ open: boolean; contract: RentContract | null }>({ open: false, contract: null });
 
   const {
     contracts: apiContracts,
@@ -126,8 +131,8 @@ export default function RentContractsPage() {
     IncludeSubBranches: branchId ? includeSubBranches : undefined,
     ContractNumber: debouncedContractNumber || undefined,
     MarketerId: marketerFilter !== 'all' ? marketerFilter : undefined,
-    ContractDateFrom: dateRange ? dateRange[0].startOf('day').toISOString() : undefined,
-    ContractDateTo: dateRange ? dateRange[1].endOf('day').toISOString() : undefined,
+    ContractDateFrom: dateRange[0],
+    ContractDateTo: dateRange[1],
   });
 
   const { data: jobs = [] } = useJobs();
@@ -390,6 +395,7 @@ export default function RentContractsPage() {
     onReceipts: (c: RentContract) => setReceiptsModal({ open: true, contract: c }),
     onPrint: handlePrint,
     onDeliveryForm: handleDeliveryForm,
+    onHandoverReceipt: (c: RentContract) => setHandoverModal({ open: true, contract: c }),
   };
 
   if (!mounted) return null;
@@ -475,6 +481,7 @@ export default function RentContractsPage() {
             <Input placeholder={t.search} prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} allowClear size="large" className={styles.searchInput} />
           </Col>
           <Col xs={12} sm={6} md={4}>
+            <label className={styles.filterLabel}>{t.allStatuses}</label>
             <Select
               value={statusFilter}
               onChange={setStatusFilter}
@@ -490,6 +497,7 @@ export default function RentContractsPage() {
             />
           </Col>
           <Col xs={12} sm={6} md={4}>
+            <label className={styles.filterLabel}>{t.allNationalities}</label>
             <Select
               value={nationalityFilter}
               onChange={setNationalityFilter}
@@ -502,7 +510,13 @@ export default function RentContractsPage() {
             />
           </Col>
           <Col xs={24} sm={12} md={8}>
-            <RangePicker value={dateRange} onChange={(dates) => setDateRange(dates)} style={{ width: '100%' }} size="large" placeholder={[t.startDate, t.endDate]} format="YYYY-MM-DD" />
+            <label className={styles.filterLabel}>{`${t.startDate} / ${t.endDate}`}</label>
+            <DateRangeFilter
+              value={dateRange}
+              onChange={setDateRange}
+              style={{ width: '100%' }}
+              placeholder={[t.startDate, t.endDate]}
+            />
           </Col>
           <Col xs={24} md={10}>
             <BranchFilterSelect
@@ -514,6 +528,7 @@ export default function RentContractsPage() {
             />
           </Col>
           <Col xs={12} sm={6} md={4}>
+            <label className={styles.filterLabel}>{t.contractNumberFilter}</label>
             <Input
               placeholder={t.contractNumberFilter}
               value={contractNumberFilter}
@@ -523,6 +538,7 @@ export default function RentContractsPage() {
             />
           </Col>
           <Col xs={12} sm={6} md={4}>
+            <label className={styles.filterLabel}>{t.allMarketers}</label>
             <Select
               value={marketerFilter}
               onChange={setMarketerFilter}
@@ -656,6 +672,13 @@ export default function RentContractsPage() {
         title={deliveryModal.title}
         onClose={() => setDeliveryModal({ open: false, id: null, title: '' })}
         onSave={handleSaveDeliveryForm}
+      />
+
+      <WorkerDeliveryRecordModal
+        open={handoverModal.open}
+        isRtl={isRtl}
+        contract={handoverModal.contract}
+        onClose={() => setHandoverModal({ open: false, contract: null })}
       />
     </div>
   );

@@ -113,6 +113,14 @@
   border-radius: 8px;
 }
 
+.filterLabel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
+}
+
 /* Results Info */
 .resultsInfo {
   margin-block-end: 16px;

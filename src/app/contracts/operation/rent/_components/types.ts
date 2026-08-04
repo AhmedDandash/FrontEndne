@@ -12,6 +12,8 @@ export interface RentContract {
   id: string;
   /** Customer UUID (GUID) — never coerce to number */
   customerId: string;
+  /** Assigned worker UUID (GUID), empty when no worker is linked yet. */
+  workerId: string;
   contractNumber: string;
   customerName: string;
   customerNameAr: string;

@@ -22,8 +22,10 @@ import {
   UserAddOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { AdvancedFilterPanel } from '@/components/filters';
 import { useAdminUsers, useAdminRoles } from '@/hooks/api/useAdmin';
 import type { AdminUser, AssignRoleDto, AddUserDto } from '@/types/hr.types';
+import styles from './AdminUsers.module.css';
 
 const { Title, Text } = Typography;
 
@@ -180,26 +182,35 @@ export default function AdminUsersPage() {
         </Button>
       </div>
 
-      <Card>
-        <Space wrap style={{ marginBottom: 16 }}>
-          <Input
-            placeholder="بحث بالاسم أو البريد الإلكتروني..."
-            allowClear
-            prefix={<SearchOutlined />}
-            style={{ width: 300 }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-          <Select
-            placeholder="تصفية بالدور"
-            allowClear
-            style={{ width: 200 }}
-            value={roleFilter}
-            onChange={(v) => setRoleFilter(v)}
-            options={roleOptions}
-          />
-        </Space>
+      <AdvancedFilterPanel
+        activeCount={roleFilter ? 1 : 0}
+        onClear={() => setRoleFilter(undefined)}
+        quickFilters={
+          <>
+            <Input
+              placeholder="بحث بالاسم أو البريد الإلكتروني..."
+              allowClear
+              prefix={<SearchOutlined />}
+              style={{ width: 300 }}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+            <div>
+              <label className={styles.filterLabel}>تصفية بالدور</label>
+              <Select
+                placeholder="تصفية بالدور"
+                allowClear
+                style={{ width: 200 }}
+                value={roleFilter}
+                onChange={(v) => setRoleFilter(v)}
+                options={roleOptions}
+              />
+            </div>
+          </>
+        }
+      />
 
+      <Card>
         <Table<AdminUser>
           dataSource={filteredUsers}
           columns={columns}

@@ -61,6 +61,8 @@ export interface MediationContractListParams {
   isUnpaid?: boolean;
   paymentDateFrom?: string;
   paymentDateTo?: string;
+  /** Skip the fetch entirely — for callers that only need the list conditionally. Defaults to true. */
+  enabled?: boolean;
 }
 
 export function useMediationContracts(params?: MediationContractListParams) {
@@ -73,6 +75,7 @@ export function useMediationContracts(params?: MediationContractListParams) {
     refetch,
   } = useQuery({
     queryKey: [QUERY_KEY, 'list', params],
+    enabled: params?.enabled ?? true,
     queryFn: () => MediationContractService.getAll({
       Page: params?.pageNumber ?? 1,
       PageSize: params?.pageSize ?? 10,

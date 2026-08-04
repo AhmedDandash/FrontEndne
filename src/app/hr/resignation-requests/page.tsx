@@ -25,8 +25,10 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { AdvancedFilterPanel } from '@/components/filters';
 import { useHRResignationRequests } from '@/hooks/api/useHR';
 import { RequestStatus, type ResignationRequestDto } from '@/types/hr.types';
+import styles from './ResignationRequests.module.css';
 
 const { Title } = Typography;
 
@@ -184,30 +186,39 @@ export default function ResignationRequestsPage() {
         </Col>
       </Row>
 
-      <Card>
-        <Space wrap style={{ marginBottom: 16 }}>
-          <Input
-            placeholder="بحث بالاسم أو السبب..."
-            allowClear
-            prefix={<SearchOutlined />}
-            style={{ width: 280 }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-          <Select
-            placeholder="تصفية بالحالة"
-            allowClear
-            style={{ width: 180 }}
-            value={statusFilter}
-            onChange={(v) => setStatusFilter(v)}
-            options={[
-              { value: RequestStatus.Pending, label: 'قيد الانتظار' },
-              { value: RequestStatus.Approved, label: 'موافق عليه' },
-              { value: RequestStatus.Rejected, label: 'مرفوض' },
-            ]}
-          />
-        </Space>
+      <AdvancedFilterPanel
+        activeCount={statusFilter != null ? 1 : 0}
+        onClear={() => setStatusFilter(undefined)}
+        quickFilters={
+          <>
+            <Input
+              placeholder="بحث بالاسم أو السبب..."
+              allowClear
+              prefix={<SearchOutlined />}
+              style={{ width: 280 }}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+            <div>
+              <label className={styles.filterLabel}>تصفية بالحالة</label>
+              <Select
+                placeholder="تصفية بالحالة"
+                allowClear
+                style={{ width: 180 }}
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v)}
+                options={[
+                  { value: RequestStatus.Pending, label: 'قيد الانتظار' },
+                  { value: RequestStatus.Approved, label: 'موافق عليه' },
+                  { value: RequestStatus.Rejected, label: 'مرفوض' },
+                ]}
+              />
+            </div>
+          </>
+        }
+      />
 
+      <Card>
         <Table<ResignationRequestDto>
           dataSource={filteredRequests}
           columns={columns}

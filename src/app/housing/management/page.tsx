@@ -26,10 +26,12 @@ import {
   EyeOutlined,
   HomeOutlined,
   TeamOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useHousings } from '@/hooks/api/useHousing';
 import { useOpenIdParam } from '@/hooks/useOpenIdParam';
+import { AdvancedFilterPanel } from '@/components/filters';
 import fullPage from '@/styles/fullPageModal.module.css';
 import type { Housing, HousingDto } from '@/types/housing.types';
 import styles from './HousingManagement.module.css';
@@ -235,6 +237,53 @@ export default function HousingManagementPage() {
         </Card>
       </div>
 
+      <AdvancedFilterPanel
+        activeCount={[isActiveFilter !== undefined, hasAvailableSlotsFilter !== undefined].filter(Boolean).length}
+        onClear={() => { setIsActiveFilter(undefined); setHasAvailableSlotsFilter(undefined); }}
+        quickFilters={
+          <>
+            <Input
+              allowClear
+              size="large"
+              prefix={<SearchOutlined />}
+              placeholder={t('بحث...', 'Search...', lang)}
+              style={{ width: 220 }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <div>
+              <label className={styles.filterLabel}>{t('الحالة', 'Status', lang)}</label>
+              <Select
+                allowClear
+                size="large"
+                placeholder={t('الحالة', 'Status', lang)}
+                style={{ width: 150 }}
+                value={isActiveFilter === undefined ? undefined : String(isActiveFilter)}
+                onChange={(v) => setIsActiveFilter(v === undefined ? undefined : v === 'true')}
+                options={[
+                  { value: 'true', label: t('مفعّل', 'Active', lang) },
+                  { value: 'false', label: t('معطّل', 'Inactive', lang) },
+                ]}
+              />
+            </div>
+            <div>
+              <label className={styles.filterLabel}>{t('الإتاحة', 'Availability', lang)}</label>
+              <Select
+                allowClear
+                size="large"
+                placeholder={t('الإتاحة', 'Availability', lang)}
+                style={{ width: 170 }}
+                value={hasAvailableSlotsFilter === undefined ? undefined : String(hasAvailableSlotsFilter)}
+                onChange={(v) => setHasAvailableSlotsFilter(v === undefined ? undefined : v === 'true')}
+                options={[
+                  { value: 'true', label: t('يوجد مقاعد شاغرة', 'Has available slots', lang) },
+                ]}
+              />
+            </div>
+          </>
+        }
+      />
+
       {/* Main Card */}
       <Card
         title={
@@ -244,39 +293,9 @@ export default function HousingManagementPage() {
           </Space>
         }
         extra={
-          <Space wrap>
-            <Input.Search
-              placeholder={t('بحث...', 'Search...', lang)}
-              allowClear
-              style={{ width: 220 }}
-              onSearch={setSearch}
-              onChange={(e) => !e.target.value && setSearch('')}
-            />
-            <Select
-              placeholder={t('الحالة', 'Status', lang)}
-              allowClear
-              style={{ width: 130 }}
-              value={isActiveFilter === undefined ? undefined : String(isActiveFilter)}
-              onChange={(v) => setIsActiveFilter(v === undefined ? undefined : v === 'true')}
-              options={[
-                { value: 'true', label: t('مفعّل', 'Active', lang) },
-                { value: 'false', label: t('معطّل', 'Inactive', lang) },
-              ]}
-            />
-            <Select
-              placeholder={t('الإتاحة', 'Availability', lang)}
-              allowClear
-              style={{ width: 150 }}
-              value={hasAvailableSlotsFilter === undefined ? undefined : String(hasAvailableSlotsFilter)}
-              onChange={(v) => setHasAvailableSlotsFilter(v === undefined ? undefined : v === 'true')}
-              options={[
-                { value: 'true', label: t('يوجد مقاعد شاغرة', 'Has available slots', lang) },
-              ]}
-            />
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              {t('إضافة سكن', 'Add Housing', lang)}
-            </Button>
-          </Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            {t('إضافة سكن', 'Add Housing', lang)}
+          </Button>
         }
       >
         <Table<Housing>

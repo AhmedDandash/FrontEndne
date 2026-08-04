@@ -76,12 +76,17 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
-.filters {
+.filterField {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-block-end: 16px;
+  flex-direction: column;
+}
+
+.filterLabel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
 }
 
 /* ── Summary metric cards ───────────────────────────────────── */

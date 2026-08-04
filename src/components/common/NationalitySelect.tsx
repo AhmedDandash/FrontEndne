@@ -32,6 +32,8 @@ const TEXT = {
     required: 'الرجاء تعبئة الاسم بالعربي والإنجليزي',
     duplicate: 'هذه الجنسية موجودة بالفعل',
     failed: 'فشل إضافة الجنسية',
+    common: 'الأكثر استخداماً',
+    allNationalities: 'كل الجنسيات',
   },
   en: {
     placeholder: 'Select nationality',
@@ -43,6 +45,8 @@ const TEXT = {
     required: 'Please fill in both the Arabic and English name',
     duplicate: 'This nationality already exists',
     failed: 'Failed to add nationality',
+    common: 'Common',
+    allNationalities: 'All Nationalities',
   },
 } as const;
 
@@ -63,6 +67,13 @@ export interface NationalitySelectProps {
   allowAdd?: boolean;
   /** Override how an option's value is derived — agents/page.tsx needs the legacy numeric id first. */
   getOptionValue?: (n: Nationality) => string;
+  /**
+   * Names (Arabic or English, matched case/whitespace-insensitively) floated into a
+   * pinned "Common" group at the top of the list, with everything else grouped below.
+   * Opt-in only — omit for today's flat list. Never removes anything from the list,
+   * so nothing becomes impossible to select; it only reorders for findability.
+   */
+  priorityNames?: string[];
 }
 
 export default function NationalitySelect({
@@ -78,6 +89,7 @@ export default function NationalitySelect({
   isActiveOnly,
   allowAdd = true,
   getOptionValue = defaultGetOptionValue,
+  priorityNames,
 }: NationalitySelectProps) {
   const { nationalities, isLoading, getLabel, language, refetch } = useNationalityOptions({
     isActiveOnly,
@@ -99,12 +111,48 @@ export default function NationalitySelect({
     [nationalities, getOptionValue, getLabel]
   );
 
-  const options = useMemo(() => {
-    if (pendingOption && !baseOptions.some((o) => o.value === pendingOption.value)) {
-      return [pendingOption, ...baseOptions];
+  /** Partitions `nationalities` into a pinned "common" group (ordered per `priorityNames`)
+   *  and the rest — only computed when `priorityNames` is supplied. */
+  const priorityGroups = useMemo(() => {
+    if (!priorityNames || priorityNames.length === 0) return null;
+    const norm = (s: string) => s.trim().toLocaleLowerCase();
+    const order = new Map(priorityNames.map((name, i) => [norm(name), i]));
+    const rank = (n: Nationality) => {
+      const ai = n.nationalityNameAr ? order.get(norm(n.nationalityNameAr)) : undefined;
+      const ei = n.nationalityNameEn ? order.get(norm(n.nationalityNameEn)) : undefined;
+      const best = [ai, ei].filter((v): v is number => v !== undefined);
+      return best.length ? Math.min(...best) : -1;
+    };
+
+    const pinned: Nationality[] = [];
+    const rest: Nationality[] = [];
+    for (const n of nationalities) {
+      (rank(n) >= 0 ? pinned : rest).push(n);
+    }
+    pinned.sort((a, b) => rank(a) - rank(b));
+
+    return {
+      pinned: pinned.map((n) => ({ value: getOptionValue(n), label: getLabel(n) })),
+      rest: rest.map((n) => ({ value: getOptionValue(n), label: getLabel(n) })),
+    };
+  }, [nationalities, priorityNames, getOptionValue, getLabel]);
+
+  const options = useMemo<NonNullable<SelectProps['options']>>(() => {
+    const isNewPending =
+      pendingOption && !baseOptions.some((o) => o.value === pendingOption.value);
+
+    if (priorityGroups) {
+      const pinned = isNewPending ? [pendingOption!, ...priorityGroups.pinned] : priorityGroups.pinned;
+      return [
+        { label: t.common, options: pinned },
+        { label: t.allNationalities, options: priorityGroups.rest },
+      ];
+    }
+    if (isNewPending) {
+      return [pendingOption!, ...baseOptions];
     }
     return baseOptions;
-  }, [baseOptions, pendingOption]);
+  }, [baseOptions, pendingOption, priorityGroups, t.common, t.allNationalities]);
 
   const resetAddForm = () => {
     setAdding(false);
