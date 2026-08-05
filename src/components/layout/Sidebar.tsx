@@ -14,6 +14,7 @@ import {
   IdcardOutlined,
   BankOutlined,
   FieldTimeOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useRouter, usePathname } from 'next/navigation';
@@ -72,6 +73,9 @@ export default function Sidebar({
         }
         if (pathParts[0] === 'hourly-workers') {
           keys.push('hourly-workers');
+        }
+        if (pathParts[0] === 'zatca') {
+          keys.push('zatca');
         }
         setOpenKeys(keys);
       }
@@ -485,6 +489,21 @@ export default function Sidebar({
             },
           ],
         },
+      ],
+    },
+    {
+      key: 'zatca',
+      icon: <SafetyCertificateOutlined />,
+      label: language === 'ar' ? 'زاتكا' : 'ZATCA',
+      children: [
+        { key: '/zatca', label: language === 'ar' ? 'لوحة التحكم' : 'Dashboard' },
+        { key: '/zatca/invoices', label: language === 'ar' ? 'الفواتير' : 'Invoices' },
+        { key: '/zatca/branch-setup', label: language === 'ar' ? 'إعداد الفرع' : 'Branch Setup' },
+        { key: '/zatca/csr', label: language === 'ar' ? 'طلبات CSR' : 'CSR Requests' },
+        { key: '/zatca/certificates', label: language === 'ar' ? 'الشهادات' : 'Certificates' },
+        { key: '/zatca/settings', label: language === 'ar' ? 'الإعدادات' : 'Settings' },
+        { key: '/zatca/connection', label: language === 'ar' ? 'الاتصال والتشخيص' : 'Connection & Diagnostics' },
+        { key: '/zatca/logs', label: language === 'ar' ? 'السجلات' : 'Logs' },
       ],
     },
     {

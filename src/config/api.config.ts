@@ -713,4 +713,36 @@ export const API_ENDPOINTS = {
       `/api/V1/HourlyWorkerPortal/${workerId}/Assignments/${assignmentId}/Status`,
     GET_SCHEDULE: (workerId: string) => `/api/V1/HourlyWorkerPortal/${workerId}/Schedule`,
   },
+
+  // ─── ZATCA — /api/V1/Zatca/* ──────────────────────────────────────────────────
+  // Saudi e-invoicing (Fatoora) compliance module. All GETs require a bearer
+  // token (this controller enforces auth, unlike most of this backend) and take
+  // `branchId` explicitly as a query param — the global X-Branch-Id header is
+  // sent too but these routes don't rely on it. Status/type values are numeric;
+  // resolve names via LOOKUPS, never hardcode them (see zatca.types.ts).
+  ZATCA: {
+    LOOKUPS: '/api/V1/Zatca/lookups',
+    DASHBOARD_SUMMARY: '/api/V1/Zatca/dashboard/summary',
+    HEALTH: '/api/V1/Zatca/health',
+    BRANCH_CONTEXT: '/api/V1/Zatca/branch-context',
+    UPDATE_BRANCH_PROFILE: '/api/V1/Zatca/branch-profile',
+    EGS_UNITS: '/api/V1/Zatca/egs-units',
+    IMPORT_CERTIFICATE: '/api/V1/Zatca/certificates/import',
+    GENERATE_CSR: '/api/V1/Zatca/csr/generate',
+    REQUEST_COMPLIANCE_CSID: '/api/V1/Zatca/csr/compliance-csid',
+    REQUEST_PRODUCTION_CSID: '/api/V1/Zatca/csr/production-csid',
+    GLOBAL_SETTINGS: '/api/V1/Zatca/settings/global',
+    BRANCH_SETTINGS: '/api/V1/Zatca/settings/branch',
+    INVOICES: '/api/V1/Zatca/invoices',
+    INVOICE_BY_ID: (id: string) => `/api/V1/Zatca/invoices/${id}`,
+    CSR_REQUESTS: '/api/V1/Zatca/csr',
+    CERTIFICATES: '/api/V1/Zatca/certificates',
+    CERTIFICATE_HISTORY: '/api/V1/Zatca/certificates/history',
+    CERTIFICATE_EXPIRATION: '/api/V1/Zatca/certificates/expiration',
+    CONNECTION_TEST: '/api/V1/Zatca/connection/test',
+    REQUEST_LOGS: '/api/V1/Zatca/logs/requests',
+    REQUEST_LOG_BY_ID: (id: string) => `/api/V1/Zatca/logs/requests/${id}`,
+    SUBMISSION_LOGS: '/api/V1/Zatca/logs/submissions',
+    DIAGNOSTICS: '/api/V1/Zatca/diagnostics',
+  },
 } as const;

@@ -127,6 +127,16 @@ export const PAGE_REGISTRY: PageDef[] = [
   { key: '/settings/custody-types', labelAr: 'أنواع العهد', labelEn: 'Custody Types', group: 'settings', groupAr: 'الإعدادات', groupEn: 'Settings' },
   { key: '/register', labelAr: 'إضافة مسؤول', labelEn: 'Add Admin', group: 'settings', groupAr: 'الإعدادات', groupEn: 'Settings' },
   { key: '/settings/permissions', labelAr: 'صلاحيات الصفحات', labelEn: 'Page Permissions', group: 'settings', groupAr: 'الإعدادات', groupEn: 'Settings' },
+
+  // ── ZATCA ──
+  { key: '/zatca', labelAr: 'لوحة زاتكا', labelEn: 'ZATCA Dashboard', group: 'zatca', groupAr: 'زاتكا', groupEn: 'ZATCA' },
+  { key: '/zatca/invoices', labelAr: 'الفواتير', labelEn: 'Invoices', group: 'zatca', groupAr: 'زاتكا', groupEn: 'ZATCA' },
+  { key: '/zatca/branch-setup', labelAr: 'إعداد الفرع', labelEn: 'Branch Setup', group: 'zatca', groupAr: 'زاتكا', groupEn: 'ZATCA' },
+  { key: '/zatca/csr', labelAr: 'طلبات CSR', labelEn: 'CSR Requests', group: 'zatca', groupAr: 'زاتكا', groupEn: 'ZATCA' },
+  { key: '/zatca/certificates', labelAr: 'الشهادات', labelEn: 'Certificates', group: 'zatca', groupAr: 'زاتكا', groupEn: 'ZATCA' },
+  { key: '/zatca/settings', labelAr: 'الإعدادات', labelEn: 'Settings', group: 'zatca', groupAr: 'زاتكا', groupEn: 'ZATCA' },
+  { key: '/zatca/connection', labelAr: 'الاتصال والتشخيص', labelEn: 'Connection & Diagnostics', group: 'zatca', groupAr: 'زاتكا', groupEn: 'ZATCA' },
+  { key: '/zatca/logs', labelAr: 'السجلات', labelEn: 'Logs', group: 'zatca', groupAr: 'زاتكا', groupEn: 'ZATCA' },
 ];
 
 /** True if any of `roles` is an always-allowed admin role (case-insensitive). */
