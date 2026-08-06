@@ -15,6 +15,7 @@ export function useHourlyOrdersSummary(params?: HourlyReportFilterParams) {
   return useQuery({
     queryKey: [...REPORTS_KEY, 'orders-summary', params],
     queryFn: () => HourlyReportsService.getOrdersSummary(params),
+    placeholderData: (previous) => previous,
     staleTime: STALE,
   });
 }
@@ -23,6 +24,7 @@ export function useHourlyRevenueReport(params?: HourlyReportFilterParams) {
   return useQuery({
     queryKey: [...REPORTS_KEY, 'revenue', params],
     queryFn: () => HourlyReportsService.getRevenue(params),
+    placeholderData: (previous) => previous,
     staleTime: STALE,
   });
 }
@@ -31,6 +33,7 @@ export function useHourlyWorkerUtilization(params?: HourlyReportFilterParams) {
   return useQuery({
     queryKey: [...REPORTS_KEY, 'worker-utilization', params],
     queryFn: () => HourlyReportsService.getWorkerUtilization(params),
+    placeholderData: (previous) => previous,
     staleTime: STALE,
   });
 }
@@ -39,6 +42,7 @@ export function useHourlyDriverPerformance(params?: HourlyReportFilterParams) {
   return useQuery({
     queryKey: [...REPORTS_KEY, 'driver-performance', params],
     queryFn: () => HourlyReportsService.getDriverPerformance(params),
+    placeholderData: (previous) => previous,
     staleTime: STALE,
   });
 }

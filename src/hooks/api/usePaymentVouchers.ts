@@ -10,6 +10,7 @@ export function usePaymentVouchers(filters?: AccountingDocumentFilterDto) {
   return useQuery({
     queryKey: [...QUERY_KEY, filters],
     queryFn: () => PaymentVoucherService.getAll(filters),
+    placeholderData: (previous) => previous,
   });
 }
 

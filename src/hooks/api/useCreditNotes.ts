@@ -10,6 +10,7 @@ export function useCreditNotes(filters?: AccountingDocumentFilterDto) {
   return useQuery({
     queryKey: [...QUERY_KEY, filters],
     queryFn: () => CreditNoteService.getAll(filters),
+    placeholderData: (previous) => previous,
   });
 }
 

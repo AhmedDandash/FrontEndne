@@ -25,6 +25,7 @@ export const useAgentsPaged = (query?: AgentQuery) => {
   return useQuery<PagedResponse<Agent>, Error>({
     queryKey: [AGENTS_KEY, 'paged', query],
     queryFn: () => AgentService.getPaged(query),
+    placeholderData: (previous) => previous,
   });
 };
 

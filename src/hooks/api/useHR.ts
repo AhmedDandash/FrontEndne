@@ -102,6 +102,7 @@ export function useHREmployees(params?: {
       params?.iban
     ),
     queryFn: () => HREmployeeService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 
   const createMutation = useMutation({
@@ -191,6 +192,7 @@ export function useHRAttendance(filter: AttendanceFilterDto, enabled = true) {
   const query = useQuery({
     queryKey: QK.attendance(filter),
     queryFn: () => HRAttendanceService.filter(filter),
+    placeholderData: (previous) => previous,
     enabled,
   });
 

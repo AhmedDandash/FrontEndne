@@ -22,6 +22,7 @@ export function useMediationFollowUpDashboard(params?: MediationFollowUpDashboar
   return useQuery({
     queryKey: [KEYS.dashboard, params],
     queryFn: () => MediationFollowUpService.getDashboard(params),
+    placeholderData: (previous) => previous,
   });
 }
 

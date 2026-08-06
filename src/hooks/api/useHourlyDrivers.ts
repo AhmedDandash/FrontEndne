@@ -20,6 +20,7 @@ export function useHourlyDrivers(params?: HourlyDriverListParams) {
   return useQuery({
     queryKey: [...DRIVERS_KEY, params],
     queryFn: () => HourlyDriverService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 }
 

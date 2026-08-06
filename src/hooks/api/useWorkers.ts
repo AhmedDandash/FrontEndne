@@ -191,6 +191,7 @@ export function useWorkersFiltered(params?: WorkerFilterParams, options?: { enab
       const pageSize = cleanParams.PageSize as number ?? 20;
       return { workers, total, pageNumber, pageSize };
     },
+    placeholderData: (previous) => previous,
   });
 }
 
@@ -215,6 +216,7 @@ export function useAvailableMediationWorkers(passportNo?: string, enabled = true
       });
       return extractWorkerArray(response.data);
     },
+    placeholderData: (previous) => previous,
     enabled,
   });
 }

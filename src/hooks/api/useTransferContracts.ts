@@ -57,6 +57,7 @@ export function useTransferContracts(params?: TransferContractParams) {
   return useQuery({
     queryKey: [...QUERY_KEY, 'list', clean],
     queryFn: () => TransferContractService.getAll(clean),
+    placeholderData: (previous) => previous,
   });
 }
 

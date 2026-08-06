@@ -24,6 +24,7 @@ export const useNationalities = (params?: { isActiveOnly?: boolean; pageSize?: n
   return useQuery<Nationality[], Error>({
     queryKey: [QUERY_KEY, params ?? {}],
     queryFn: () => NationalityService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 };
 

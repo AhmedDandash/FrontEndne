@@ -83,6 +83,7 @@ export function useEmploymentOperatingContracts(
   } = useQuery({
     queryKey: [QUERY_KEY, params],
     queryFn: () => EmploymentOperatingContractService.getAll(params),
+    placeholderData: keepPreviousData,
   });
 
   const useContract = (id: number | string) =>

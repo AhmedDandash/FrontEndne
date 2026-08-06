@@ -35,6 +35,7 @@ export function useEmploymentContractOffers(
   } = useQuery({
     queryKey: [QUERY_KEY, params],
     queryFn: () => OperatingContractOfferService.getAll(params),
+    placeholderData: (previous) => previous,
     staleTime: 0,
   });
 

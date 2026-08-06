@@ -41,6 +41,7 @@ export function useHousedWorkers(params: HousingApplicantParams = {}) {
   } = useQuery({
     queryKey: [HOUSED_KEY, params],
     queryFn: () => WorkerHousingService.getHoused(params),
+    placeholderData: (previous) => previous,
   });
 
   // ─── Housing Assignment (StatusType 8) ───────────────────────────────────

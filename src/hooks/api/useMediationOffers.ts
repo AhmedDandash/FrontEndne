@@ -17,6 +17,7 @@ export const useMediationOffers = (params?: MediationOfferQuery) => {
   return useQuery<MediationContractOffer[], Error>({
     queryKey: [QUERY_KEY, params],
     queryFn: () => MediationContractOfferService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 };
 

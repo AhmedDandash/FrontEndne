@@ -70,6 +70,7 @@ export function useGeneralLedger(query: Partial<GeneralLedgerQuery>) {
   return useQuery({
     queryKey: [LEDGER_KEY, 'general', query.accountId, query.from ?? '', query.to ?? '', query.branchId ?? ''],
     queryFn: () => LedgerService.getGeneralLedger(query as GeneralLedgerQuery),
+    placeholderData: (previous) => previous,
     enabled: !!query.accountId,
   });
 }
@@ -83,6 +84,7 @@ export function usePartyLedger(kind: PartyKind, id: string | undefined, range: D
       if (kind === 'customer') return LedgerService.getCustomerLedger(id as string, range);
       return LedgerService.getWorkerLedger(id as string, range);
     },
+    placeholderData: (previous) => previous,
     enabled: !!id,
     // "No entries found" comes back as 400 — don't hammer it on retry.
     retry: false,
@@ -102,6 +104,7 @@ export function useTrialBalance(query: TrialBalanceQuery) {
       query.branchId ?? '',
     ],
     queryFn: () => LedgerService.getTrialBalance(query),
+    placeholderData: (previous) => previous,
   });
 }
 
@@ -133,6 +136,7 @@ export function useBalanceSheet(query: Partial<BalanceSheetQuery>) {
       !!query.includeCurrentYearEarnings,
     ],
     queryFn: () => LedgerService.getBalanceSheet(query as BalanceSheetQuery),
+    placeholderData: (previous) => previous,
     enabled: !!query.asOfDate,
   });
 }
@@ -150,6 +154,7 @@ export function useVatReport(query: Partial<VatReportQuery>) {
       query.to ?? '',
     ],
     queryFn: () => LedgerService.getVatReport(query as VatReportQuery),
+    placeholderData: (previous) => previous,
     enabled: !!query.year && !!query.quarter,
     retry: false,
   });

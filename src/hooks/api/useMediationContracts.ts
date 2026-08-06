@@ -152,6 +152,7 @@ export function useMediationContracts(params?: MediationContractListParams) {
       MinDomesticWorkerInsurance: params?.minDomesticWorkerInsurance,
       MaxDomesticWorkerInsurance: params?.maxDomesticWorkerInsurance,
     }),
+    placeholderData: (previous) => previous,
   });
 
   const contracts = data?.contracts;
@@ -315,6 +316,7 @@ export function useRecruitmentRequests(params?: {
         IncludeSubBranches: params?.branchId ? params?.includeSubBranches : undefined,
         PageSize: params?.pageSize ?? 50,
       }),
+    placeholderData: (previous) => previous,
   });
   return {
     requests: query.data?.requests ?? [],

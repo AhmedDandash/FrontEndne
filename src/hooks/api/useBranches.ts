@@ -15,6 +15,7 @@ export function usePagedBranches(query?: BranchQuery) {
   return useQuery<PagedResponse<Branch>, Error>({
     queryKey: [QUERY_KEY, 'paged', query],
     queryFn: () => BranchService.getPaged(query),
+    placeholderData: (previous) => previous,
   });
 }
 

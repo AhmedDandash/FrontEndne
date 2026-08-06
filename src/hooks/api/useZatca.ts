@@ -290,6 +290,7 @@ export function useZatcaInvoices(params: ZatcaInvoiceListParams) {
   return useQuery({
     queryKey: [...INVOICES_KEY, params],
     queryFn: () => ZatcaInvoiceService.getAll(params),
+    placeholderData: (previous) => previous,
     enabled: !!params.branchId,
   });
 }
@@ -308,6 +309,7 @@ export function useZatcaRequestLogs(params: ZatcaRequestLogListParams) {
   return useQuery({
     queryKey: [...REQUEST_LOGS_KEY, params],
     queryFn: () => ZatcaLogsService.getRequestLogs(params),
+    placeholderData: (previous) => previous,
     enabled: !!params.branchId,
   });
 }
@@ -324,6 +326,7 @@ export function useZatcaSubmissionLogs(params: ZatcaSubmissionLogListParams) {
   return useQuery({
     queryKey: [...SUBMISSION_LOGS_KEY, params],
     queryFn: () => ZatcaLogsService.getSubmissionLogs(params),
+    placeholderData: (previous) => previous,
     enabled: !!params.branchId,
   });
 }

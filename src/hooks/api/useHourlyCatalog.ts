@@ -28,6 +28,7 @@ export function useHourlyPackages(params?: HourlyPackageListParams) {
   return useQuery({
     queryKey: [...PACKAGES_KEY, params],
     queryFn: () => HourlyPackageService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 }
 
@@ -72,6 +73,7 @@ export function useHourlyServingAreas(params?: HourlyServingAreaListParams) {
   return useQuery({
     queryKey: [...AREAS_KEY, params],
     queryFn: () => HourlyServingAreaService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 }
 

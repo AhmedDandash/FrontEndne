@@ -15,6 +15,7 @@ export function useHourlyNotifications(params?: HourlyNotificationListParams) {
   return useQuery({
     queryKey: [...NOTIFICATIONS_KEY, params],
     queryFn: () => HourlyNotificationsService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 }
 

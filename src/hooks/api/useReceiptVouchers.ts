@@ -10,6 +10,7 @@ export function useReceiptVouchers(filters?: AccountingDocumentFilterDto) {
   return useQuery({
     queryKey: [...QUERY_KEY, filters],
     queryFn: () => ReceiptVoucherService.getAll(filters),
+    placeholderData: (previous) => previous,
   });
 }
 

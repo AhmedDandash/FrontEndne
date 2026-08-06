@@ -27,6 +27,7 @@ export function useHousings(params?: {
   const { data: housings, isLoading, error, refetch } = useQuery({
     queryKey: [HOUSING_KEY, params],
     queryFn: () => HousingService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 
   const createMutation = useMutation({

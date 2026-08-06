@@ -10,6 +10,7 @@ export function useDebitNotes(filters?: AccountingDocumentFilterDto) {
   return useQuery({
     queryKey: [...QUERY_KEY, filters],
     queryFn: () => DebitNoteService.getAll(filters),
+    placeholderData: (previous) => previous,
   });
 }
 

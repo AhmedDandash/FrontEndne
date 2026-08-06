@@ -54,6 +54,7 @@ export const useComplaints = (params?: {
   return useQuery<{ complaints: Complaint[]; total: number }, Error>({
     queryKey: [QUERY_KEY, 'list', params],
     queryFn: () => ComplaintService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 };
 

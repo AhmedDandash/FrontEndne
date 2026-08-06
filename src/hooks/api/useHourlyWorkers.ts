@@ -23,6 +23,7 @@ export function useHourlyWorkers(params?: HourlyWorkerListParams) {
   return useQuery({
     queryKey: [...WORKERS_KEY, params],
     queryFn: () => HourlyWorkerService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 }
 
@@ -98,6 +99,7 @@ export function useHourlyWorkerRequests(params?: HourlyWorkerRequestListParams) 
   return useQuery({
     queryKey: [...REQUESTS_KEY, params],
     queryFn: () => HourlyWorkerRequestService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 }
 

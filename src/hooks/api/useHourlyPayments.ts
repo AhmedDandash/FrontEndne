@@ -15,6 +15,7 @@ export function useHourlyPayments(params?: HourlyPaymentListParams) {
   return useQuery({
     queryKey: [...PAYMENTS_KEY, params],
     queryFn: () => HourlyPaymentsService.getAll(params),
+    placeholderData: (previous) => previous,
   });
 }
 
