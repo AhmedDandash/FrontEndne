@@ -34,6 +34,23 @@ export interface WorkerFilterParams {
   MaxAge?: number;
   AgentId?: string;
   EmployeeId?: string;
+  // Extra range/date filters (see FILTER_AUDIT_REPORT.md gap audit).
+  MinBasicSalary?: number;
+  MaxBasicSalary?: number;
+  BirthDateFrom?: string;
+  BirthDateTo?: string;
+  MinChildrenCount?: number;
+  MaxChildrenCount?: number;
+  MinWeight?: number;
+  MaxWeight?: number;
+  PassportIssueDateFrom?: string;
+  PassportIssueDateTo?: string;
+  PassportExpiryDateFrom?: string;
+  PassportExpiryDateTo?: string;
+  MinArabicLanguageLevel?: number;
+  MaxArabicLanguageLevel?: number;
+  MinEnglishLanguageLevel?: number;
+  MaxEnglishLanguageLevel?: number;
   // Branch scoping + shared advanced filters (see new edits2.md).
   BranchId?: string;
   IncludeSubBranches?: boolean;

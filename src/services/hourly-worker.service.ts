@@ -89,6 +89,8 @@ export class HourlyWorkerService {
         search: params.search || undefined,
         isActive: params.isActive,
         isAvailableNow: params.isAvailableNow,
+        hourlyRateFrom: params.hourlyRateFrom ?? undefined,
+        hourlyRateTo: params.hourlyRateTo ?? undefined,
         sortBy: params.sortBy || undefined,
         sortDescending: params.sortDescending,
         branchId: params.branchId || undefined,

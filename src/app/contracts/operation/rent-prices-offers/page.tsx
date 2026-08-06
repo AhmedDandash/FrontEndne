@@ -7,6 +7,7 @@ import {
   Col,
   Button,
   Input,
+  InputNumber,
   Select,
   Spin,
   Empty,
@@ -72,6 +73,13 @@ export default function RentPricesOffersPage() {
   const [nationalityFilter, setNationalityFilter] = useState<string>('all');
   const [jobFilter, setJobFilter] = useState<string>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [offerTitleFilter, setOfferTitleFilter] = useState('');
+  const [numberOfDaysMin, setNumberOfDaysMin] = useState<number | null>(null);
+  const [numberOfDaysMax, setNumberOfDaysMax] = useState<number | null>(null);
+  const [costMin, setCostMin] = useState<number | null>(null);
+  const [costMax, setCostMax] = useState<number | null>(null);
+  const [workerSalaryMin, setWorkerSalaryMin] = useState<number | null>(null);
+  const [workerSalaryMax, setWorkerSalaryMax] = useState<number | null>(null);
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -103,6 +111,13 @@ export default function RentPricesOffersPage() {
     NationalityId: nationalityFilter === 'all' ? undefined : nationalityFilter,
     JobId: jobFilter === 'all' ? undefined : jobFilter,
     BranchId: branchFilter === 'all' ? undefined : branchFilter,
+    SearchTitle: offerTitleFilter || undefined,
+    NumberOfDaysMin: numberOfDaysMin ?? undefined,
+    NumberOfDaysMax: numberOfDaysMax ?? undefined,
+    CostMin: costMin ?? undefined,
+    CostMax: costMax ?? undefined,
+    WorkerSalaryMin: workerSalaryMin ?? undefined,
+    WorkerSalaryMax: workerSalaryMax ?? undefined,
   });
 
   const { branches } = useBranches();
@@ -156,6 +171,13 @@ export default function RentPricesOffersPage() {
       total: { ar: 'العدد', en: 'Total' },
       shown: { ar: 'المعروض', en: 'Shown' },
       index: { ar: '#', en: '#' },
+      offerTitleFilter: { ar: 'عنوان العرض', en: 'Offer Title' },
+      numberOfDaysMin: { ar: 'أقل عدد أيام', en: 'Min Number of Days' },
+      numberOfDaysMax: { ar: 'أعلى عدد أيام', en: 'Max Number of Days' },
+      costMin: { ar: 'أقل تكلفة', en: 'Min Cost' },
+      costMax: { ar: 'أعلى تكلفة', en: 'Max Cost' },
+      workerSalaryMin: { ar: 'أقل راتب عامل', en: 'Min Worker Salary' },
+      workerSalaryMax: { ar: 'أعلى راتب عامل', en: 'Max Worker Salary' },
     };
     return map[key]?.[language] ?? key;
   };
@@ -560,10 +582,28 @@ export default function RentPricesOffersPage() {
 
       {/* ── Filters ── */}
       <AdvancedFilterPanel
-        activeCount={[nationalityFilter, jobFilter].filter((v) => v !== 'all').length}
+        activeCount={
+          [nationalityFilter, jobFilter].filter((v) => v !== 'all').length +
+          [
+            offerTitleFilter,
+            numberOfDaysMin,
+            numberOfDaysMax,
+            costMin,
+            costMax,
+            workerSalaryMin,
+            workerSalaryMax,
+          ].filter((v) => v !== null && v !== '').length
+        }
         onClear={() => {
           setNationalityFilter('all');
           setJobFilter('all');
+          setOfferTitleFilter('');
+          setNumberOfDaysMin(null);
+          setNumberOfDaysMax(null);
+          setCostMin(null);
+          setCostMax(null);
+          setWorkerSalaryMin(null);
+          setWorkerSalaryMax(null);
         }}
         contentLayout="block"
         quickFilters={
@@ -623,6 +663,82 @@ export default function RentPricesOffersPage() {
                 { value: 'all', label: `— ${t('all')} —` },
                 ...jobOptions,
               ]}
+            />
+          </Col>
+          <Col xs={24} md={12}>
+            <label className={styles.filterLabel}>{t('offerTitleFilter')}</label>
+            <Input
+              size="large"
+              placeholder={t('offerTitleFilter')}
+              value={offerTitleFilter}
+              onChange={(e) => setOfferTitleFilter(e.target.value)}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('numberOfDaysMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('numberOfDaysMin')}
+              value={numberOfDaysMin}
+              onChange={(value) => setNumberOfDaysMin(value ?? null)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('numberOfDaysMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('numberOfDaysMax')}
+              value={numberOfDaysMax}
+              onChange={(value) => setNumberOfDaysMax(value ?? null)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('costMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('costMin')}
+              value={costMin}
+              onChange={(value) => setCostMin(value ?? null)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('costMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('costMax')}
+              value={costMax}
+              onChange={(value) => setCostMax(value ?? null)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('workerSalaryMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('workerSalaryMin')}
+              value={workerSalaryMin}
+              onChange={(value) => setWorkerSalaryMin(value ?? null)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('workerSalaryMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('workerSalaryMax')}
+              value={workerSalaryMax}
+              onChange={(value) => setWorkerSalaryMax(value ?? null)}
+              style={{ width: '100%' }}
             />
           </Col>
         </Row>

@@ -22,6 +22,13 @@ export interface MediationOfferQuery {
   IsActive?: boolean;
   ShowForExternalCustomers?: boolean;
   ShowForReception?: boolean;
+  // Extra range filters (gap audit — verified live).
+  SalaryMin?: number;
+  SalaryMax?: number;
+  LocalCostMin?: number;
+  LocalCostMax?: number;
+  AgentCostSARMin?: number;
+  AgentCostSARMax?: number;
 }
 
 export class MediationContractOfferService {
@@ -90,6 +97,12 @@ export class MediationContractOfferService {
           'IsActive',
           'ShowForExternalCustomers',
           'ShowForReception',
+          'SalaryMin',
+          'SalaryMax',
+          'LocalCostMin',
+          'LocalCostMax',
+          'AgentCostSARMin',
+          'AgentCostSARMax',
         ] as const
       ).forEach((key) => {
         const value = params[key];

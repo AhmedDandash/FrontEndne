@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -38,14 +38,28 @@ import {
   PaperClipOutlined,
   UserOutlined,
   GlobalOutlined,
-  FilterOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
-import { useAgents, useCreateAgent, useUpdateAgent, useDeleteAgent } from '@/hooks/api/useAgents';
+import {
+  useAgentsPaged,
+  useCreateAgent,
+  useUpdateAgent,
+  useDeleteAgent,
+} from '@/hooks/api/useAgents';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import NationalitySelect from '@/components/common/NationalitySelect';
+import {
+  AdvancedFilterPanel,
+  BranchFilterSelect,
+  DynamicFilterFields,
+  countDynamicFilters,
+  serializeDynamicFilters,
+  type DynamicFilterDefinition,
+  type DynamicFilterValues,
+} from '@/components/filters';
 import type { Agent, CreateAgentDto, UpdateAgentDto } from '@/types/api.types';
+import type { AgentQuery } from '@/types/filters.types';
 import { AGENT_CONTRACT_TYPE, toSelectOptions } from '@/constants/enums';
 import styles from './Agents.module.css';
 
@@ -53,17 +67,16 @@ export default function AgentsPage() {
   const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedNationalities, setSelectedNationalities] = useState<string[]>([]);
-  const [selectedAgentType, setSelectedAgentType] = useState<string>('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [branchIdFilter, setBranchIdFilter] = useState<string | undefined>(undefined);
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  const [filterValues, setFilterValues] = useState<DynamicFilterValues>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [showFilters, setShowFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [form] = Form.useForm();
 
-  // Fetch agents data
-  const { data: agents = [], isLoading } = useAgents();
   const { data: nationalitiesData = [] } = useNationalities();
   const { mutate: createAgent, isPending: isCreating } = useCreateAgent();
   const { mutate: updateAgent, isPending: isUpdating } = useUpdateAgent();
@@ -81,14 +94,14 @@ export default function AgentsPage() {
   const getNationalityOptionValue = (nationality: any) =>
     nationality?.nationalityId ?? nationality?.id ?? nationality?.value;
 
-  const getNationalityName = (n: any) => {
+  const getNationalityName = useCallback((n: any) => {
     if (language === 'ar') {
       return n?.nationalityNameAr || n?.nationalityName || n?.name || '-';
     }
     return n?.nationalityNameEn || n?.nationalityName || n?.name || '-';
-  };
+  }, [language]);
 
-  const t = (key: string) => {
+  const t = useCallback((key: string) => {
     const translations: { [key: string]: { ar: string; en: string } } = {
       pageTitle: { ar: 'إدارة الوكلاء', en: 'Agents Management' },
       addAgent: { ar: 'إضافة وكيل جديد', en: 'Add New Agent' },
@@ -148,47 +161,181 @@ export default function AgentsPage() {
       close: { ar: 'إغلاق', en: 'Close' },
     };
     return translations[key]?.[language] || key;
-  };
+  }, [language]);
 
-  // Filter agents
-  const filteredAgents = useMemo(() => {
-    // Ensure agents is an array
-    const agentsList = Array.isArray(agents) ? agents : [];
-
-    return agentsList.filter((agent) => {
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        !searchLower ||
-        agent.agentNameAr?.toLowerCase().includes(searchLower) ||
-        agent.agentNameEn?.toLowerCase().includes(searchLower) ||
-        agent.username?.toLowerCase().includes(searchLower) ||
-        agent.email?.toLowerCase().includes(searchLower) ||
-        agent.agentLicense?.toLowerCase().includes(searchLower);
-
-      const matchesNationality =
-        selectedNationalities.length === 0 ||
-        (agent.nationalityId !== undefined &&
-          agent.nationalityId !== null &&
-          selectedNationalities.includes(String(agent.nationalityId)));
-
-      const matchesType =
-        selectedAgentType === 'all' ||
-        (selectedAgentType === '0' && agent.contractType === 0) ||
-        (selectedAgentType === '1' && agent.contractType === 1); // 0=Mediation, 1=Operation (AGENT_CONTRACT_TYPE)
-
-      return matchesSearch && matchesNationality && matchesType;
-    });
-  }, [agents, searchTerm, selectedNationalities, selectedAgentType]);
-
-  const paginatedAgents = filteredAgents.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+  const nationalityOptions = useMemo(
+    () =>
+      nationalities
+        .filter((n: any) => n.isActive !== false)
+        .map((n: any) => ({
+          value: Number(getNationalityOptionValue(n)),
+          label: getNationalityName(n),
+        }))
+        .filter((option: { value: number; label: string }) => Number.isFinite(option.value)),
+    [nationalities, getNationalityName]
   );
 
-  // Ensure agents is an array before using reduce/filter
-  const agentsList = Array.isArray(agents) ? agents : [];
-  const totalContracts = agentsList.reduce((sum, agent) => sum + (agent.contractsCount || 0), 0);
-  const activeAgentsCount = agentsList.filter((a) => a.isActive).length;
+  const agentFilterDefinitions = useMemo<DynamicFilterDefinition[]>(
+    () => [
+      {
+        key: 'AgentNameAr',
+        apiParameter: 'AgentNameAr',
+        matchApiParameter: 'AgentNameArMatch',
+        label: t('agentNameAr'),
+        type: 'text-match',
+      },
+      {
+        key: 'AgentNameEn',
+        apiParameter: 'AgentNameEn',
+        matchApiParameter: 'AgentNameEnMatch',
+        label: t('agentNameEn'),
+        type: 'text-match',
+      },
+      {
+        key: 'Username',
+        apiParameter: 'Username',
+        matchApiParameter: 'UsernameMatch',
+        label: t('username'),
+        type: 'text-match',
+      },
+      {
+        key: 'AgentLicense',
+        apiParameter: 'AgentLicense',
+        matchApiParameter: 'AgentLicenseMatch',
+        label: t('licenseNumber'),
+        type: 'text-match',
+      },
+      {
+        key: 'Phone',
+        apiParameter: 'Phone',
+        matchApiParameter: 'PhoneMatch',
+        label: t('phone'),
+        type: 'text-match',
+      },
+      {
+        key: 'Mobile',
+        apiParameter: 'Mobile',
+        matchApiParameter: 'MobileMatch',
+        label: t('mobile'),
+        type: 'text-match',
+      },
+      {
+        key: 'Email',
+        apiParameter: 'Email',
+        matchApiParameter: 'EmailMatch',
+        label: t('email'),
+        type: 'text-match',
+      },
+      {
+        key: 'CompanyNameAr',
+        apiParameter: 'CompanyNameAr',
+        matchApiParameter: 'CompanyNameArMatch',
+        label: t('companyNameAr'),
+        type: 'text-match',
+      },
+      {
+        key: 'CompanyNameEn',
+        apiParameter: 'CompanyNameEn',
+        matchApiParameter: 'CompanyNameEnMatch',
+        label: t('companyNameEn'),
+        type: 'text-match',
+      },
+      {
+        key: 'NationalityId',
+        apiParameter: 'NationalityId',
+        label: t('nationality'),
+        type: 'select',
+        options: nationalityOptions,
+      },
+      {
+        key: 'ContractType',
+        apiParameter: 'ContractType',
+        label: t('contractType'),
+        type: 'select',
+        options: toSelectOptions([...AGENT_CONTRACT_TYPE], language),
+      },
+      {
+        key: 'SendAllEmails',
+        apiParameter: 'SendAllEmails',
+        label: t('sendAllEmails'),
+        type: 'boolean',
+      },
+      {
+        key: 'IsActive',
+        apiParameter: 'IsActive',
+        label: t('isActive'),
+        type: 'boolean',
+      },
+      {
+        key: 'CreatedDate',
+        fromApiParameter: 'CreatedDateFrom',
+        toApiParameter: 'CreatedDateTo',
+        label: language === 'ar' ? 'Created date' : 'Created date',
+        type: 'date-range',
+      },
+      {
+        key: 'UpdatedDate',
+        fromApiParameter: 'UpdatedDateFrom',
+        toApiParameter: 'UpdatedDateTo',
+        label: language === 'ar' ? 'Updated date' : 'Updated date',
+        type: 'date-range',
+      },
+    ],
+    [language, nationalityOptions, t]
+  );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  const agentQuery = useMemo<AgentQuery>(
+    () => ({
+      ...(serializeDynamicFilters(agentFilterDefinitions, filterValues) as AgentQuery),
+      BranchId: branchIdFilter,
+      IncludeSubBranches: branchIdFilter ? includeSubBranches : undefined,
+      Search: debouncedSearch || undefined,
+      PageNumber: currentPage,
+      PageSize: pageSize,
+    }),
+    [
+      agentFilterDefinitions,
+      filterValues,
+      branchIdFilter,
+      includeSubBranches,
+      debouncedSearch,
+      currentPage,
+      pageSize,
+    ]
+  );
+
+  const { data: agentsPage, isLoading } = useAgentsPaged(agentQuery);
+  const agents = agentsPage?.items ?? [];
+  const totalAgentsCount = agentsPage?.totalCount ?? agents.length;
+
+  const handleFilterValueChange = (key: string, value: unknown) => {
+    setFilterValues((current) => ({ ...current, [key]: value }));
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDebouncedSearch('');
+    setBranchIdFilter(undefined);
+    setIncludeSubBranches(true);
+    setFilterValues({});
+    setCurrentPage(1);
+  };
+
+  const activeFilterCount =
+    countDynamicFilters(agentFilterDefinitions, filterValues) +
+    (debouncedSearch ? 1 : 0) +
+    (branchIdFilter ? 1 : 0);
+
+  const totalContracts = agents.reduce((sum, agent) => sum + (agent.contractsCount || 0), 0);
+  const activeAgentsCount = agents.filter((a) => a.isActive).length;
 
   // Modal handlers
   const handleOpenModal = (agent?: Agent) => {
@@ -332,7 +479,7 @@ export default function AgentsPage() {
             <div>
               <h1 className={styles.pageTitle}>{t('pageTitle')}</h1>
               <p style={{ display: 'none' }} className={styles.pageSubtitle}>
-                {t('showingResults')}: <strong>{filteredAgents.length}</strong>
+                {t('showingResults')}: <strong>{totalAgentsCount}</strong>
               </p>
             </div>
           </div>
@@ -357,7 +504,7 @@ export default function AgentsPage() {
           <Card className={styles.statCard}>
             <Statistic
               title={t('totalAgents')}
-              value={agents.length}
+              value={totalAgentsCount}
               prefix={<UserOutlined style={{ color: '#00478C' }} />}
               valueStyle={{ color: '#003366', fontWeight: 700 }}
             />
@@ -386,76 +533,54 @@ export default function AgentsPage() {
       </Row>
 
       {/* Search and Filters */}
-      <Card className={styles.filterCard}>
-        <Space vertical style={{ width: '100%' }} size={16}>
-          <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        contentLayout="block"
+        defaultOpen={activeFilterCount > 0}
+        quickFilters={
+          <>
             <Input
               size="large"
               placeholder={t('searchPlaceholder')}
               prefix={<SearchOutlined />}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               className={styles.searchInput}
               style={{ width: 300 }}
               allowClear
             />
-            <Button
-              icon={<FilterOutlined />}
-              onClick={() => setShowFilters(!showFilters)}
-              type={showFilters ? 'primary' : 'default'}
-            >
-              {t('filters')}
-            </Button>
-          </Space>
-
-          {showFilters && (
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={12}>
-                <label className={styles.filterLabel}>{t('nationality')}</label>
-                <Select
-                  mode="multiple"
-                  size="large"
-                  placeholder={t('nationality')}
-                  value={selectedNationalities}
-                  onChange={setSelectedNationalities}
-                  style={{ width: '100%' }}
-                  options={nationalities
-                    .filter((n: any) => n.isActive !== false)
-                    .map((n: any) => ({
-                      value: String(getNationalityOptionValue(n)),
-                      label: getNationalityName(n),
-                    }))}
-                  allowClear
-                  showSearch
-                  optionFilterProp="label"
-                />
-              </Col>
-              <Col xs={24} md={12}>
-                <label className={styles.filterLabel}>{t('contractType')}</label>
-                <Select
-                  size="large"
-                  value={selectedAgentType}
-                  onChange={setSelectedAgentType}
-                  style={{ width: '100%' }}
-                  options={[
-                    { value: 'all', label: t('all') },
-                    ...[...AGENT_CONTRACT_TYPE].map((c) => ({
-                      value: String(c.value),
-                      label: language === 'ar' ? c.labelAr : c.labelEn,
-                    })),
-                  ]}
-                />
-              </Col>
-            </Row>
-          )}
-        </Space>
-      </Card>
+            <BranchFilterSelect
+              value={branchIdFilter}
+              includeSubBranches={includeSubBranches}
+              onChange={(value) => {
+                setBranchIdFilter(value);
+                setCurrentPage(1);
+              }}
+              onIncludeSubBranchesChange={(value) => {
+                setIncludeSubBranches(value);
+                setCurrentPage(1);
+              }}
+            />
+          </>
+        }
+      >
+        <DynamicFilterFields
+          definitions={agentFilterDefinitions}
+          values={filterValues}
+          onChange={handleFilterValueChange}
+          lang={language}
+        />
+      </AdvancedFilterPanel>
 
       {/* Agents Grid */}
-      {paginatedAgents.length > 0 ? (
+      {agents.length > 0 ? (
         <>
           <Row gutter={[24, 24]} className={styles.agentsGrid}>
-            {paginatedAgents.map((agent) => (
+            {agents.map((agent) => (
               <Col xs={24} lg={12} key={agent.id}>
                 <Card className={styles.agentCard} hoverable>
                   {/* Card Header */}
@@ -602,7 +727,7 @@ export default function AgentsPage() {
             <Pagination
               current={currentPage}
               pageSize={pageSize}
-              total={filteredAgents.length}
+              total={totalAgentsCount}
               onChange={(page, size) => {
                 setCurrentPage(page);
                 setPageSize(size);

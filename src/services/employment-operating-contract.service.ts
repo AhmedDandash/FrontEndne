@@ -49,6 +49,24 @@ export interface GetContractsParams {
   MarketerId?: string | number;
   ContractDateFrom?: string;
   ContractDateTo?: string;
+  // Additive range/date filters (see contracts/operation/rent/page.tsx filter
+  // card) — all sent server-side alongside ContractNumber/MarketerId/ContractDate above.
+  ContractEndDateFrom?: string;
+  ContractEndDateTo?: string;
+  FinishDateFrom?: string;
+  FinishDateTo?: string;
+  MinDuration?: number;
+  MaxDuration?: number;
+  MinPreviousExperience?: number;
+  MaxPreviousExperience?: number;
+  MinOfferPrice?: number;
+  MaxOfferPrice?: number;
+  MinWorkersCount?: number;
+  MaxWorkersCount?: number;
+  MinCost?: number;
+  MaxCost?: number;
+  MinInsurance?: number;
+  MaxInsurance?: number;
   Search?: string;
   CreatedDateFrom?: string;
   CreatedDateTo?: string;

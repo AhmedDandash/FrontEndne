@@ -8,7 +8,9 @@ import {
   Col,
   Button,
   Input,
+  InputNumber,
   Select,
+  Space,
   Spin,
   Empty,
   Modal,
@@ -47,6 +49,8 @@ import {
   DateRangeFilter,
   ExportButton,
   AdvancedFilterPanel,
+  TextMatchFilter,
+  type TextMatchValue,
 } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type { CustomerQuery } from '@/types/filters.types';
@@ -70,6 +74,7 @@ import type {
 } from '@/types/api.types';
 import {
   HOUSING_TYPE,
+  IDENTITY_TYPE,
   OPERATION_TYPE,
   PAYMENT_METHOD,
   PREVIOUS_EXPERIENCE,
@@ -77,6 +82,24 @@ import {
   getEnumLabel,
   toSelectOptions,
 } from '@/constants/enums';
+
+// MaritalStatus values are live-verified 1-4 (backend rejects 0 with HTTP 400)
+// — do NOT reuse the shared `MARITAL_STATUS` constant here, it's 0-indexed and
+// wrong for this field (see spawned follow-up task).
+const CUSTOMER_MARITAL_STATUS = [
+  { value: 1, labelAr: 'أعزب', labelEn: 'Single' },
+  { value: 2, labelAr: 'متزوج', labelEn: 'Married' },
+  { value: 3, labelAr: 'مطلق', labelEn: 'Divorced' },
+  { value: 4, labelAr: 'أرمل', labelEn: 'Widowed' },
+] as const;
+
+// StringMatchMode, live-verified against /api/V1/Customer (see TextMatchFilter).
+const MATCH_MODE_OPTIONS = [
+  { value: 0, ar: 'يحتوي على', en: 'Contains' },
+  { value: 1, ar: 'مطابقة تامة', en: 'Exact' },
+  { value: 2, ar: 'يبدأ بـ', en: 'Starts with' },
+  { value: 3, ar: 'ينتهي بـ', en: 'Ends with' },
+] as const;
 import styles from './Customers.module.css';
 
 export default function CustomersPage() {
@@ -107,6 +130,44 @@ export default function CustomersPage() {
   const [nationalityFilter, setNationalityFilter] = useState<string | undefined>(undefined);
   const [agentIdFilter, setAgentIdFilter] = useState<string | undefined>(undefined);
   const [marketerIdFilter, setMarketerIdFilter] = useState<string | undefined>(undefined);
+  // Numeric range + date range advanced filters (gap-audit addition).
+  const [monthlyIncomeMin, setMonthlyIncomeMin] = useState<number | undefined>(undefined);
+  const [monthlyIncomeMax, setMonthlyIncomeMax] = useState<number | undefined>(undefined);
+  const [familyMembersMin, setFamilyMembersMin] = useState<number | undefined>(undefined);
+  const [familyMembersMax, setFamilyMembersMax] = useState<number | undefined>(undefined);
+  const [childrenCountMin, setChildrenCountMin] = useState<number | undefined>(undefined);
+  const [childrenCountMax, setChildrenCountMax] = useState<number | undefined>(undefined);
+  const [birthDateRange, setBirthDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [identityIssueDateRange, setIdentityIssueDateRange] = useState<
+    [string | undefined, string | undefined]
+  >([undefined, undefined]);
+  // Match-mode for the 3 pre-existing quick text filters (see TextMatchFilter).
+  const [idNumberMatch, setIdNumberMatch] = useState<number | undefined>(undefined);
+  const [mobileMatch, setMobileMatch] = useState<number | undefined>(undefined);
+  const [emailMatch, setEmailMatch] = useState<number | undefined>(undefined);
+  const [nationalityMatch, setNationalityMatch] = useState<number | undefined>(undefined);
+  // Text fields + enums with no filter UI at all yet (follow-up gap audit).
+  const [arabicNameFilter, setArabicNameFilter] = useState<TextMatchValue>({});
+  const [englishNameFilter, setEnglishNameFilter] = useState<TextMatchValue>({});
+  const [usernameFilter, setUsernameFilter] = useState<TextMatchValue>({});
+  const [nationalIdFilter, setNationalIdFilter] = useState<TextMatchValue>({});
+  const [identityNumberFilter, setIdentityNumberFilter] = useState<TextMatchValue>({});
+  const [identityTypeFilter, setIdentityTypeFilter] = useState<number | undefined>(undefined);
+  const [secondaryMobileFilter, setSecondaryMobileFilter] = useState<TextMatchValue>({});
+  const [maritalStatusFilter, setMaritalStatusFilter] = useState<number | undefined>(undefined);
+  const [housingTypeFilter, setHousingTypeFilter] = useState<number | undefined>(undefined);
+  const [cityArFilter, setCityArFilter] = useState<TextMatchValue>({});
+  const [cityEnFilter, setCityEnFilter] = useState<TextMatchValue>({});
+  const [districtArFilter, setDistrictArFilter] = useState<TextMatchValue>({});
+  const [districtEnFilter, setDistrictEnFilter] = useState<TextMatchValue>({});
+  const [addressArFilter, setAddressArFilter] = useState<TextMatchValue>({});
+  const [addressEnFilter, setAddressEnFilter] = useState<TextMatchValue>({});
+  const [taxNumberFilter, setTaxNumberFilter] = useState<TextMatchValue>({});
+  const [ibanFilter, setIbanFilter] = useState<TextMatchValue>({});
+  const [bankNameFilter, setBankNameFilter] = useState<TextMatchValue>({});
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -165,11 +226,58 @@ export default function CustomersPage() {
       updatedDateFrom: updatedDateRange[0],
       updatedDateTo: updatedDateRange[1],
       idNumber: debouncedIdNumber || undefined,
+      idNumberMatch,
       mobile: debouncedMobile || undefined,
+      mobileMatch,
       email: debouncedEmail || undefined,
+      emailMatch,
       nationality: nationalityFilter || undefined,
+      nationalityMatch,
       agentId: agentIdFilter || undefined,
       marketerId: marketerIdFilter || undefined,
+      monthlyIncomeMin,
+      monthlyIncomeMax,
+      familyMembersMin,
+      familyMembersMax,
+      childrenCountMin,
+      childrenCountMax,
+      birthDateFrom: birthDateRange[0],
+      birthDateTo: birthDateRange[1],
+      identityIssueDateFrom: identityIssueDateRange[0],
+      identityIssueDateTo: identityIssueDateRange[1],
+      arabicName: arabicNameFilter.text,
+      arabicNameMatch: arabicNameFilter.mode,
+      englishName: englishNameFilter.text,
+      englishNameMatch: englishNameFilter.mode,
+      username: usernameFilter.text,
+      usernameMatch: usernameFilter.mode,
+      nationalId: nationalIdFilter.text,
+      nationalIdMatch: nationalIdFilter.mode,
+      identityNumber: identityNumberFilter.text,
+      identityNumberMatch: identityNumberFilter.mode,
+      identityType: identityTypeFilter,
+      secondaryMobileNumber: secondaryMobileFilter.text,
+      secondaryMobileNumberMatch: secondaryMobileFilter.mode,
+      maritalStatus: maritalStatusFilter,
+      housingType: housingTypeFilter,
+      cityAr: cityArFilter.text,
+      cityArMatch: cityArFilter.mode,
+      cityEn: cityEnFilter.text,
+      cityEnMatch: cityEnFilter.mode,
+      districtAr: districtArFilter.text,
+      districtArMatch: districtArFilter.mode,
+      districtEn: districtEnFilter.text,
+      districtEnMatch: districtEnFilter.mode,
+      addressAr: addressArFilter.text,
+      addressArMatch: addressArFilter.mode,
+      addressEn: addressEnFilter.text,
+      addressEnMatch: addressEnFilter.mode,
+      taxNumber: taxNumberFilter.text,
+      taxNumberMatch: taxNumberFilter.mode,
+      iban: ibanFilter.text,
+      ibanMatch: ibanFilter.mode,
+      bankName: bankNameFilter.text,
+      bankNameMatch: bankNameFilter.mode,
       pageNumber,
       pageSize,
     }),
@@ -180,11 +288,41 @@ export default function CustomersPage() {
       dateRange,
       updatedDateRange,
       debouncedIdNumber,
+      idNumberMatch,
       debouncedMobile,
+      mobileMatch,
       debouncedEmail,
+      emailMatch,
       nationalityFilter,
+      nationalityMatch,
       agentIdFilter,
       marketerIdFilter,
+      monthlyIncomeMin,
+      monthlyIncomeMax,
+      familyMembersMin,
+      familyMembersMax,
+      childrenCountMin,
+      childrenCountMax,
+      birthDateRange,
+      identityIssueDateRange,
+      arabicNameFilter,
+      englishNameFilter,
+      usernameFilter,
+      nationalIdFilter,
+      identityNumberFilter,
+      identityTypeFilter,
+      secondaryMobileFilter,
+      maritalStatusFilter,
+      housingTypeFilter,
+      cityArFilter,
+      cityEnFilter,
+      districtArFilter,
+      districtEnFilter,
+      addressArFilter,
+      addressEnFilter,
+      taxNumberFilter,
+      ibanFilter,
+      bankNameFilter,
       pageNumber,
       pageSize,
     ]
@@ -204,7 +342,35 @@ export default function CustomersPage() {
     (emailFilter ? 1 : 0) +
     (nationalityFilter ? 1 : 0) +
     (agentIdFilter ? 1 : 0) +
-    (marketerIdFilter ? 1 : 0);
+    (marketerIdFilter ? 1 : 0) +
+    (monthlyIncomeMin !== undefined ? 1 : 0) +
+    (monthlyIncomeMax !== undefined ? 1 : 0) +
+    (familyMembersMin !== undefined ? 1 : 0) +
+    (familyMembersMax !== undefined ? 1 : 0) +
+    (childrenCountMin !== undefined ? 1 : 0) +
+    (childrenCountMax !== undefined ? 1 : 0) +
+    (birthDateRange[0] || birthDateRange[1] ? 1 : 0) +
+    (identityIssueDateRange[0] || identityIssueDateRange[1] ? 1 : 0) +
+    [
+      arabicNameFilter,
+      englishNameFilter,
+      usernameFilter,
+      nationalIdFilter,
+      identityNumberFilter,
+      secondaryMobileFilter,
+      cityArFilter,
+      cityEnFilter,
+      districtArFilter,
+      districtEnFilter,
+      addressArFilter,
+      addressEnFilter,
+      taxNumberFilter,
+      ibanFilter,
+      bankNameFilter,
+    ].filter((v) => v.text || v.mode !== undefined).length +
+    (identityTypeFilter !== undefined ? 1 : 0) +
+    (maritalStatusFilter !== undefined ? 1 : 0) +
+    (housingTypeFilter !== undefined ? 1 : 0);
 
   const clearFilters = () => {
     setBranchId(undefined);
@@ -218,6 +384,36 @@ export default function CustomersPage() {
     setNationalityFilter(undefined);
     setAgentIdFilter(undefined);
     setMarketerIdFilter(undefined);
+    setMonthlyIncomeMin(undefined);
+    setMonthlyIncomeMax(undefined);
+    setFamilyMembersMin(undefined);
+    setFamilyMembersMax(undefined);
+    setChildrenCountMin(undefined);
+    setChildrenCountMax(undefined);
+    setBirthDateRange([undefined, undefined]);
+    setIdentityIssueDateRange([undefined, undefined]);
+    setIdNumberMatch(undefined);
+    setMobileMatch(undefined);
+    setEmailMatch(undefined);
+    setNationalityMatch(undefined);
+    setArabicNameFilter({});
+    setEnglishNameFilter({});
+    setUsernameFilter({});
+    setNationalIdFilter({});
+    setIdentityNumberFilter({});
+    setIdentityTypeFilter(undefined);
+    setSecondaryMobileFilter({});
+    setMaritalStatusFilter(undefined);
+    setHousingTypeFilter(undefined);
+    setCityArFilter({});
+    setCityEnFilter({});
+    setDistrictArFilter({});
+    setDistrictEnFilter({});
+    setAddressArFilter({});
+    setAddressEnFilter({});
+    setTaxNumberFilter({});
+    setIbanFilter({});
+    setBankNameFilter({});
     setPageNumber(1);
   };
 
@@ -313,6 +509,14 @@ export default function CustomersPage() {
       allCities: { ar: 'كل المدن', en: 'All Cities' },
       active: { ar: 'نشط', en: 'Active' },
       cities: { ar: 'المدن', en: 'Cities' },
+      monthlyIncomeMin: { ar: 'أقل دخل شهري', en: 'Min Monthly Income' },
+      monthlyIncomeMax: { ar: 'أعلى دخل شهري', en: 'Max Monthly Income' },
+      familyMembersMin: { ar: 'أقل عدد أفراد الأسرة', en: 'Min Family Members' },
+      familyMembersMax: { ar: 'أعلى عدد أفراد الأسرة', en: 'Max Family Members' },
+      childrenCountMin: { ar: 'أقل عدد الأطفال', en: 'Min Children Count' },
+      childrenCountMax: { ar: 'أعلى عدد الأطفال', en: 'Max Children Count' },
+      birthDateRange: { ar: 'تاريخ الميلاد', en: 'Birth date' },
+      identityIssueDateRange: { ar: 'تاريخ إصدار الهوية', en: 'Identity issue date' },
     };
     return translations[key]?.[language] || key;
   };
@@ -723,35 +927,65 @@ export default function CustomersPage() {
 
             <Col xs={24} md={6}>
               <label className={styles.filterLabel}>{t('nationalId')}</label>
-              <Input
-                placeholder={t('nationalId')}
-                value={idNumberFilter}
-                onChange={(e) => setIdNumberFilter(e.target.value)}
-                style={{ width: '100%' }}
-                allowClear
-              />
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  placeholder={t('nationalId')}
+                  value={idNumberFilter}
+                  onChange={(e) => setIdNumberFilter(e.target.value)}
+                  style={{ width: '65%' }}
+                  allowClear
+                />
+                <Select
+                  value={idNumberMatch}
+                  onChange={setIdNumberMatch}
+                  allowClear
+                  placeholder={language === 'ar' ? 'يحتوي على' : 'Contains'}
+                  style={{ width: '35%' }}
+                  options={MATCH_MODE_OPTIONS.map((o) => ({ value: o.value, label: o[language] }))}
+                />
+              </Space.Compact>
             </Col>
 
             <Col xs={24} md={6}>
               <label className={styles.filterLabel}>{t('mobile')}</label>
-              <Input
-                placeholder={t('mobile')}
-                value={mobileFilter}
-                onChange={(e) => setMobileFilter(e.target.value)}
-                style={{ width: '100%' }}
-                allowClear
-              />
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  placeholder={t('mobile')}
+                  value={mobileFilter}
+                  onChange={(e) => setMobileFilter(e.target.value)}
+                  style={{ width: '65%' }}
+                  allowClear
+                />
+                <Select
+                  value={mobileMatch}
+                  onChange={setMobileMatch}
+                  allowClear
+                  placeholder={language === 'ar' ? 'يحتوي على' : 'Contains'}
+                  style={{ width: '35%' }}
+                  options={MATCH_MODE_OPTIONS.map((o) => ({ value: o.value, label: o[language] }))}
+                />
+              </Space.Compact>
             </Col>
 
             <Col xs={24} md={6}>
               <label className={styles.filterLabel}>{t('email')}</label>
-              <Input
-                placeholder={t('email')}
-                value={emailFilter}
-                onChange={(e) => setEmailFilter(e.target.value)}
-                style={{ width: '100%' }}
-                allowClear
-              />
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  placeholder={t('email')}
+                  value={emailFilter}
+                  onChange={(e) => setEmailFilter(e.target.value)}
+                  style={{ width: '65%' }}
+                  allowClear
+                />
+                <Select
+                  value={emailMatch}
+                  onChange={setEmailMatch}
+                  allowClear
+                  placeholder={language === 'ar' ? 'يحتوي على' : 'Contains'}
+                  style={{ width: '35%' }}
+                  options={MATCH_MODE_OPTIONS.map((o) => ({ value: o.value, label: o[language] }))}
+                />
+              </Space.Compact>
             </Col>
 
             <Col xs={24} md={6}>
@@ -848,6 +1082,288 @@ export default function CustomersPage() {
                   setPageNumber(1);
                 }}
                 style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={3}>
+              <label className={styles.filterLabel}>{t('monthlyIncomeMin')}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t('monthlyIncomeMin')}
+                value={monthlyIncomeMin}
+                onChange={(value) => {
+                  setMonthlyIncomeMin(value ?? undefined);
+                  setPageNumber(1);
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={3}>
+              <label className={styles.filterLabel}>{t('monthlyIncomeMax')}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t('monthlyIncomeMax')}
+                value={monthlyIncomeMax}
+                onChange={(value) => {
+                  setMonthlyIncomeMax(value ?? undefined);
+                  setPageNumber(1);
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={3}>
+              <label className={styles.filterLabel}>{t('familyMembersMin')}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t('familyMembersMin')}
+                value={familyMembersMin}
+                onChange={(value) => {
+                  setFamilyMembersMin(value ?? undefined);
+                  setPageNumber(1);
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={3}>
+              <label className={styles.filterLabel}>{t('familyMembersMax')}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t('familyMembersMax')}
+                value={familyMembersMax}
+                onChange={(value) => {
+                  setFamilyMembersMax(value ?? undefined);
+                  setPageNumber(1);
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={3}>
+              <label className={styles.filterLabel}>{t('childrenCountMin')}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t('childrenCountMin')}
+                value={childrenCountMin}
+                onChange={(value) => {
+                  setChildrenCountMin(value ?? undefined);
+                  setPageNumber(1);
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={3}>
+              <label className={styles.filterLabel}>{t('childrenCountMax')}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t('childrenCountMax')}
+                value={childrenCountMax}
+                onChange={(value) => {
+                  setChildrenCountMax(value ?? undefined);
+                  setPageNumber(1);
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>{t('birthDateRange')}</label>
+              <DateRangeFilter
+                value={birthDateRange}
+                onChange={(range) => {
+                  setBirthDateRange(range);
+                  setPageNumber(1);
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>{t('identityIssueDateRange')}</label>
+              <DateRangeFilter
+                value={identityIssueDateRange}
+                onChange={(range) => {
+                  setIdentityIssueDateRange(range);
+                  setPageNumber(1);
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            {/* ─── Follow-up gap audit: fields with no filter UI at all yet ─── */}
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t('arabicName')}</label>
+              <TextMatchFilter
+                value={arabicNameFilter}
+                onChange={setArabicNameFilter}
+                placeholder={t('arabicName')}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t('englishName')}</label>
+              <TextMatchFilter
+                value={englishNameFilter}
+                onChange={setEnglishNameFilter}
+                placeholder={t('englishName')}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'اسم المستخدم' : 'Username'}</label>
+              <TextMatchFilter
+                value={usernameFilter}
+                onChange={setUsernameFilter}
+                placeholder={language === 'ar' ? 'اسم المستخدم' : 'Username'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              {/* Distinct from the pre-existing "IdNumber" filter above (also
+                  labelled "National ID") — this is the separate `NationalId`
+                  API param, disambiguated here since both mean similar things
+                  in plain English/Arabic but are different backend fields. */}
+              <label className={styles.filterLabel}>{language === 'ar' ? 'الرقم الوطني (NationalId)' : 'National ID (NationalId)'}</label>
+              <TextMatchFilter
+                value={nationalIdFilter}
+                onChange={setNationalIdFilter}
+                placeholder={language === 'ar' ? 'الرقم الوطني' : 'NationalId'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'رقم الهوية' : 'Identity Number'}</label>
+              <TextMatchFilter
+                value={identityNumberFilter}
+                onChange={setIdentityNumberFilter}
+                placeholder={language === 'ar' ? 'رقم الهوية' : 'Identity Number'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'نوع الهوية' : 'Identity Type'}</label>
+              <Select
+                style={{ width: '100%' }}
+                value={identityTypeFilter}
+                onChange={(v) => { setIdentityTypeFilter(v); setPageNumber(1); }}
+                placeholder={language === 'ar' ? 'نوع الهوية' : 'Identity Type'}
+                allowClear
+                options={IDENTITY_TYPE.map((o) => ({ value: o.value, label: language === 'ar' ? o.labelAr : o.labelEn }))}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t('secondaryMobile')}</label>
+              <TextMatchFilter
+                value={secondaryMobileFilter}
+                onChange={setSecondaryMobileFilter}
+                placeholder={t('secondaryMobile')}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'الحالة الاجتماعية' : 'Marital Status'}</label>
+              <Select
+                style={{ width: '100%' }}
+                value={maritalStatusFilter}
+                onChange={(v) => { setMaritalStatusFilter(v); setPageNumber(1); }}
+                placeholder={language === 'ar' ? 'الحالة الاجتماعية' : 'Marital Status'}
+                allowClear
+                options={CUSTOMER_MARITAL_STATUS.map((o) => ({ value: o.value, label: language === 'ar' ? o.labelAr : o.labelEn }))}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'نوع السكن' : 'Housing Type'}</label>
+              <Select
+                style={{ width: '100%' }}
+                value={housingTypeFilter}
+                onChange={(v) => { setHousingTypeFilter(v); setPageNumber(1); }}
+                placeholder={language === 'ar' ? 'نوع السكن' : 'Housing Type'}
+                allowClear
+                options={HOUSING_TYPE.map((o) => ({ value: o.value, label: language === 'ar' ? o.labelAr : o.labelEn }))}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'المدينة (عربي)' : 'City (Arabic)'}</label>
+              <TextMatchFilter
+                value={cityArFilter}
+                onChange={setCityArFilter}
+                placeholder={language === 'ar' ? 'المدينة (عربي)' : 'City (Arabic)'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'المدينة (إنجليزي)' : 'City (English)'}</label>
+              <TextMatchFilter
+                value={cityEnFilter}
+                onChange={setCityEnFilter}
+                placeholder={language === 'ar' ? 'المدينة (إنجليزي)' : 'City (English)'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'الحي (عربي)' : 'District (Arabic)'}</label>
+              <TextMatchFilter
+                value={districtArFilter}
+                onChange={setDistrictArFilter}
+                placeholder={language === 'ar' ? 'الحي (عربي)' : 'District (Arabic)'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'الحي (إنجليزي)' : 'District (English)'}</label>
+              <TextMatchFilter
+                value={districtEnFilter}
+                onChange={setDistrictEnFilter}
+                placeholder={language === 'ar' ? 'الحي (إنجليزي)' : 'District (English)'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'العنوان (عربي)' : 'Address (Arabic)'}</label>
+              <TextMatchFilter
+                value={addressArFilter}
+                onChange={setAddressArFilter}
+                placeholder={language === 'ar' ? 'العنوان (عربي)' : 'Address (Arabic)'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'العنوان (إنجليزي)' : 'Address (English)'}</label>
+              <TextMatchFilter
+                value={addressEnFilter}
+                onChange={setAddressEnFilter}
+                placeholder={language === 'ar' ? 'العنوان (إنجليزي)' : 'Address (English)'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'الرقم الضريبي' : 'Tax Number'}</label>
+              <TextMatchFilter
+                value={taxNumberFilter}
+                onChange={setTaxNumberFilter}
+                placeholder={language === 'ar' ? 'الرقم الضريبي' : 'Tax Number'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'الآيبان' : 'IBAN'}</label>
+              <TextMatchFilter
+                value={ibanFilter}
+                onChange={setIbanFilter}
+                placeholder={language === 'ar' ? 'الآيبان' : 'IBAN'}
+                lang={language}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'اسم البنك' : 'Bank Name'}</label>
+              <TextMatchFilter
+                value={bankNameFilter}
+                onChange={setBankNameFilter}
+                placeholder={language === 'ar' ? 'اسم البنك' : 'Bank Name'}
+                lang={language}
               />
             </Col>
           </Row>

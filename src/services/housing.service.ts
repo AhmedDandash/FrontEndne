@@ -35,16 +35,38 @@ export class HousingService {
 
   static async getAll(params?: {
     name?: string;
+    nameMatch?: number;
+    address?: string;
+    addressMatch?: number;
+    notes?: string;
+    notesMatch?: number;
     isActive?: boolean;
     hasAvailableSlots?: boolean;
+    capacityMin?: number;
+    capacityMax?: number;
+    workerHousingCostMin?: number;
+    workerHousingCostMax?: number;
+    housingOperationPriceMin?: number;
+    housingOperationPriceMax?: number;
   }): Promise<Housing[]> {
     const response = await api.get<any>(API_ENDPOINTS.HOUSING.GET_ALL, {
       params: {
         PageSize: 9999,
         PageNumber: 1,
         Name: params?.name || undefined,
+        NameMatch: params?.nameMatch,
+        Address: params?.address || undefined,
+        AddressMatch: params?.addressMatch,
+        Notes: params?.notes || undefined,
+        NotesMatch: params?.notesMatch,
         IsActive: params?.isActive,
         HasAvailableSlots: params?.hasAvailableSlots,
+        CapacityMin: params?.capacityMin,
+        CapacityMax: params?.capacityMax,
+        WorkerHousingCostMin: params?.workerHousingCostMin,
+        WorkerHousingCostMax: params?.workerHousingCostMax,
+        HousingOperationPriceMin: params?.housingOperationPriceMin,
+        HousingOperationPriceMax: params?.housingOperationPriceMax,
       },
     });
     return this.unwrapList<Housing>(response.data);

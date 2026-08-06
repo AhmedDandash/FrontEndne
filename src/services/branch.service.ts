@@ -31,18 +31,19 @@ export class BranchService {
 
   /**
    * GET /api/V1/Branch with server-side filters + pagination.
-   * Backend supports SearchName, Email, Mobile, PageNumber, PageSize.
+   * Query names mirror the OpenAPI params exactly (SearchName, NameAr, etc.).
    * Kept alongside `getAll()` (unpaged) which existing dropdown code relies on.
    */
   static async getPaged(query?: BranchQuery): Promise<PagedResponse<Branch>> {
     const params = buildListParams(query as Record<string, unknown>);
     const response = await api.get<any>(API_ENDPOINTS.BRANCH.GET_ALL, { params });
     const page = this.unwrap<any>(response.data);
+    const items = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : [];
     return {
-      items: Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : [],
-      totalCount: page?.totalCount ?? 0,
-      pageNumber: page?.pageNumber ?? query?.pageNumber ?? 1,
-      pageSize: page?.pageSize ?? query?.pageSize ?? 10,
+      items,
+      totalCount: page?.totalCount ?? items.length,
+      pageNumber: page?.pageNumber ?? query?.PageNumber ?? 1,
+      pageSize: page?.pageSize ?? query?.PageSize ?? 10,
     };
   }
 

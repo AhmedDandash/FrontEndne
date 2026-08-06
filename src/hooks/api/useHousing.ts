@@ -8,8 +8,19 @@ const HOUSING_ACTIVE_KEY = 'housing-active';
 
 export function useHousings(params?: {
   name?: string;
+  nameMatch?: number;
+  address?: string;
+  addressMatch?: number;
+  notes?: string;
+  notesMatch?: number;
   isActive?: boolean;
   hasAvailableSlots?: boolean;
+  capacityMin?: number;
+  capacityMax?: number;
+  workerHousingCostMin?: number;
+  workerHousingCostMax?: number;
+  housingOperationPriceMin?: number;
+  housingOperationPriceMax?: number;
 }) {
   const queryClient = useQueryClient();
 

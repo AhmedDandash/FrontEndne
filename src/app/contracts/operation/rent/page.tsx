@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, Row, Col, Button, Input, Select, Statistic, Empty, Spin, Form } from 'antd';
+import { Card, Row, Col, Button, Input, InputNumber, Select, Statistic, Empty, Spin, Form } from 'antd';
 import {
   FileTextOutlined,
   SearchOutlined,
@@ -83,6 +83,36 @@ export default function RentContractsPage() {
     return () => clearTimeout(id);
   }, [contractNumberFilter]);
 
+  // Additive gap-audit filters — all sent server-side (see hook call below),
+  // same treatment as ContractNumber/MarketerId/ContractDate above.
+  const [searchWorkerNameFilter, setSearchWorkerNameFilter] = useState('');
+  const [debouncedSearchWorkerName, setDebouncedSearchWorkerName] = useState('');
+  const [contractEndDateRange, setContractEndDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [finishDateRange, setFinishDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [minDurationFilter, setMinDurationFilter] = useState<number | undefined>(undefined);
+  const [maxDurationFilter, setMaxDurationFilter] = useState<number | undefined>(undefined);
+  const [minPreviousExperienceFilter, setMinPreviousExperienceFilter] = useState<number | undefined>(undefined);
+  const [maxPreviousExperienceFilter, setMaxPreviousExperienceFilter] = useState<number | undefined>(undefined);
+  const [minOfferPriceFilter, setMinOfferPriceFilter] = useState<number | undefined>(undefined);
+  const [maxOfferPriceFilter, setMaxOfferPriceFilter] = useState<number | undefined>(undefined);
+  const [minWorkersCountFilter, setMinWorkersCountFilter] = useState<number | undefined>(undefined);
+  const [maxWorkersCountFilter, setMaxWorkersCountFilter] = useState<number | undefined>(undefined);
+  const [minCostFilter, setMinCostFilter] = useState<number | undefined>(undefined);
+  const [maxCostFilter, setMaxCostFilter] = useState<number | undefined>(undefined);
+  const [minInsuranceFilter, setMinInsuranceFilter] = useState<number | undefined>(undefined);
+  const [maxInsuranceFilter, setMaxInsuranceFilter] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearchWorkerName(searchWorkerNameFilter.trim()), 400);
+    return () => clearTimeout(id);
+  }, [searchWorkerNameFilter]);
+
   // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createSelectedOffer, setCreateSelectedOffer] = useState<EmploymentContractOffer | null>(null);
@@ -133,6 +163,23 @@ export default function RentContractsPage() {
     MarketerId: marketerFilter !== 'all' ? marketerFilter : undefined,
     ContractDateFrom: dateRange[0],
     ContractDateTo: dateRange[1],
+    SearchWorkerName: debouncedSearchWorkerName || undefined,
+    ContractEndDateFrom: contractEndDateRange[0],
+    ContractEndDateTo: contractEndDateRange[1],
+    FinishDateFrom: finishDateRange[0],
+    FinishDateTo: finishDateRange[1],
+    MinDuration: minDurationFilter,
+    MaxDuration: maxDurationFilter,
+    MinPreviousExperience: minPreviousExperienceFilter,
+    MaxPreviousExperience: maxPreviousExperienceFilter,
+    MinOfferPrice: minOfferPriceFilter,
+    MaxOfferPrice: maxOfferPriceFilter,
+    MinWorkersCount: minWorkersCountFilter,
+    MaxWorkersCount: maxWorkersCountFilter,
+    MinCost: minCostFilter,
+    MaxCost: maxCostFilter,
+    MinInsurance: minInsuranceFilter,
+    MaxInsurance: maxInsuranceFilter,
   });
 
   const { data: jobs = [] } = useJobs();
@@ -182,6 +229,21 @@ export default function RentContractsPage() {
     expiringContracts: isRtl ? 'عقود قرب الانتهاء' : 'Expiring Soon',
     totalRevenue: isRtl ? 'إجمالي الإيرادات' : 'Total Revenue',
     noResults: isRtl ? 'لا توجد نتائج' : 'No results found',
+    searchWorkerName: isRtl ? 'اسم العامل' : 'Worker Name',
+    contractEndDateRange: isRtl ? 'تاريخ نهاية العقد (من/إلى)' : 'Contract End Date (From/To)',
+    finishDateRange: isRtl ? 'تاريخ الإنهاء (من/إلى)' : 'Finish Date (From/To)',
+    minDuration: isRtl ? 'الحد الأدنى للمدة' : 'Min Duration',
+    maxDuration: isRtl ? 'الحد الأقصى للمدة' : 'Max Duration',
+    minPreviousExperience: isRtl ? 'الحد الأدنى للخبرة السابقة' : 'Min Previous Experience',
+    maxPreviousExperience: isRtl ? 'الحد الأقصى للخبرة السابقة' : 'Max Previous Experience',
+    minOfferPrice: isRtl ? 'الحد الأدنى لسعر العرض' : 'Min Offer Price',
+    maxOfferPrice: isRtl ? 'الحد الأقصى لسعر العرض' : 'Max Offer Price',
+    minWorkersCount: isRtl ? 'الحد الأدنى لعدد العمال' : 'Min Workers Count',
+    maxWorkersCount: isRtl ? 'الحد الأقصى لعدد العمال' : 'Max Workers Count',
+    minCost: isRtl ? 'الحد الأدنى للتكلفة' : 'Min Cost',
+    maxCost: isRtl ? 'الحد الأقصى للتكلفة' : 'Max Cost',
+    minInsurance: isRtl ? 'الحد الأدنى للتأمين' : 'Min Insurance',
+    maxInsurance: isRtl ? 'الحد الأقصى للتأمين' : 'Max Insurance',
   };
 
   // NOTE: ContractNumber, MarketerId and ContractDateFrom/To are now sent
@@ -553,6 +615,166 @@ export default function RentContractsPage() {
                   label: (isRtl ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
                 })),
               ]}
+            />
+          </Col>
+
+          {/* ─── Additive gap-audit filters ──────────────────────────────── */}
+          <Col xs={12} sm={6} md={4}>
+            <label className={styles.filterLabel}>{t.searchWorkerName}</label>
+            <Input
+              placeholder={t.searchWorkerName}
+              value={searchWorkerNameFilter}
+              onChange={(e) => setSearchWorkerNameFilter(e.target.value)}
+              allowClear
+              size="large"
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <label className={styles.filterLabel}>{t.contractEndDateRange}</label>
+            <DateRangeFilter
+              value={contractEndDateRange}
+              onChange={setContractEndDateRange}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <label className={styles.filterLabel}>{t.finishDateRange}</label>
+            <DateRangeFilter
+              value={finishDateRange}
+              onChange={setFinishDateRange}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.minDuration}</label>
+            <InputNumber
+              placeholder={t.minDuration}
+              value={minDurationFilter}
+              onChange={(value) => setMinDurationFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.maxDuration}</label>
+            <InputNumber
+              placeholder={t.maxDuration}
+              value={maxDurationFilter}
+              onChange={(value) => setMaxDurationFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.minPreviousExperience}</label>
+            <InputNumber
+              placeholder={t.minPreviousExperience}
+              value={minPreviousExperienceFilter}
+              onChange={(value) => setMinPreviousExperienceFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.maxPreviousExperience}</label>
+            <InputNumber
+              placeholder={t.maxPreviousExperience}
+              value={maxPreviousExperienceFilter}
+              onChange={(value) => setMaxPreviousExperienceFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.minOfferPrice}</label>
+            <InputNumber
+              placeholder={t.minOfferPrice}
+              value={minOfferPriceFilter}
+              onChange={(value) => setMinOfferPriceFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.maxOfferPrice}</label>
+            <InputNumber
+              placeholder={t.maxOfferPrice}
+              value={maxOfferPriceFilter}
+              onChange={(value) => setMaxOfferPriceFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.minWorkersCount}</label>
+            <InputNumber
+              placeholder={t.minWorkersCount}
+              value={minWorkersCountFilter}
+              onChange={(value) => setMinWorkersCountFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.maxWorkersCount}</label>
+            <InputNumber
+              placeholder={t.maxWorkersCount}
+              value={maxWorkersCountFilter}
+              onChange={(value) => setMaxWorkersCountFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.minCost}</label>
+            <InputNumber
+              placeholder={t.minCost}
+              value={minCostFilter}
+              onChange={(value) => setMinCostFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.maxCost}</label>
+            <InputNumber
+              placeholder={t.maxCost}
+              value={maxCostFilter}
+              onChange={(value) => setMaxCostFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.minInsurance}</label>
+            <InputNumber
+              placeholder={t.minInsurance}
+              value={minInsuranceFilter}
+              onChange={(value) => setMinInsuranceFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={3}>
+            <label className={styles.filterLabel}>{t.maxInsurance}</label>
+            <InputNumber
+              placeholder={t.maxInsurance}
+              value={maxInsuranceFilter}
+              onChange={(value) => setMaxInsuranceFilter(value ?? undefined)}
+              min={0}
+              size="large"
+              style={{ width: '100%' }}
             />
           </Col>
         </Row>

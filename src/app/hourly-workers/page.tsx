@@ -63,6 +63,9 @@ export default function HourlyWorkersPage() {
   const [search, setSearch] = useState('');
   const [isActive, setIsActive] = useState<boolean | undefined>();
   const [isAvailableNow, setIsAvailableNow] = useState<boolean | undefined>();
+  // Numeric amount bounds on hourlyRate (NOT dates, despite the From/To naming).
+  const [hourlyRateFrom, setHourlyRateFrom] = useState<number | undefined>();
+  const [hourlyRateTo, setHourlyRateTo] = useState<number | undefined>();
   const [sortBy, setSortBy] = useState<'fullName' | 'hourlyRate' | 'createdDate'>('createdDate');
   const [sortDescending, setSortDescending] = useState(true);
   const [branchId, setBranchId] = useState<string | undefined>();
@@ -75,6 +78,8 @@ export default function HourlyWorkersPage() {
     search: search || undefined,
     isActive,
     isAvailableNow,
+    hourlyRateFrom,
+    hourlyRateTo,
     sortBy,
     sortDescending,
     branchId,
@@ -316,8 +321,22 @@ export default function HourlyWorkersPage() {
 
       {/* ── Filters ────────────────────────────────────────────── */}
       <AdvancedFilterPanel
-        activeCount={[isActive !== undefined, isAvailableNow !== undefined, Boolean(updatedRange[0]), Boolean(createdRange[0])].filter(Boolean).length}
-        onClear={() => { setIsActive(undefined); setIsAvailableNow(undefined); setUpdatedRange([undefined, undefined]); setCreatedRange([undefined, undefined]); }}
+        activeCount={[
+          isActive !== undefined,
+          isAvailableNow !== undefined,
+          Boolean(updatedRange[0]),
+          Boolean(createdRange[0]),
+          hourlyRateFrom !== undefined,
+          hourlyRateTo !== undefined,
+        ].filter(Boolean).length}
+        onClear={() => {
+          setIsActive(undefined);
+          setIsAvailableNow(undefined);
+          setUpdatedRange([undefined, undefined]);
+          setCreatedRange([undefined, undefined]);
+          setHourlyRateFrom(undefined);
+          setHourlyRateTo(undefined);
+        }}
         contentLayout="block"
         quickFilters={
           <>
@@ -394,6 +413,34 @@ export default function HourlyWorkersPage() {
               onChange={(range) => { setUpdatedRange(range); setPageNumber(1); }}
               placeholder={[t('تحديث من', 'Updated from'), t('تحديث إلى', 'Updated to')]}
               style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('أقل أجر بالساعة', 'Min Hourly Rate')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              placeholder={t('أقل أجر بالساعة', 'Min Hourly Rate')}
+              value={hourlyRateFrom}
+              onChange={(v) => {
+                setHourlyRateFrom(v ?? undefined);
+                setPageNumber(1);
+              }}
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('أعلى أجر بالساعة', 'Max Hourly Rate')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              placeholder={t('أعلى أجر بالساعة', 'Max Hourly Rate')}
+              value={hourlyRateTo}
+              onChange={(v) => {
+                setHourlyRateTo(v ?? undefined);
+                setPageNumber(1);
+              }}
             />
           </Col>
         </Row>

@@ -36,7 +36,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { AdvancedFilterPanel } from '@/components/filters';
+import { AdvancedFilterPanel, DateRangeFilter } from '@/components/filters';
 import { useHREmployees } from '@/hooks/api/useHR';
 import { useAdminPositions, useDepartments } from '@/hooks/api/useAdmin';
 import NationalitySelect from '@/components/common/NationalitySelect';
@@ -55,6 +55,16 @@ export default function HREmployeesPage() {
   const [editing, setEditing] = useState<EmployeeDto | null>(null);
   const [form] = Form.useForm();
 
+  // Advanced filters (gap-audit addition).
+  const [employeePositionIdFilter, setEmployeePositionIdFilter] = useState<string | undefined>(undefined);
+  const [hiringDateRange, setHiringDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [basicSalaryMinFilter, setBasicSalaryMinFilter] = useState<number | undefined>(undefined);
+  const [basicSalaryMaxFilter, setBasicSalaryMaxFilter] = useState<number | undefined>(undefined);
+  const [ibanFilter, setIbanFilter] = useState('');
+
   const openDetail = (id: string) => router.push(`/hr/employees/${id}`);
 
   const {
@@ -69,7 +79,17 @@ export default function HREmployeesPage() {
     isUpdating,
     isDeleting,
     isResettingPassword,
-  } = useHREmployees({ searchName: search || undefined, page, pageSize: PAGE_SIZE });
+  } = useHREmployees({
+    searchName: search || undefined,
+    page,
+    pageSize: PAGE_SIZE,
+    employeePositionId: employeePositionIdFilter,
+    hiringDateFrom: hiringDateRange[0],
+    hiringDateTo: hiringDateRange[1],
+    basicSalaryMin: basicSalaryMinFilter,
+    basicSalaryMax: basicSalaryMaxFilter,
+    iban: ibanFilter || undefined,
+  });
 
   const { positions } = useAdminPositions();
   const { departments } = useDepartments();
@@ -79,6 +99,24 @@ export default function HREmployeesPage() {
     setSearch(val);
     setPage(1);
   }, []);
+
+  // Count of active advanced filters (for the panel badge / clear button).
+  const activeFilterCount =
+    (employeePositionIdFilter ? 1 : 0) +
+    (hiringDateRange[0] || hiringDateRange[1] ? 1 : 0) +
+    (basicSalaryMinFilter !== undefined ? 1 : 0) +
+    (basicSalaryMaxFilter !== undefined ? 1 : 0) +
+    (ibanFilter ? 1 : 0);
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setEmployeePositionIdFilter(undefined);
+    setHiringDateRange([undefined, undefined]);
+    setBasicSalaryMinFilter(undefined);
+    setBasicSalaryMaxFilter(undefined);
+    setIbanFilter('');
+    setPage(1);
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -300,8 +338,9 @@ export default function HREmployeesPage() {
       </div>
 
       <AdvancedFilterPanel
-        activeCount={0}
-        onClear={() => handleSearch('')}
+        activeCount={activeFilterCount}
+        onClear={handleClearFilters}
+        contentLayout="block"
         quickFilters={
           <Input.Search
             placeholder="البحث بالاسم أو رقم الموظف..."
@@ -312,7 +351,72 @@ export default function HREmployeesPage() {
             onChange={(e) => !e.target.value && handleSearch('')}
           />
         }
-      />
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={6}>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+              المسمى الوظيفي
+            </label>
+            <Select
+              allowClear
+              showSearch
+              placeholder="اختر المسمى الوظيفي"
+              style={{ width: '100%' }}
+              value={employeePositionIdFilter}
+              onChange={(v) => { setEmployeePositionIdFilter(v); setPage(1); }}
+              options={positionOptions}
+              filterOption={filterOption}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+              رقم الآيبان (IBAN)
+            </label>
+            <Input
+              allowClear
+              placeholder="IBAN"
+              value={ibanFilter}
+              onChange={(e) => { setIbanFilter(e.target.value); setPage(1); }}
+            />
+          </Col>
+          <Col xs={24} md={3}>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+              أقل راتب أساسي
+            </label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder="أقل راتب أساسي"
+              value={basicSalaryMinFilter}
+              onChange={(v) => { setBasicSalaryMinFilter(v ?? undefined); setPage(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={3}>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+              أعلى راتب أساسي
+            </label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder="أعلى راتب أساسي"
+              value={basicSalaryMaxFilter}
+              onChange={(v) => { setBasicSalaryMaxFilter(v ?? undefined); setPage(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+              تاريخ التعيين
+            </label>
+            <DateRangeFilter
+              value={hiringDateRange}
+              onChange={(range) => { setHiringDateRange(range); setPage(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+        </Row>
+      </AdvancedFilterPanel>
 
       <Card>
         <Table<EmployeeDto>

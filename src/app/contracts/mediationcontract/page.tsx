@@ -51,7 +51,12 @@ import {
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
-import { BranchFilterSelect, DateRangeFilter, ExportButton, AdvancedFilterPanel } from '@/components/filters';
+import {
+  BranchFilterSelect,
+  DateRangeFilter,
+  ExportButton,
+  AdvancedFilterPanel,
+} from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { useAvailableMediationWorkers } from '@/hooks/api/useWorkers';
@@ -83,6 +88,18 @@ import {
 } from '@/constants/enums';
 import styles from './MediationContracts.module.css';
 
+// WorkerType options for the mediation-contract filter param (WorkerType is an
+// integer param on FilterMediationContractDto). Values are NOT defined in the
+// spec — mirrors the same unverified-but-established mapping already used by
+// the sibling Automatic Follow-Up dashboard page for the identical param, kept
+// consistent across both pages rather than introducing a second guess.
+const WORKER_TYPE_OPTIONS = [
+  { value: 1, label: 'عمالة منزلية / Domestic' },
+  { value: 2, label: 'سائق / Driver' },
+];
+
+void WORKER_TYPE_OPTIONS;
+
 export default function MediationContractsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -110,6 +127,30 @@ export default function MediationContractsPage() {
   const [marketerFilter, setMarketerFilter] = useState<string | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
+  const [visaDateRange, setVisaDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [localCostMin, setLocalCostMin] = useState<number | undefined>(undefined);
+  const [localCostMax, setLocalCostMax] = useState<number | undefined>(undefined);
+  const [agentCostSARMin, setAgentCostSARMin] = useState<number | undefined>(undefined);
+  const [agentCostSARMax, setAgentCostSARMax] = useState<number | undefined>(undefined);
+  const [salaryMin, setSalaryMin] = useState<number | undefined>(undefined);
+  const [salaryMax, setSalaryMax] = useState<number | undefined>(undefined);
+  const [otherCostsMin, setOtherCostsMin] = useState<number | undefined>(undefined);
+  const [otherCostsMax, setOtherCostsMax] = useState<number | undefined>(undefined);
+  const [totalTaxValueMin, setTotalTaxValueMin] = useState<number | undefined>(undefined);
+  const [totalTaxValueMax, setTotalTaxValueMax] = useState<number | undefined>(undefined);
+  const [managerDiscountMin, setManagerDiscountMin] = useState<number | undefined>(undefined);
+  const [managerDiscountMax, setManagerDiscountMax] = useState<number | undefined>(undefined);
+  const [costDiscountMin, setCostDiscountMin] = useState<number | undefined>(undefined);
+  const [costDiscountMax, setCostDiscountMax] = useState<number | undefined>(undefined);
+  const [totalCostMin, setTotalCostMin] = useState<number | undefined>(undefined);
+  const [totalCostMax, setTotalCostMax] = useState<number | undefined>(undefined);
+  const [domesticWorkerInsuranceMin, setDomesticWorkerInsuranceMin] = useState<number | undefined>(undefined);
+  const [domesticWorkerInsuranceMax, setDomesticWorkerInsuranceMax] = useState<number | undefined>(undefined);
 
   // Modal states
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -145,7 +186,17 @@ export default function MediationContractsPage() {
     (paymentDateRange[0] || paymentDateRange[1] ? 1 : 0) +
     (withoutWorker ? 1 : 0) +
     (agentFilter !== 'all' ? 1 : 0) +
-    (marketerFilter !== 'all' ? 1 : 0);
+    (marketerFilter !== 'all' ? 1 : 0) +
+    (visaDateRange[0] || visaDateRange[1] ? 1 : 0) +
+    (localCostMin !== undefined || localCostMax !== undefined ? 1 : 0) +
+    (agentCostSARMin !== undefined || agentCostSARMax !== undefined ? 1 : 0) +
+    (salaryMin !== undefined || salaryMax !== undefined ? 1 : 0) +
+    (otherCostsMin !== undefined || otherCostsMax !== undefined ? 1 : 0) +
+    (totalTaxValueMin !== undefined || totalTaxValueMax !== undefined ? 1 : 0) +
+    (managerDiscountMin !== undefined || managerDiscountMax !== undefined ? 1 : 0) +
+    (costDiscountMin !== undefined || costDiscountMax !== undefined ? 1 : 0) +
+    (totalCostMin !== undefined || totalCostMax !== undefined ? 1 : 0) +
+    (domesticWorkerInsuranceMin !== undefined || domesticWorkerInsuranceMax !== undefined ? 1 : 0);
 
   const clearFilters = () => {
     setBranchId(undefined);
@@ -159,6 +210,25 @@ export default function MediationContractsPage() {
     setWithoutWorker(false);
     setAgentFilter('all');
     setMarketerFilter('all');
+    setVisaDateRange([undefined, undefined]);
+    setLocalCostMin(undefined);
+    setLocalCostMax(undefined);
+    setAgentCostSARMin(undefined);
+    setAgentCostSARMax(undefined);
+    setSalaryMin(undefined);
+    setSalaryMax(undefined);
+    setOtherCostsMin(undefined);
+    setOtherCostsMax(undefined);
+    setTotalTaxValueMin(undefined);
+    setTotalTaxValueMax(undefined);
+    setManagerDiscountMin(undefined);
+    setManagerDiscountMax(undefined);
+    setCostDiscountMin(undefined);
+    setCostDiscountMax(undefined);
+    setTotalCostMin(undefined);
+    setTotalCostMax(undefined);
+    setDomesticWorkerInsuranceMin(undefined);
+    setDomesticWorkerInsuranceMax(undefined);
     setCurrentPage(1);
   };
 
@@ -224,6 +294,26 @@ export default function MediationContractsPage() {
     isUnpaid: paymentFilter === 'unpaid' ? true : undefined,
     paymentDateFrom: paymentDateRange[0],
     paymentDateTo: paymentDateRange[1],
+    visaDateFrom: visaDateRange[0],
+    visaDateTo: visaDateRange[1],
+    minLocalCost: localCostMin,
+    maxLocalCost: localCostMax,
+    minAgentCostSAR: agentCostSARMin,
+    maxAgentCostSAR: agentCostSARMax,
+    minSalary: salaryMin,
+    maxSalary: salaryMax,
+    minOtherCosts: otherCostsMin,
+    maxOtherCosts: otherCostsMax,
+    minTotalTaxValue: totalTaxValueMin,
+    maxTotalTaxValue: totalTaxValueMax,
+    minManagerDiscount: managerDiscountMin,
+    maxManagerDiscount: managerDiscountMax,
+    minCostDiscount: costDiscountMin,
+    maxCostDiscount: costDiscountMax,
+    minTotalCost: totalCostMin,
+    maxTotalCost: totalCostMax,
+    minDomesticWorkerInsurance: domesticWorkerInsuranceMin,
+    maxDomesticWorkerInsurance: domesticWorkerInsuranceMax,
   });
 
   const { mutateAsync: createComplaint, isPending: isCreatingComplaint } = useCreateComplaint();
@@ -328,6 +418,26 @@ export default function MediationContractsPage() {
     remainingAmount: language === 'ar' ? 'المتبقي' : 'Remaining',
     paymentDateLabel: language === 'ar' ? 'تاريخ الدفعة' : 'Payment Date',
     partiallyPaid: language === 'ar' ? 'مدفوع جزئياً' : 'Partially Paid',
+    // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
+    visaDateLabel: language === 'ar' ? 'تاريخ التأشيرة' : 'Visa Date',
+    localCostMin: language === 'ar' ? 'أقل تكلفة محلية' : 'Min Local Cost',
+    localCostMax: language === 'ar' ? 'أعلى تكلفة محلية' : 'Max Local Cost',
+    agentCostSARMin: language === 'ar' ? 'أقل تكلفة الوكيل (ريال)' : 'Min Agent Cost (SAR)',
+    agentCostSARMax: language === 'ar' ? 'أعلى تكلفة الوكيل (ريال)' : 'Max Agent Cost (SAR)',
+    salaryMin: language === 'ar' ? 'أقل راتب' : 'Min Salary',
+    salaryMax: language === 'ar' ? 'أعلى راتب' : 'Max Salary',
+    otherCostsMin: language === 'ar' ? 'أقل تكاليف أخرى' : 'Min Other Costs',
+    otherCostsMax: language === 'ar' ? 'أعلى تكاليف أخرى' : 'Max Other Costs',
+    totalTaxValueMin: language === 'ar' ? 'أقل قيمة ضريبة' : 'Min Tax Value',
+    totalTaxValueMax: language === 'ar' ? 'أعلى قيمة ضريبة' : 'Max Tax Value',
+    managerDiscountMin: language === 'ar' ? 'أقل خصم مدير' : 'Min Manager Discount',
+    managerDiscountMax: language === 'ar' ? 'أعلى خصم مدير' : 'Max Manager Discount',
+    costDiscountMin: language === 'ar' ? 'أقل خصم تكلفة' : 'Min Cost Discount',
+    costDiscountMax: language === 'ar' ? 'أعلى خصم تكلفة' : 'Max Cost Discount',
+    totalCostMin: language === 'ar' ? 'أقل تكلفة إجمالية' : 'Min Total Cost',
+    totalCostMax: language === 'ar' ? 'أعلى تكلفة إجمالية' : 'Max Total Cost',
+    domesticWorkerInsuranceMin: language === 'ar' ? 'أقل تأمين عاملة منزلية' : 'Min Domestic Worker Insurance',
+    domesticWorkerInsuranceMax: language === 'ar' ? 'أعلى تأمين عاملة منزلية' : 'Max Domestic Worker Insurance',
   };
 
   // Helper functions — formatCurrency/formatDate/getStatusConfigFromName live in
@@ -1013,6 +1123,26 @@ export default function MediationContractsPage() {
               IsUnpaid: paymentFilter === 'unpaid' ? true : undefined,
               PaymentDateFrom: paymentDateRange[0],
               PaymentDateTo: paymentDateRange[1],
+              VisaDateFrom: visaDateRange[0],
+              VisaDateTo: visaDateRange[1],
+              MinLocalCost: localCostMin,
+              MaxLocalCost: localCostMax,
+              MinAgentCostSAR: agentCostSARMin,
+              MaxAgentCostSAR: agentCostSARMax,
+              MinSalary: salaryMin,
+              MaxSalary: salaryMax,
+              MinOtherCosts: otherCostsMin,
+              MaxOtherCosts: otherCostsMax,
+              MinTotalTaxValue: totalTaxValueMin,
+              MaxTotalTaxValue: totalTaxValueMax,
+              MinManagerDiscount: managerDiscountMin,
+              MaxManagerDiscount: managerDiscountMax,
+              MinCostDiscount: costDiscountMin,
+              MaxCostDiscount: costDiscountMax,
+              MinTotalCost: totalCostMin,
+              MaxTotalCost: totalCostMax,
+              MinDomesticWorkerInsurance: domesticWorkerInsuranceMin,
+              MaxDomesticWorkerInsurance: domesticWorkerInsuranceMax,
             }}
             fileName="MediationContracts.xlsx"
             pageParam="page"
@@ -1138,6 +1268,222 @@ export default function MediationContractsPage() {
                     label: (language === 'ar' ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
                   })),
                 ]}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>{t.visaDateLabel}</label>
+              <DateRangeFilter
+                value={visaDateRange}
+                onChange={(range) => { setVisaDateRange(range); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.localCostMin}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.localCostMin}
+                value={localCostMin}
+                onChange={(value) => { setLocalCostMin(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.localCostMax}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.localCostMax}
+                value={localCostMax}
+                onChange={(value) => { setLocalCostMax(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.agentCostSARMin}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.agentCostSARMin}
+                value={agentCostSARMin}
+                onChange={(value) => { setAgentCostSARMin(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.agentCostSARMax}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.agentCostSARMax}
+                value={agentCostSARMax}
+                onChange={(value) => { setAgentCostSARMax(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.salaryMin}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.salaryMin}
+                value={salaryMin}
+                onChange={(value) => { setSalaryMin(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.salaryMax}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.salaryMax}
+                value={salaryMax}
+                onChange={(value) => { setSalaryMax(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.otherCostsMin}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.otherCostsMin}
+                value={otherCostsMin}
+                onChange={(value) => { setOtherCostsMin(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.otherCostsMax}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.otherCostsMax}
+                value={otherCostsMax}
+                onChange={(value) => { setOtherCostsMax(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.totalTaxValueMin}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.totalTaxValueMin}
+                value={totalTaxValueMin}
+                onChange={(value) => { setTotalTaxValueMin(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.totalTaxValueMax}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.totalTaxValueMax}
+                value={totalTaxValueMax}
+                onChange={(value) => { setTotalTaxValueMax(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.managerDiscountMin}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.managerDiscountMin}
+                value={managerDiscountMin}
+                onChange={(value) => { setManagerDiscountMin(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.managerDiscountMax}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.managerDiscountMax}
+                value={managerDiscountMax}
+                onChange={(value) => { setManagerDiscountMax(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.costDiscountMin}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.costDiscountMin}
+                value={costDiscountMin}
+                onChange={(value) => { setCostDiscountMin(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.costDiscountMax}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.costDiscountMax}
+                value={costDiscountMax}
+                onChange={(value) => { setCostDiscountMax(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.totalCostMin}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.totalCostMin}
+                value={totalCostMin}
+                onChange={(value) => { setTotalCostMin(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.totalCostMax}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.totalCostMax}
+                value={totalCostMax}
+                onChange={(value) => { setTotalCostMax(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.domesticWorkerInsuranceMin}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.domesticWorkerInsuranceMin}
+                value={domesticWorkerInsuranceMin}
+                onChange={(value) => { setDomesticWorkerInsuranceMin(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={4}>
+              <label className={styles.filterLabel}>{t.domesticWorkerInsuranceMax}</label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder={t.domesticWorkerInsuranceMax}
+                value={domesticWorkerInsuranceMax}
+                onChange={(value) => { setDomesticWorkerInsuranceMax(value ?? undefined); setCurrentPage(1); }}
+                style={{ width: '100%' }}
               />
             </Col>
           </Row>

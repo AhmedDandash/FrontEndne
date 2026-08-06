@@ -36,11 +36,90 @@ export interface PagedResponse<T> {
 // branch scoping / date-range / sort on this endpoint, so this does NOT extend
 // PagedFilterQuery.
 export interface BranchQuery {
-  searchName?: string;
-  email?: string;
-  mobile?: string;
-  pageNumber?: number;
-  pageSize?: number;
+  SearchName?: string;
+  Id?: string;
+  NameAr?: string;
+  NameArMatch?: number;
+  NameEn?: string;
+  NameEnMatch?: number;
+  AddressAr?: string;
+  AddressArMatch?: number;
+  AddressEn?: string;
+  AddressEnMatch?: number;
+  Phone?: string;
+  PhoneMatch?: number;
+  Mobile?: string;
+  MobileMatch?: number;
+  Email?: string;
+  EmailMatch?: number;
+  BranchLicense?: string;
+  BranchLicenseMatch?: number;
+  CommercialRegistrationNumber?: string;
+  CommercialRegistrationNumberMatch?: number;
+  CommercialRegistrationDateFrom?: string;
+  CommercialRegistrationDateTo?: string;
+  LaborLicenseNumber?: string;
+  LaborLicenseNumberMatch?: number;
+  LaborLicenseDateFrom?: string;
+  LaborLicenseDateTo?: string;
+  TaxNumber?: string;
+  TaxNumberMatch?: number;
+  Domain?: string;
+  DomainMatch?: number;
+  ManagerNameAr?: string;
+  ManagerNameArMatch?: number;
+  OrganizationTypeAr?: number;
+  CityAr?: number;
+  MainBranch?: number;
+  ParentBranchId?: string;
+  IsRootOnly?: boolean;
+  BranchId?: string;
+  IncludeSubBranches?: boolean;
+  Search?: string;
+  CreatedDateFrom?: string;
+  CreatedDateTo?: string;
+  UpdatedDateFrom?: string;
+  UpdatedDateTo?: string;
+  PageNumber?: number;
+  PageSize?: number;
+  SortBy?: string;
+  SortDescending?: boolean;
+}
+
+export interface AgentQuery {
+  AgentNameAr?: string;
+  AgentNameArMatch?: number;
+  AgentNameEn?: string;
+  AgentNameEnMatch?: number;
+  Username?: string;
+  UsernameMatch?: number;
+  AgentLicense?: string;
+  AgentLicenseMatch?: number;
+  Phone?: string;
+  PhoneMatch?: number;
+  Mobile?: string;
+  MobileMatch?: number;
+  Email?: string;
+  EmailMatch?: number;
+  CompanyNameAr?: string;
+  CompanyNameArMatch?: number;
+  CompanyNameEn?: string;
+  CompanyNameEnMatch?: number;
+  NationalityId?: number;
+  ContractType?: number;
+  SendAllEmails?: boolean;
+  IsActive?: boolean;
+  BranchId?: string;
+  IncludeSubBranches?: boolean;
+  Search?: string;
+  CreatedDateFrom?: string;
+  CreatedDateTo?: string;
+  UpdatedDateFrom?: string;
+  UpdatedDateTo?: string;
+  PageNumber?: number;
+  PageSize?: number;
+  SortBy?: string;
+  SortDescending?: boolean;
 }
 
 // ─── Workers — GET /api/V1/Worker (+ /export) ────────────────────────────────
@@ -66,6 +145,59 @@ export interface CustomerQuery extends PagedFilterQuery {
   nationality?: string;
   agentId?: string;
   marketerId?: string;
+  // Extra range/date filters (gap-audit addition — see simga-api.txt Customer GET).
+  monthlyIncomeMin?: number;
+  monthlyIncomeMax?: number;
+  familyMembersMin?: number;
+  familyMembersMax?: number;
+  childrenCountMin?: number;
+  childrenCountMax?: number;
+  birthDateFrom?: string;
+  birthDateTo?: string;
+  identityIssueDateFrom?: string;
+  identityIssueDateTo?: string;
+  // Text fields with no live filter UI yet (found on a follow-up audit — the
+  // first pass's "covered" check false-positived on these because the field
+  // names already appear elsewhere, e.g. on the create/edit form, without
+  // actually being wired as filters). Each pairs with a `*Match` mode field —
+  // see TextMatchFilter / StringMatchMode in `components/filters`.
+  arabicName?: string;
+  arabicNameMatch?: number;
+  englishName?: string;
+  englishNameMatch?: number;
+  username?: string;
+  usernameMatch?: number;
+  idNumberMatch?: number;
+  nationalId?: string;
+  nationalIdMatch?: number;
+  identityNumber?: string;
+  identityNumberMatch?: number;
+  identityType?: number;
+  mobileMatch?: number;
+  secondaryMobileNumber?: string;
+  secondaryMobileNumberMatch?: number;
+  emailMatch?: number;
+  nationalityMatch?: number;
+  maritalStatus?: number;
+  housingType?: number;
+  cityAr?: string;
+  cityArMatch?: number;
+  cityEn?: string;
+  cityEnMatch?: number;
+  districtAr?: string;
+  districtArMatch?: number;
+  districtEn?: string;
+  districtEnMatch?: number;
+  addressAr?: string;
+  addressArMatch?: number;
+  addressEn?: string;
+  addressEnMatch?: number;
+  taxNumber?: string;
+  taxNumberMatch?: number;
+  iban?: string;
+  ibanMatch?: number;
+  bankName?: string;
+  bankNameMatch?: number;
 }
 
 // ─── Transfer Contracts — GET /api/TransferContract (+ /export) ──────────────

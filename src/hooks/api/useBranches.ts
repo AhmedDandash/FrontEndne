@@ -6,9 +6,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { BranchService } from '@/services';
-import type { BranchDto } from '@/types/api.types';
+import type { Branch, BranchDto } from '@/types/api.types';
+import type { BranchQuery, PagedResponse } from '@/types/filters.types';
 
 const QUERY_KEY = 'branches';
+
+export function usePagedBranches(query?: BranchQuery) {
+  return useQuery<PagedResponse<Branch>, Error>({
+    queryKey: [QUERY_KEY, 'paged', query],
+    queryFn: () => BranchService.getPaged(query),
+  });
+}
 
 export function useBranches() {
   const queryClient = useQueryClient();

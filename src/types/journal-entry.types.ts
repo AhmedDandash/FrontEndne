@@ -246,6 +246,12 @@ export interface JournalEntriesQuery {
   createdDateTo?: string;
   updatedDateFrom?: string;
   updatedDateTo?: string;
+  /** Numeric amount bounds on the entry's total debit (NOT dates, despite the From/To naming). */
+  totalDebitFrom?: number;
+  totalDebitTo?: number;
+  /** Numeric amount bounds on the entry's total credit (NOT dates, despite the From/To naming). */
+  totalCreditFrom?: number;
+  totalCreditTo?: number;
   sortBy?: string;
   sortDescending?: boolean;
 }

@@ -6,6 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AgentService } from '@/services/agent.service';
 import type { Agent, CreateAgentDto, UpdateAgentDto } from '@/types/api.types';
+import type { AgentQuery, PagedResponse } from '@/types/filters.types';
 import { message } from 'antd';
 
 export const AGENTS_KEY = 'agents';
@@ -17,6 +18,13 @@ export const useAgents = () => {
   return useQuery<Agent[], Error>({
     queryKey: [AGENTS_KEY],
     queryFn: AgentService.getAll,
+  });
+};
+
+export const useAgentsPaged = (query?: AgentQuery) => {
+  return useQuery<PagedResponse<Agent>, Error>({
+    queryKey: [AGENTS_KEY, 'paged', query],
+    queryFn: () => AgentService.getPaged(query),
   });
 };
 

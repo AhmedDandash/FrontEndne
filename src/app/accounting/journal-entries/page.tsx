@@ -88,6 +88,11 @@ export default function JournalEntriesPage() {
   const [agentId, setAgentId] = useState<string | undefined>();
   const [workerId, setWorkerId] = useState<string | undefined>();
   const [employeeId, setEmployeeId] = useState<string | undefined>();
+  // Numeric amount-bound filters (NOT dates, despite the From/To naming).
+  const [totalDebitFrom, setTotalDebitFrom] = useState<number | undefined>();
+  const [totalDebitTo, setTotalDebitTo] = useState<number | undefined>();
+  const [totalCreditFrom, setTotalCreditFrom] = useState<number | undefined>();
+  const [totalCreditTo, setTotalCreditTo] = useState<number | undefined>();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -127,6 +132,10 @@ export default function JournalEntriesPage() {
     agentId,
     workerId,
     employeeId,
+    totalDebitFrom,
+    totalDebitTo,
+    totalCreditFrom,
+    totalCreditTo,
   });
 
   const { deleteEntry, postEntry, unpostEntry, isDeleting, isPosting, isUnposting } =
@@ -199,6 +208,10 @@ export default function JournalEntriesPage() {
     employeeId,
     range[0],
     updatedRange[0],
+    totalDebitFrom,
+    totalDebitTo,
+    totalCreditFrom,
+    totalCreditTo,
   ].filter((v) => v !== undefined && v !== null && v !== '').length;
 
   const clearFilters = () => {
@@ -215,6 +228,10 @@ export default function JournalEntriesPage() {
     setAgentId(undefined);
     setWorkerId(undefined);
     setEmployeeId(undefined);
+    setTotalDebitFrom(undefined);
+    setTotalDebitTo(undefined);
+    setTotalCreditFrom(undefined);
+    setTotalCreditTo(undefined);
     setPageNumber(1);
   };
 
@@ -694,6 +711,62 @@ export default function JournalEntriesPage() {
                 setPageNumber(1);
               }}
               placeholder={t('معرف الموظف', 'Employee ID')}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('إجمالي المدين من', 'Total Debit From')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              value={totalDebitFrom}
+              onChange={(v) => {
+                setTotalDebitFrom(v ?? undefined);
+                setPageNumber(1);
+              }}
+              placeholder={t('إجمالي المدين من', 'Total Debit From')}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('إجمالي المدين إلى', 'Total Debit To')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              value={totalDebitTo}
+              onChange={(v) => {
+                setTotalDebitTo(v ?? undefined);
+                setPageNumber(1);
+              }}
+              placeholder={t('إجمالي المدين إلى', 'Total Debit To')}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('إجمالي الدائن من', 'Total Credit From')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              value={totalCreditFrom}
+              onChange={(v) => {
+                setTotalCreditFrom(v ?? undefined);
+                setPageNumber(1);
+              }}
+              placeholder={t('إجمالي الدائن من', 'Total Credit From')}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('إجمالي الدائن إلى', 'Total Credit To')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              value={totalCreditTo}
+              onChange={(v) => {
+                setTotalCreditTo(v ?? undefined);
+                setPageNumber(1);
+              }}
+              placeholder={t('إجمالي الدائن إلى', 'Total Credit To')}
             />
           </Col>
         </Row>

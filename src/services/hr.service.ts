@@ -39,12 +39,25 @@ export class HREmployeeService {
     searchName?: string;
     page?: number;
     pageSize?: number;
+    // Extra filters (gap-audit addition — see simga-api.txt GET /api/V1/Employee).
+    employeePositionId?: string;
+    hiringDateFrom?: string;
+    hiringDateTo?: string;
+    basicSalaryMin?: number;
+    basicSalaryMax?: number;
+    iban?: string;
   }): Promise<EmployeePagedResponse> {
     const response = await api.get<any>(API_ENDPOINTS.HR_EMPLOYEE.GET_ALL, {
       params: {
         searchName: params?.searchName || undefined,
         page: params?.page ?? 1,
         pageSize: params?.pageSize ?? 10,
+        employeePositionId: params?.employeePositionId || undefined,
+        hiringDateFrom: params?.hiringDateFrom || undefined,
+        hiringDateTo: params?.hiringDateTo || undefined,
+        basicSalaryMin: params?.basicSalaryMin,
+        basicSalaryMax: params?.basicSalaryMax,
+        iban: params?.iban || undefined,
       },
     });
     const raw = response.data;

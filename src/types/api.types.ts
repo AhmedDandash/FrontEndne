@@ -1762,6 +1762,27 @@ export interface MediationFollowUpDashboardParams {
   UpdatedDateTo?: string | null;
   SortBy?: string | null;
   SortDescending?: boolean | null;
+  // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
+  VisaDateFrom?: string | null;
+  VisaDateTo?: string | null;
+  MinLocalCost?: number | null;
+  MaxLocalCost?: number | null;
+  MinAgentCostSAR?: number | null;
+  MaxAgentCostSAR?: number | null;
+  MinSalary?: number | null;
+  MaxSalary?: number | null;
+  MinOtherCosts?: number | null;
+  MaxOtherCosts?: number | null;
+  MinTotalTaxValue?: number | null;
+  MaxTotalTaxValue?: number | null;
+  MinManagerDiscount?: number | null;
+  MaxManagerDiscount?: number | null;
+  MinCostDiscount?: number | null;
+  MaxCostDiscount?: number | null;
+  MinTotalCost?: number | null;
+  MaxTotalCost?: number | null;
+  MinDomesticWorkerInsurance?: number | null;
+  MaxDomesticWorkerInsurance?: number | null;
 }
 
 /**

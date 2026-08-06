@@ -108,6 +108,27 @@ export class MediationContractService {
     IsUnpaid?: boolean;
     PaymentDateFrom?: string;
     PaymentDateTo?: string;
+    // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
+    VisaDateFrom?: string;
+    VisaDateTo?: string;
+    MinLocalCost?: number;
+    MaxLocalCost?: number;
+    MinAgentCostSAR?: number;
+    MaxAgentCostSAR?: number;
+    MinSalary?: number;
+    MaxSalary?: number;
+    MinOtherCosts?: number;
+    MaxOtherCosts?: number;
+    MinTotalTaxValue?: number;
+    MaxTotalTaxValue?: number;
+    MinManagerDiscount?: number;
+    MaxManagerDiscount?: number;
+    MinCostDiscount?: number;
+    MaxCostDiscount?: number;
+    MinTotalCost?: number;
+    MaxTotalCost?: number;
+    MinDomesticWorkerInsurance?: number;
+    MaxDomesticWorkerInsurance?: number;
   }): Promise<{ contracts: MediationContract[]; total: number }> {
     const query: Record<string, any> = {
       Page: params?.Page ?? 1,
@@ -148,6 +169,26 @@ export class MediationContractService {
           'IsUnpaid',
           'PaymentDateFrom',
           'PaymentDateTo',
+          'VisaDateFrom',
+          'VisaDateTo',
+          'MinLocalCost',
+          'MaxLocalCost',
+          'MinAgentCostSAR',
+          'MaxAgentCostSAR',
+          'MinSalary',
+          'MaxSalary',
+          'MinOtherCosts',
+          'MaxOtherCosts',
+          'MinTotalTaxValue',
+          'MaxTotalTaxValue',
+          'MinManagerDiscount',
+          'MaxManagerDiscount',
+          'MinCostDiscount',
+          'MaxCostDiscount',
+          'MinTotalCost',
+          'MaxTotalCost',
+          'MinDomesticWorkerInsurance',
+          'MaxDomesticWorkerInsurance',
         ] as const
       ).forEach((key) => {
         const value = params[key];

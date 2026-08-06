@@ -51,6 +51,9 @@ export interface HourlyWorkerListParams {
   search?: string;
   isActive?: boolean;
   isAvailableNow?: boolean;
+  // Numeric amount bounds on hourlyRate (NOT dates, despite the From/To naming).
+  hourlyRateFrom?: number;
+  hourlyRateTo?: number;
   sortBy?: 'fullName' | 'hourlyRate' | 'createdDate';
   sortDescending?: boolean;
   pageNumber?: number;

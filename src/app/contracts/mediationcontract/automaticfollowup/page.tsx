@@ -72,6 +72,26 @@ function useT(language: string) {
       dateRange: { ar: 'نطاق التاريخ', en: 'Date Range' },
       progress: { ar: 'التقدم', en: 'Progress' },
       createdAt: { ar: 'تاريخ الإنشاء', en: 'Created' },
+      // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
+      visaDateLabel: { ar: 'تاريخ التأشيرة', en: 'Visa Date' },
+      localCostMin: { ar: 'أقل تكلفة محلية', en: 'Min Local Cost' },
+      localCostMax: { ar: 'أعلى تكلفة محلية', en: 'Max Local Cost' },
+      agentCostSARMin: { ar: 'أقل تكلفة الوكيل (ريال)', en: 'Min Agent Cost (SAR)' },
+      agentCostSARMax: { ar: 'أعلى تكلفة الوكيل (ريال)', en: 'Max Agent Cost (SAR)' },
+      salaryMin: { ar: 'أقل راتب', en: 'Min Salary' },
+      salaryMax: { ar: 'أعلى راتب', en: 'Max Salary' },
+      otherCostsMin: { ar: 'أقل تكاليف أخرى', en: 'Min Other Costs' },
+      otherCostsMax: { ar: 'أعلى تكاليف أخرى', en: 'Max Other Costs' },
+      totalTaxValueMin: { ar: 'أقل قيمة ضريبة', en: 'Min Tax Value' },
+      totalTaxValueMax: { ar: 'أعلى قيمة ضريبة', en: 'Max Tax Value' },
+      managerDiscountMin: { ar: 'أقل خصم مدير', en: 'Min Manager Discount' },
+      managerDiscountMax: { ar: 'أعلى خصم مدير', en: 'Max Manager Discount' },
+      costDiscountMin: { ar: 'أقل خصم تكلفة', en: 'Min Cost Discount' },
+      costDiscountMax: { ar: 'أعلى خصم تكلفة', en: 'Max Cost Discount' },
+      totalCostMin: { ar: 'أقل تكلفة إجمالية', en: 'Min Total Cost' },
+      totalCostMax: { ar: 'أعلى تكلفة إجمالية', en: 'Max Total Cost' },
+      domesticWorkerInsuranceMin: { ar: 'أقل تأمين عاملة منزلية', en: 'Min Domestic Worker Insurance' },
+      domesticWorkerInsuranceMax: { ar: 'أعلى تأمين عاملة منزلية', en: 'Max Domestic Worker Insurance' },
     };
     return (key: string) => map[key]?.[language] ?? map[key]?.['en'] ?? key;
   }, [language]);
@@ -114,6 +134,30 @@ export default function AutomaticFollowUpPage() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
+  // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
+  const [visaDateRange, setVisaDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [localCostMin, setLocalCostMin] = useState<number | null>(null);
+  const [localCostMax, setLocalCostMax] = useState<number | null>(null);
+  const [agentCostSARMin, setAgentCostSARMin] = useState<number | null>(null);
+  const [agentCostSARMax, setAgentCostSARMax] = useState<number | null>(null);
+  const [salaryMin, setSalaryMin] = useState<number | null>(null);
+  const [salaryMax, setSalaryMax] = useState<number | null>(null);
+  const [otherCostsMin, setOtherCostsMin] = useState<number | null>(null);
+  const [otherCostsMax, setOtherCostsMax] = useState<number | null>(null);
+  const [totalTaxValueMin, setTotalTaxValueMin] = useState<number | null>(null);
+  const [totalTaxValueMax, setTotalTaxValueMax] = useState<number | null>(null);
+  const [managerDiscountMin, setManagerDiscountMin] = useState<number | null>(null);
+  const [managerDiscountMax, setManagerDiscountMax] = useState<number | null>(null);
+  const [costDiscountMin, setCostDiscountMin] = useState<number | null>(null);
+  const [costDiscountMax, setCostDiscountMax] = useState<number | null>(null);
+  const [totalCostMin, setTotalCostMin] = useState<number | null>(null);
+  const [totalCostMax, setTotalCostMax] = useState<number | null>(null);
+  const [domesticWorkerInsuranceMin, setDomesticWorkerInsuranceMin] = useState<number | null>(null);
+  const [domesticWorkerInsuranceMax, setDomesticWorkerInsuranceMax] = useState<number | null>(null);
+
   // Debounce the free-text search box into the live query (400ms, matching
   // the app-wide convention); every other control applies immediately.
   useEffect(() => {
@@ -145,6 +189,26 @@ export default function AutomaticFollowUpPage() {
       p.BranchId = branchId;
       p.IncludeSubBranches = includeSubBranches;
     }
+    if (visaDateRange[0]) p.VisaDateFrom = visaDateRange[0];
+    if (visaDateRange[1]) p.VisaDateTo = visaDateRange[1];
+    if (localCostMin != null) p.MinLocalCost = localCostMin;
+    if (localCostMax != null) p.MaxLocalCost = localCostMax;
+    if (agentCostSARMin != null) p.MinAgentCostSAR = agentCostSARMin;
+    if (agentCostSARMax != null) p.MaxAgentCostSAR = agentCostSARMax;
+    if (salaryMin != null) p.MinSalary = salaryMin;
+    if (salaryMax != null) p.MaxSalary = salaryMax;
+    if (otherCostsMin != null) p.MinOtherCosts = otherCostsMin;
+    if (otherCostsMax != null) p.MaxOtherCosts = otherCostsMax;
+    if (totalTaxValueMin != null) p.MinTotalTaxValue = totalTaxValueMin;
+    if (totalTaxValueMax != null) p.MaxTotalTaxValue = totalTaxValueMax;
+    if (managerDiscountMin != null) p.MinManagerDiscount = managerDiscountMin;
+    if (managerDiscountMax != null) p.MaxManagerDiscount = managerDiscountMax;
+    if (costDiscountMin != null) p.MinCostDiscount = costDiscountMin;
+    if (costDiscountMax != null) p.MaxCostDiscount = costDiscountMax;
+    if (totalCostMin != null) p.MinTotalCost = totalCostMin;
+    if (totalCostMax != null) p.MaxTotalCost = totalCostMax;
+    if (domesticWorkerInsuranceMin != null) p.MinDomesticWorkerInsurance = domesticWorkerInsuranceMin;
+    if (domesticWorkerInsuranceMax != null) p.MaxDomesticWorkerInsurance = domesticWorkerInsuranceMax;
     return p;
   }, [
     pageNumber,
@@ -158,6 +222,25 @@ export default function AutomaticFollowUpPage() {
     search,
     branchId,
     includeSubBranches,
+    visaDateRange,
+    localCostMin,
+    localCostMax,
+    agentCostSARMin,
+    agentCostSARMax,
+    salaryMin,
+    salaryMax,
+    otherCostsMin,
+    otherCostsMax,
+    totalTaxValueMin,
+    totalTaxValueMax,
+    managerDiscountMin,
+    managerDiscountMax,
+    costDiscountMin,
+    costDiscountMax,
+    totalCostMin,
+    totalCostMax,
+    domesticWorkerInsuranceMin,
+    domesticWorkerInsuranceMax,
   ]);
 
   const { data, isLoading, refetch } = useMediationFollowUpDashboard(params);
@@ -186,6 +269,16 @@ export default function AutomaticFollowUpPage() {
     statusId != null,
     workerType != null,
     Boolean(dateRange[0]),
+    Boolean(visaDateRange[0] || visaDateRange[1]),
+    localCostMin != null || localCostMax != null,
+    agentCostSARMin != null || agentCostSARMax != null,
+    salaryMin != null || salaryMax != null,
+    otherCostsMin != null || otherCostsMax != null,
+    totalTaxValueMin != null || totalTaxValueMax != null,
+    managerDiscountMin != null || managerDiscountMax != null,
+    costDiscountMin != null || costDiscountMax != null,
+    totalCostMin != null || totalCostMax != null,
+    domesticWorkerInsuranceMin != null || domesticWorkerInsuranceMax != null,
   ].filter(Boolean).length;
 
   const clearFilters = useCallback(() => {
@@ -196,6 +289,25 @@ export default function AutomaticFollowUpPage() {
     setStatusId(null);
     setWorkerType(null);
     setDateRange([undefined, undefined]);
+    setVisaDateRange([undefined, undefined]);
+    setLocalCostMin(null);
+    setLocalCostMax(null);
+    setAgentCostSARMin(null);
+    setAgentCostSARMax(null);
+    setSalaryMin(null);
+    setSalaryMax(null);
+    setOtherCostsMin(null);
+    setOtherCostsMax(null);
+    setTotalTaxValueMin(null);
+    setTotalTaxValueMax(null);
+    setManagerDiscountMin(null);
+    setManagerDiscountMax(null);
+    setCostDiscountMin(null);
+    setCostDiscountMax(null);
+    setTotalCostMin(null);
+    setTotalCostMax(null);
+    setDomesticWorkerInsuranceMin(null);
+    setDomesticWorkerInsuranceMax(null);
     setPageNumber(1);
   }, []);
 
@@ -459,6 +571,222 @@ export default function AutomaticFollowUpPage() {
               onChange={(v) => { setWorkerType(v ?? null); setPageNumber(1); }}
               style={{ width: '100%' }}
               options={WORKER_TYPE_OPTIONS}
+            />
+          </Col>
+
+          <Col xs={24} md={16}>
+            <label className={styles.filterLabel}>{t('visaDateLabel')}</label>
+            <DateRangeFilter
+              value={visaDateRange}
+              onChange={(v) => { setVisaDateRange(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('localCostMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('localCostMin')}
+              value={localCostMin}
+              onChange={(v) => { setLocalCostMin(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('localCostMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('localCostMax')}
+              value={localCostMax}
+              onChange={(v) => { setLocalCostMax(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('agentCostSARMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('agentCostSARMin')}
+              value={agentCostSARMin}
+              onChange={(v) => { setAgentCostSARMin(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('agentCostSARMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('agentCostSARMax')}
+              value={agentCostSARMax}
+              onChange={(v) => { setAgentCostSARMax(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('salaryMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('salaryMin')}
+              value={salaryMin}
+              onChange={(v) => { setSalaryMin(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('salaryMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('salaryMax')}
+              value={salaryMax}
+              onChange={(v) => { setSalaryMax(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('otherCostsMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('otherCostsMin')}
+              value={otherCostsMin}
+              onChange={(v) => { setOtherCostsMin(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('otherCostsMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('otherCostsMax')}
+              value={otherCostsMax}
+              onChange={(v) => { setOtherCostsMax(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('totalTaxValueMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('totalTaxValueMin')}
+              value={totalTaxValueMin}
+              onChange={(v) => { setTotalTaxValueMin(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('totalTaxValueMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('totalTaxValueMax')}
+              value={totalTaxValueMax}
+              onChange={(v) => { setTotalTaxValueMax(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('managerDiscountMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('managerDiscountMin')}
+              value={managerDiscountMin}
+              onChange={(v) => { setManagerDiscountMin(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('managerDiscountMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('managerDiscountMax')}
+              value={managerDiscountMax}
+              onChange={(v) => { setManagerDiscountMax(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('costDiscountMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('costDiscountMin')}
+              value={costDiscountMin}
+              onChange={(v) => { setCostDiscountMin(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('costDiscountMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('costDiscountMax')}
+              value={costDiscountMax}
+              onChange={(v) => { setCostDiscountMax(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('totalCostMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('totalCostMin')}
+              value={totalCostMin}
+              onChange={(v) => { setTotalCostMin(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('totalCostMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('totalCostMax')}
+              value={totalCostMax}
+              onChange={(v) => { setTotalCostMax(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('domesticWorkerInsuranceMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('domesticWorkerInsuranceMin')}
+              value={domesticWorkerInsuranceMin}
+              onChange={(v) => { setDomesticWorkerInsuranceMin(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('domesticWorkerInsuranceMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('domesticWorkerInsuranceMax')}
+              value={domesticWorkerInsuranceMax}
+              onChange={(v) => { setDomesticWorkerInsuranceMax(v ?? null); setPageNumber(1); }}
+              style={{ width: '100%' }}
             />
           </Col>
         </Row>

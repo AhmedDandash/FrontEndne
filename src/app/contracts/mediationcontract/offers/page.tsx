@@ -62,6 +62,12 @@ export default function MediationOffersPage() {
   const [jobFilter, setJobFilter] = useState<string | null>(null);
   const [workerTypeFilter, setWorkerTypeFilter] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [salaryMin, setSalaryMin] = useState<number | null>(null);
+  const [salaryMax, setSalaryMax] = useState<number | null>(null);
+  const [localCostMin, setLocalCostMin] = useState<number | null>(null);
+  const [localCostMax, setLocalCostMax] = useState<number | null>(null);
+  const [agentCostSARMin, setAgentCostSARMin] = useState<number | null>(null);
+  const [agentCostSARMax, setAgentCostSARMax] = useState<number | null>(null);
 
   // API hooks — nationality/job/workerType are cheap enough to also apply
   // server-side even though this is a fetch-all picker list; the client-side
@@ -71,6 +77,12 @@ export default function MediationOffersPage() {
     NationalityId: nationalityFilter ?? undefined,
     JobId: jobFilter ?? undefined,
     WorkerType: workerTypeFilter ?? undefined,
+    SalaryMin: salaryMin ?? undefined,
+    SalaryMax: salaryMax ?? undefined,
+    LocalCostMin: localCostMin ?? undefined,
+    LocalCostMax: localCostMax ?? undefined,
+    AgentCostSARMin: agentCostSARMin ?? undefined,
+    AgentCostSARMax: agentCostSARMax ?? undefined,
   });
   const { data: contractNationalities = [] } = useContractNationalities();
   const { data: jobs = [] } = useJobs();
@@ -120,6 +132,12 @@ export default function MediationOffersPage() {
         active: 'مفعّل',
         inactive: 'معطّل',
         toggleActive: 'تفعيل/تعطيل',
+        salaryMin: 'أقل راتب',
+        salaryMax: 'أعلى راتب',
+        localCostMin: 'أقل تكلفة محلية',
+        localCostMax: 'أعلى تكلفة محلية',
+        agentCostSARMin: 'أقل تكلفة وكيل (ريال)',
+        agentCostSARMax: 'أعلى تكلفة وكيل (ريال)',
       },
       en: {
         mediationOffers: 'Mediation Offers & Prices',
@@ -155,6 +173,12 @@ export default function MediationOffersPage() {
         active: 'Active',
         inactive: 'Inactive',
         toggleActive: 'Toggle Active',
+        salaryMin: 'Min Salary',
+        salaryMax: 'Max Salary',
+        localCostMin: 'Min Local Cost',
+        localCostMax: 'Max Local Cost',
+        agentCostSARMin: 'Min Agent Cost (SAR)',
+        agentCostSARMax: 'Max Agent Cost (SAR)',
       },
     };
     return translations[language]?.[key] || key;
@@ -566,11 +590,27 @@ export default function MediationOffersPage() {
 
       {/* Filters */}
       <AdvancedFilterPanel
-        activeCount={[nationalityFilter, jobFilter, workerTypeFilter].filter((v) => v !== null).length}
+        activeCount={[
+          nationalityFilter,
+          jobFilter,
+          workerTypeFilter,
+          salaryMin,
+          salaryMax,
+          localCostMin,
+          localCostMax,
+          agentCostSARMin,
+          agentCostSARMax,
+        ].filter((v) => v !== null).length}
         onClear={() => {
           setNationalityFilter(null);
           setJobFilter(null);
           setWorkerTypeFilter(null);
+          setSalaryMin(null);
+          setSalaryMax(null);
+          setLocalCostMin(null);
+          setLocalCostMax(null);
+          setAgentCostSARMin(null);
+          setAgentCostSARMax(null);
         }}
         contentLayout="block"
         quickFilters={
@@ -624,6 +664,72 @@ export default function MediationOffersPage() {
               placeholder={t('all')}
               allowClear
               options={toSelectOptions([...WORKER_TYPE], language)}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('salaryMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('salaryMin')}
+              value={salaryMin}
+              onChange={(value) => setSalaryMin(value ?? null)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('salaryMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('salaryMax')}
+              value={salaryMax}
+              onChange={(value) => setSalaryMax(value ?? null)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('localCostMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('localCostMin')}
+              value={localCostMin}
+              onChange={(value) => setLocalCostMin(value ?? null)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('localCostMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('localCostMax')}
+              value={localCostMax}
+              onChange={(value) => setLocalCostMax(value ?? null)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('agentCostSARMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('agentCostSARMin')}
+              value={agentCostSARMin}
+              onChange={(value) => setAgentCostSARMin(value ?? null)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('agentCostSARMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('agentCostSARMax')}
+              value={agentCostSARMax}
+              onChange={(value) => setAgentCostSARMax(value ?? null)}
+              style={{ width: '100%' }}
             />
           </Col>
         </Row>

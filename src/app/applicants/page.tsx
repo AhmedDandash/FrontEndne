@@ -280,6 +280,19 @@ const translations = {
     mobileFilter: 'Mobile',
     videoSection: 'Worker Video',
     noDocuments: 'No documents uploaded',
+    basicSalaryMin: 'Min Basic Salary',
+    basicSalaryMax: 'Max Basic Salary',
+    birthDateRange: 'Birth date',
+    childrenCountMin: 'Min Children',
+    childrenCountMax: 'Max Children',
+    weightMin: 'Min Weight (kg)',
+    weightMax: 'Max Weight (kg)',
+    passportIssueDateRange: 'Passport issue date',
+    passportExpiryDateRange: 'Passport expiry date',
+    arabicLanguageLevelMin: 'Min Arabic Level',
+    arabicLanguageLevelMax: 'Max Arabic Level',
+    englishLanguageLevelMin: 'Min English Level',
+    englishLanguageLevelMax: 'Max English Level',
   },
   ar: {
     uploadVideo: 'فيديو العامل',
@@ -288,6 +301,19 @@ const translations = {
     nationalIdFilter: 'رقم الهوية',
     mobileFilter: 'رقم الجوال',
     videoSection: 'فيديو العامل',
+    basicSalaryMin: 'أقل راتب أساسي',
+    basicSalaryMax: 'أعلى راتب أساسي',
+    birthDateRange: 'تاريخ الميلاد',
+    childrenCountMin: 'أقل عدد أطفال',
+    childrenCountMax: 'أعلى عدد أطفال',
+    weightMin: 'أقل وزن (كجم)',
+    weightMax: 'أعلى وزن (كجم)',
+    passportIssueDateRange: 'تاريخ إصدار الجواز',
+    passportExpiryDateRange: 'تاريخ انتهاء الجواز',
+    arabicLanguageLevelMin: 'أقل مستوى لغة عربية',
+    arabicLanguageLevelMax: 'أعلى مستوى لغة عربية',
+    englishLanguageLevelMin: 'أقل مستوى لغة إنجليزية',
+    englishLanguageLevelMax: 'أعلى مستوى لغة إنجليزية',
     downloadPdf: 'تحميل تقرير كل البيانات PDF',
     pageTitle: 'ادارة العمالة',
     addWorker: 'إضافة العمالة',
@@ -508,6 +534,22 @@ export default function WorkersPage() {
     employeeId?: string;
     updatedDateFrom?: string;
     updatedDateTo?: string;
+    basicSalaryMin?: number;
+    basicSalaryMax?: number;
+    birthDateFrom?: string;
+    birthDateTo?: string;
+    childrenCountMin?: number;
+    childrenCountMax?: number;
+    weightMin?: number;
+    weightMax?: number;
+    passportIssueDateFrom?: string;
+    passportIssueDateTo?: string;
+    passportExpiryDateFrom?: string;
+    passportExpiryDateTo?: string;
+    arabicLanguageLevelMin?: number;
+    arabicLanguageLevelMax?: number;
+    englishLanguageLevelMin?: number;
+    englishLanguageLevelMax?: number;
   }>({ includeSubBranches: true });
   const [pageNumber, setPageNumber] = useState(1);
   const PAGE_SIZE = 50;
@@ -557,6 +599,22 @@ export default function WorkersPage() {
     if (filters.employeeId) p.EmployeeId = filters.employeeId;
     if (filters.updatedDateFrom) p.UpdatedDateFrom = filters.updatedDateFrom;
     if (filters.updatedDateTo) p.UpdatedDateTo = filters.updatedDateTo;
+    if (filters.basicSalaryMin !== undefined) p.MinBasicSalary = filters.basicSalaryMin;
+    if (filters.basicSalaryMax !== undefined) p.MaxBasicSalary = filters.basicSalaryMax;
+    if (filters.birthDateFrom) p.BirthDateFrom = filters.birthDateFrom;
+    if (filters.birthDateTo) p.BirthDateTo = filters.birthDateTo;
+    if (filters.childrenCountMin !== undefined) p.MinChildrenCount = filters.childrenCountMin;
+    if (filters.childrenCountMax !== undefined) p.MaxChildrenCount = filters.childrenCountMax;
+    if (filters.weightMin !== undefined) p.MinWeight = filters.weightMin;
+    if (filters.weightMax !== undefined) p.MaxWeight = filters.weightMax;
+    if (filters.passportIssueDateFrom) p.PassportIssueDateFrom = filters.passportIssueDateFrom;
+    if (filters.passportIssueDateTo) p.PassportIssueDateTo = filters.passportIssueDateTo;
+    if (filters.passportExpiryDateFrom) p.PassportExpiryDateFrom = filters.passportExpiryDateFrom;
+    if (filters.passportExpiryDateTo) p.PassportExpiryDateTo = filters.passportExpiryDateTo;
+    if (filters.arabicLanguageLevelMin !== undefined) p.MinArabicLanguageLevel = filters.arabicLanguageLevelMin;
+    if (filters.arabicLanguageLevelMax !== undefined) p.MaxArabicLanguageLevel = filters.arabicLanguageLevelMax;
+    if (filters.englishLanguageLevelMin !== undefined) p.MinEnglishLanguageLevel = filters.englishLanguageLevelMin;
+    if (filters.englishLanguageLevelMax !== undefined) p.MaxEnglishLanguageLevel = filters.englishLanguageLevelMax;
     return p;
   }, [filters, activeTab, pageNumber]);
 
@@ -1320,6 +1378,146 @@ export default function WorkersPage() {
                     setFilters({ ...filters, updatedDateFrom: from, updatedDateTo: to });
                     setPageNumber(1);
                   }}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('basicSalaryMin')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  placeholder={t('basicSalaryMin')}
+                  value={filters.basicSalaryMin}
+                  onChange={(value) => setFilters({ ...filters, basicSalaryMin: value ?? undefined })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('basicSalaryMax')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  placeholder={t('basicSalaryMax')}
+                  value={filters.basicSalaryMax}
+                  onChange={(value) => setFilters({ ...filters, basicSalaryMax: value ?? undefined })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('childrenCountMin')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  placeholder={t('childrenCountMin')}
+                  value={filters.childrenCountMin}
+                  onChange={(value) => setFilters({ ...filters, childrenCountMin: value ?? undefined })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('childrenCountMax')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  placeholder={t('childrenCountMax')}
+                  value={filters.childrenCountMax}
+                  onChange={(value) => setFilters({ ...filters, childrenCountMax: value ?? undefined })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('weightMin')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  placeholder={t('weightMin')}
+                  value={filters.weightMin}
+                  onChange={(value) => setFilters({ ...filters, weightMin: value ?? undefined })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('weightMax')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  placeholder={t('weightMax')}
+                  value={filters.weightMax}
+                  onChange={(value) => setFilters({ ...filters, weightMax: value ?? undefined })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('arabicLanguageLevelMin')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  placeholder={t('arabicLanguageLevelMin')}
+                  value={filters.arabicLanguageLevelMin}
+                  onChange={(value) => setFilters({ ...filters, arabicLanguageLevelMin: value ?? undefined })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('arabicLanguageLevelMax')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  placeholder={t('arabicLanguageLevelMax')}
+                  value={filters.arabicLanguageLevelMax}
+                  onChange={(value) => setFilters({ ...filters, arabicLanguageLevelMax: value ?? undefined })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('englishLanguageLevelMin')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  placeholder={t('englishLanguageLevelMin')}
+                  value={filters.englishLanguageLevelMin}
+                  onChange={(value) => setFilters({ ...filters, englishLanguageLevelMin: value ?? undefined })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={3}>
+                <label className={styles.filterLabel}>{t('englishLanguageLevelMax')}</label>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  placeholder={t('englishLanguageLevelMax')}
+                  value={filters.englishLanguageLevelMax}
+                  onChange={(value) => setFilters({ ...filters, englishLanguageLevelMax: value ?? undefined })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+
+              <Col xs={24} md={8}>
+                <label className={styles.filterLabel}>{t('birthDateRange')}</label>
+                <DateRangeFilter
+                  value={[filters.birthDateFrom, filters.birthDateTo]}
+                  onChange={([from, to]) => setFilters({ ...filters, birthDateFrom: from, birthDateTo: to })}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={8}>
+                <label className={styles.filterLabel}>{t('passportIssueDateRange')}</label>
+                <DateRangeFilter
+                  value={[filters.passportIssueDateFrom, filters.passportIssueDateTo]}
+                  onChange={([from, to]) =>
+                    setFilters({ ...filters, passportIssueDateFrom: from, passportIssueDateTo: to })
+                  }
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              <Col xs={24} md={8}>
+                <label className={styles.filterLabel}>{t('passportExpiryDateRange')}</label>
+                <DateRangeFilter
+                  value={[filters.passportExpiryDateFrom, filters.passportExpiryDateTo]}
+                  onChange={([from, to]) =>
+                    setFilters({ ...filters, passportExpiryDateFrom: from, passportExpiryDateTo: to })
+                  }
                   style={{ width: '100%' }}
                 />
               </Col>

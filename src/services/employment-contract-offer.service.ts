@@ -31,6 +31,13 @@ export interface OperatingContractOfferQuery {
   NationalityId?: string;
   JobId?: string;
   IsActive?: boolean;
+  // Extra range filters (gap audit — verified live).
+  NumberOfDaysMin?: number;
+  NumberOfDaysMax?: number;
+  CostMin?: number;
+  CostMax?: number;
+  WorkerSalaryMin?: number;
+  WorkerSalaryMax?: number;
 }
 
 export class OperatingContractOfferService {

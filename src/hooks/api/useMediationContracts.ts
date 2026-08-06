@@ -61,6 +61,27 @@ export interface MediationContractListParams {
   isUnpaid?: boolean;
   paymentDateFrom?: string;
   paymentDateTo?: string;
+  // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
+  visaDateFrom?: string;
+  visaDateTo?: string;
+  minLocalCost?: number;
+  maxLocalCost?: number;
+  minAgentCostSAR?: number;
+  maxAgentCostSAR?: number;
+  minSalary?: number;
+  maxSalary?: number;
+  minOtherCosts?: number;
+  maxOtherCosts?: number;
+  minTotalTaxValue?: number;
+  maxTotalTaxValue?: number;
+  minManagerDiscount?: number;
+  maxManagerDiscount?: number;
+  minCostDiscount?: number;
+  maxCostDiscount?: number;
+  minTotalCost?: number;
+  maxTotalCost?: number;
+  minDomesticWorkerInsurance?: number;
+  maxDomesticWorkerInsurance?: number;
   /** Skip the fetch entirely — for callers that only need the list conditionally. Defaults to true. */
   enabled?: boolean;
 }
@@ -110,6 +131,26 @@ export function useMediationContracts(params?: MediationContractListParams) {
       IsUnpaid: params?.isUnpaid,
       PaymentDateFrom: params?.paymentDateFrom,
       PaymentDateTo: params?.paymentDateTo,
+      VisaDateFrom: params?.visaDateFrom,
+      VisaDateTo: params?.visaDateTo,
+      MinLocalCost: params?.minLocalCost,
+      MaxLocalCost: params?.maxLocalCost,
+      MinAgentCostSAR: params?.minAgentCostSAR,
+      MaxAgentCostSAR: params?.maxAgentCostSAR,
+      MinSalary: params?.minSalary,
+      MaxSalary: params?.maxSalary,
+      MinOtherCosts: params?.minOtherCosts,
+      MaxOtherCosts: params?.maxOtherCosts,
+      MinTotalTaxValue: params?.minTotalTaxValue,
+      MaxTotalTaxValue: params?.maxTotalTaxValue,
+      MinManagerDiscount: params?.minManagerDiscount,
+      MaxManagerDiscount: params?.maxManagerDiscount,
+      MinCostDiscount: params?.minCostDiscount,
+      MaxCostDiscount: params?.maxCostDiscount,
+      MinTotalCost: params?.minTotalCost,
+      MaxTotalCost: params?.maxTotalCost,
+      MinDomesticWorkerInsurance: params?.minDomesticWorkerInsurance,
+      MaxDomesticWorkerInsurance: params?.maxDomesticWorkerInsurance,
     }),
   });
 

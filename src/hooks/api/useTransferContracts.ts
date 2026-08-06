@@ -33,6 +33,17 @@ export interface TransferContractParams {
   marketerId?: string;
   sortBy?: string;
   sortDescending?: boolean;
+  // Extra range/date filters (gap audit — TransferContractQuery, verified live).
+  approvalDateFrom?: string;
+  approvalDateTo?: string;
+  minTransferFees?: number;
+  maxTransferFees?: number;
+  minGovernmentFees?: number;
+  maxGovernmentFees?: number;
+  minTotalAmount?: number;
+  maxTotalAmount?: number;
+  minTrialPeriodDays?: number;
+  maxTrialPeriodDays?: number;
 }
 
 /** GET /api/TransferContract — paginated list */

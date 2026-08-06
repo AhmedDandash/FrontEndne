@@ -137,6 +137,15 @@ const TR: Record<string, Record<'ar' | 'en', string>> = {
   allCustomers:    { ar: 'جميع العملاء', en: 'All Customers' },
   allWorkers:      { ar: 'جميع العمال',  en: 'All Workers' },
   allMarketers:    { ar: 'جميع المسوقين', en: 'All Marketers' },
+  approvalDateRange:  { ar: 'تاريخ الموافقة',      en: 'Approval date' },
+  transferFeesMin:    { ar: 'أقل رسوم نقل',        en: 'Min Transfer Fees' },
+  transferFeesMax:    { ar: 'أعلى رسوم نقل',        en: 'Max Transfer Fees' },
+  governmentFeesMin:  { ar: 'أقل رسوم حكومية',      en: 'Min Government Fees' },
+  governmentFeesMax:  { ar: 'أعلى رسوم حكومية',     en: 'Max Government Fees' },
+  totalAmountMin:     { ar: 'أقل إجمالي',           en: 'Min Total Amount' },
+  totalAmountMax:     { ar: 'أعلى إجمالي',          en: 'Max Total Amount' },
+  trialPeriodDaysMin: { ar: 'أقل مدة تجربة (يوم)',  en: 'Min Trial Period (days)' },
+  trialPeriodDaysMax: { ar: 'أعلى مدة تجربة (يوم)', en: 'Max Trial Period (days)' },
 };
 
 function useT() {
@@ -662,6 +671,18 @@ export default function SponsorshipTransferPage() {
     undefined,
     undefined,
   ]);
+  const [approvalDateRange, setApprovalDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [transferFeesMin, setTransferFeesMin] = useState<number | undefined>(undefined);
+  const [transferFeesMax, setTransferFeesMax] = useState<number | undefined>(undefined);
+  const [governmentFeesMin, setGovernmentFeesMin] = useState<number | undefined>(undefined);
+  const [governmentFeesMax, setGovernmentFeesMax] = useState<number | undefined>(undefined);
+  const [totalAmountMin, setTotalAmountMin] = useState<number | undefined>(undefined);
+  const [totalAmountMax, setTotalAmountMax] = useState<number | undefined>(undefined);
+  const [trialPeriodDaysMin, setTrialPeriodDaysMin] = useState<number | undefined>(undefined);
+  const [trialPeriodDaysMax, setTrialPeriodDaysMax] = useState<number | undefined>(undefined);
   const [customerFilter, setCustomerFilter] = useState<string | 'all'>('all');
   const [workerFilter,   setWorkerFilter]   = useState<string | 'all'>('all');
   const [marketerFilter, setMarketerFilter] = useState<string | 'all'>('all');
@@ -712,6 +733,16 @@ export default function SponsorshipTransferPage() {
       createdDateTo: dateRange[1],
       updatedDateFrom: updatedDateRange[0],
       updatedDateTo: updatedDateRange[1],
+      approvalDateFrom: approvalDateRange[0],
+      approvalDateTo: approvalDateRange[1],
+      minTransferFees: transferFeesMin,
+      maxTransferFees: transferFeesMax,
+      minGovernmentFees: governmentFeesMin,
+      maxGovernmentFees: governmentFeesMax,
+      minTotalAmount: totalAmountMin,
+      maxTotalAmount: totalAmountMax,
+      minTrialPeriodDays: trialPeriodDaysMin,
+      maxTrialPeriodDays: trialPeriodDaysMax,
       customerId: customerFilter === 'all' ? undefined : customerFilter,
       workerId: workerFilter === 'all' ? undefined : workerFilter,
       marketerId: marketerFilter === 'all' ? undefined : marketerFilter,
@@ -725,6 +756,15 @@ export default function SponsorshipTransferPage() {
       statusFilter,
       dateRange,
       updatedDateRange,
+      approvalDateRange,
+      transferFeesMin,
+      transferFeesMax,
+      governmentFeesMin,
+      governmentFeesMax,
+      totalAmountMin,
+      totalAmountMax,
+      trialPeriodDaysMin,
+      trialPeriodDaysMax,
       customerFilter,
       workerFilter,
       marketerFilter,
@@ -757,6 +797,15 @@ export default function SponsorshipTransferPage() {
     workerFilter !== 'all',
     marketerFilter !== 'all',
     Boolean(updatedDateRange[0]),
+    Boolean(approvalDateRange[0]),
+    transferFeesMin !== undefined,
+    transferFeesMax !== undefined,
+    governmentFeesMin !== undefined,
+    governmentFeesMax !== undefined,
+    totalAmountMin !== undefined,
+    totalAmountMax !== undefined,
+    trialPeriodDaysMin !== undefined,
+    trialPeriodDaysMax !== undefined,
   ].filter(Boolean).length;
 
   const clearAdvancedFilters = () => {
@@ -764,6 +813,15 @@ export default function SponsorshipTransferPage() {
     setWorkerFilter('all');
     setMarketerFilter('all');
     setUpdatedDateRange([undefined, undefined]);
+    setApprovalDateRange([undefined, undefined]);
+    setTransferFeesMin(undefined);
+    setTransferFeesMax(undefined);
+    setGovernmentFeesMin(undefined);
+    setGovernmentFeesMax(undefined);
+    setTotalAmountMin(undefined);
+    setTotalAmountMax(undefined);
+    setTrialPeriodDaysMin(undefined);
+    setTrialPeriodDaysMax(undefined);
     setCurrentPage(1);
   };
 
@@ -962,6 +1020,103 @@ export default function SponsorshipTransferPage() {
               value={updatedDateRange}
               onChange={(range) => { setUpdatedDateRange(range); setCurrentPage(1); }}
               placeholder={['حُدّث من', 'إلى']}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('approvalDateRange')}</label>
+            <DateRangeFilter
+              value={approvalDateRange}
+              onChange={(range) => { setApprovalDateRange(range); setCurrentPage(1); }}
+              placeholder={['وافق من', 'إلى']}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={3}>
+            <label className={styles.filterLabel}>{t('transferFeesMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('transferFeesMin')}
+              value={transferFeesMin}
+              onChange={(value) => { setTransferFeesMin(value ?? undefined); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={3}>
+            <label className={styles.filterLabel}>{t('transferFeesMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('transferFeesMax')}
+              value={transferFeesMax}
+              onChange={(value) => { setTransferFeesMax(value ?? undefined); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={3}>
+            <label className={styles.filterLabel}>{t('governmentFeesMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('governmentFeesMin')}
+              value={governmentFeesMin}
+              onChange={(value) => { setGovernmentFeesMin(value ?? undefined); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={3}>
+            <label className={styles.filterLabel}>{t('governmentFeesMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('governmentFeesMax')}
+              value={governmentFeesMax}
+              onChange={(value) => { setGovernmentFeesMax(value ?? undefined); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={3}>
+            <label className={styles.filterLabel}>{t('totalAmountMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('totalAmountMin')}
+              value={totalAmountMin}
+              onChange={(value) => { setTotalAmountMin(value ?? undefined); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={3}>
+            <label className={styles.filterLabel}>{t('totalAmountMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('totalAmountMax')}
+              value={totalAmountMax}
+              onChange={(value) => { setTotalAmountMax(value ?? undefined); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={3}>
+            <label className={styles.filterLabel}>{t('trialPeriodDaysMin')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('trialPeriodDaysMin')}
+              value={trialPeriodDaysMin}
+              onChange={(value) => { setTrialPeriodDaysMin(value ?? undefined); setCurrentPage(1); }}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col xs={24} md={3}>
+            <label className={styles.filterLabel}>{t('trialPeriodDaysMax')}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              placeholder={t('trialPeriodDaysMax')}
+              value={trialPeriodDaysMax}
+              onChange={(value) => { setTrialPeriodDaysMax(value ?? undefined); setCurrentPage(1); }}
               style={{ width: '100%' }}
             />
           </Col>

@@ -5,7 +5,9 @@
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { buildListParams } from '@/lib/api/buildListParams';
 import type { Agent, CreateAgentDto, UpdateAgentDto } from '@/types/api.types';
+import type { AgentQuery, PagedResponse } from '@/types/filters.types';
 
 export class AgentService {
   /**
@@ -53,6 +55,24 @@ export class AgentService {
   /**
    * Get agent by ID
    */
+  static async getPaged(query?: AgentQuery): Promise<PagedResponse<Agent>> {
+    const params = buildListParams(query as Record<string, unknown>);
+    const response = await api.get<any>(API_ENDPOINTS.AGENT.GET_ALL, { params });
+    const payload = response.data?.data ?? response.data?.result ?? response.data?.value ?? response.data;
+    const items = Array.isArray(payload?.items)
+      ? payload.items
+      : Array.isArray(payload)
+        ? payload
+        : [];
+
+    return {
+      items,
+      totalCount: payload?.totalCount ?? items.length,
+      pageNumber: payload?.pageNumber ?? query?.PageNumber ?? 1,
+      pageSize: payload?.pageSize ?? query?.PageSize ?? 10,
+    };
+  }
+
   static async getById(id: number | string): Promise<Agent> {
     const response = await api.get<any>(API_ENDPOINTS.AGENT.GET_BY_ID(id));
     // The backend wraps the record in an envelope ({ data: {...} } / { result } /

@@ -18,6 +18,8 @@ import {
   Badge,
   Progress,
   Typography,
+  Row,
+  Col,
 } from 'antd';
 import {
   PlusOutlined,
@@ -31,7 +33,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useHousings } from '@/hooks/api/useHousing';
 import { useOpenIdParam } from '@/hooks/useOpenIdParam';
-import { AdvancedFilterPanel } from '@/components/filters';
+import { AdvancedFilterPanel, TextMatchFilter, type TextMatchValue } from '@/components/filters';
 import fullPage from '@/styles/fullPageModal.module.css';
 import type { Housing, HousingDto } from '@/types/housing.types';
 import styles from './HousingManagement.module.css';
@@ -56,12 +58,37 @@ export default function HousingManagementPage() {
   // `Name` filter cannot do).
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
   const [hasAvailableSlotsFilter, setHasAvailableSlotsFilter] = useState<boolean | undefined>(undefined);
+  // Numeric range filters (backend /api/Housing/GetAll supports these — see
+  // FILTER_AUDIT gap list). Min/max pairs, all optional.
+  const [capacityMin, setCapacityMin] = useState<number | undefined>(undefined);
+  const [capacityMax, setCapacityMax] = useState<number | undefined>(undefined);
+  const [workerHousingCostMin, setWorkerHousingCostMin] = useState<number | undefined>(undefined);
+  const [workerHousingCostMax, setWorkerHousingCostMax] = useState<number | undefined>(undefined);
+  const [housingOperationPriceMin, setHousingOperationPriceMin] = useState<number | undefined>(undefined);
+  const [housingOperationPriceMax, setHousingOperationPriceMax] = useState<number | undefined>(undefined);
+  // Text + match-mode filters (backend /api/Housing/GetAll supports Name/NameMatch,
+  // Address/AddressMatch, Notes/NotesMatch — none had any filter UI before).
+  const [nameFilter, setNameFilter] = useState<TextMatchValue>({});
+  const [addressFilter, setAddressFilter] = useState<TextMatchValue>({});
+  const [notesFilter, setNotesFilter] = useState<TextMatchValue>({});
   const [form] = Form.useForm<HousingDto>();
 
   const { housings, isLoading, createHousing, updateHousing, toggleActive, deleteHousing,
     isCreating, isUpdating } = useHousings({
+    name: nameFilter.text,
+    nameMatch: nameFilter.mode,
+    address: addressFilter.text,
+    addressMatch: addressFilter.mode,
+    notes: notesFilter.text,
+    notesMatch: notesFilter.mode,
     isActive: isActiveFilter,
     hasAvailableSlots: hasAvailableSlotsFilter,
+    capacityMin,
+    capacityMax,
+    workerHousingCostMin,
+    workerHousingCostMax,
+    housingOperationPriceMin,
+    housingOperationPriceMax,
   });
 
   const openDetail = (id: string) => router.push(`/housing/management/${id}`);
@@ -238,8 +265,33 @@ export default function HousingManagementPage() {
       </div>
 
       <AdvancedFilterPanel
-        activeCount={[isActiveFilter !== undefined, hasAvailableSlotsFilter !== undefined].filter(Boolean).length}
-        onClear={() => { setIsActiveFilter(undefined); setHasAvailableSlotsFilter(undefined); }}
+        activeCount={[
+          isActiveFilter !== undefined,
+          hasAvailableSlotsFilter !== undefined,
+          capacityMin !== undefined,
+          capacityMax !== undefined,
+          workerHousingCostMin !== undefined,
+          workerHousingCostMax !== undefined,
+          housingOperationPriceMin !== undefined,
+          housingOperationPriceMax !== undefined,
+          Boolean(nameFilter.text),
+          Boolean(addressFilter.text),
+          Boolean(notesFilter.text),
+        ].filter(Boolean).length}
+        onClear={() => {
+          setIsActiveFilter(undefined);
+          setHasAvailableSlotsFilter(undefined);
+          setCapacityMin(undefined);
+          setCapacityMax(undefined);
+          setWorkerHousingCostMin(undefined);
+          setWorkerHousingCostMax(undefined);
+          setHousingOperationPriceMin(undefined);
+          setHousingOperationPriceMax(undefined);
+          setNameFilter({});
+          setAddressFilter({});
+          setNotesFilter({});
+        }}
+        contentLayout="block"
         quickFilters={
           <>
             <Input
@@ -282,7 +334,103 @@ export default function HousingManagementPage() {
             </div>
           </>
         }
-      />
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('Ø§Ù„Ø§Ø³Ù…', 'Name', lang)}</label>
+            <TextMatchFilter
+              lang={lang}
+              value={nameFilter}
+              onChange={setNameFilter}
+              placeholder={t('Ø§Ù„Ø§Ø³Ù…', 'Name', lang)}
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('Ø§Ù„Ø¹Ù†ÙˆØ§Ù†', 'Address', lang)}</label>
+            <TextMatchFilter
+              lang={lang}
+              value={addressFilter}
+              onChange={setAddressFilter}
+              placeholder={t('Ø§Ù„Ø¹Ù†ÙˆØ§Ù†', 'Address', lang)}
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <label className={styles.filterLabel}>{t('Ø§Ù„Ù…Ù„Ø§Ø­Ø¸Ø§Øª', 'Notes', lang)}</label>
+            <TextMatchFilter
+              lang={lang}
+              value={notesFilter}
+              onChange={setNotesFilter}
+              placeholder={t('Ø§Ù„Ù…Ù„Ø§Ø­Ø¸Ø§Øª', 'Notes', lang)}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('أقل طاقة استيعابية', 'Min Capacity', lang)}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              placeholder={t('أقل طاقة استيعابية', 'Min Capacity', lang)}
+              value={capacityMin}
+              onChange={(v) => setCapacityMin(v ?? undefined)}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('أعلى طاقة استيعابية', 'Max Capacity', lang)}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              placeholder={t('أعلى طاقة استيعابية', 'Max Capacity', lang)}
+              value={capacityMax}
+              onChange={(v) => setCapacityMax(v ?? undefined)}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('أقل تكلفة إيواء العامل', 'Min Worker Housing Cost', lang)}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              placeholder={t('أقل تكلفة إيواء العامل', 'Min Worker Housing Cost', lang)}
+              value={workerHousingCostMin}
+              onChange={(v) => setWorkerHousingCostMin(v ?? undefined)}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('أعلى تكلفة إيواء العامل', 'Max Worker Housing Cost', lang)}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              placeholder={t('أعلى تكلفة إيواء العامل', 'Max Worker Housing Cost', lang)}
+              value={workerHousingCostMax}
+              onChange={(v) => setWorkerHousingCostMax(v ?? undefined)}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('أقل سعر تشغيل السكن', 'Min Operation Price', lang)}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              placeholder={t('أقل سعر تشغيل السكن', 'Min Operation Price', lang)}
+              value={housingOperationPriceMin}
+              onChange={(v) => setHousingOperationPriceMin(v ?? undefined)}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <label className={styles.filterLabel}>{t('أعلى سعر تشغيل السكن', 'Max Operation Price', lang)}</label>
+            <InputNumber
+              size="large"
+              min={0}
+              style={{ width: '100%' }}
+              placeholder={t('أعلى سعر تشغيل السكن', 'Max Operation Price', lang)}
+              value={housingOperationPriceMax}
+              onChange={(v) => setHousingOperationPriceMax(v ?? undefined)}
+            />
+          </Col>
+        </Row>
+      </AdvancedFilterPanel>
 
       {/* Main Card */}
       <Card

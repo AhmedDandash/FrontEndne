@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Card,
   Row,
@@ -19,6 +19,7 @@ import {
   Spin,
   message,
   Select,
+  Pagination,
   Descriptions,
   Divider,
   InputNumber,
@@ -48,15 +49,28 @@ import {
   PushpinOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
-import { useBranches } from '@/hooks/api/useBranches';
+import { useBranches, usePagedBranches } from '@/hooks/api/useBranches';
 import type { Branch, BranchDto } from '@/types/api.types';
+import type { BranchQuery } from '@/types/filters.types';
 import { getCurrentPosition, GeolocationError, geolocationErrorMessage } from '@/utils/geolocation';
 import LocationPicker from '@/components/branch/LocationPicker';
+import {
+  AdvancedFilterPanel,
+  DynamicFilterFields,
+  countDynamicFilters,
+  serializeDynamicFilters,
+  type DynamicFilterDefinition,
+  type DynamicFilterValues,
+} from '@/components/filters';
 import styles from './Branch.module.css';
 
 export default function BranchPage() {
   const language = useAuthStore((state) => state.language);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [filterValues, setFilterValues] = useState<DynamicFilterValues>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [selectedMainBranch, setSelectedMainBranch] = useState<number>(1);
@@ -67,8 +81,8 @@ export default function BranchPage() {
 
   // Use the real API hooks
   const {
-    branches,
-    isLoading,
+    branches: allBranches,
+    isLoading: isAllBranchesLoading,
     useBranch,
     createBranch,
     updateBranch,
@@ -80,7 +94,7 @@ export default function BranchPage() {
 
   const { data: viewBranchData, isLoading: isViewLoading } = useBranch(viewingBranchId ?? '');
 
-  const t = (key: string) => {
+  const t = useCallback((key: string) => {
     const translations: { [key: string]: { ar: string; en: string } } = {
       pageTitle: { ar: 'إدارة الفروع', en: 'Branch Management' },
       addBranch: { ar: 'إضافة فرع جديد', en: 'Add New Branch' },
@@ -154,7 +168,214 @@ export default function BranchPage() {
       },
     };
     return translations[key]?.[language] || key;
+  }, [language]);
+
+  const allBranchesList = useMemo(
+    () => (Array.isArray(allBranches) ? allBranches : []),
+    [allBranches]
+  );
+  const topLevelBranches = useMemo(
+    () => allBranchesList.filter((b) => !b.parentBranchId),
+    [allBranchesList]
+  );
+
+  const branchFilterDefinitions = useMemo<DynamicFilterDefinition[]>(
+    () => [
+      { key: 'Id', apiParameter: 'Id', label: 'Branch ID', type: 'text' },
+      {
+        key: 'NameAr',
+        apiParameter: 'NameAr',
+        matchApiParameter: 'NameArMatch',
+        label: t('branchNameAr'),
+        type: 'text-match',
+      },
+      {
+        key: 'NameEn',
+        apiParameter: 'NameEn',
+        matchApiParameter: 'NameEnMatch',
+        label: t('branchNameEn'),
+        type: 'text-match',
+      },
+      {
+        key: 'AddressAr',
+        apiParameter: 'AddressAr',
+        matchApiParameter: 'AddressArMatch',
+        label: t('addressAr'),
+        type: 'text-match',
+      },
+      {
+        key: 'AddressEn',
+        apiParameter: 'AddressEn',
+        matchApiParameter: 'AddressEnMatch',
+        label: t('addressEn'),
+        type: 'text-match',
+      },
+      {
+        key: 'Phone',
+        apiParameter: 'Phone',
+        matchApiParameter: 'PhoneMatch',
+        label: t('phone'),
+        type: 'text-match',
+      },
+      {
+        key: 'Mobile',
+        apiParameter: 'Mobile',
+        matchApiParameter: 'MobileMatch',
+        label: t('mobile'),
+        type: 'text-match',
+      },
+      {
+        key: 'Email',
+        apiParameter: 'Email',
+        matchApiParameter: 'EmailMatch',
+        label: t('email'),
+        type: 'text-match',
+      },
+      {
+        key: 'BranchLicense',
+        apiParameter: 'BranchLicense',
+        matchApiParameter: 'BranchLicenseMatch',
+        label: t('licenseId'),
+        type: 'text-match',
+      },
+      {
+        key: 'CommercialRegistrationNumber',
+        apiParameter: 'CommercialRegistrationNumber',
+        matchApiParameter: 'CommercialRegistrationNumberMatch',
+        label: t('tradingId'),
+        type: 'text-match',
+      },
+      {
+        key: 'CommercialRegistrationDate',
+        fromApiParameter: 'CommercialRegistrationDateFrom',
+        toApiParameter: 'CommercialRegistrationDateTo',
+        label: t('commercialRegDate'),
+        type: 'date-range',
+      },
+      {
+        key: 'LaborLicenseNumber',
+        apiParameter: 'LaborLicenseNumber',
+        matchApiParameter: 'LaborLicenseNumberMatch',
+        label: t('laborLicense'),
+        type: 'text-match',
+      },
+      {
+        key: 'LaborLicenseDate',
+        fromApiParameter: 'LaborLicenseDateFrom',
+        toApiParameter: 'LaborLicenseDateTo',
+        label: t('laborLicenseDate'),
+        type: 'date-range',
+      },
+      {
+        key: 'TaxNumber',
+        apiParameter: 'TaxNumber',
+        matchApiParameter: 'TaxNumberMatch',
+        label: t('taxNumber'),
+        type: 'text-match',
+      },
+      {
+        key: 'Domain',
+        apiParameter: 'Domain',
+        matchApiParameter: 'DomainMatch',
+        label: t('domain'),
+        type: 'text-match',
+      },
+      {
+        key: 'ManagerNameAr',
+        apiParameter: 'ManagerNameAr',
+        matchApiParameter: 'ManagerNameArMatch',
+        label: t('managerName'),
+        type: 'text-match',
+      },
+      {
+        key: 'OrganizationTypeAr',
+        apiParameter: 'OrganizationTypeAr',
+        label: 'Organization type',
+        type: 'number',
+      },
+      { key: 'CityAr', apiParameter: 'CityAr', label: 'City code', type: 'number' },
+      {
+        key: 'MainBranch',
+        apiParameter: 'MainBranch',
+        label: t('branchType'),
+        type: 'select',
+        options: [
+          { value: 1, label: t('mainBranch') },
+          { value: 0, label: t('subBranch') },
+        ],
+      },
+      {
+        key: 'ParentBranchId',
+        apiParameter: 'ParentBranchId',
+        label: t('parentBranch'),
+        type: 'select',
+        options: topLevelBranches.map((branch) => ({
+          value: String(branch.id),
+          label: (language === 'ar' ? branch.nameAr : branch.nameEn) || String(branch.id),
+        })),
+      },
+      { key: 'IsRootOnly', apiParameter: 'IsRootOnly', label: 'Root branches only', type: 'boolean' },
+      { key: 'BranchId', apiParameter: 'BranchId', label: 'Scoped branch ID', type: 'text' },
+      {
+        key: 'IncludeSubBranches',
+        apiParameter: 'IncludeSubBranches',
+        label: 'Include sub-branches',
+        type: 'boolean',
+      },
+      { key: 'Search', apiParameter: 'Search', label: 'General search', type: 'text' },
+      {
+        key: 'CreatedDate',
+        fromApiParameter: 'CreatedDateFrom',
+        toApiParameter: 'CreatedDateTo',
+        label: t('createdDate'),
+        type: 'date-range',
+      },
+      {
+        key: 'UpdatedDate',
+        fromApiParameter: 'UpdatedDateFrom',
+        toApiParameter: 'UpdatedDateTo',
+        label: 'Updated date',
+        type: 'date-range',
+      },
+    ],
+    [language, topLevelBranches, t]
+  );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  const branchQuery = useMemo<BranchQuery>(
+    () => ({
+      ...(serializeDynamicFilters(branchFilterDefinitions, filterValues) as BranchQuery),
+      SearchName: debouncedSearch || undefined,
+      PageNumber: currentPage,
+      PageSize: pageSize,
+    }),
+    [branchFilterDefinitions, filterValues, debouncedSearch, currentPage, pageSize]
+  );
+
+  const { data: branchesPage, isLoading: isPagedBranchesLoading } = usePagedBranches(branchQuery);
+  const visibleBranches = branchesPage?.items ?? [];
+  const totalBranchCount = branchesPage?.totalCount ?? visibleBranches.length;
+
+  const handleFilterValueChange = (key: string, value: unknown) => {
+    setFilterValues((current) => ({ ...current, [key]: value }));
+    setCurrentPage(1);
   };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDebouncedSearch('');
+    setFilterValues({});
+    setCurrentPage(1);
+  };
+
+  const activeFilterCount =
+    countDynamicFilters(branchFilterDefinitions, filterValues) + (debouncedSearch ? 1 : 0);
 
   const handleUseMyLocation = async () => {
     setLocating(true);
@@ -185,21 +406,6 @@ export default function BranchPage() {
     });
     message.success(language === 'ar' ? 'تم تحديد الموقع من الخريطة' : 'Location selected from map');
   };
-
-  // API returns only top-level branches (parentBranchId === null) with subBranches nested
-  const topLevelBranches = (branches || []).filter((b) => !b.parentBranchId);
-
-  const filteredBranches = topLevelBranches.filter((branch) => {
-    const searchLower = searchTerm.toLowerCase();
-    const name = language === 'ar' ? branch.nameAr : branch.nameEn;
-    const address = language === 'ar' ? branch.addressAr : branch.addressEn;
-    return (
-      (name || '').toLowerCase().includes(searchLower) ||
-      (address || '').toLowerCase().includes(searchLower) ||
-      (branch.branchLicense || '').includes(searchLower) ||
-      (branch.taxNumber || '').includes(searchLower)
-    );
-  });
 
   const handleAddBranch = () => {
     setEditingBranch(null);
@@ -332,17 +538,33 @@ export default function BranchPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className={styles.searchSection}>
-        <Input
-          size="large"
-          placeholder={t('searchPlaceholder')}
-          prefix={<SearchOutlined />}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={styles.searchInput}
-          allowClear
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        contentLayout="block"
+        defaultOpen={activeFilterCount > 0}
+        quickFilters={
+          <Input
+            size="large"
+            placeholder={t('searchPlaceholder')}
+            prefix={<SearchOutlined />}
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className={styles.searchInput}
+            allowClear
+          />
+        }
+      >
+        <DynamicFilterFields
+          definitions={branchFilterDefinitions}
+          values={filterValues}
+          onChange={handleFilterValueChange}
+          lang={language}
         />
-      </div>
+      </AdvancedFilterPanel>
 
       {/* Stats Overview */}
       <Row gutter={[24, 24]} className={styles.statsRow}>
@@ -355,7 +577,7 @@ export default function BranchPage() {
               <div className={styles.statInfo}>
                 <p className={styles.statLabel}>{t('totalBranches')}</p>
                 <h3 className={styles.statValue}>
-                  {(branches || []).reduce(
+                  {allBranchesList.reduce(
                     (acc, b) => acc + 1 + (b.subBranches?.length || 0),
                     0
                   )}
@@ -373,7 +595,7 @@ export default function BranchPage() {
               <div className={styles.statInfo}>
                 <p className={styles.statLabel}>{t('active')}</p>
                 <h3 className={styles.statValue}>
-                  {(branches || []).reduce(
+                  {allBranchesList.reduce(
                     (acc, b) => acc + 1 + (b.subBranches?.length || 0),
                     0
                   )}
@@ -391,7 +613,7 @@ export default function BranchPage() {
               <div className={styles.statInfo}>
                 <p className={styles.statLabel}>{t('mainBranch')}</p>
                 <h3 className={styles.statValue}>
-                  {branches?.filter((b) => b.mainBranch === 1).length || 0}
+                  {allBranchesList.filter((b) => b.mainBranch === 1).length || 0}
                 </h3>
               </div>
             </div>
@@ -400,15 +622,16 @@ export default function BranchPage() {
       </Row>
 
       {/* Branch Cards Grid */}
-      {isLoading ? (
+      {isPagedBranchesLoading || isAllBranchesLoading ? (
         <Card>
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
             <Spin size="large" />
           </div>
         </Card>
-      ) : filteredBranches.length > 0 ? (
+      ) : visibleBranches.length > 0 ? (
+        <>
         <Row gutter={[24, 24]} className={styles.branchGrid}>
-          {filteredBranches.map((branch) => (
+          {visibleBranches.map((branch) => (
             <Col xs={24} lg={12} key={branch.id}>
               <Card className={styles.branchCard} hoverable>
                 {/* Card Header */}
@@ -620,6 +843,21 @@ export default function BranchPage() {
             </Col>
           ))}
         </Row>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalBranchCount}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showTotal={(total) => `${t('totalBranches')}: ${total}`}
+          />
+        </div>
+        </>
       ) : (
         <Card>
           <Empty description={t('noBranches')} />
