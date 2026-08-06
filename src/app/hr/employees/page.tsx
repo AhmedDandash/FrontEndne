@@ -34,9 +34,15 @@ import {
   ApartmentOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType, TableProps } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { AdvancedFilterPanel, DateRangeFilter } from '@/components/filters';
+import {
+  AdvancedFilterPanel,
+  BranchFilterSelect,
+  DateRangeFilter,
+  TextMatchFilter,
+  type TextMatchValue,
+} from '@/components/filters';
 import { useHREmployees } from '@/hooks/api/useHR';
 import { useAdminPositions, useDepartments } from '@/hooks/api/useAdmin';
 import NationalitySelect from '@/components/common/NationalitySelect';
@@ -47,6 +53,33 @@ const { Title } = Typography;
 
 const PAGE_SIZE = 10;
 
+type EmployeeTextFilterKey =
+  | 'employeeNumber'
+  | 'nameAr'
+  | 'nameEn'
+  | 'email'
+  | 'idNumber'
+  | 'mobileNumber'
+  | 'userName'
+  | 'userId'
+  | 'bankName'
+  | 'bankAccountNumber'
+  | 'iban';
+
+const emptyTextFilters: Record<EmployeeTextFilterKey, TextMatchValue> = {
+  employeeNumber: {},
+  nameAr: {},
+  nameEn: {},
+  email: {},
+  idNumber: {},
+  mobileNumber: {},
+  userName: {},
+  userId: {},
+  bankName: {},
+  bankAccountNumber: {},
+  iban: {},
+};
+
 export default function HREmployeesPage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -56,16 +89,36 @@ export default function HREmployeesPage() {
   const [form] = Form.useForm();
 
   // Advanced filters (gap-audit addition).
+  const [idFilter, setIdFilter] = useState('');
+  const [generalSearchFilter, setGeneralSearchFilter] = useState('');
+  const [textFilters, setTextFilters] = useState<Record<EmployeeTextFilterKey, TextMatchValue>>(emptyTextFilters);
+  const [departmentIdFilter, setDepartmentIdFilter] = useState<string | undefined>(undefined);
   const [employeePositionIdFilter, setEmployeePositionIdFilter] = useState<string | undefined>(undefined);
+  const [nationalityIdFilter, setNationalityIdFilter] = useState<string | undefined>(undefined);
+  const [branchIdFilter, setBranchIdFilter] = useState<string | undefined>(undefined);
+  const [includeSubBranches, setIncludeSubBranches] = useState(true);
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
   const [hiringDateRange, setHiringDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [createdDateRange, setCreatedDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [updatedDateRange, setUpdatedDateRange] = useState<[string | undefined, string | undefined]>([
     undefined,
     undefined,
   ]);
   const [basicSalaryMinFilter, setBasicSalaryMinFilter] = useState<number | undefined>(undefined);
   const [basicSalaryMaxFilter, setBasicSalaryMaxFilter] = useState<number | undefined>(undefined);
-  const [ibanFilter, setIbanFilter] = useState('');
+  const [sortBy, setSortBy] = useState<string | undefined>(undefined);
+  const [sortDescending, setSortDescending] = useState<boolean | undefined>(undefined);
 
   const openDetail = (id: string) => router.push(`/hr/employees/${id}`);
+  const textValue = (key: EmployeeTextFilterKey) => textFilters[key].text?.trim() || undefined;
+  const textMatch = (key: EmployeeTextFilterKey) =>
+    textValue(key) ? textFilters[key].mode : undefined;
 
   const {
     employees,
@@ -80,15 +133,50 @@ export default function HREmployeesPage() {
     isDeleting,
     isResettingPassword,
   } = useHREmployees({
-    searchName: search || undefined,
-    page,
-    pageSize: PAGE_SIZE,
-    employeePositionId: employeePositionIdFilter,
-    hiringDateFrom: hiringDateRange[0],
-    hiringDateTo: hiringDateRange[1],
-    basicSalaryMin: basicSalaryMinFilter,
-    basicSalaryMax: basicSalaryMaxFilter,
-    iban: ibanFilter || undefined,
+    SearchName: search || undefined,
+    Page: page,
+    PageNumber: page,
+    PageSize: PAGE_SIZE,
+    Id: idFilter.trim() || undefined,
+    EmployeeNumber: textValue('employeeNumber'),
+    EmployeeNumberMatch: textMatch('employeeNumber'),
+    NameAr: textValue('nameAr'),
+    NameArMatch: textMatch('nameAr'),
+    NameEn: textValue('nameEn'),
+    NameEnMatch: textMatch('nameEn'),
+    Email: textValue('email'),
+    EmailMatch: textMatch('email'),
+    IdNumber: textValue('idNumber'),
+    IdNumberMatch: textMatch('idNumber'),
+    MobileNumber: textValue('mobileNumber'),
+    MobileNumberMatch: textMatch('mobileNumber'),
+    UserName: textValue('userName'),
+    UserNameMatch: textMatch('userName'),
+    UserId: textValue('userId'),
+    UserIdMatch: textMatch('userId'),
+    DepartmentId: departmentIdFilter,
+    EmployeePositionId: employeePositionIdFilter,
+    NationalityId: nationalityIdFilter,
+    HiringDateFrom: hiringDateRange[0],
+    HiringDateTo: hiringDateRange[1],
+    BasicSalaryMin: basicSalaryMinFilter,
+    BasicSalaryMax: basicSalaryMaxFilter,
+    IsActive: isActiveFilter,
+    BankName: textValue('bankName'),
+    BankNameMatch: textMatch('bankName'),
+    BankAccountNumber: textValue('bankAccountNumber'),
+    BankAccountNumberMatch: textMatch('bankAccountNumber'),
+    IBAN: textValue('iban'),
+    IBANMatch: textMatch('iban'),
+    BranchId: branchIdFilter,
+    IncludeSubBranches: branchIdFilter ? includeSubBranches : undefined,
+    Search: generalSearchFilter.trim() || undefined,
+    CreatedDateFrom: createdDateRange[0],
+    CreatedDateTo: createdDateRange[1],
+    UpdatedDateFrom: updatedDateRange[0],
+    UpdatedDateTo: updatedDateRange[1],
+    SortBy: sortBy,
+    SortDescending: sortDescending,
   });
 
   const { positions } = useAdminPositions();
@@ -100,21 +188,50 @@ export default function HREmployeesPage() {
     setPage(1);
   }, []);
 
+  const setTextFilter = (key: EmployeeTextFilterKey, value: TextMatchValue) => {
+    setTextFilters((prev) => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
+
   // Count of active advanced filters (for the panel badge / clear button).
+  const activeTextFilterCount = (Object.keys(textFilters) as EmployeeTextFilterKey[]).filter(
+    (key) => !!textValue(key)
+  ).length;
   const activeFilterCount =
+    (search ? 1 : 0) +
+    (idFilter ? 1 : 0) +
+    (generalSearchFilter ? 1 : 0) +
+    activeTextFilterCount +
+    (departmentIdFilter ? 1 : 0) +
     (employeePositionIdFilter ? 1 : 0) +
+    (nationalityIdFilter ? 1 : 0) +
+    (branchIdFilter ? 1 : 0) +
+    (isActiveFilter !== undefined ? 1 : 0) +
     (hiringDateRange[0] || hiringDateRange[1] ? 1 : 0) +
+    (createdDateRange[0] || createdDateRange[1] ? 1 : 0) +
+    (updatedDateRange[0] || updatedDateRange[1] ? 1 : 0) +
     (basicSalaryMinFilter !== undefined ? 1 : 0) +
     (basicSalaryMaxFilter !== undefined ? 1 : 0) +
-    (ibanFilter ? 1 : 0);
+    (sortBy ? 1 : 0);
 
   const handleClearFilters = () => {
     setSearch('');
+    setIdFilter('');
+    setGeneralSearchFilter('');
+    setTextFilters(emptyTextFilters);
+    setDepartmentIdFilter(undefined);
     setEmployeePositionIdFilter(undefined);
+    setNationalityIdFilter(undefined);
+    setBranchIdFilter(undefined);
+    setIncludeSubBranches(true);
+    setIsActiveFilter(undefined);
     setHiringDateRange([undefined, undefined]);
+    setCreatedDateRange([undefined, undefined]);
+    setUpdatedDateRange([undefined, undefined]);
     setBasicSalaryMinFilter(undefined);
     setBasicSalaryMaxFilter(undefined);
-    setIbanFilter('');
+    setSortBy(undefined);
+    setSortDescending(undefined);
     setPage(1);
   };
 
@@ -224,16 +341,24 @@ export default function HREmployeesPage() {
     label: b.nameAr || b.nameEn || String(b.id),
   }));
 
+  const sortOrder = (key: string) =>
+    sortBy === key ? (sortDescending ? 'descend' : 'ascend') : null;
+
   const columns: ColumnsType<EmployeeDto> = [
     {
       title: 'رقم الموظف',
       dataIndex: 'employeeNumber',
+      key: 'EmployeeNumber',
+      sorter: true,
+      sortOrder: sortOrder('EmployeeNumber'),
       width: 110,
       render: (v) => v || '—',
     },
     {
       title: 'الاسم',
-      key: 'name',
+      key: 'NameAr',
+      sorter: true,
+      sortOrder: sortOrder('NameAr'),
       render: (_, r) => (
         <Space orientation="vertical" size={0}>
           <a style={{ fontWeight: 500 }} onClick={() => openDetail(r.id)}>{r.nameAr || '—'}</a>
@@ -244,6 +369,9 @@ export default function HREmployeesPage() {
     {
       title: 'البريد الإلكتروني',
       dataIndex: 'email',
+      key: 'Email',
+      sorter: true,
+      sortOrder: sortOrder('Email'),
       render: (v) => v || '—',
     },
     {
@@ -269,6 +397,9 @@ export default function HREmployeesPage() {
     {
       title: 'الحالة',
       dataIndex: 'isActive',
+      key: 'IsActive',
+      sorter: true,
+      sortOrder: sortOrder('IsActive'),
       width: 90,
       render: (v) =>
         v ? <Tag color="success">نشط</Tag> : <Tag color="default">معطّل</Tag>,
@@ -316,6 +447,20 @@ export default function HREmployeesPage() {
   const filterOption = (input: string, option?: { label: string; value: string }) =>
     String(option?.label ?? '').toLowerCase().includes(input.toLowerCase());
 
+  const handleTableChange: TableProps<EmployeeDto>['onChange'] = (pagination, _filters, sorter) => {
+    setPage(pagination.current ?? 1);
+    const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+
+    if (currentSorter?.order && currentSorter.columnKey) {
+      setSortBy(String(currentSorter.columnKey));
+      setSortDescending(currentSorter.order === 'descend');
+      return;
+    }
+
+    setSortBy(undefined);
+    setSortDescending(undefined);
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <div
@@ -352,70 +497,282 @@ export default function HREmployeesPage() {
           />
         }
       >
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={6}>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
-              المسمى الوظيفي
-            </label>
-            <Select
-              allowClear
-              showSearch
-              placeholder="اختر المسمى الوظيفي"
-              style={{ width: '100%' }}
-              value={employeePositionIdFilter}
-              onChange={(v) => { setEmployeePositionIdFilter(v); setPage(1); }}
-              options={positionOptions}
-              filterOption={filterOption}
-            />
-          </Col>
-          <Col xs={24} md={6}>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
-              رقم الآيبان (IBAN)
-            </label>
-            <Input
-              allowClear
-              placeholder="IBAN"
-              value={ibanFilter}
-              onChange={(e) => { setIbanFilter(e.target.value); setPage(1); }}
-            />
-          </Col>
-          <Col xs={24} md={3}>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
-              أقل راتب أساسي
-            </label>
-            <InputNumber
-              size="large"
-              min={0}
-              placeholder="أقل راتب أساسي"
-              value={basicSalaryMinFilter}
-              onChange={(v) => { setBasicSalaryMinFilter(v ?? undefined); setPage(1); }}
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={24} md={3}>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
-              أعلى راتب أساسي
-            </label>
-            <InputNumber
-              size="large"
-              min={0}
-              placeholder="أعلى راتب أساسي"
-              value={basicSalaryMaxFilter}
-              onChange={(v) => { setBasicSalaryMaxFilter(v ?? undefined); setPage(1); }}
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={24} md={6}>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
-              تاريخ التعيين
-            </label>
-            <DateRangeFilter
-              value={hiringDateRange}
-              onChange={(range) => { setHiringDateRange(range); setPage(1); }}
-              style={{ width: '100%' }}
-            />
-          </Col>
-        </Row>
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                بحث عام
+              </label>
+              <Input
+                allowClear
+                size="large"
+                placeholder="Search"
+                value={generalSearchFilter}
+                onChange={(e) => { setGeneralSearchFilter(e.target.value); setPage(1); }}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                معرف الموظف
+              </label>
+              <Input
+                allowClear
+                size="large"
+                placeholder="Employee ID"
+                value={idFilter}
+                onChange={(e) => { setIdFilter(e.target.value); setPage(1); }}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                القسم
+              </label>
+              <Select
+                allowClear
+                showSearch
+                size="large"
+                placeholder="اختر القسم"
+                style={{ width: '100%' }}
+                value={departmentIdFilter}
+                onChange={(v) => { setDepartmentIdFilter(v); setPage(1); }}
+                options={departmentOptions}
+                filterOption={filterOption}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                المسمى الوظيفي
+              </label>
+              <Select
+                allowClear
+                showSearch
+                size="large"
+                placeholder="اختر المسمى الوظيفي"
+                style={{ width: '100%' }}
+                value={employeePositionIdFilter}
+                onChange={(v) => { setEmployeePositionIdFilter(v); setPage(1); }}
+                options={positionOptions}
+                filterOption={filterOption}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                الجنسية
+              </label>
+              <NationalitySelect
+                value={nationalityIdFilter}
+                onChange={(value) => { setNationalityIdFilter(value); setPage(1); }}
+                allowAdd={false}
+                size="large"
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                الفرع
+              </label>
+              <BranchFilterSelect
+                value={branchIdFilter}
+                onChange={(value) => { setBranchIdFilter(value); setPage(1); }}
+                includeSubBranches={includeSubBranches}
+                onIncludeSubBranchesChange={(value) => { setIncludeSubBranches(value); setPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                الحالة
+              </label>
+              <Select
+                allowClear
+                size="large"
+                placeholder="كل الحالات"
+                style={{ width: '100%' }}
+                value={isActiveFilter}
+                onChange={(value) => { setIsActiveFilter(value); setPage(1); }}
+                options={[
+                  { value: true, label: 'نشط' },
+                  { value: false, label: 'معطّل' },
+                ]}
+              />
+            </Col>
+          </Row>
+
+          <Divider style={{ margin: 0 }} />
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                رقم الموظف
+              </label>
+              <TextMatchFilter
+                value={textFilters.employeeNumber}
+                onChange={(value) => setTextFilter('employeeNumber', value)}
+                placeholder="رقم الموظف"
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                الاسم بالعربية
+              </label>
+              <TextMatchFilter
+                value={textFilters.nameAr}
+                onChange={(value) => setTextFilter('nameAr', value)}
+                placeholder="الاسم بالعربية"
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                الاسم بالإنجليزية
+              </label>
+              <TextMatchFilter
+                value={textFilters.nameEn}
+                onChange={(value) => setTextFilter('nameEn', value)}
+                placeholder="Name in English"
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                البريد الإلكتروني
+              </label>
+              <TextMatchFilter
+                value={textFilters.email}
+                onChange={(value) => setTextFilter('email', value)}
+                placeholder="Email"
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                رقم الهوية
+              </label>
+              <TextMatchFilter
+                value={textFilters.idNumber}
+                onChange={(value) => setTextFilter('idNumber', value)}
+                placeholder="رقم الهوية"
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                رقم الجوال
+              </label>
+              <TextMatchFilter
+                value={textFilters.mobileNumber}
+                onChange={(value) => setTextFilter('mobileNumber', value)}
+                placeholder="رقم الجوال"
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                اسم المستخدم
+              </label>
+              <TextMatchFilter
+                value={textFilters.userName}
+                onChange={(value) => setTextFilter('userName', value)}
+                placeholder="UserName"
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                معرف المستخدم
+              </label>
+              <TextMatchFilter
+                value={textFilters.userId}
+                onChange={(value) => setTextFilter('userId', value)}
+                placeholder="UserId"
+              />
+            </Col>
+          </Row>
+
+          <Divider style={{ margin: 0 }} />
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                اسم البنك
+              </label>
+              <TextMatchFilter
+                value={textFilters.bankName}
+                onChange={(value) => setTextFilter('bankName', value)}
+                placeholder="اسم البنك"
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                رقم الحساب البنكي
+              </label>
+              <TextMatchFilter
+                value={textFilters.bankAccountNumber}
+                onChange={(value) => setTextFilter('bankAccountNumber', value)}
+                placeholder="رقم الحساب"
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                رقم الآيبان (IBAN)
+              </label>
+              <TextMatchFilter
+                value={textFilters.iban}
+                onChange={(value) => setTextFilter('iban', value)}
+                placeholder="IBAN"
+              />
+            </Col>
+            <Col xs={24} md={3}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                أقل راتب أساسي
+              </label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder="أقل راتب"
+                value={basicSalaryMinFilter}
+                onChange={(v) => { setBasicSalaryMinFilter(v ?? undefined); setPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={3}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                أعلى راتب أساسي
+              </label>
+              <InputNumber
+                size="large"
+                min={0}
+                placeholder="أعلى راتب"
+                value={basicSalaryMaxFilter}
+                onChange={(v) => { setBasicSalaryMaxFilter(v ?? undefined); setPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={8}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                تاريخ التعيين
+              </label>
+              <DateRangeFilter
+                value={hiringDateRange}
+                onChange={(range) => { setHiringDateRange(range); setPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={8}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                تاريخ الإنشاء
+              </label>
+              <DateRangeFilter
+                value={createdDateRange}
+                onChange={(range) => { setCreatedDateRange(range); setPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col xs={24} md={8}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#334155', fontSize: 14 }}>
+                تاريخ التحديث
+              </label>
+              <DateRangeFilter
+                value={updatedDateRange}
+                onChange={(range) => { setUpdatedDateRange(range); setPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+          </Row>
+        </Space>
       </AdvancedFilterPanel>
 
       <Card>
@@ -424,6 +781,7 @@ export default function HREmployeesPage() {
           columns={columns}
           rowKey="id"
           loading={isLoading}
+          onChange={handleTableChange}
           pagination={{
             current: page,
             pageSize: PAGE_SIZE,

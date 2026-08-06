@@ -5,6 +5,7 @@ import type {
   EmployeeDto,
   EmployeeCurrentDto,
   EmployeePagedResponse,
+  EmployeeListQuery,
   CreateEmployeeDto,
   UpdateEmployeeDto,
   AttendanceFilterDto,
@@ -35,29 +36,60 @@ import type {
 // ─── Employee Service ────────────────────────────────────────────────────────
 
 export class HREmployeeService {
-  static async getAll(params?: {
-    searchName?: string;
-    page?: number;
-    pageSize?: number;
-    // Extra filters (gap-audit addition — see simga-api.txt GET /api/V1/Employee).
-    employeePositionId?: string;
-    hiringDateFrom?: string;
-    hiringDateTo?: string;
-    basicSalaryMin?: number;
-    basicSalaryMax?: number;
-    iban?: string;
-  }): Promise<EmployeePagedResponse> {
+  static async getAll(params?: EmployeeListQuery): Promise<EmployeePagedResponse> {
+    const text = (value?: string) => value?.trim() || undefined;
+    const hasText = (value?: string) => !!text(value);
+    const page = params?.Page ?? params?.page ?? 1;
+    const pageSize = params?.PageSize ?? params?.pageSize ?? 10;
+
     const response = await api.get<any>(API_ENDPOINTS.HR_EMPLOYEE.GET_ALL, {
       params: {
-        searchName: params?.searchName || undefined,
-        page: params?.page ?? 1,
-        pageSize: params?.pageSize ?? 10,
-        employeePositionId: params?.employeePositionId || undefined,
-        hiringDateFrom: params?.hiringDateFrom || undefined,
-        hiringDateTo: params?.hiringDateTo || undefined,
-        basicSalaryMin: params?.basicSalaryMin,
-        basicSalaryMax: params?.basicSalaryMax,
-        iban: params?.iban || undefined,
+        SearchName: text(params?.SearchName ?? params?.searchName),
+        Page: page,
+        PageNumber: params?.PageNumber ?? page,
+        PageSize: pageSize,
+        Id: text(params?.Id),
+        EmployeeNumber: text(params?.EmployeeNumber),
+        EmployeeNumberMatch: hasText(params?.EmployeeNumber) ? params?.EmployeeNumberMatch : undefined,
+        NameAr: text(params?.NameAr),
+        NameArMatch: hasText(params?.NameAr) ? params?.NameArMatch : undefined,
+        NameEn: text(params?.NameEn),
+        NameEnMatch: hasText(params?.NameEn) ? params?.NameEnMatch : undefined,
+        Email: text(params?.Email),
+        EmailMatch: hasText(params?.Email) ? params?.EmailMatch : undefined,
+        IdNumber: text(params?.IdNumber),
+        IdNumberMatch: hasText(params?.IdNumber) ? params?.IdNumberMatch : undefined,
+        MobileNumber: text(params?.MobileNumber),
+        MobileNumberMatch: hasText(params?.MobileNumber) ? params?.MobileNumberMatch : undefined,
+        UserName: text(params?.UserName),
+        UserNameMatch: hasText(params?.UserName) ? params?.UserNameMatch : undefined,
+        UserId: text(params?.UserId),
+        UserIdMatch: hasText(params?.UserId) ? params?.UserIdMatch : undefined,
+        DepartmentId: text(params?.DepartmentId),
+        EmployeePositionId: text(params?.EmployeePositionId ?? params?.employeePositionId),
+        NationalityId: text(params?.NationalityId),
+        HiringDateFrom: text(params?.HiringDateFrom ?? params?.hiringDateFrom),
+        HiringDateTo: text(params?.HiringDateTo ?? params?.hiringDateTo),
+        BasicSalaryMin: params?.BasicSalaryMin ?? params?.basicSalaryMin,
+        BasicSalaryMax: params?.BasicSalaryMax ?? params?.basicSalaryMax,
+        IsActive: params?.IsActive,
+        BankName: text(params?.BankName),
+        BankNameMatch: hasText(params?.BankName) ? params?.BankNameMatch : undefined,
+        BankAccountNumber: text(params?.BankAccountNumber),
+        BankAccountNumberMatch: hasText(params?.BankAccountNumber)
+          ? params?.BankAccountNumberMatch
+          : undefined,
+        IBAN: text(params?.IBAN ?? params?.iban),
+        IBANMatch: hasText(params?.IBAN ?? params?.iban) ? params?.IBANMatch : undefined,
+        BranchId: text(params?.BranchId),
+        IncludeSubBranches: params?.BranchId ? params?.IncludeSubBranches : undefined,
+        Search: text(params?.Search),
+        CreatedDateFrom: text(params?.CreatedDateFrom),
+        CreatedDateTo: text(params?.CreatedDateTo),
+        UpdatedDateFrom: text(params?.UpdatedDateFrom),
+        UpdatedDateTo: text(params?.UpdatedDateTo),
+        SortBy: text(params?.SortBy),
+        SortDescending: params?.SortBy ? params?.SortDescending : undefined,
       },
     });
     const raw = response.data;
@@ -67,8 +99,8 @@ export class HREmployeeService {
       items,
       totalCount: meta?.totalCount ?? meta?.total ?? items.length,
       // Backend echoes the page as `pageNumber` (not `page`).
-      page: meta?.pageNumber ?? meta?.page ?? params?.page ?? 1,
-      pageSize: meta?.pageSize ?? params?.pageSize ?? 10,
+      page: meta?.pageNumber ?? meta?.page ?? page,
+      pageSize: meta?.pageSize ?? pageSize,
     };
   }
 

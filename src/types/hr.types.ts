@@ -147,6 +147,66 @@ export interface EmployeePagedResponse {
   pageSize: number;
 }
 
+export type EmployeeStringMatchMode = 0 | 1 | 2 | 3;
+
+export interface EmployeeListQuery {
+  SearchName?: string;
+  Page?: number;
+  PageNumber?: number;
+  PageSize?: number;
+  Id?: string;
+  EmployeeNumber?: string;
+  EmployeeNumberMatch?: EmployeeStringMatchMode;
+  NameAr?: string;
+  NameArMatch?: EmployeeStringMatchMode;
+  NameEn?: string;
+  NameEnMatch?: EmployeeStringMatchMode;
+  Email?: string;
+  EmailMatch?: EmployeeStringMatchMode;
+  IdNumber?: string;
+  IdNumberMatch?: EmployeeStringMatchMode;
+  MobileNumber?: string;
+  MobileNumberMatch?: EmployeeStringMatchMode;
+  UserName?: string;
+  UserNameMatch?: EmployeeStringMatchMode;
+  UserId?: string;
+  UserIdMatch?: EmployeeStringMatchMode;
+  DepartmentId?: string;
+  EmployeePositionId?: string;
+  NationalityId?: string;
+  HiringDateFrom?: string;
+  HiringDateTo?: string;
+  BasicSalaryMin?: number;
+  BasicSalaryMax?: number;
+  IsActive?: boolean;
+  BankName?: string;
+  BankNameMatch?: EmployeeStringMatchMode;
+  BankAccountNumber?: string;
+  BankAccountNumberMatch?: EmployeeStringMatchMode;
+  IBAN?: string;
+  IBANMatch?: EmployeeStringMatchMode;
+  BranchId?: string;
+  IncludeSubBranches?: boolean;
+  Search?: string;
+  CreatedDateFrom?: string;
+  CreatedDateTo?: string;
+  UpdatedDateFrom?: string;
+  UpdatedDateTo?: string;
+  SortBy?: string;
+  SortDescending?: boolean;
+
+  // Backward-compatible aliases used by existing employee lookup callers.
+  searchName?: string;
+  page?: number;
+  pageSize?: number;
+  employeePositionId?: string;
+  hiringDateFrom?: string;
+  hiringDateTo?: string;
+  basicSalaryMin?: number;
+  basicSalaryMax?: number;
+  iban?: string;
+}
+
 // ==================== Attendance Types ====================
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | string;

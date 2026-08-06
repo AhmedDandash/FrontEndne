@@ -13,6 +13,7 @@ import {
 
 import type {
   CreateEmployeeDto,
+  EmployeeListQuery,
   UpdateEmployeeDto,
   AttendanceFilterDto,
   CreateLeaveRequestDto,
@@ -40,29 +41,7 @@ function attendanceErrorMessage(err: unknown, fallback: string): string {
 // ─── Query keys ──────────────────────────────────────────────────────────────
 
 const QK = {
-  employees: (
-    search?: string,
-    page?: number,
-    pageSize?: number,
-    employeePositionId?: string,
-    hiringDateFrom?: string,
-    hiringDateTo?: string,
-    basicSalaryMin?: number,
-    basicSalaryMax?: number,
-    iban?: string
-  ) =>
-    [
-      'hr-employees',
-      search,
-      page,
-      pageSize,
-      employeePositionId,
-      hiringDateFrom,
-      hiringDateTo,
-      basicSalaryMin,
-      basicSalaryMax,
-      iban,
-    ] as const,
+  employees: (params?: EmployeeListQuery) => ['hr-employees', params] as const,
   employee: (id: string) => ['hr-employee', id] as const,
   attendance: (filter: AttendanceFilterDto) => ['hr-attendance', filter] as const,
   leave: ['hr-leave'] as const,
@@ -75,32 +54,11 @@ const QK = {
 
 // ─── Employee hooks ───────────────────────────────────────────────────────────
 
-export function useHREmployees(params?: {
-  searchName?: string;
-  page?: number;
-  pageSize?: number;
-  // Extra filters (gap-audit addition — see simga-api.txt GET /api/V1/Employee).
-  employeePositionId?: string;
-  hiringDateFrom?: string;
-  hiringDateTo?: string;
-  basicSalaryMin?: number;
-  basicSalaryMax?: number;
-  iban?: string;
-}) {
+export function useHREmployees(params?: EmployeeListQuery) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: QK.employees(
-      params?.searchName,
-      params?.page,
-      params?.pageSize,
-      params?.employeePositionId,
-      params?.hiringDateFrom,
-      params?.hiringDateTo,
-      params?.basicSalaryMin,
-      params?.basicSalaryMax,
-      params?.iban
-    ),
+    queryKey: QK.employees(params),
     queryFn: () => HREmployeeService.getAll(params),
     placeholderData: (previous) => previous,
   });
