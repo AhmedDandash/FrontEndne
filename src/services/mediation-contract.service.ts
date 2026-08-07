@@ -108,6 +108,7 @@ export class MediationContractService {
     IsUnpaid?: boolean;
     PaymentDateFrom?: string;
     PaymentDateTo?: string;
+    HasContractInsurance?: boolean;
     // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
     VisaDateFrom?: string;
     VisaDateTo?: string;
@@ -169,6 +170,7 @@ export class MediationContractService {
           'IsUnpaid',
           'PaymentDateFrom',
           'PaymentDateTo',
+          'HasContractInsurance',
           'VisaDateFrom',
           'VisaDateTo',
           'MinLocalCost',

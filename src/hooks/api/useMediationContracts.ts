@@ -61,6 +61,7 @@ export interface MediationContractListParams {
   isUnpaid?: boolean;
   paymentDateFrom?: string;
   paymentDateTo?: string;
+  hasContractInsurance?: boolean;
   // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
   visaDateFrom?: string;
   visaDateTo?: string;
@@ -131,6 +132,7 @@ export function useMediationContracts(params?: MediationContractListParams) {
       IsUnpaid: params?.isUnpaid,
       PaymentDateFrom: params?.paymentDateFrom,
       PaymentDateTo: params?.paymentDateTo,
+      HasContractInsurance: params?.hasContractInsurance,
       VisaDateFrom: params?.visaDateFrom,
       VisaDateTo: params?.visaDateTo,
       MinLocalCost: params?.minLocalCost,

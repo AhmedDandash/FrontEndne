@@ -1753,6 +1753,13 @@ export interface MediationFollowUpDashboardParams {
   ContractType?: number | null;
   CustomerPhone?: string | null;
   VisaNumber?: string | null;
+  WithoutAssignedWorker?: boolean | null;
+  IsPaid?: boolean | null;
+  IsUnpaid?: boolean | null;
+  PaymentDateFrom?: string | null;
+  PaymentDateTo?: string | null;
+  HasContractInsurance?: boolean | null;
+  IsCancel?: boolean | null;
   BranchId?: string | null;
   IncludeSubBranches?: boolean | null;
   Search?: string | null;

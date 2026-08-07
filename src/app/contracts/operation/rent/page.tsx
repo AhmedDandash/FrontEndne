@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, Row, Col, Button, Input, InputNumber, Select, Statistic, Empty, Spin, Form } from 'antd';
+import { Card, Row, Col, Button, Input, Select, Statistic, Empty, Spin, Form } from 'antd';
 import {
   FileTextOutlined,
   SearchOutlined,
@@ -15,13 +15,13 @@ import {
 import dayjs from 'dayjs';
 
 import { useAuthStore } from '@/store/authStore';
-import { BranchFilterSelect } from '@/components/filters';
 import DateRangeFilter from '@/components/filters/DateRangeFilter';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { useMarketers } from '@/hooks/api/useMarketers';
+import { OPERATING_CONTRACT_STATUS, OPERATION_TYPE, toSelectOptions } from '@/constants/enums';
 import type {
   EmploymentOperatingContract,
   EmploymentContractOffer,
@@ -62,57 +62,37 @@ export default function RentContractsPage() {
 
   // Filters
   const [searchText, setSearchText] = useState('');
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [nationalityFilter, setNationalityFilter] = useState<string | 'all'>('all');
+  const [jobFilter, setJobFilter] = useState<string | 'all'>('all');
+  const [identityNumberFilter, setIdentityNumberFilter] = useState('');
+  const [operationTypeFilter, setOperationTypeFilter] = useState<string | 'all'>('all');
   const [dateRange, setDateRange] = useState<[string | undefined, string | undefined]>([
     undefined,
     undefined,
   ]);
-  const [branchId, setBranchId] = useState<string | undefined>(undefined);
-  const [includeSubBranches, setIncludeSubBranches] = useState(true);
-  // ContractNumber / MarketerId / ContractDate — sent server-side (see the
-  // hook call below); Status/Nationality/free-text Search stay client-side
-  // because the API doesn't reliably return a contractStatus (derived from
-  // isFinish instead — see mapping.tsx) and has no NationalityId filter at all.
+  const [createdDateRange, setCreatedDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [contractEndDateRange, setContractEndDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
   const [contractNumberFilter, setContractNumberFilter] = useState('');
   const [debouncedContractNumber, setDebouncedContractNumber] = useState('');
   const [marketerFilter, setMarketerFilter] = useState<string | 'all'>('all');
 
   useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearchText(searchText.trim()), 400);
+    return () => clearTimeout(id);
+  }, [searchText]);
+
+  useEffect(() => {
     const id = setTimeout(() => setDebouncedContractNumber(contractNumberFilter.trim()), 400);
     return () => clearTimeout(id);
   }, [contractNumberFilter]);
-
-  // Additive gap-audit filters — all sent server-side (see hook call below),
-  // same treatment as ContractNumber/MarketerId/ContractDate above.
-  const [searchWorkerNameFilter, setSearchWorkerNameFilter] = useState('');
-  const [debouncedSearchWorkerName, setDebouncedSearchWorkerName] = useState('');
-  const [contractEndDateRange, setContractEndDateRange] = useState<[string | undefined, string | undefined]>([
-    undefined,
-    undefined,
-  ]);
-  const [finishDateRange, setFinishDateRange] = useState<[string | undefined, string | undefined]>([
-    undefined,
-    undefined,
-  ]);
-  const [minDurationFilter, setMinDurationFilter] = useState<number | undefined>(undefined);
-  const [maxDurationFilter, setMaxDurationFilter] = useState<number | undefined>(undefined);
-  const [minPreviousExperienceFilter, setMinPreviousExperienceFilter] = useState<number | undefined>(undefined);
-  const [maxPreviousExperienceFilter, setMaxPreviousExperienceFilter] = useState<number | undefined>(undefined);
-  const [minOfferPriceFilter, setMinOfferPriceFilter] = useState<number | undefined>(undefined);
-  const [maxOfferPriceFilter, setMaxOfferPriceFilter] = useState<number | undefined>(undefined);
-  const [minWorkersCountFilter, setMinWorkersCountFilter] = useState<number | undefined>(undefined);
-  const [maxWorkersCountFilter, setMaxWorkersCountFilter] = useState<number | undefined>(undefined);
-  const [minCostFilter, setMinCostFilter] = useState<number | undefined>(undefined);
-  const [maxCostFilter, setMaxCostFilter] = useState<number | undefined>(undefined);
-  const [minInsuranceFilter, setMinInsuranceFilter] = useState<number | undefined>(undefined);
-  const [maxInsuranceFilter, setMaxInsuranceFilter] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    const id = setTimeout(() => setDebouncedSearchWorkerName(searchWorkerNameFilter.trim()), 400);
-    return () => clearTimeout(id);
-  }, [searchWorkerNameFilter]);
-
   // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createSelectedOffer, setCreateSelectedOffer] = useState<EmploymentContractOffer | null>(null);
@@ -157,29 +137,20 @@ export default function RentContractsPage() {
     isRefunding,
     isSavingDeliveryForm,
   } = useEmploymentOperatingContracts({
-    BranchId: branchId,
-    IncludeSubBranches: branchId ? includeSubBranches : undefined,
+    Search: debouncedSearchText || undefined,
     ContractNumber: debouncedContractNumber || undefined,
+    ContractStatus: statusFilter === 'all' ? undefined : Number(statusFilter),
+    IdentityNumber: identityNumberFilter || undefined,
+    NationalityId: nationalityFilter !== 'all' ? nationalityFilter : undefined,
+    JobId: jobFilter !== 'all' ? jobFilter : undefined,
     MarketerId: marketerFilter !== 'all' ? marketerFilter : undefined,
+    OperationType: operationTypeFilter !== 'all' ? Number(operationTypeFilter) : undefined,
     ContractDateFrom: dateRange[0],
     ContractDateTo: dateRange[1],
-    SearchWorkerName: debouncedSearchWorkerName || undefined,
+    CreatedDateFrom: createdDateRange[0],
+    CreatedDateTo: createdDateRange[1],
     ContractEndDateFrom: contractEndDateRange[0],
     ContractEndDateTo: contractEndDateRange[1],
-    FinishDateFrom: finishDateRange[0],
-    FinishDateTo: finishDateRange[1],
-    MinDuration: minDurationFilter,
-    MaxDuration: maxDurationFilter,
-    MinPreviousExperience: minPreviousExperienceFilter,
-    MaxPreviousExperience: maxPreviousExperienceFilter,
-    MinOfferPrice: minOfferPriceFilter,
-    MaxOfferPrice: maxOfferPriceFilter,
-    MinWorkersCount: minWorkersCountFilter,
-    MaxWorkersCount: maxWorkersCountFilter,
-    MinCost: minCostFilter,
-    MaxCost: maxCostFilter,
-    MinInsurance: minInsuranceFilter,
-    MaxInsurance: maxInsuranceFilter,
   });
 
   const { data: jobs = [] } = useJobs();
@@ -229,28 +200,11 @@ export default function RentContractsPage() {
     expiringContracts: isRtl ? 'عقود قرب الانتهاء' : 'Expiring Soon',
     totalRevenue: isRtl ? 'إجمالي الإيرادات' : 'Total Revenue',
     noResults: isRtl ? 'لا توجد نتائج' : 'No results found',
-    searchWorkerName: isRtl ? 'اسم العامل' : 'Worker Name',
     contractEndDateRange: isRtl ? 'تاريخ نهاية العقد (من/إلى)' : 'Contract End Date (From/To)',
-    finishDateRange: isRtl ? 'تاريخ الإنهاء (من/إلى)' : 'Finish Date (From/To)',
-    minDuration: isRtl ? 'الحد الأدنى للمدة' : 'Min Duration',
-    maxDuration: isRtl ? 'الحد الأقصى للمدة' : 'Max Duration',
-    minPreviousExperience: isRtl ? 'الحد الأدنى للخبرة السابقة' : 'Min Previous Experience',
-    maxPreviousExperience: isRtl ? 'الحد الأقصى للخبرة السابقة' : 'Max Previous Experience',
-    minOfferPrice: isRtl ? 'الحد الأدنى لسعر العرض' : 'Min Offer Price',
-    maxOfferPrice: isRtl ? 'الحد الأقصى لسعر العرض' : 'Max Offer Price',
-    minWorkersCount: isRtl ? 'الحد الأدنى لعدد العمال' : 'Min Workers Count',
-    maxWorkersCount: isRtl ? 'الحد الأقصى لعدد العمال' : 'Max Workers Count',
-    minCost: isRtl ? 'الحد الأدنى للتكلفة' : 'Min Cost',
-    maxCost: isRtl ? 'الحد الأقصى للتكلفة' : 'Max Cost',
-    minInsurance: isRtl ? 'الحد الأدنى للتأمين' : 'Min Insurance',
-    maxInsurance: isRtl ? 'الحد الأقصى للتأمين' : 'Max Insurance',
   };
 
-  // NOTE: ContractNumber, MarketerId and ContractDateFrom/To are now sent
-  // server-side (see the hook call above), so `allContracts` already reflects
-  // those constraints — only Search/Status/Nationality need client-side
-  // matching here (Status is derived from `isFinish`, not a real API field;
-  // Nationality has no backend query param at all — see mapping.tsx).
+  // Server-backed filters are sent through the hook; this only preserves the
+  // prefilled customer route constraint and mirrors the debounced Search text.
   const filteredContracts = useMemo(() => {
     return allContracts.filter((contract) => {
       if (customerId && String(contract.customerId) !== String(customerId)) return false;
@@ -262,11 +216,9 @@ export default function RentContractsPage() {
         contract.customerNameAr.includes(searchText) ||
         contract.workerName.toLowerCase().includes(searchLower) ||
         contract.workerNameAr.includes(searchText);
-      const matchesStatus = statusFilter === 'all' || contract.status === statusFilter;
-      const matchesNationality = nationalityFilter === 'all' || contract.nationalityId === String(nationalityFilter);
-      return matchesSearch && matchesStatus && matchesNationality;
+      return matchesSearch;
     });
-  }, [allContracts, searchText, statusFilter, nationalityFilter, customerId]);
+  }, [allContracts, searchText, customerId]);
 
   const stats = useMemo(
     () => ({
@@ -540,55 +492,17 @@ export default function RentContractsPage() {
       <Card className={styles.filterCard}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} md={8}>
-            <Input placeholder={t.search} prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} allowClear size="large" className={styles.searchInput} />
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <label className={styles.filterLabel}>{t.allStatuses}</label>
-            <Select
-              value={statusFilter}
-              onChange={setStatusFilter}
-              style={{ width: '100%' }}
+            <Input
+              placeholder={t.search}
+              prefix={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              allowClear
               size="large"
-              options={[
-                { value: 'all', label: t.allStatuses },
-                { value: 'draft', label: t.draft },
-                { value: 'signed', label: t.signed },
-                { value: 'executing', label: t.executing },
-                { value: 'finished', label: t.finished },
-              ]}
+              className={styles.searchInput}
             />
           </Col>
-          <Col xs={12} sm={6} md={4}>
-            <label className={styles.filterLabel}>{t.allNationalities}</label>
-            <Select
-              value={nationalityFilter}
-              onChange={setNationalityFilter}
-              style={{ width: '100%' }}
-              size="large"
-              options={[
-                { value: 'all', label: t.allNationalities },
-                ...(nationalities as any[]).map((n) => ({ value: String(n.id), label: isRtl ? n.nationalityNameAr : n.nationalityNameEn })),
-              ]}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <label className={styles.filterLabel}>{`${t.startDate} / ${t.endDate}`}</label>
-            <DateRangeFilter
-              value={dateRange}
-              onChange={setDateRange}
-              style={{ width: '100%' }}
-              placeholder={[t.startDate, t.endDate]}
-            />
-          </Col>
-          <Col xs={24} md={10}>
-            <BranchFilterSelect
-              value={branchId}
-              onChange={setBranchId}
-              includeSubBranches={includeSubBranches}
-              onIncludeSubBranchesChange={setIncludeSubBranches}
-              style={{ width: '100%' }}
-            />
-          </Col>
+
           <Col xs={12} sm={6} md={4}>
             <label className={styles.filterLabel}>{t.contractNumberFilter}</label>
             <Input
@@ -599,6 +513,79 @@ export default function RentContractsPage() {
               size="large"
             />
           </Col>
+
+          <Col xs={12} sm={6} md={4}>
+            <label className={styles.filterLabel}>{t.allStatuses}</label>
+            <Select
+              value={statusFilter}
+              onChange={setStatusFilter}
+              style={{ width: '100%' }}
+              size="large"
+              options={[
+                { value: 'all', label: t.allStatuses },
+                ...toSelectOptions(OPERATING_CONTRACT_STATUS, language).map((o) => ({ ...o, value: String(o.value) })),
+              ]}
+            />
+          </Col>
+
+          <Col xs={12} sm={6} md={4}>
+            <label className={styles.filterLabel}>{isRtl ? 'رقم الهوية / الإقامة' : 'National ID / Iqama'}</label>
+            <Input
+              value={identityNumberFilter}
+              onChange={(e) => setIdentityNumberFilter(e.target.value)}
+              allowClear
+              size="large"
+            />
+          </Col>
+
+          <Col xs={24} sm={12} md={8}>
+            <label className={styles.filterLabel}>{isRtl ? 'تاريخ التوقيع' : 'Signing Date'}</label>
+            <DateRangeFilter value={dateRange} onChange={setDateRange} style={{ width: '100%' }} />
+          </Col>
+
+          <Col xs={24} sm={12} md={8}>
+            <label className={styles.filterLabel}>{isRtl ? 'تاريخ الإنشاء' : 'Creation Date'}</label>
+            <DateRangeFilter value={createdDateRange} onChange={setCreatedDateRange} style={{ width: '100%' }} />
+          </Col>
+
+          <Col xs={12} sm={6} md={4}>
+            <label className={styles.filterLabel}>{t.allNationalities}</label>
+            <Select
+              value={nationalityFilter}
+              onChange={setNationalityFilter}
+              style={{ width: '100%' }}
+              size="large"
+              showSearch
+              optionFilterProp="label"
+              options={[
+                { value: 'all', label: t.allNationalities },
+                ...(nationalities as any[]).map((n) => ({
+                  value: String(n.id),
+                  label: isRtl ? n.nationalityNameAr : n.nationalityNameEn,
+                })),
+              ]}
+            />
+          </Col>
+
+          <Col xs={12} sm={6} md={4}>
+            <label className={styles.filterLabel}>{isRtl ? 'الوظيفة' : 'Occupation / Job'}</label>
+            <Select
+              value={jobFilter}
+              onChange={setJobFilter}
+              style={{ width: '100%' }}
+              size="large"
+              showSearch
+              optionFilterProp="label"
+              options={[
+                { value: 'all', label: isRtl ? 'جميع الوظائف' : 'All Jobs' },
+                ...(jobs as any[]).map((j) => ({
+                  value: String(j.id),
+                  label: (isRtl ? j.jobNameAr : j.jobNameEn) || j.jobNameAr || j.jobNameEn || `#${j.id}`,
+                })),
+              ]}
+            />
+          </Col>
+
           <Col xs={12} sm={6} md={4}>
             <label className={styles.filterLabel}>{t.allMarketers}</label>
             <Select
@@ -618,164 +605,23 @@ export default function RentContractsPage() {
             />
           </Col>
 
-          {/* ─── Additive gap-audit filters ──────────────────────────────── */}
           <Col xs={12} sm={6} md={4}>
-            <label className={styles.filterLabel}>{t.searchWorkerName}</label>
-            <Input
-              placeholder={t.searchWorkerName}
-              value={searchWorkerNameFilter}
-              onChange={(e) => setSearchWorkerNameFilter(e.target.value)}
-              allowClear
+            <label className={styles.filterLabel}>{isRtl ? 'النوع' : 'Type'}</label>
+            <Select
+              value={operationTypeFilter}
+              onChange={setOperationTypeFilter}
+              style={{ width: '100%' }}
               size="large"
+              options={[
+                { value: 'all', label: isRtl ? 'كل الأنواع' : 'All Types' },
+                ...toSelectOptions(OPERATION_TYPE, language).map((o) => ({ ...o, value: String(o.value) })),
+              ]}
             />
           </Col>
+
           <Col xs={24} sm={12} md={8}>
-            <label className={styles.filterLabel}>{t.contractEndDateRange}</label>
-            <DateRangeFilter
-              value={contractEndDateRange}
-              onChange={setContractEndDateRange}
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <label className={styles.filterLabel}>{t.finishDateRange}</label>
-            <DateRangeFilter
-              value={finishDateRange}
-              onChange={setFinishDateRange}
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.minDuration}</label>
-            <InputNumber
-              placeholder={t.minDuration}
-              value={minDurationFilter}
-              onChange={(value) => setMinDurationFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.maxDuration}</label>
-            <InputNumber
-              placeholder={t.maxDuration}
-              value={maxDurationFilter}
-              onChange={(value) => setMaxDurationFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.minPreviousExperience}</label>
-            <InputNumber
-              placeholder={t.minPreviousExperience}
-              value={minPreviousExperienceFilter}
-              onChange={(value) => setMinPreviousExperienceFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.maxPreviousExperience}</label>
-            <InputNumber
-              placeholder={t.maxPreviousExperience}
-              value={maxPreviousExperienceFilter}
-              onChange={(value) => setMaxPreviousExperienceFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.minOfferPrice}</label>
-            <InputNumber
-              placeholder={t.minOfferPrice}
-              value={minOfferPriceFilter}
-              onChange={(value) => setMinOfferPriceFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.maxOfferPrice}</label>
-            <InputNumber
-              placeholder={t.maxOfferPrice}
-              value={maxOfferPriceFilter}
-              onChange={(value) => setMaxOfferPriceFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.minWorkersCount}</label>
-            <InputNumber
-              placeholder={t.minWorkersCount}
-              value={minWorkersCountFilter}
-              onChange={(value) => setMinWorkersCountFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.maxWorkersCount}</label>
-            <InputNumber
-              placeholder={t.maxWorkersCount}
-              value={maxWorkersCountFilter}
-              onChange={(value) => setMaxWorkersCountFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.minCost}</label>
-            <InputNumber
-              placeholder={t.minCost}
-              value={minCostFilter}
-              onChange={(value) => setMinCostFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.maxCost}</label>
-            <InputNumber
-              placeholder={t.maxCost}
-              value={maxCostFilter}
-              onChange={(value) => setMaxCostFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.minInsurance}</label>
-            <InputNumber
-              placeholder={t.minInsurance}
-              value={minInsuranceFilter}
-              onChange={(value) => setMinInsuranceFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col xs={12} sm={6} md={3}>
-            <label className={styles.filterLabel}>{t.maxInsurance}</label>
-            <InputNumber
-              placeholder={t.maxInsurance}
-              value={maxInsuranceFilter}
-              onChange={(value) => setMaxInsuranceFilter(value ?? undefined)}
-              min={0}
-              size="large"
-              style={{ width: '100%' }}
-            />
+            <label className={styles.filterLabel}>{isRtl ? 'تاريخ نهاية العقد' : 'Contract Expiration Date'}</label>
+            <DateRangeFilter value={contractEndDateRange} onChange={setContractEndDateRange} style={{ width: '100%' }} />
           </Col>
         </Row>
       </Card>

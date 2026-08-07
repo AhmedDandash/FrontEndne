@@ -47,6 +47,10 @@ export interface GetContractsParams {
   // instead (see contracts/operation/rent/page.tsx `filteredContracts`).
   ContractNumber?: string | number;
   MarketerId?: string | number;
+  NationalityId?: string | number;
+  JobId?: string | number;
+  OperationType?: number;
+  LaborManagement?: number;
   ContractDateFrom?: string;
   ContractDateTo?: string;
   // Additive range/date filters (see contracts/operation/rent/page.tsx filter
