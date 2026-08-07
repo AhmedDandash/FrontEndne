@@ -15,7 +15,7 @@ import {
 import dayjs from 'dayjs';
 
 import { useAuthStore } from '@/store/authStore';
-import DateRangeFilter from '@/components/filters/DateRangeFilter';
+import { AdvancedFilterPanel, DateRangeFilter } from '@/components/filters';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
@@ -93,6 +93,33 @@ export default function RentContractsPage() {
     const id = setTimeout(() => setDebouncedContractNumber(contractNumberFilter.trim()), 400);
     return () => clearTimeout(id);
   }, [contractNumberFilter]);
+
+  // Count of active advanced filters (for the panel badge / clear button).
+  const activeFilterCount =
+    (contractNumberFilter ? 1 : 0) +
+    (statusFilter !== 'all' ? 1 : 0) +
+    (identityNumberFilter ? 1 : 0) +
+    (nationalityFilter !== 'all' ? 1 : 0) +
+    (jobFilter !== 'all' ? 1 : 0) +
+    (marketerFilter !== 'all' ? 1 : 0) +
+    (operationTypeFilter !== 'all' ? 1 : 0) +
+    (dateRange[0] || dateRange[1] ? 1 : 0) +
+    (createdDateRange[0] || createdDateRange[1] ? 1 : 0) +
+    (contractEndDateRange[0] || contractEndDateRange[1] ? 1 : 0);
+
+  const clearFilters = () => {
+    setContractNumberFilter('');
+    setStatusFilter('all');
+    setIdentityNumberFilter('');
+    setNationalityFilter('all');
+    setJobFilter('all');
+    setMarketerFilter('all');
+    setOperationTypeFilter('all');
+    setDateRange([undefined, undefined]);
+    setCreatedDateRange([undefined, undefined]);
+    setContractEndDateRange([undefined, undefined]);
+  };
+
   // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createSelectedOffer, setCreateSelectedOffer] = useState<EmploymentContractOffer | null>(null);
@@ -489,142 +516,139 @@ export default function RentContractsPage() {
       )}
 
       {/* Filters */}
-      <Card className={styles.filterCard}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} md={8}>
-            <Input
-              placeholder={t.search}
-              prefix={<SearchOutlined />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              allowClear
-              size="large"
-              className={styles.searchInput}
-            />
-          </Col>
+      <AdvancedFilterPanel
+        activeCount={activeFilterCount}
+        onClear={clearFilters}
+        contentLayout="block"
+        quickFilters={
+          <Input
+            placeholder={t.search}
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
+            style={{ width: 300 }}
+          />
+        }
+      >
+        <div className={styles.filterContent}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t.contractNumberFilter}</label>
+              <Input
+                placeholder={t.contractNumberFilter}
+                value={contractNumberFilter}
+                onChange={(e) => setContractNumberFilter(e.target.value)}
+                allowClear
+              />
+            </Col>
 
-          <Col xs={12} sm={6} md={4}>
-            <label className={styles.filterLabel}>{t.contractNumberFilter}</label>
-            <Input
-              placeholder={t.contractNumberFilter}
-              value={contractNumberFilter}
-              onChange={(e) => setContractNumberFilter(e.target.value)}
-              allowClear
-              size="large"
-            />
-          </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t.allStatuses}</label>
+              <Select
+                value={statusFilter}
+                onChange={setStatusFilter}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: t.allStatuses },
+                  ...toSelectOptions(OPERATING_CONTRACT_STATUS, language).map((o) => ({ ...o, value: String(o.value) })),
+                ]}
+              />
+            </Col>
 
-          <Col xs={12} sm={6} md={4}>
-            <label className={styles.filterLabel}>{t.allStatuses}</label>
-            <Select
-              value={statusFilter}
-              onChange={setStatusFilter}
-              style={{ width: '100%' }}
-              size="large"
-              options={[
-                { value: 'all', label: t.allStatuses },
-                ...toSelectOptions(OPERATING_CONTRACT_STATUS, language).map((o) => ({ ...o, value: String(o.value) })),
-              ]}
-            />
-          </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'رقم الهوية / الإقامة' : 'National ID / Iqama'}</label>
+              <Input
+                value={identityNumberFilter}
+                onChange={(e) => setIdentityNumberFilter(e.target.value)}
+                allowClear
+              />
+            </Col>
 
-          <Col xs={12} sm={6} md={4}>
-            <label className={styles.filterLabel}>{isRtl ? 'رقم الهوية / الإقامة' : 'National ID / Iqama'}</label>
-            <Input
-              value={identityNumberFilter}
-              onChange={(e) => setIdentityNumberFilter(e.target.value)}
-              allowClear
-              size="large"
-            />
-          </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t.allNationalities}</label>
+              <Select
+                value={nationalityFilter}
+                onChange={setNationalityFilter}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="label"
+                options={[
+                  { value: 'all', label: t.allNationalities },
+                  ...(nationalities as any[]).map((n) => ({
+                    value: String(n.id),
+                    label: isRtl ? n.nationalityNameAr : n.nationalityNameEn,
+                  })),
+                ]}
+              />
+            </Col>
 
-          <Col xs={24} sm={12} md={8}>
-            <label className={styles.filterLabel}>{isRtl ? 'تاريخ التوقيع' : 'Signing Date'}</label>
-            <DateRangeFilter value={dateRange} onChange={setDateRange} style={{ width: '100%' }} />
-          </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'الوظيفة' : 'Occupation / Job'}</label>
+              <Select
+                value={jobFilter}
+                onChange={setJobFilter}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="label"
+                options={[
+                  { value: 'all', label: isRtl ? 'جميع الوظائف' : 'All Jobs' },
+                  ...(jobs as any[]).map((j) => ({
+                    value: String(j.id),
+                    label: (isRtl ? j.jobNameAr : j.jobNameEn) || j.jobNameAr || j.jobNameEn || `#${j.id}`,
+                  })),
+                ]}
+              />
+            </Col>
 
-          <Col xs={24} sm={12} md={8}>
-            <label className={styles.filterLabel}>{isRtl ? 'تاريخ الإنشاء' : 'Creation Date'}</label>
-            <DateRangeFilter value={createdDateRange} onChange={setCreatedDateRange} style={{ width: '100%' }} />
-          </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t.allMarketers}</label>
+              <Select
+                value={marketerFilter}
+                onChange={setMarketerFilter}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="label"
+                options={[
+                  { value: 'all', label: t.allMarketers },
+                  ...(marketers as any[]).map((m) => ({
+                    value: String(m.id),
+                    label: (isRtl ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
+                  })),
+                ]}
+              />
+            </Col>
 
-          <Col xs={12} sm={6} md={4}>
-            <label className={styles.filterLabel}>{t.allNationalities}</label>
-            <Select
-              value={nationalityFilter}
-              onChange={setNationalityFilter}
-              style={{ width: '100%' }}
-              size="large"
-              showSearch
-              optionFilterProp="label"
-              options={[
-                { value: 'all', label: t.allNationalities },
-                ...(nationalities as any[]).map((n) => ({
-                  value: String(n.id),
-                  label: isRtl ? n.nationalityNameAr : n.nationalityNameEn,
-                })),
-              ]}
-            />
-          </Col>
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'النوع' : 'Type'}</label>
+              <Select
+                value={operationTypeFilter}
+                onChange={setOperationTypeFilter}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: isRtl ? 'كل الأنواع' : 'All Types' },
+                  ...toSelectOptions(OPERATION_TYPE, language).map((o) => ({ ...o, value: String(o.value) })),
+                ]}
+              />
+            </Col>
 
-          <Col xs={12} sm={6} md={4}>
-            <label className={styles.filterLabel}>{isRtl ? 'الوظيفة' : 'Occupation / Job'}</label>
-            <Select
-              value={jobFilter}
-              onChange={setJobFilter}
-              style={{ width: '100%' }}
-              size="large"
-              showSearch
-              optionFilterProp="label"
-              options={[
-                { value: 'all', label: isRtl ? 'جميع الوظائف' : 'All Jobs' },
-                ...(jobs as any[]).map((j) => ({
-                  value: String(j.id),
-                  label: (isRtl ? j.jobNameAr : j.jobNameEn) || j.jobNameAr || j.jobNameEn || `#${j.id}`,
-                })),
-              ]}
-            />
-          </Col>
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>{isRtl ? 'تاريخ التوقيع' : 'Signing Date'}</label>
+              <DateRangeFilter value={dateRange} onChange={setDateRange} style={{ width: '100%' }} />
+            </Col>
 
-          <Col xs={12} sm={6} md={4}>
-            <label className={styles.filterLabel}>{t.allMarketers}</label>
-            <Select
-              value={marketerFilter}
-              onChange={setMarketerFilter}
-              style={{ width: '100%' }}
-              size="large"
-              showSearch
-              optionFilterProp="label"
-              options={[
-                { value: 'all', label: t.allMarketers },
-                ...(marketers as any[]).map((m) => ({
-                  value: String(m.id),
-                  label: (isRtl ? m.nameAr : m.nameEn) || m.nameAr || m.nameEn || `#${m.id}`,
-                })),
-              ]}
-            />
-          </Col>
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>{isRtl ? 'تاريخ الإنشاء' : 'Creation Date'}</label>
+              <DateRangeFilter value={createdDateRange} onChange={setCreatedDateRange} style={{ width: '100%' }} />
+            </Col>
 
-          <Col xs={12} sm={6} md={4}>
-            <label className={styles.filterLabel}>{isRtl ? 'النوع' : 'Type'}</label>
-            <Select
-              value={operationTypeFilter}
-              onChange={setOperationTypeFilter}
-              style={{ width: '100%' }}
-              size="large"
-              options={[
-                { value: 'all', label: isRtl ? 'كل الأنواع' : 'All Types' },
-                ...toSelectOptions(OPERATION_TYPE, language).map((o) => ({ ...o, value: String(o.value) })),
-              ]}
-            />
-          </Col>
-
-          <Col xs={24} sm={12} md={8}>
-            <label className={styles.filterLabel}>{isRtl ? 'تاريخ نهاية العقد' : 'Contract Expiration Date'}</label>
-            <DateRangeFilter value={contractEndDateRange} onChange={setContractEndDateRange} style={{ width: '100%' }} />
-          </Col>
-        </Row>
-      </Card>
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>{isRtl ? 'تاريخ نهاية العقد' : 'Contract Expiration Date'}</label>
+              <DateRangeFilter value={contractEndDateRange} onChange={setContractEndDateRange} style={{ width: '100%' }} />
+            </Col>
+          </Row>
+        </div>
+      </AdvancedFilterPanel>
 
       {/* Results info */}
       <div className={styles.resultsInfo}>
