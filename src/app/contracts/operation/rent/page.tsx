@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, Row, Col, Button, Input, Select, Statistic, Empty, Spin, Form } from 'antd';
+import { Card, Row, Col, Button, Input, Select, Statistic, Empty, Spin, Form, InputNumber } from 'antd';
 import {
   FileTextOutlined,
   SearchOutlined,
@@ -21,7 +21,8 @@ import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { useMarketers } from '@/hooks/api/useMarketers';
-import { OPERATING_CONTRACT_STATUS, OPERATION_TYPE, toSelectOptions } from '@/constants/enums';
+import { useUsers } from '@/hooks/api/useUsers';
+import { LABOR_MANAGEMENT, OPERATING_CONTRACT_STATUS, OPERATION_TYPE, toSelectOptions } from '@/constants/enums';
 import type {
   EmploymentOperatingContract,
   EmploymentContractOffer,
@@ -67,6 +68,14 @@ export default function RentContractsPage() {
   const [nationalityFilter, setNationalityFilter] = useState<string | 'all'>('all');
   const [jobFilter, setJobFilter] = useState<string | 'all'>('all');
   const [identityNumberFilter, setIdentityNumberFilter] = useState('');
+  const [customerArabicNameFilter, setCustomerArabicNameFilter] = useState('');
+  const [customerPhoneFilter, setCustomerPhoneFilter] = useState('');
+  const [customerEmailFilter, setCustomerEmailFilter] = useState('');
+  const [workerPassportFilter, setWorkerPassportFilter] = useState('');
+  const [createdByFilter, setCreatedByFilter] = useState<string | 'all'>('all');
+  const [expiresAfterDaysFilter, setExpiresAfterDaysFilter] = useState<number | null>(null);
+  const [expirationConditionFilter, setExpirationConditionFilter] = useState<string | 'all'>('all');
+  const [laborSelectionStatusFilter, setLaborSelectionStatusFilter] = useState<string | 'all'>('all');
   const [operationTypeFilter, setOperationTypeFilter] = useState<string | 'all'>('all');
   const [dateRange, setDateRange] = useState<[string | undefined, string | undefined]>([
     undefined,
@@ -99,6 +108,14 @@ export default function RentContractsPage() {
     (contractNumberFilter ? 1 : 0) +
     (statusFilter !== 'all' ? 1 : 0) +
     (identityNumberFilter ? 1 : 0) +
+    (customerArabicNameFilter ? 1 : 0) +
+    (customerPhoneFilter ? 1 : 0) +
+    (customerEmailFilter ? 1 : 0) +
+    (workerPassportFilter ? 1 : 0) +
+    (createdByFilter !== 'all' ? 1 : 0) +
+    (expiresAfterDaysFilter != null ? 1 : 0) +
+    (expirationConditionFilter !== 'all' ? 1 : 0) +
+    (laborSelectionStatusFilter !== 'all' ? 1 : 0) +
     (nationalityFilter !== 'all' ? 1 : 0) +
     (jobFilter !== 'all' ? 1 : 0) +
     (marketerFilter !== 'all' ? 1 : 0) +
@@ -111,6 +128,14 @@ export default function RentContractsPage() {
     setContractNumberFilter('');
     setStatusFilter('all');
     setIdentityNumberFilter('');
+    setCustomerArabicNameFilter('');
+    setCustomerPhoneFilter('');
+    setCustomerEmailFilter('');
+    setWorkerPassportFilter('');
+    setCreatedByFilter('all');
+    setExpiresAfterDaysFilter(null);
+    setExpirationConditionFilter('all');
+    setLaborSelectionStatusFilter('all');
     setNationalityFilter('all');
     setJobFilter('all');
     setMarketerFilter('all');
@@ -168,6 +193,16 @@ export default function RentContractsPage() {
     ContractNumber: debouncedContractNumber || undefined,
     ContractStatus: statusFilter === 'all' ? undefined : Number(statusFilter),
     IdentityNumber: identityNumberFilter || undefined,
+    CustomerArabicName: customerArabicNameFilter || undefined,
+    CustomerPhone: customerPhoneFilter || undefined,
+    CustomerEmail: customerEmailFilter || undefined,
+    WorkerPassportNumber: workerPassportFilter || undefined,
+    CreatedBy: createdByFilter !== 'all' ? createdByFilter : undefined,
+    ExpiresAfterDays: expiresAfterDaysFilter ?? undefined,
+    ExpirationCondition:
+      expirationConditionFilter !== 'all' ? Number(expirationConditionFilter) as 1 | 2 | 3 : undefined,
+    LaborSelectionStatus:
+      laborSelectionStatusFilter !== 'all' ? Number(laborSelectionStatusFilter) : undefined,
     NationalityId: nationalityFilter !== 'all' ? nationalityFilter : undefined,
     JobId: jobFilter !== 'all' ? jobFilter : undefined,
     MarketerId: marketerFilter !== 'all' ? marketerFilter : undefined,
@@ -184,6 +219,7 @@ export default function RentContractsPage() {
   const { data: nationalities = [] } = useNationalities();
   const { customers = [] } = useCustomers();
   const { data: marketers = [] } = useMarketers();
+  const { users = [] } = useUsers();
 
   useEffect(() => setMounted(true), []);
 
@@ -566,6 +602,42 @@ export default function RentContractsPage() {
             </Col>
 
             <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'الاسم عربي' : 'Arabic Name'}</label>
+              <Input
+                value={customerArabicNameFilter}
+                onChange={(e) => setCustomerArabicNameFilter(e.target.value)}
+                allowClear
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'الجوال / الهاتف' : 'Mobile / Phone'}</label>
+              <Input
+                value={customerPhoneFilter}
+                onChange={(e) => setCustomerPhoneFilter(e.target.value)}
+                allowClear
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'البريد الإلكتروني' : 'Email Address'}</label>
+              <Input
+                value={customerEmailFilter}
+                onChange={(e) => setCustomerEmailFilter(e.target.value)}
+                allowClear
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'رقم جواز السفر' : 'Passport Number'}</label>
+              <Input
+                value={workerPassportFilter}
+                onChange={(e) => setWorkerPassportFilter(e.target.value)}
+                allowClear
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
               <label className={styles.filterLabel}>{t.allNationalities}</label>
               <Select
                 value={nationalityFilter}
@@ -620,6 +692,24 @@ export default function RentContractsPage() {
             </Col>
 
             <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'تم الإنشاء بواسطة' : 'Created By'}</label>
+              <Select
+                value={createdByFilter}
+                onChange={setCreatedByFilter}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="label"
+                options={[
+                  { value: 'all', label: isRtl ? 'جميع المستخدمين' : 'All Users' },
+                  ...(users as any[]).map((u) => ({
+                    value: String(u.id),
+                    label: u.fullName || u.username || `#${u.id}`,
+                  })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
               <label className={styles.filterLabel}>{isRtl ? 'النوع' : 'Type'}</label>
               <Select
                 value={operationTypeFilter}
@@ -628,6 +718,19 @@ export default function RentContractsPage() {
                 options={[
                   { value: 'all', label: isRtl ? 'كل الأنواع' : 'All Types' },
                   ...toSelectOptions(OPERATION_TYPE, language).map((o) => ({ ...o, value: String(o.value) })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'حالة اختيار العمالة' : 'Labor Selection Status'}</label>
+              <Select
+                value={laborSelectionStatusFilter}
+                onChange={setLaborSelectionStatusFilter}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: isRtl ? 'كل حالات اختيار العمالة' : 'All Labor Selection Statuses' },
+                  ...toSelectOptions(LABOR_MANAGEMENT, language).map((o) => ({ ...o, value: String(o.value) })),
                 ]}
               />
             </Col>
@@ -645,6 +748,31 @@ export default function RentContractsPage() {
             <Col xs={24} md={12}>
               <label className={styles.filterLabel}>{isRtl ? 'تاريخ نهاية العقد' : 'Contract Expiration Date'}</label>
               <DateRangeFilter value={contractEndDateRange} onChange={setContractEndDateRange} style={{ width: '100%' }} />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'ينتهي بعد' : 'Expires After'}</label>
+              <InputNumber
+                min={0}
+                value={expiresAfterDaysFilter}
+                onChange={(value) => setExpiresAfterDaysFilter(value ?? null)}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{isRtl ? 'شرط نهاية العقد' : 'Contract Expiration Condition'}</label>
+              <Select
+                value={expirationConditionFilter}
+                onChange={setExpirationConditionFilter}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: isRtl ? 'كل شروط النهاية' : 'All Expiration Conditions' },
+                  { value: '1', label: isRtl ? 'غير منتهي' : 'Not Expired' },
+                  { value: '2', label: isRtl ? 'منتهي' : 'Expired' },
+                  { value: '3', label: isRtl ? 'ينتهي خلال مدة' : 'Expiring Within Days' },
+                ]}
+              />
             </Col>
           </Row>
         </div>

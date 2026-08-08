@@ -109,27 +109,28 @@ export class MediationContractService {
     PaymentDateFrom?: string;
     PaymentDateTo?: string;
     HasContractInsurance?: boolean;
-    // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
     VisaDateFrom?: string;
     VisaDateTo?: string;
-    MinLocalCost?: number;
-    MaxLocalCost?: number;
-    MinAgentCostSAR?: number;
-    MaxAgentCostSAR?: number;
-    MinSalary?: number;
-    MaxSalary?: number;
-    MinOtherCosts?: number;
-    MaxOtherCosts?: number;
-    MinTotalTaxValue?: number;
-    MaxTotalTaxValue?: number;
-    MinManagerDiscount?: number;
-    MaxManagerDiscount?: number;
-    MinCostDiscount?: number;
-    MaxCostDiscount?: number;
-    MinTotalCost?: number;
-    MaxTotalCost?: number;
-    MinDomesticWorkerInsurance?: number;
-    MaxDomesticWorkerInsurance?: number;
+    ExternalStatusId?: number;
+    ManualContractStatus?: number;
+    WorkerNumber?: string;
+    VisaStatus?: number;
+    IncompleteExternalStatusId?: number;
+    PastExternalStatusId?: number;
+    WarrantyStatus?: number;
+    CreatedBy?: string;
+    CancellationDateFrom?: string;
+    CancellationDateTo?: string;
+    ArrivalDateFrom?: string;
+    ArrivalDateTo?: string;
+    IsReplacement?: boolean;
+    MusanedPaymentStatus?: 0 | 1 | 2;
+    ReferenceNumber?: string;
+    WorkersAddedToday?: boolean;
+    Religion?: 1 | 2 | 3;
+    HasPreviousExperience?: boolean;
+    JobId?: string;
+    IsVip?: boolean;
   }): Promise<{ contracts: MediationContract[]; total: number }> {
     const query: Record<string, any> = {
       Page: params?.Page ?? 1,
@@ -173,24 +174,26 @@ export class MediationContractService {
           'HasContractInsurance',
           'VisaDateFrom',
           'VisaDateTo',
-          'MinLocalCost',
-          'MaxLocalCost',
-          'MinAgentCostSAR',
-          'MaxAgentCostSAR',
-          'MinSalary',
-          'MaxSalary',
-          'MinOtherCosts',
-          'MaxOtherCosts',
-          'MinTotalTaxValue',
-          'MaxTotalTaxValue',
-          'MinManagerDiscount',
-          'MaxManagerDiscount',
-          'MinCostDiscount',
-          'MaxCostDiscount',
-          'MinTotalCost',
-          'MaxTotalCost',
-          'MinDomesticWorkerInsurance',
-          'MaxDomesticWorkerInsurance',
+          'ExternalStatusId',
+          'ManualContractStatus',
+          'WorkerNumber',
+          'VisaStatus',
+          'IncompleteExternalStatusId',
+          'PastExternalStatusId',
+          'WarrantyStatus',
+          'CreatedBy',
+          'CancellationDateFrom',
+          'CancellationDateTo',
+          'ArrivalDateFrom',
+          'ArrivalDateTo',
+          'IsReplacement',
+          'MusanedPaymentStatus',
+          'ReferenceNumber',
+          'WorkersAddedToday',
+          'Religion',
+          'HasPreviousExperience',
+          'JobId',
+          'IsVip',
         ] as const
       ).forEach((key) => {
         const value = params[key];

@@ -33,12 +33,18 @@ import { AdvancedFilterPanel, DateRangeFilter } from '@/components/filters';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useMediationFollowUpDashboard } from '@/hooks/api/useMediationFollowUp';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import { useCustomers } from '@/hooks/api/useCustomers';
+import { useWorkers } from '@/hooks/api/useWorkers';
+import { useJobs } from '@/hooks/api/useJobs';
+import { useUsers } from '@/hooks/api/useUsers';
 import { MEDIATION_CONTRACT_STATUS, MEDIATION_CONTRACT_TYPE, toSelectOptions } from '@/constants/enums';
 import type {
   MediationFollowUpDashboardParams,
   MediationFollowUpDashboardRow,
 } from '@/types/api.types';
 import styles from './AutomaticFollowUp.module.css';
+
+type BooleanFilter = 'all' | 'true' | 'false';
 
 // ── Translations ──────────────────────────────────────────────────────────────
 
@@ -94,20 +100,49 @@ export default function AutomaticFollowUpPage() {
   // else in the app. See project memory for the full rationale.
   const [contractNumber, setContractNumber] = useState<number | null>(null);
   const [musanedNumber, setMusanedNumber] = useState('');
+  const [customerId, setCustomerId] = useState<string | 'all'>('all');
+  const [workerId, setWorkerId] = useState<string | 'all'>('all');
   const [passportNumber, setPassportNumber] = useState('');
+  const [workerNumber, setWorkerNumber] = useState('');
   const [nationalId, setNationalId] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [visaNumber, setVisaNumber] = useState('');
   const [statusId, setStatusId] = useState<number | null>(null);
+  const [externalStatusId, setExternalStatusId] = useState<string>('all');
+  const [manualStatus, setManualStatus] = useState<string>('all');
+  const [visaStatus, setVisaStatus] = useState<number | null>(null);
+  const [incompleteExternalStatusId, setIncompleteExternalStatusId] = useState<string>('all');
+  const [pastExternalStatusId, setPastExternalStatusId] = useState<string>('all');
+  const [warrantyStatus, setWarrantyStatus] = useState<string>('all');
   const [contractType, setContractType] = useState<string | 'all'>('all');
   const [nationalityId, setNationalityId] = useState<string | 'all'>('all');
   const [agentId, setAgentId] = useState<string | 'all'>('all');
+  const [jobId, setJobId] = useState<string | 'all'>('all');
+  const [createdBy, setCreatedBy] = useState<string | 'all'>('all');
   const [workerAssignmentFilter, setWorkerAssignmentFilter] =
     useState<'all' | 'assigned' | 'unassigned'>('all');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
   const [insuranceFilter, setInsuranceFilter] = useState<'all' | 'insured' | 'uninsured'>('all');
   const [cancelStatusFilter, setCancelStatusFilter] = useState<'all' | 'cancelled' | 'active'>('all');
+  const [replacementFilter, setReplacementFilter] = useState<BooleanFilter>('all');
+  const [musanedPaymentStatus, setMusanedPaymentStatus] = useState<string>('all');
+  const [workersAddedToday, setWorkersAddedToday] = useState<BooleanFilter>('all');
+  const [religion, setReligion] = useState<string>('all');
+  const [previousExperience, setPreviousExperience] = useState<BooleanFilter>('all');
+  const [vipFilter, setVipFilter] = useState<BooleanFilter>('all');
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [notArrivedAfterArrivalDateDays, setNotArrivedAfterArrivalDateDays] = useState<number | null>(null);
+  const [notArrivedAfterSigningDateDays, setNotArrivedAfterSigningDateDays] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [externalStatusDateRange, setExternalStatusDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [arrivalDateRange, setArrivalDateRange] = useState<[string | undefined, string | undefined]>([
     undefined,
     undefined,
   ]);
@@ -140,14 +175,26 @@ export default function AutomaticFollowUpPage() {
     const p: MediationFollowUpDashboardParams = { Page: pageNumber, PageSize: pageSize };
     if (contractNumber) p.ContractNumber = contractNumber;
     if (musanedNumber) p.MusanedContractNumber = musanedNumber;
+    if (customerId !== 'all') p.CustomerId = customerId;
+    if (workerId !== 'all') p.WorkerId = workerId;
     if (passportNumber) p.WorkerPassportNumber = passportNumber;
+    if (workerNumber) p.WorkerNumber = workerNumber;
     if (nationalId) p.CustomerNationalId = nationalId;
     if (customerPhone) p.CustomerPhone = customerPhone;
+    if (customerEmail) p.CustomerEmail = customerEmail;
     if (visaNumber) p.VisaNumber = visaNumber;
     if (statusId != null) p.StatusId = statusId;
+    if (externalStatusId !== 'all') p.ExternalStatusId = Number(externalStatusId);
+    if (manualStatus !== 'all') p.ManualContractStatus = Number(manualStatus);
+    if (visaStatus != null) p.VisaStatus = visaStatus;
+    if (incompleteExternalStatusId !== 'all') p.IncompleteExternalStatusId = Number(incompleteExternalStatusId);
+    if (pastExternalStatusId !== 'all') p.PastExternalStatusId = Number(pastExternalStatusId);
+    if (warrantyStatus !== 'all') p.WarrantyStatus = Number(warrantyStatus);
     if (contractType !== 'all') p.ContractType = Number(contractType);
     if (nationalityId !== 'all') p.NationalityId = nationalityId;
     if (agentId !== 'all') p.AgentId = agentId;
+    if (jobId !== 'all') p.JobId = jobId;
+    if (createdBy !== 'all') p.CreatedBy = createdBy;
     if (workerAssignmentFilter !== 'all') {
       p.WithoutAssignedWorker = workerAssignmentFilter === 'unassigned';
     }
@@ -155,8 +202,21 @@ export default function AutomaticFollowUpPage() {
     if (paymentFilter === 'unpaid') p.IsUnpaid = true;
     if (insuranceFilter !== 'all') p.HasContractInsurance = insuranceFilter === 'insured';
     if (cancelStatusFilter !== 'all') p.IsCancel = cancelStatusFilter === 'cancelled';
+    if (replacementFilter !== 'all') p.IsReplacement = replacementFilter === 'true';
+    if (musanedPaymentStatus !== 'all') p.MusanedPaymentStatus = Number(musanedPaymentStatus) as 0 | 1 | 2;
+    if (referenceNumber) p.ReferenceNumber = referenceNumber;
+    if (workersAddedToday !== 'all') p.WorkersAddedToday = workersAddedToday === 'true';
+    if (religion !== 'all') p.Religion = Number(religion) as 1 | 2 | 3;
+    if (previousExperience !== 'all') p.HasPreviousExperience = previousExperience === 'true';
+    if (vipFilter !== 'all') p.IsVip = vipFilter === 'true';
+    if (notArrivedAfterArrivalDateDays != null) p.NotArrivedAfterArrivalDateDays = notArrivedAfterArrivalDateDays;
+    if (notArrivedAfterSigningDateDays != null) p.NotArrivedAfterSigningDateDays = notArrivedAfterSigningDateDays;
     if (dateRange[0]) p.CreatedDateFrom = dateRange[0];
     if (dateRange[1]) p.CreatedDateTo = dateRange[1];
+    if (externalStatusDateRange[0]) p.ExternalStatusDateFrom = externalStatusDateRange[0];
+    if (externalStatusDateRange[1]) p.ExternalStatusDateTo = externalStatusDateRange[1];
+    if (arrivalDateRange[0]) p.ArrivalDateFrom = arrivalDateRange[0];
+    if (arrivalDateRange[1]) p.ArrivalDateTo = arrivalDateRange[1];
     if (paymentDateRange[0]) p.PaymentDateFrom = paymentDateRange[0];
     if (paymentDateRange[1]) p.PaymentDateTo = paymentDateRange[1];
     if (search) p.Search = search;
@@ -168,19 +228,42 @@ export default function AutomaticFollowUpPage() {
     pageSize,
     contractNumber,
     musanedNumber,
+    customerId,
+    workerId,
     passportNumber,
+    workerNumber,
     nationalId,
     customerPhone,
+    customerEmail,
     visaNumber,
     statusId,
+    externalStatusId,
+    manualStatus,
+    visaStatus,
+    incompleteExternalStatusId,
+    pastExternalStatusId,
+    warrantyStatus,
     contractType,
     nationalityId,
     agentId,
+    jobId,
+    createdBy,
     workerAssignmentFilter,
     paymentFilter,
     insuranceFilter,
     cancelStatusFilter,
+    replacementFilter,
+    musanedPaymentStatus,
+    referenceNumber,
+    workersAddedToday,
+    religion,
+    previousExperience,
+    vipFilter,
+    notArrivedAfterArrivalDateDays,
+    notArrivedAfterSigningDateDays,
     dateRange,
+    externalStatusDateRange,
+    arrivalDateRange,
     paymentDateRange,
     search,
     visaDateRange,
@@ -192,23 +275,50 @@ export default function AutomaticFollowUpPage() {
   const displayedRows = rows;
   const { data: agents = [] } = useAgents();
   const { data: nationalities = [] } = useNationalities();
+  const { customers = [] } = useCustomers();
+  const { data: workers = [] } = useWorkers();
+  const { data: jobs = [] } = useJobs();
+  const { users = [] } = useUsers();
 
   const activeFilterCount = [
     contractNumber != null,
     musanedNumber !== '',
+    customerId !== 'all',
+    workerId !== 'all',
     passportNumber !== '',
+    workerNumber !== '',
     nationalId !== '',
     customerPhone !== '',
+    customerEmail !== '',
     visaNumber !== '',
     statusId != null,
+    externalStatusId !== 'all',
+    manualStatus !== 'all',
+    visaStatus != null,
+    incompleteExternalStatusId !== 'all',
+    pastExternalStatusId !== 'all',
+    warrantyStatus !== 'all',
     contractType !== 'all',
     nationalityId !== 'all',
     agentId !== 'all',
+    jobId !== 'all',
+    createdBy !== 'all',
     workerAssignmentFilter !== 'all',
     paymentFilter !== 'all',
     insuranceFilter !== 'all',
     cancelStatusFilter !== 'all',
+    replacementFilter !== 'all',
+    musanedPaymentStatus !== 'all',
+    referenceNumber !== '',
+    workersAddedToday !== 'all',
+    religion !== 'all',
+    previousExperience !== 'all',
+    vipFilter !== 'all',
+    notArrivedAfterArrivalDateDays != null,
+    notArrivedAfterSigningDateDays != null,
     Boolean(dateRange[0] || dateRange[1]),
+    Boolean(externalStatusDateRange[0] || externalStatusDateRange[1]),
+    Boolean(arrivalDateRange[0] || arrivalDateRange[1]),
     Boolean(paymentDateRange[0] || paymentDateRange[1]),
     Boolean(visaDateRange[0] || visaDateRange[1]),
   ].filter(Boolean).length;
@@ -216,19 +326,42 @@ export default function AutomaticFollowUpPage() {
   const clearFilters = useCallback(() => {
     setContractNumber(null);
     setMusanedNumber('');
+    setCustomerId('all');
+    setWorkerId('all');
     setPassportNumber('');
+    setWorkerNumber('');
     setNationalId('');
     setCustomerPhone('');
+    setCustomerEmail('');
     setVisaNumber('');
     setStatusId(null);
+    setExternalStatusId('all');
+    setManualStatus('all');
+    setVisaStatus(null);
+    setIncompleteExternalStatusId('all');
+    setPastExternalStatusId('all');
+    setWarrantyStatus('all');
     setContractType('all');
     setNationalityId('all');
     setAgentId('all');
+    setJobId('all');
+    setCreatedBy('all');
     setWorkerAssignmentFilter('all');
     setPaymentFilter('all');
     setInsuranceFilter('all');
     setCancelStatusFilter('all');
+    setReplacementFilter('all');
+    setMusanedPaymentStatus('all');
+    setReferenceNumber('');
+    setWorkersAddedToday('all');
+    setReligion('all');
+    setPreviousExperience('all');
+    setVipFilter('all');
+    setNotArrivedAfterArrivalDateDays(null);
+    setNotArrivedAfterSigningDateDays(null);
     setDateRange([undefined, undefined]);
+    setExternalStatusDateRange([undefined, undefined]);
+    setArrivalDateRange([undefined, undefined]);
     setPaymentDateRange([undefined, undefined]);
     setVisaDateRange([undefined, undefined]);
     setPageNumber(1);
@@ -433,8 +566,46 @@ export default function AutomaticFollowUpPage() {
             <Input placeholder={t('filterByMusaned')} value={musanedNumber} onChange={(e) => { setMusanedNumber(e.target.value); setPageNumber(1); }} allowClear />
           </Col>
           <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'اسم العميل' : 'Client Name'}</label>
+            <Select
+              value={customerId}
+              onChange={(v) => { setCustomerId(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              showSearch
+              optionFilterProp="label"
+              options={[
+                { value: 'all', label: language === 'ar' ? 'جميع العملاء' : 'All Customers' },
+                ...(customers as any[]).map((c) => ({
+                  value: String(c.id),
+                  label: (language === 'ar' ? c.arabicName : c.englishName) || c.arabicName || c.englishName || `#${c.id}`,
+                })),
+              ]}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'اسم العامل' : 'Worker Name'}</label>
+            <Select
+              value={workerId}
+              onChange={(v) => { setWorkerId(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              showSearch
+              optionFilterProp="label"
+              options={[
+                { value: 'all', label: language === 'ar' ? 'جميع العمال' : 'All Workers' },
+                ...(workers as any[]).map((w) => ({
+                  value: String(w.id),
+                  label: (language === 'ar' ? w.fullNameAr : w.fullNameEn) || w.fullNameAr || w.fullNameEn || `#${w.id}`,
+                })),
+              ]}
+            />
+          </Col>
+          <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{t('filterByPassport')}</label>
             <Input placeholder={t('filterByPassport')} value={passportNumber} onChange={(e) => { setPassportNumber(e.target.value); setPageNumber(1); }} allowClear />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'رقم العامل' : 'Worker ID / Number'}</label>
+            <Input value={workerNumber} onChange={(e) => { setWorkerNumber(e.target.value); setPageNumber(1); }} allowClear />
           </Col>
           <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{t('filterByNationalId')}</label>
@@ -445,8 +616,16 @@ export default function AutomaticFollowUpPage() {
             <Input value={customerPhone} onChange={(e) => { setCustomerPhone(e.target.value); setPageNumber(1); }} allowClear />
           </Col>
           <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}</label>
+            <Input value={customerEmail} onChange={(e) => { setCustomerEmail(e.target.value); setPageNumber(1); }} allowClear />
+          </Col>
+          <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{language === 'ar' ? 'رقم التأشيرة' : 'Visa Number'}</label>
             <Input value={visaNumber} onChange={(e) => { setVisaNumber(e.target.value); setPageNumber(1); }} allowClear />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'حالة التأشيرة' : 'Visa Status'}</label>
+            <InputNumber value={visaStatus} onChange={(v) => { setVisaStatus(v ?? null); setPageNumber(1); }} style={{ width: '100%' }} min={0} />
           </Col>
           <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{t('nationality')}</label>
@@ -461,6 +640,23 @@ export default function AutomaticFollowUpPage() {
                 ...(nationalities as any[]).map((n) => ({
                   value: String(n.id),
                   label: (language === 'ar' ? n.nationalityNameAr : n.nationalityNameEn) || n.nationalityNameAr || n.nationalityNameEn || `#${n.id}`,
+                })),
+              ]}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'الوظيفة' : 'Occupation / Job Title'}</label>
+            <Select
+              value={jobId}
+              onChange={(v) => { setJobId(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              showSearch
+              optionFilterProp="label"
+              options={[
+                { value: 'all', label: language === 'ar' ? 'جميع الوظائف' : 'All Jobs' },
+                ...(jobs as any[]).map((j) => ({
+                  value: String(j.id),
+                  label: (language === 'ar' ? j.jobNameAr : j.jobNameEn) || j.jobNameAr || j.jobNameEn || `#${j.id}`,
                 })),
               ]}
             />
@@ -483,8 +679,86 @@ export default function AutomaticFollowUpPage() {
             />
           </Col>
           <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'تم الإنشاء بواسطة' : 'Created By'}</label>
+            <Select
+              value={createdBy}
+              onChange={(v) => { setCreatedBy(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              showSearch
+              optionFilterProp="label"
+              options={[
+                { value: 'all', label: language === 'ar' ? 'جميع المستخدمين' : 'All Users' },
+                ...(users as any[]).map((u) => ({
+                  value: String(u.id),
+                  label: u.fullName || u.username || `#${u.id}`,
+                })),
+              ]}
+            />
+          </Col>
+          <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{t('selectStatus')}</label>
             <Select placeholder={t('selectStatus')} allowClear value={statusId} onChange={(v) => { setStatusId(v ?? null); setPageNumber(1); }} style={{ width: '100%' }} options={toSelectOptions([...MEDIATION_CONTRACT_STATUS], language)} />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'الحالة الخارجية' : 'External Status'}</label>
+            <Select
+              value={externalStatusId}
+              onChange={(v) => { setExternalStatusId(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              options={[
+                { value: 'all', label: language === 'ar' ? 'جميع الحالات' : 'All Statuses' },
+                ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
+              ]}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'حالة العقد اليدوي' : 'Manual Contract Status'}</label>
+            <Select
+              value={manualStatus}
+              onChange={(v) => { setManualStatus(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              options={[
+                { value: 'all', label: language === 'ar' ? 'جميع الحالات' : 'All Statuses' },
+                ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
+              ]}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'حالة خارجية لم تتم' : 'Incomplete External Status'}</label>
+            <Select
+              value={incompleteExternalStatusId}
+              onChange={(v) => { setIncompleteExternalStatusId(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              options={[
+                { value: 'all', label: language === 'ar' ? 'جميع الحالات' : 'All Statuses' },
+                ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
+              ]}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'حالة خارجية مرت على العقد' : 'Past External Status'}</label>
+            <Select
+              value={pastExternalStatusId}
+              onChange={(v) => { setPastExternalStatusId(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              options={[
+                { value: 'all', label: language === 'ar' ? 'جميع الحالات' : 'All Statuses' },
+                ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
+              ]}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'حالات الضمان' : 'Warranty / Guarantee Status'}</label>
+            <Select
+              value={warrantyStatus}
+              onChange={(v) => { setWarrantyStatus(v); setPageNumber(1); }}
+              style={{ width: '100%' }}
+              options={[
+                { value: 'all', label: language === 'ar' ? 'كل حالات الضمان' : 'All Warranty Statuses' },
+                { value: '14', label: language === 'ar' ? 'فترة الضمان' : 'Warranty Period' },
+                { value: '16', label: language === 'ar' ? 'مرتجع' : 'Returned' },
+              ]}
+            />
           </Col>
           <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{language === 'ar' ? 'نوع عقد التوسط' : 'Mediation Contract Type'}</label>
@@ -507,16 +781,60 @@ export default function AutomaticFollowUpPage() {
             <Select value={paymentFilter} onChange={(v) => { setPaymentFilter(v); setPageNumber(1); }} style={{ width: '100%' }} options={[{ value: 'all', label: language === 'ar' ? 'كل حالات الدفع' : 'All Payment Statuses' }, { value: 'paid', label: language === 'ar' ? 'مدفوع' : 'Paid' }, { value: 'unpaid', label: language === 'ar' ? 'غير مدفوع' : 'Unpaid' }]} />
           </Col>
           <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'سداد مساند' : 'Musaned Payment'}</label>
+            <Select value={musanedPaymentStatus} onChange={(v) => { setMusanedPaymentStatus(v); setPageNumber(1); }} style={{ width: '100%' }} options={[{ value: 'all', label: language === 'ar' ? 'كل حالات سداد مساند' : 'All Musaned Payment Statuses' }, { value: '0', label: language === 'ar' ? 'غير مدفوع' : 'Unpaid' }, { value: '1', label: language === 'ar' ? 'مدفوع جزئياً' : 'Partially Paid' }, { value: '2', label: language === 'ar' ? 'مدفوع' : 'Paid' }]} />
+          </Col>
+          <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{language === 'ar' ? 'تأمين عقود العمالة المنزلية' : 'Domestic Worker Insurance'}</label>
             <Select value={insuranceFilter} onChange={(v) => { setInsuranceFilter(v); setPageNumber(1); }} style={{ width: '100%' }} options={[{ value: 'all', label: language === 'ar' ? 'الكل' : 'All' }, { value: 'insured', label: language === 'ar' ? 'مؤمن' : 'Insured' }, { value: 'uninsured', label: language === 'ar' ? 'غير مؤمن' : 'Uninsured' }]} />
           </Col>
           <Col xs={24} md={6}>
-            <label className={styles.filterLabel}>{language === 'ar' ? '??? ???' : 'Back-out Status'}</label>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'باك أوت' : 'Back-out Status'}</label>
             <Select value={cancelStatusFilter} onChange={(v) => { setCancelStatusFilter(v); setPageNumber(1); }} style={{ width: '100%' }} options={[{ value: 'all', label: language === 'ar' ? 'الكل' : 'All' }, { value: 'cancelled', label: language === 'ar' ? 'ملغي' : 'Cancelled' }, { value: 'active', label: language === 'ar' ? 'غير ملغي' : 'Not Cancelled' }]} />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'استبدال العقود' : 'Contract Replacement'}</label>
+            <Select value={replacementFilter} onChange={(v) => { setReplacementFilter(v); setPageNumber(1); }} style={{ width: '100%' }} options={[{ value: 'all', label: language === 'ar' ? 'الكل' : 'All' }, { value: 'true', label: language === 'ar' ? 'استبدال' : 'Replacement' }, { value: 'false', label: language === 'ar' ? 'ليس استبدالاً' : 'Not Replacement' }]} />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'رقم المرجع' : 'Reference Number'}</label>
+            <Input value={referenceNumber} onChange={(e) => { setReferenceNumber(e.target.value); setPageNumber(1); }} allowClear />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'عمالة تمت إضافتها اليوم' : 'Workers Added Today'}</label>
+            <Select value={workersAddedToday} onChange={(v) => { setWorkersAddedToday(v); setPageNumber(1); }} style={{ width: '100%' }} options={[{ value: 'all', label: language === 'ar' ? 'الكل' : 'All' }, { value: 'true', label: language === 'ar' ? 'نعم' : 'Yes' }, { value: 'false', label: language === 'ar' ? 'لا' : 'No' }]} />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'الديانة' : 'Religion'}</label>
+            <Select value={religion} onChange={(v) => { setReligion(v); setPageNumber(1); }} style={{ width: '100%' }} options={[{ value: 'all', label: language === 'ar' ? 'كل الديانات' : 'All Religions' }, { value: '1', label: language === 'ar' ? 'مسلم' : 'Muslim' }, { value: '2', label: language === 'ar' ? 'مسيحي' : 'Christian' }, { value: '3', label: language === 'ar' ? 'أخرى' : 'Other' }]} />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'سبق له العمل' : 'Prior Experience'}</label>
+            <Select value={previousExperience} onChange={(v) => { setPreviousExperience(v); setPageNumber(1); }} style={{ width: '100%' }} options={[{ value: 'all', label: language === 'ar' ? 'الكل' : 'All' }, { value: 'true', label: language === 'ar' ? 'نعم' : 'Yes' }, { value: 'false', label: language === 'ar' ? 'لا' : 'No' }]} />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'عميل مهم' : 'VIP / Important Client'}</label>
+            <Select value={vipFilter} onChange={(v) => { setVipFilter(v); setPageNumber(1); }} style={{ width: '100%' }} options={[{ value: 'all', label: language === 'ar' ? 'الكل' : 'All' }, { value: 'true', label: language === 'ar' ? 'مهم' : 'VIP' }, { value: 'false', label: language === 'ar' ? 'عادي' : 'Standard' }]} />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'لم يصل بعد تاريخ الوصول (أيام)' : 'Not Arrived After Arrival Date Days'}</label>
+            <InputNumber min={0} value={notArrivedAfterArrivalDateDays} onChange={(v) => { setNotArrivedAfterArrivalDateDays(v ?? null); setPageNumber(1); }} style={{ width: '100%' }} />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'لم يصل بعد التوقيع (أيام)' : 'Not Arrived After Signing Date Days'}</label>
+            <InputNumber min={0} value={notArrivedAfterSigningDateDays} onChange={(v) => { setNotArrivedAfterSigningDateDays(v ?? null); setPageNumber(1); }} style={{ width: '100%' }} />
           </Col>
           <Col xs={24} md={12}>
             <label className={styles.filterLabel}>{language === 'ar' ? 'تاريخ الإنشاء' : 'Creation Date'}</label>
             <DateRangeFilter value={dateRange} onChange={(v) => { setDateRange(v); setPageNumber(1); }} style={{ width: '100%' }} />
+          </Col>
+          <Col xs={24} md={12}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'تاريخ الحالة الخارجية' : 'External Status Date'}</label>
+            <DateRangeFilter value={externalStatusDateRange} onChange={(v) => { setExternalStatusDateRange(v); setPageNumber(1); }} style={{ width: '100%' }} />
+          </Col>
+          <Col xs={24} md={12}>
+            <label className={styles.filterLabel}>{language === 'ar' ? 'تاريخ الوصول' : 'Arrival Date'}</label>
+            <DateRangeFilter value={arrivalDateRange} onChange={(v) => { setArrivalDateRange(v); setPageNumber(1); }} style={{ width: '100%' }} />
           </Col>
           <Col xs={24} md={12}>
             <label className={styles.filterLabel}>{language === 'ar' ? 'تاريخ سداد الفاتورة' : 'Invoice Payment Date'}</label>

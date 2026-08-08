@@ -1736,7 +1736,6 @@ export interface MediationFollowUpDashboardParams {
   WorkerPassportNumber?: string | null;
   ContractId?: string | null;
   MusanedContractNumber?: string | null;
-  /** NOTE: ignored server-side by the dashboard endpoint — filter client-side instead. */
   StatusId?: number | null;
   NationalityId?: string | null;
   WorkerType?: number | null;
@@ -1769,27 +1768,33 @@ export interface MediationFollowUpDashboardParams {
   UpdatedDateTo?: string | null;
   SortBy?: string | null;
   SortDescending?: boolean | null;
-  // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
   VisaDateFrom?: string | null;
   VisaDateTo?: string | null;
-  MinLocalCost?: number | null;
-  MaxLocalCost?: number | null;
-  MinAgentCostSAR?: number | null;
-  MaxAgentCostSAR?: number | null;
-  MinSalary?: number | null;
-  MaxSalary?: number | null;
-  MinOtherCosts?: number | null;
-  MaxOtherCosts?: number | null;
-  MinTotalTaxValue?: number | null;
-  MaxTotalTaxValue?: number | null;
-  MinManagerDiscount?: number | null;
-  MaxManagerDiscount?: number | null;
-  MinCostDiscount?: number | null;
-  MaxCostDiscount?: number | null;
-  MinTotalCost?: number | null;
-  MaxTotalCost?: number | null;
-  MinDomesticWorkerInsurance?: number | null;
-  MaxDomesticWorkerInsurance?: number | null;
+  ExternalStatusId?: number | null;
+  ManualContractStatus?: number | null;
+  WorkerNumber?: string | null;
+  VisaStatus?: number | null;
+  IncompleteExternalStatusId?: number | null;
+  PastExternalStatusId?: number | null;
+  WarrantyStatus?: number | null;
+  CreatedBy?: string | null;
+  CancellationDateFrom?: string | null;
+  CancellationDateTo?: string | null;
+  ArrivalDateFrom?: string | null;
+  ArrivalDateTo?: string | null;
+  IsReplacement?: boolean | null;
+  MusanedPaymentStatus?: 0 | 1 | 2 | null;
+  ReferenceNumber?: string | null;
+  WorkersAddedToday?: boolean | null;
+  Religion?: 1 | 2 | 3 | null;
+  HasPreviousExperience?: boolean | null;
+  JobId?: string | null;
+  IsVip?: boolean | null;
+  ExternalStatusDateFrom?: string | null;
+  ExternalStatusDateTo?: string | null;
+  NotArrivedAfterArrivalDateDays?: number | null;
+  NotArrivedAfterSigningDateDays?: number | null;
+  CustomerEmail?: string | null;
 }
 
 /**

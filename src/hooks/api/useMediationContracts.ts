@@ -62,27 +62,28 @@ export interface MediationContractListParams {
   paymentDateFrom?: string;
   paymentDateTo?: string;
   hasContractInsurance?: boolean;
-  // Numeric-range + visa-date filters (filter gap audit — Aug 2026).
   visaDateFrom?: string;
   visaDateTo?: string;
-  minLocalCost?: number;
-  maxLocalCost?: number;
-  minAgentCostSAR?: number;
-  maxAgentCostSAR?: number;
-  minSalary?: number;
-  maxSalary?: number;
-  minOtherCosts?: number;
-  maxOtherCosts?: number;
-  minTotalTaxValue?: number;
-  maxTotalTaxValue?: number;
-  minManagerDiscount?: number;
-  maxManagerDiscount?: number;
-  minCostDiscount?: number;
-  maxCostDiscount?: number;
-  minTotalCost?: number;
-  maxTotalCost?: number;
-  minDomesticWorkerInsurance?: number;
-  maxDomesticWorkerInsurance?: number;
+  externalStatusId?: number;
+  manualContractStatus?: number;
+  workerNumber?: string;
+  visaStatus?: number;
+  incompleteExternalStatusId?: number;
+  pastExternalStatusId?: number;
+  warrantyStatus?: number;
+  createdBy?: string;
+  cancellationDateFrom?: string;
+  cancellationDateTo?: string;
+  arrivalDateFrom?: string;
+  arrivalDateTo?: string;
+  isReplacement?: boolean;
+  musanedPaymentStatus?: 0 | 1 | 2;
+  referenceNumber?: string;
+  workersAddedToday?: boolean;
+  religion?: 1 | 2 | 3;
+  hasPreviousExperience?: boolean;
+  jobId?: string;
+  isVip?: boolean;
   /** Skip the fetch entirely — for callers that only need the list conditionally. Defaults to true. */
   enabled?: boolean;
 }
@@ -135,24 +136,26 @@ export function useMediationContracts(params?: MediationContractListParams) {
       HasContractInsurance: params?.hasContractInsurance,
       VisaDateFrom: params?.visaDateFrom,
       VisaDateTo: params?.visaDateTo,
-      MinLocalCost: params?.minLocalCost,
-      MaxLocalCost: params?.maxLocalCost,
-      MinAgentCostSAR: params?.minAgentCostSAR,
-      MaxAgentCostSAR: params?.maxAgentCostSAR,
-      MinSalary: params?.minSalary,
-      MaxSalary: params?.maxSalary,
-      MinOtherCosts: params?.minOtherCosts,
-      MaxOtherCosts: params?.maxOtherCosts,
-      MinTotalTaxValue: params?.minTotalTaxValue,
-      MaxTotalTaxValue: params?.maxTotalTaxValue,
-      MinManagerDiscount: params?.minManagerDiscount,
-      MaxManagerDiscount: params?.maxManagerDiscount,
-      MinCostDiscount: params?.minCostDiscount,
-      MaxCostDiscount: params?.maxCostDiscount,
-      MinTotalCost: params?.minTotalCost,
-      MaxTotalCost: params?.maxTotalCost,
-      MinDomesticWorkerInsurance: params?.minDomesticWorkerInsurance,
-      MaxDomesticWorkerInsurance: params?.maxDomesticWorkerInsurance,
+      ExternalStatusId: params?.externalStatusId,
+      ManualContractStatus: params?.manualContractStatus,
+      WorkerNumber: params?.workerNumber,
+      VisaStatus: params?.visaStatus,
+      IncompleteExternalStatusId: params?.incompleteExternalStatusId,
+      PastExternalStatusId: params?.pastExternalStatusId,
+      WarrantyStatus: params?.warrantyStatus,
+      CreatedBy: params?.createdBy,
+      CancellationDateFrom: params?.cancellationDateFrom,
+      CancellationDateTo: params?.cancellationDateTo,
+      ArrivalDateFrom: params?.arrivalDateFrom,
+      ArrivalDateTo: params?.arrivalDateTo,
+      IsReplacement: params?.isReplacement,
+      MusanedPaymentStatus: params?.musanedPaymentStatus,
+      ReferenceNumber: params?.referenceNumber,
+      WorkersAddedToday: params?.workersAddedToday,
+      Religion: params?.religion,
+      HasPreviousExperience: params?.hasPreviousExperience,
+      JobId: params?.jobId,
+      IsVip: params?.isVip,
     }),
     placeholderData: (previous) => previous,
   });

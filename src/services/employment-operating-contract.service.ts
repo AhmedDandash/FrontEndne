@@ -41,36 +41,24 @@ export interface GetContractsParams {
   IsFinish?: boolean;
   PageNumber?: number;
   PageSize?: number;
-  // NOTE: the page currently fetches all rows (PageSize=9999) and filters
-  // client-side — these fields are accepted as pass-through for callers that
-  // want to send them server-side, but the rent page applies them locally
-  // instead (see contracts/operation/rent/page.tsx `filteredContracts`).
   ContractNumber?: string | number;
   MarketerId?: string | number;
   NationalityId?: string | number;
   JobId?: string | number;
   OperationType?: number;
   LaborManagement?: number;
+  LaborSelectionStatus?: number;
   ContractDateFrom?: string;
   ContractDateTo?: string;
-  // Additive range/date filters (see contracts/operation/rent/page.tsx filter
-  // card) — all sent server-side alongside ContractNumber/MarketerId/ContractDate above.
   ContractEndDateFrom?: string;
   ContractEndDateTo?: string;
-  FinishDateFrom?: string;
-  FinishDateTo?: string;
-  MinDuration?: number;
-  MaxDuration?: number;
-  MinPreviousExperience?: number;
-  MaxPreviousExperience?: number;
-  MinOfferPrice?: number;
-  MaxOfferPrice?: number;
-  MinWorkersCount?: number;
-  MaxWorkersCount?: number;
-  MinCost?: number;
-  MaxCost?: number;
-  MinInsurance?: number;
-  MaxInsurance?: number;
+  CustomerArabicName?: string;
+  CustomerPhone?: string;
+  CustomerEmail?: string;
+  CreatedBy?: string;
+  ExpiresAfterDays?: number;
+  ExpirationCondition?: 1 | 2 | 3;
+  WorkerPassportNumber?: string;
   Search?: string;
   CreatedDateFrom?: string;
   CreatedDateTo?: string;

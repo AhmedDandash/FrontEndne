@@ -57,10 +57,12 @@ import {
 } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import { useCustomers } from '@/hooks/api/useCustomers';
-import { useAvailableMediationWorkers } from '@/hooks/api/useWorkers';
+import { useAvailableMediationWorkers, useWorkers } from '@/hooks/api/useWorkers';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useMarketers } from '@/hooks/api/useMarketers';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import { useJobs } from '@/hooks/api/useJobs';
+import { useUsers } from '@/hooks/api/useUsers';
 import { useMediationContracts } from '@/hooks/api/useMediationContracts';
 import { useCreateComplaint } from '@/hooks/api/useComplaints';
 import { formatCurrency, formatDate, getStatusConfigFromName } from './_lib/format';
@@ -87,6 +89,8 @@ import {
 } from '@/constants/enums';
 import styles from './MediationContracts.module.css';
 
+type BooleanFilter = 'all' | 'true' | 'false';
+
 export default function MediationContractsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -96,17 +100,43 @@ export default function MediationContractsPage() {
   const [searchText, setSearchText] = useState('');
   const [contractNumberFilter, setContractNumberFilter] = useState<number | null>(null);
   const [musanedNumberFilter, setMusanedNumberFilter] = useState('');
+  const [customerIdFilter, setCustomerIdFilter] = useState<string | 'all'>('all');
+  const [workerIdFilter, setWorkerIdFilter] = useState<string | 'all'>('all');
   const [customerNationalIdFilter, setCustomerNationalIdFilter] = useState('');
   const [workerPassportFilter, setWorkerPassportFilter] = useState('');
+  const [workerNumberFilter, setWorkerNumberFilter] = useState('');
   const [customerPhoneFilter, setCustomerPhoneFilter] = useState('');
   const [visaNumberFilter, setVisaNumberFilter] = useState('');
+  const [externalStatusFilter, setExternalStatusFilter] = useState<string>('all');
+  const [manualStatusFilter, setManualStatusFilter] = useState<string>('all');
+  const [visaStatusFilter, setVisaStatusFilter] = useState<number | null>(null);
+  const [incompleteExternalStatusFilter, setIncompleteExternalStatusFilter] = useState<string>('all');
+  const [pastExternalStatusFilter, setPastExternalStatusFilter] = useState<string>('all');
+  const [warrantyStatusFilter, setWarrantyStatusFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [nationalityFilter, setNationalityFilter] = useState<string | 'all'>('all');
+  const [jobFilter, setJobFilter] = useState<string | 'all'>('all');
+  const [createdByFilter, setCreatedByFilter] = useState<string | 'all'>('all');
   const [workerAssignmentFilter, setWorkerAssignmentFilter] =
     useState<'all' | 'assigned' | 'unassigned'>('all');
   const [insuranceFilter, setInsuranceFilter] = useState<'all' | 'insured' | 'uninsured'>('all');
+  const [replacementFilter, setReplacementFilter] = useState<BooleanFilter>('all');
+  const [musanedPaymentStatusFilter, setMusanedPaymentStatusFilter] = useState<string>('all');
+  const [workersAddedTodayFilter, setWorkersAddedTodayFilter] = useState<BooleanFilter>('all');
+  const [religionFilter, setReligionFilter] = useState<string>('all');
+  const [previousExperienceFilter, setPreviousExperienceFilter] = useState<BooleanFilter>('all');
+  const [vipFilter, setVipFilter] = useState<BooleanFilter>('all');
+  const [referenceNumberFilter, setReferenceNumberFilter] = useState('');
   const [dateRange, setDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [cancellationDateRange, setCancellationDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [arrivalDateRange, setArrivalDateRange] = useState<[string | undefined, string | undefined]>([
     undefined,
     undefined,
   ]);
@@ -149,16 +179,36 @@ export default function MediationContractsPage() {
   const activeFilterCount =
     (contractNumberFilter != null ? 1 : 0) +
     (musanedNumberFilter ? 1 : 0) +
+    (customerIdFilter !== 'all' ? 1 : 0) +
+    (workerIdFilter !== 'all' ? 1 : 0) +
     (customerNationalIdFilter ? 1 : 0) +
     (workerPassportFilter ? 1 : 0) +
+    (workerNumberFilter ? 1 : 0) +
     (customerPhoneFilter ? 1 : 0) +
     (visaNumberFilter ? 1 : 0) +
+    (externalStatusFilter !== 'all' ? 1 : 0) +
+    (manualStatusFilter !== 'all' ? 1 : 0) +
+    (visaStatusFilter != null ? 1 : 0) +
+    (incompleteExternalStatusFilter !== 'all' ? 1 : 0) +
+    (pastExternalStatusFilter !== 'all' ? 1 : 0) +
+    (warrantyStatusFilter !== 'all' ? 1 : 0) +
     (typeFilter !== 'all' ? 1 : 0) +
     (statusFilter !== 'all' ? 1 : 0) +
     (nationalityFilter !== 'all' ? 1 : 0) +
+    (jobFilter !== 'all' ? 1 : 0) +
+    (createdByFilter !== 'all' ? 1 : 0) +
     (workerAssignmentFilter !== 'all' ? 1 : 0) +
     (insuranceFilter !== 'all' ? 1 : 0) +
+    (replacementFilter !== 'all' ? 1 : 0) +
+    (musanedPaymentStatusFilter !== 'all' ? 1 : 0) +
+    (workersAddedTodayFilter !== 'all' ? 1 : 0) +
+    (religionFilter !== 'all' ? 1 : 0) +
+    (previousExperienceFilter !== 'all' ? 1 : 0) +
+    (vipFilter !== 'all' ? 1 : 0) +
+    (referenceNumberFilter ? 1 : 0) +
     (dateRange[0] || dateRange[1] ? 1 : 0) +
+    (cancellationDateRange[0] || cancellationDateRange[1] ? 1 : 0) +
+    (arrivalDateRange[0] || arrivalDateRange[1] ? 1 : 0) +
     (paymentFilter !== 'all' ? 1 : 0) +
     (paymentDateRange[0] || paymentDateRange[1] ? 1 : 0) +
     (agentFilter !== 'all' ? 1 : 0) +
@@ -168,16 +218,36 @@ export default function MediationContractsPage() {
   const clearFilters = () => {
     setContractNumberFilter(null);
     setMusanedNumberFilter('');
+    setCustomerIdFilter('all');
+    setWorkerIdFilter('all');
     setCustomerNationalIdFilter('');
     setWorkerPassportFilter('');
+    setWorkerNumberFilter('');
     setCustomerPhoneFilter('');
     setVisaNumberFilter('');
+    setExternalStatusFilter('all');
+    setManualStatusFilter('all');
+    setVisaStatusFilter(null);
+    setIncompleteExternalStatusFilter('all');
+    setPastExternalStatusFilter('all');
+    setWarrantyStatusFilter('all');
     setTypeFilter('all');
     setStatusFilter('all');
     setNationalityFilter('all');
+    setJobFilter('all');
+    setCreatedByFilter('all');
     setWorkerAssignmentFilter('all');
     setInsuranceFilter('all');
+    setReplacementFilter('all');
+    setMusanedPaymentStatusFilter('all');
+    setWorkersAddedTodayFilter('all');
+    setReligionFilter('all');
+    setPreviousExperienceFilter('all');
+    setVipFilter('all');
+    setReferenceNumberFilter('');
     setDateRange([undefined, undefined]);
+    setCancellationDateRange([undefined, undefined]);
+    setArrivalDateRange([undefined, undefined]);
     setPaymentFilter('all');
     setPaymentDateRange([undefined, undefined]);
     setAgentFilter('all');
@@ -234,22 +304,47 @@ export default function MediationContractsPage() {
     pageSize,
     contractNumber: contractNumberFilter ?? undefined,
     musanedContractNumber: musanedNumberFilter || undefined,
+    customerId: customerIdFilter === 'all' ? undefined : customerIdFilter,
+    workerId: workerIdFilter === 'all' ? undefined : workerIdFilter,
     customerNationalId: customerNationalIdFilter || undefined,
     workerPassportNumber: workerPassportFilter || undefined,
+    workerNumber: workerNumberFilter || undefined,
     customerPhone: customerPhoneFilter || undefined,
     visaNumber: visaNumberFilter || undefined,
+    externalStatusId: externalStatusFilter === 'all' ? undefined : Number(externalStatusFilter),
+    manualContractStatus: manualStatusFilter === 'all' ? undefined : Number(manualStatusFilter),
+    visaStatus: visaStatusFilter ?? undefined,
+    incompleteExternalStatusId:
+      incompleteExternalStatusFilter === 'all' ? undefined : Number(incompleteExternalStatusFilter),
+    pastExternalStatusId: pastExternalStatusFilter === 'all' ? undefined : Number(pastExternalStatusFilter),
+    warrantyStatus: warrantyStatusFilter === 'all' ? undefined : Number(warrantyStatusFilter),
     statusId: statusFilter === 'all' ? undefined : Number(statusFilter),
     contractType: typeFilter === 'all' ? undefined : Number(typeFilter),
     nationalityId: nationalityFilter === 'all' ? undefined : nationalityFilter,
+    jobId: jobFilter === 'all' ? undefined : jobFilter,
+    createdBy: createdByFilter === 'all' ? undefined : createdByFilter,
     search: searchText || undefined,
     createdDateFrom: dateRange[0],
     createdDateTo: dateRange[1],
+    cancellationDateFrom: cancellationDateRange[0],
+    cancellationDateTo: cancellationDateRange[1],
+    arrivalDateFrom: arrivalDateRange[0],
+    arrivalDateTo: arrivalDateRange[1],
     agentId: agentFilter === 'all' ? undefined : agentFilter,
     marketerId: marketerFilter === 'all' ? undefined : marketerFilter,
     withoutAssignedWorker:
       workerAssignmentFilter === 'all' ? undefined : workerAssignmentFilter === 'unassigned',
     isPaid: paymentFilter === 'paid' ? true : undefined,
     isUnpaid: paymentFilter === 'unpaid' ? true : undefined,
+    isReplacement: replacementFilter === 'all' ? undefined : replacementFilter === 'true',
+    musanedPaymentStatus:
+      musanedPaymentStatusFilter === 'all' ? undefined : Number(musanedPaymentStatusFilter) as 0 | 1 | 2,
+    referenceNumber: referenceNumberFilter || undefined,
+    workersAddedToday: workersAddedTodayFilter === 'all' ? undefined : workersAddedTodayFilter === 'true',
+    religion: religionFilter === 'all' ? undefined : Number(religionFilter) as 1 | 2 | 3,
+    hasPreviousExperience:
+      previousExperienceFilter === 'all' ? undefined : previousExperienceFilter === 'true',
+    isVip: vipFilter === 'all' ? undefined : vipFilter === 'true',
     paymentDateFrom: paymentDateRange[0],
     paymentDateTo: paymentDateRange[1],
     visaDateFrom: visaDateRange[0],
@@ -261,9 +356,12 @@ export default function MediationContractsPage() {
   const { mutateAsync: createComplaint, isPending: isCreatingComplaint } = useCreateComplaint();
 
   const { customers: allCustomers, isLoading: isLoadingCustomers } = useCustomers();
+  const { data: workers = [] } = useWorkers();
   const { data: agents = [] } = useAgents();
   const { data: marketers = [] } = useMarketers();
   const { data: nationalities = [] } = useNationalities();
+  const { data: jobs = [] } = useJobs();
+  const { users = [] } = useUsers();
 
   // Translations
   const t = {
@@ -1025,22 +1123,49 @@ export default function MediationContractsPage() {
               PageSize: pageSize,
               ContractNumber: contractNumberFilter ?? undefined,
               MusanedContractNumber: musanedNumberFilter || undefined,
+              CustomerId: customerIdFilter === 'all' ? undefined : customerIdFilter,
+              WorkerId: workerIdFilter === 'all' ? undefined : workerIdFilter,
               CustomerNationalId: customerNationalIdFilter || undefined,
               WorkerPassportNumber: workerPassportFilter || undefined,
+              WorkerNumber: workerNumberFilter || undefined,
               CustomerPhone: customerPhoneFilter || undefined,
               VisaNumber: visaNumberFilter || undefined,
+              ExternalStatusId: externalStatusFilter === 'all' ? undefined : Number(externalStatusFilter),
+              ManualContractStatus: manualStatusFilter === 'all' ? undefined : Number(manualStatusFilter),
+              VisaStatus: visaStatusFilter ?? undefined,
+              IncompleteExternalStatusId:
+                incompleteExternalStatusFilter === 'all' ? undefined : Number(incompleteExternalStatusFilter),
+              PastExternalStatusId:
+                pastExternalStatusFilter === 'all' ? undefined : Number(pastExternalStatusFilter),
+              WarrantyStatus: warrantyStatusFilter === 'all' ? undefined : Number(warrantyStatusFilter),
               StatusId: statusFilter === 'all' ? undefined : Number(statusFilter),
               ContractType: typeFilter === 'all' ? undefined : Number(typeFilter),
               NationalityId: nationalityFilter === 'all' ? undefined : nationalityFilter,
+              JobId: jobFilter === 'all' ? undefined : jobFilter,
+              CreatedBy: createdByFilter === 'all' ? undefined : createdByFilter,
               Search: searchText || undefined,
               CreatedDateFrom: dateRange[0],
               CreatedDateTo: dateRange[1],
+              CancellationDateFrom: cancellationDateRange[0],
+              CancellationDateTo: cancellationDateRange[1],
+              ArrivalDateFrom: arrivalDateRange[0],
+              ArrivalDateTo: arrivalDateRange[1],
               AgentId: agentFilter === 'all' ? undefined : agentFilter,
               MarketerId: marketerFilter === 'all' ? undefined : marketerFilter,
               WithoutAssignedWorker:
                 workerAssignmentFilter === 'all' ? undefined : workerAssignmentFilter === 'unassigned',
               IsPaid: paymentFilter === 'paid' ? true : undefined,
               IsUnpaid: paymentFilter === 'unpaid' ? true : undefined,
+              IsReplacement: replacementFilter === 'all' ? undefined : replacementFilter === 'true',
+              MusanedPaymentStatus:
+                musanedPaymentStatusFilter === 'all' ? undefined : Number(musanedPaymentStatusFilter),
+              ReferenceNumber: referenceNumberFilter || undefined,
+              WorkersAddedToday:
+                workersAddedTodayFilter === 'all' ? undefined : workersAddedTodayFilter === 'true',
+              Religion: religionFilter === 'all' ? undefined : Number(religionFilter),
+              HasPreviousExperience:
+                previousExperienceFilter === 'all' ? undefined : previousExperienceFilter === 'true',
+              IsVip: vipFilter === 'all' ? undefined : vipFilter === 'true',
               PaymentDateFrom: paymentDateRange[0],
               PaymentDateTo: paymentDateRange[1],
               VisaDateFrom: visaDateRange[0],
@@ -1075,6 +1200,50 @@ export default function MediationContractsPage() {
             </Col>
 
             <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'اسم العميل' : 'Client Name'}</label>
+              <Select
+                value={customerIdFilter}
+                onChange={(v) => { setCustomerIdFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="label"
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'جميع العملاء' : 'All Customers' },
+                  ...(allCustomers as any[]).map((c) => ({
+                    value: String(c.id),
+                    label:
+                      (language === 'ar' ? c.arabicName : c.englishName) ||
+                      c.arabicName ||
+                      c.englishName ||
+                      `#${c.id}`,
+                  })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'اسم العامل' : 'Worker Name'}</label>
+              <Select
+                value={workerIdFilter}
+                onChange={(v) => { setWorkerIdFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="label"
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'جميع العمال' : 'All Workers' },
+                  ...(workers as any[]).map((w) => ({
+                    value: String(w.id),
+                    label:
+                      (language === 'ar' ? w.fullNameAr : w.fullNameEn) ||
+                      w.fullNameAr ||
+                      w.fullNameEn ||
+                      `#${w.id}`,
+                  })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
               <label className={styles.filterLabel}>{language === 'ar' ? 'رقم هوية العميل' : 'Customer National ID'}</label>
               <Input
                 value={customerNationalIdFilter}
@@ -1088,6 +1257,15 @@ export default function MediationContractsPage() {
               <Input
                 value={workerPassportFilter}
                 onChange={(e) => { setWorkerPassportFilter(e.target.value); setCurrentPage(1); }}
+                allowClear
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'رقم العامل' : 'Worker ID / Number'}</label>
+              <Input
+                value={workerNumberFilter}
+                onChange={(e) => { setWorkerNumberFilter(e.target.value); setCurrentPage(1); }}
                 allowClear
               />
             </Col>
@@ -1107,6 +1285,42 @@ export default function MediationContractsPage() {
                 value={visaNumberFilter}
                 onChange={(e) => { setVisaNumberFilter(e.target.value); setCurrentPage(1); }}
                 allowClear
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'الحالة الخارجية' : 'External Status'}</label>
+              <Select
+                value={externalStatusFilter}
+                onChange={(v) => { setExternalStatusFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: t.allStatuses },
+                  ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'حالة العقد اليدوي' : 'Manual Contract Status'}</label>
+              <Select
+                value={manualStatusFilter}
+                onChange={(v) => { setManualStatusFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: t.allStatuses },
+                  ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'حالة التأشيرة' : 'Visa Status'}</label>
+              <InputNumber
+                min={0}
+                value={visaStatusFilter}
+                onChange={(value) => { setVisaStatusFilter(value ?? null); setCurrentPage(1); }}
+                style={{ width: '100%' }}
               />
             </Col>
 
@@ -1133,6 +1347,24 @@ export default function MediationContractsPage() {
             </Col>
 
             <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'الوظيفة' : 'Occupation / Job Title'}</label>
+              <Select
+                value={jobFilter}
+                onChange={(v) => { setJobFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="label"
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'جميع الوظائف' : 'All Jobs' },
+                  ...(jobs as any[]).map((j) => ({
+                    value: String(j.id),
+                    label: (language === 'ar' ? j.jobNameAr : j.jobNameEn) || j.jobNameAr || j.jobNameEn || `#${j.id}`,
+                  })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
               <label className={styles.filterLabel}>{t.status}</label>
               <Select
                 value={statusFilter}
@@ -1141,6 +1373,46 @@ export default function MediationContractsPage() {
                 options={[
                   { value: 'all', label: t.allStatuses },
                   ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'حالة خارجية لم تتم' : 'Incomplete External Status'}</label>
+              <Select
+                value={incompleteExternalStatusFilter}
+                onChange={(v) => { setIncompleteExternalStatusFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: t.allStatuses },
+                  ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'حالة خارجية مرت على العقد' : 'Past External Status'}</label>
+              <Select
+                value={pastExternalStatusFilter}
+                onChange={(v) => { setPastExternalStatusFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: t.allStatuses },
+                  ...toSelectOptions([...MEDIATION_CONTRACT_STATUS], language).map((o) => ({ ...o, value: String(o.value) })),
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'حالات الضمان' : 'Warranty / Guarantee Status'}</label>
+              <Select
+                value={warrantyStatusFilter}
+                onChange={(v) => { setWarrantyStatusFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'كل حالات الضمان' : 'All Warranty Statuses' },
+                  { value: '14', label: language === 'ar' ? 'فترة الضمان' : 'Warranty Period' },
+                  { value: '16', label: language === 'ar' ? 'مرتجع' : 'Returned' },
                 ]}
               />
             </Col>
@@ -1201,6 +1473,101 @@ export default function MediationContractsPage() {
             </Col>
 
             <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'سداد مساند' : 'Musaned Payment'}</label>
+              <Select
+                value={musanedPaymentStatusFilter}
+                onChange={(v) => { setMusanedPaymentStatusFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'كل حالات سداد مساند' : 'All Musaned Payment Statuses' },
+                  { value: '0', label: language === 'ar' ? 'غير مدفوع' : 'Unpaid' },
+                  { value: '1', label: language === 'ar' ? 'مدفوع جزئياً' : 'Partially Paid' },
+                  { value: '2', label: language === 'ar' ? 'مدفوع' : 'Paid' },
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'استبدال العقود' : 'Contract Replacement'}</label>
+              <Select
+                value={replacementFilter}
+                onChange={(v) => { setReplacementFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'الكل' : 'All' },
+                  { value: 'true', label: language === 'ar' ? 'استبدال' : 'Replacement' },
+                  { value: 'false', label: language === 'ar' ? 'ليس استبدالاً' : 'Not Replacement' },
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'عمالة تمت إضافتها اليوم' : 'Workers Added Today'}</label>
+              <Select
+                value={workersAddedTodayFilter}
+                onChange={(v) => { setWorkersAddedTodayFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'الكل' : 'All' },
+                  { value: 'true', label: language === 'ar' ? 'نعم' : 'Yes' },
+                  { value: 'false', label: language === 'ar' ? 'لا' : 'No' },
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'الديانة' : 'Religion'}</label>
+              <Select
+                value={religionFilter}
+                onChange={(v) => { setReligionFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'كل الديانات' : 'All Religions' },
+                  { value: '1', label: language === 'ar' ? 'مسلم' : 'Muslim' },
+                  { value: '2', label: language === 'ar' ? 'مسيحي' : 'Christian' },
+                  { value: '3', label: language === 'ar' ? 'أخرى' : 'Other' },
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'سبق له العمل' : 'Prior Experience'}</label>
+              <Select
+                value={previousExperienceFilter}
+                onChange={(v) => { setPreviousExperienceFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'الكل' : 'All' },
+                  { value: 'true', label: language === 'ar' ? 'نعم' : 'Yes' },
+                  { value: 'false', label: language === 'ar' ? 'لا' : 'No' },
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'عميل مهم' : 'VIP / Important Client'}</label>
+              <Select
+                value={vipFilter}
+                onChange={(v) => { setVipFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'الكل' : 'All' },
+                  { value: 'true', label: language === 'ar' ? 'مهم' : 'VIP' },
+                  { value: 'false', label: language === 'ar' ? 'عادي' : 'Standard' },
+                ]}
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'رقم المرجع' : 'Reference Number'}</label>
+              <Input
+                value={referenceNumberFilter}
+                onChange={(e) => { setReferenceNumberFilter(e.target.value); setCurrentPage(1); }}
+                allowClear
+              />
+            </Col>
+
+            <Col xs={24} md={6}>
               <label className={styles.filterLabel}>{language === 'ar' ? 'الوكيل' : 'Agent'}</label>
               <Select
                 value={agentFilter}
@@ -1236,11 +1603,47 @@ export default function MediationContractsPage() {
               />
             </Col>
 
+            <Col xs={24} md={6}>
+              <label className={styles.filterLabel}>{t.createdBy}</label>
+              <Select
+                value={createdByFilter}
+                onChange={(v) => { setCreatedByFilter(v); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+                showSearch
+                optionFilterProp="label"
+                options={[
+                  { value: 'all', label: language === 'ar' ? 'جميع المستخدمين' : 'All Users' },
+                  ...(users as any[]).map((u) => ({
+                    value: String(u.id),
+                    label: u.fullName || u.username || `#${u.id}`,
+                  })),
+                ]}
+              />
+            </Col>
+
             <Col xs={24} md={12}>
               <label className={styles.filterLabel}>{language === 'ar' ? 'تاريخ الإنشاء' : 'Creation Date'}</label>
               <DateRangeFilter
                 value={dateRange}
                 onChange={(range) => { setDateRange(range); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'تاريخ الإلغاء' : 'Cancellation Date'}</label>
+              <DateRangeFilter
+                value={cancellationDateRange}
+                onChange={(range) => { setCancellationDateRange(range); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>{language === 'ar' ? 'تاريخ الوصول' : 'Arrival Date'}</label>
+              <DateRangeFilter
+                value={arrivalDateRange}
+                onChange={(range) => { setArrivalDateRange(range); setCurrentPage(1); }}
                 style={{ width: '100%' }}
               />
             </Col>
