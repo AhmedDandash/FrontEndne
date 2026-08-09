@@ -383,6 +383,7 @@ export const OPERATING_CONTRACT_STATUS = [
   { value: 2, labelAr: 'موقع', labelEn: 'Signed' },
   { value: 3, labelAr: 'قيد التنفيذ', labelEn: 'Executing' },
   { value: 4, labelAr: 'منتهي', labelEn: 'Finished' },
+  { value: 5, labelAr: 'بانتظار الموافقة', labelEn: 'Pending Approval' },
 ] as const;
 
 // ==================== Mediation Contract Status ====================

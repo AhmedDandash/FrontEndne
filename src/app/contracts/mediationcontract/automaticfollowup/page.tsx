@@ -33,8 +33,6 @@ import { AdvancedFilterPanel, DateRangeFilter } from '@/components/filters';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useMediationFollowUpDashboard } from '@/hooks/api/useMediationFollowUp';
 import { useNationalities } from '@/hooks/api/useNationalities';
-import { useCustomers } from '@/hooks/api/useCustomers';
-import { useWorkers } from '@/hooks/api/useWorkers';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useUsers } from '@/hooks/api/useUsers';
 import { MEDIATION_CONTRACT_STATUS, MEDIATION_CONTRACT_TYPE, toSelectOptions } from '@/constants/enums';
@@ -61,7 +59,6 @@ function useT(language: string) {
       nationality: { ar: 'الجنسية', en: 'Nationality' },
       musanedNumber: { ar: 'رقم مساند', en: 'Musaned No.' },
       status: { ar: 'الحالة', en: 'Status' },
-      workerType: { ar: 'نوع العامل', en: 'Worker Type' },
       dateFrom: { ar: 'من تاريخ', en: 'Date From' },
       dateTo: { ar: 'إلى تاريخ', en: 'Date To' },
       actions: { ar: 'إجراءات', en: 'Actions' },
@@ -100,8 +97,8 @@ export default function AutomaticFollowUpPage() {
   // else in the app. See project memory for the full rationale.
   const [contractNumber, setContractNumber] = useState<number | null>(null);
   const [musanedNumber, setMusanedNumber] = useState('');
-  const [customerId, setCustomerId] = useState<string | 'all'>('all');
-  const [workerId, setWorkerId] = useState<string | 'all'>('all');
+  const [customerNameFilter, setCustomerNameFilter] = useState('');
+  const [workerNameFilter, setWorkerNameFilter] = useState('');
   const [passportNumber, setPassportNumber] = useState('');
   const [workerNumber, setWorkerNumber] = useState('');
   const [nationalId, setNationalId] = useState('');
@@ -146,7 +143,7 @@ export default function AutomaticFollowUpPage() {
     undefined,
     undefined,
   ]);
-  const [paymentDateRange, setPaymentDateRange] = useState<[string | undefined, string | undefined]>([
+  const [invoicePaymentDateRange, setInvoicePaymentDateRange] = useState<[string | undefined, string | undefined]>([
     undefined,
     undefined,
   ]);
@@ -175,8 +172,8 @@ export default function AutomaticFollowUpPage() {
     const p: MediationFollowUpDashboardParams = { Page: pageNumber, PageSize: pageSize };
     if (contractNumber) p.ContractNumber = contractNumber;
     if (musanedNumber) p.MusanedContractNumber = musanedNumber;
-    if (customerId !== 'all') p.CustomerId = customerId;
-    if (workerId !== 'all') p.WorkerId = workerId;
+    if (customerNameFilter) p.CustomerName = customerNameFilter;
+    if (workerNameFilter) p.WorkerName = workerNameFilter;
     if (passportNumber) p.WorkerPassportNumber = passportNumber;
     if (workerNumber) p.WorkerNumber = workerNumber;
     if (nationalId) p.CustomerNationalId = nationalId;
@@ -217,8 +214,8 @@ export default function AutomaticFollowUpPage() {
     if (externalStatusDateRange[1]) p.ExternalStatusDateTo = externalStatusDateRange[1];
     if (arrivalDateRange[0]) p.ArrivalDateFrom = arrivalDateRange[0];
     if (arrivalDateRange[1]) p.ArrivalDateTo = arrivalDateRange[1];
-    if (paymentDateRange[0]) p.PaymentDateFrom = paymentDateRange[0];
-    if (paymentDateRange[1]) p.PaymentDateTo = paymentDateRange[1];
+    if (invoicePaymentDateRange[0]) p.InvoicePaymentDateFrom = invoicePaymentDateRange[0];
+    if (invoicePaymentDateRange[1]) p.InvoicePaymentDateTo = invoicePaymentDateRange[1];
     if (search) p.Search = search;
     if (visaDateRange[0]) p.VisaDateFrom = visaDateRange[0];
     if (visaDateRange[1]) p.VisaDateTo = visaDateRange[1];
@@ -228,8 +225,8 @@ export default function AutomaticFollowUpPage() {
     pageSize,
     contractNumber,
     musanedNumber,
-    customerId,
-    workerId,
+    customerNameFilter,
+    workerNameFilter,
     passportNumber,
     workerNumber,
     nationalId,
@@ -264,7 +261,7 @@ export default function AutomaticFollowUpPage() {
     dateRange,
     externalStatusDateRange,
     arrivalDateRange,
-    paymentDateRange,
+    invoicePaymentDateRange,
     search,
     visaDateRange,
   ]);
@@ -275,16 +272,14 @@ export default function AutomaticFollowUpPage() {
   const displayedRows = rows;
   const { data: agents = [] } = useAgents();
   const { data: nationalities = [] } = useNationalities();
-  const { customers = [] } = useCustomers();
-  const { data: workers = [] } = useWorkers();
   const { data: jobs = [] } = useJobs();
   const { users = [] } = useUsers();
 
   const activeFilterCount = [
     contractNumber != null,
     musanedNumber !== '',
-    customerId !== 'all',
-    workerId !== 'all',
+    customerNameFilter !== '',
+    workerNameFilter !== '',
     passportNumber !== '',
     workerNumber !== '',
     nationalId !== '',
@@ -319,15 +314,15 @@ export default function AutomaticFollowUpPage() {
     Boolean(dateRange[0] || dateRange[1]),
     Boolean(externalStatusDateRange[0] || externalStatusDateRange[1]),
     Boolean(arrivalDateRange[0] || arrivalDateRange[1]),
-    Boolean(paymentDateRange[0] || paymentDateRange[1]),
+    Boolean(invoicePaymentDateRange[0] || invoicePaymentDateRange[1]),
     Boolean(visaDateRange[0] || visaDateRange[1]),
   ].filter(Boolean).length;
 
   const clearFilters = useCallback(() => {
     setContractNumber(null);
     setMusanedNumber('');
-    setCustomerId('all');
-    setWorkerId('all');
+    setCustomerNameFilter('');
+    setWorkerNameFilter('');
     setPassportNumber('');
     setWorkerNumber('');
     setNationalId('');
@@ -362,7 +357,7 @@ export default function AutomaticFollowUpPage() {
     setDateRange([undefined, undefined]);
     setExternalStatusDateRange([undefined, undefined]);
     setArrivalDateRange([undefined, undefined]);
-    setPaymentDateRange([undefined, undefined]);
+    setInvoicePaymentDateRange([undefined, undefined]);
     setVisaDateRange([undefined, undefined]);
     setPageNumber(1);
   }, []);
@@ -567,36 +562,18 @@ export default function AutomaticFollowUpPage() {
           </Col>
           <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{language === 'ar' ? 'اسم العميل' : 'Client Name'}</label>
-            <Select
-              value={customerId}
-              onChange={(v) => { setCustomerId(v); setPageNumber(1); }}
-              style={{ width: '100%' }}
-              showSearch
-              optionFilterProp="label"
-              options={[
-                { value: 'all', label: language === 'ar' ? 'جميع العملاء' : 'All Customers' },
-                ...(customers as any[]).map((c) => ({
-                  value: String(c.id),
-                  label: (language === 'ar' ? c.arabicName : c.englishName) || c.arabicName || c.englishName || `#${c.id}`,
-                })),
-              ]}
+            <Input
+              value={customerNameFilter}
+              onChange={(e) => { setCustomerNameFilter(e.target.value); setPageNumber(1); }}
+              allowClear
             />
           </Col>
           <Col xs={24} md={6}>
             <label className={styles.filterLabel}>{language === 'ar' ? 'اسم العامل' : 'Worker Name'}</label>
-            <Select
-              value={workerId}
-              onChange={(v) => { setWorkerId(v); setPageNumber(1); }}
-              style={{ width: '100%' }}
-              showSearch
-              optionFilterProp="label"
-              options={[
-                { value: 'all', label: language === 'ar' ? 'جميع العمال' : 'All Workers' },
-                ...(workers as any[]).map((w) => ({
-                  value: String(w.id),
-                  label: (language === 'ar' ? w.fullNameAr : w.fullNameEn) || w.fullNameAr || w.fullNameEn || `#${w.id}`,
-                })),
-              ]}
+            <Input
+              value={workerNameFilter}
+              onChange={(e) => { setWorkerNameFilter(e.target.value); setPageNumber(1); }}
+              allowClear
             />
           </Col>
           <Col xs={24} md={6}>
@@ -838,7 +815,7 @@ export default function AutomaticFollowUpPage() {
           </Col>
           <Col xs={24} md={12}>
             <label className={styles.filterLabel}>{language === 'ar' ? 'تاريخ سداد الفاتورة' : 'Invoice Payment Date'}</label>
-            <DateRangeFilter value={paymentDateRange} onChange={(v) => { setPaymentDateRange(v); setPageNumber(1); }} style={{ width: '100%' }} />
+            <DateRangeFilter value={invoicePaymentDateRange} onChange={(v) => { setInvoicePaymentDateRange(v); setPageNumber(1); }} style={{ width: '100%' }} />
           </Col>
           <Col xs={24} md={12}>
             <label className={styles.filterLabel}>{t('visaDateLabel')}</label>

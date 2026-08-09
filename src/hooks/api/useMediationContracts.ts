@@ -49,6 +49,8 @@ export interface MediationContractListParams {
   updatedDateTo?: string;
   customerId?: string;
   workerId?: string;
+  customerName?: string;
+  workerName?: string;
   agentId?: string;
   marketerId?: string;
   /** Filter by the contract's own id (distinct from contractNumber). */
@@ -61,6 +63,8 @@ export interface MediationContractListParams {
   isUnpaid?: boolean;
   paymentDateFrom?: string;
   paymentDateTo?: string;
+  invoicePaymentDateFrom?: string;
+  invoicePaymentDateTo?: string;
   hasContractInsurance?: boolean;
   visaDateFrom?: string;
   visaDateTo?: string;
@@ -123,6 +127,8 @@ export function useMediationContracts(params?: MediationContractListParams) {
       UpdatedDateTo: params?.updatedDateTo,
       CustomerId: params?.customerId,
       WorkerId: params?.workerId,
+      CustomerName: params?.customerName,
+      WorkerName: params?.workerName,
       AgentId: params?.agentId,
       MarketerId: params?.marketerId,
       ContractId: params?.contractId,
@@ -133,6 +139,8 @@ export function useMediationContracts(params?: MediationContractListParams) {
       IsUnpaid: params?.isUnpaid,
       PaymentDateFrom: params?.paymentDateFrom,
       PaymentDateTo: params?.paymentDateTo,
+      InvoicePaymentDateFrom: params?.invoicePaymentDateFrom,
+      InvoicePaymentDateTo: params?.invoicePaymentDateTo,
       HasContractInsurance: params?.hasContractInsurance,
       VisaDateFrom: params?.visaDateFrom,
       VisaDateTo: params?.visaDateTo,

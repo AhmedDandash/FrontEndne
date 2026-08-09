@@ -33,6 +33,7 @@ import type { PagedResponse } from '@/types/filters.types';
 export interface GetContractsParams {
   SearchWorkerName?: string;
   WorkerPhone?: string;
+  Phone?: string;
   IdentityNumber?: string;
   CustomerId?: string | number;
   WorkerId?: string | number;
@@ -46,14 +47,19 @@ export interface GetContractsParams {
   NationalityId?: string | number;
   JobId?: string | number;
   OperationType?: number;
+  Type?: number;
   LaborManagement?: number;
   LaborSelectionStatus?: number;
   ContractDateFrom?: string;
   ContractDateTo?: string;
+  SignatureDateFrom?: string;
+  SignatureDateTo?: string;
   ContractEndDateFrom?: string;
   ContractEndDateTo?: string;
+  ArabicName?: string;
   CustomerArabicName?: string;
   CustomerPhone?: string;
+  WorkerNameAr?: string;
   CustomerEmail?: string;
   CreatedBy?: string;
   ExpiresAfterDays?: number;

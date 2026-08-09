@@ -57,7 +57,7 @@ import {
 } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import { useCustomers } from '@/hooks/api/useCustomers';
-import { useAvailableMediationWorkers, useWorkers } from '@/hooks/api/useWorkers';
+import { useAvailableMediationWorkers } from '@/hooks/api/useWorkers';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useMarketers } from '@/hooks/api/useMarketers';
 import { useNationalities } from '@/hooks/api/useNationalities';
@@ -100,8 +100,8 @@ export default function MediationContractsPage() {
   const [searchText, setSearchText] = useState('');
   const [contractNumberFilter, setContractNumberFilter] = useState<number | null>(null);
   const [musanedNumberFilter, setMusanedNumberFilter] = useState('');
-  const [customerIdFilter, setCustomerIdFilter] = useState<string | 'all'>('all');
-  const [workerIdFilter, setWorkerIdFilter] = useState<string | 'all'>('all');
+  const [customerNameFilter, setCustomerNameFilter] = useState('');
+  const [workerNameFilter, setWorkerNameFilter] = useState('');
   const [customerNationalIdFilter, setCustomerNationalIdFilter] = useState('');
   const [workerPassportFilter, setWorkerPassportFilter] = useState('');
   const [workerNumberFilter, setWorkerNumberFilter] = useState('');
@@ -140,7 +140,7 @@ export default function MediationContractsPage() {
     undefined,
     undefined,
   ]);
-  const [paymentDateRange, setPaymentDateRange] = useState<[string | undefined, string | undefined]>([
+  const [invoicePaymentDateRange, setInvoicePaymentDateRange] = useState<[string | undefined, string | undefined]>([
     undefined,
     undefined,
   ]);
@@ -179,8 +179,8 @@ export default function MediationContractsPage() {
   const activeFilterCount =
     (contractNumberFilter != null ? 1 : 0) +
     (musanedNumberFilter ? 1 : 0) +
-    (customerIdFilter !== 'all' ? 1 : 0) +
-    (workerIdFilter !== 'all' ? 1 : 0) +
+    (customerNameFilter ? 1 : 0) +
+    (workerNameFilter ? 1 : 0) +
     (customerNationalIdFilter ? 1 : 0) +
     (workerPassportFilter ? 1 : 0) +
     (workerNumberFilter ? 1 : 0) +
@@ -210,7 +210,7 @@ export default function MediationContractsPage() {
     (cancellationDateRange[0] || cancellationDateRange[1] ? 1 : 0) +
     (arrivalDateRange[0] || arrivalDateRange[1] ? 1 : 0) +
     (paymentFilter !== 'all' ? 1 : 0) +
-    (paymentDateRange[0] || paymentDateRange[1] ? 1 : 0) +
+    (invoicePaymentDateRange[0] || invoicePaymentDateRange[1] ? 1 : 0) +
     (agentFilter !== 'all' ? 1 : 0) +
     (marketerFilter !== 'all' ? 1 : 0) +
     (visaDateRange[0] || visaDateRange[1] ? 1 : 0);
@@ -218,8 +218,8 @@ export default function MediationContractsPage() {
   const clearFilters = () => {
     setContractNumberFilter(null);
     setMusanedNumberFilter('');
-    setCustomerIdFilter('all');
-    setWorkerIdFilter('all');
+    setCustomerNameFilter('');
+    setWorkerNameFilter('');
     setCustomerNationalIdFilter('');
     setWorkerPassportFilter('');
     setWorkerNumberFilter('');
@@ -249,7 +249,7 @@ export default function MediationContractsPage() {
     setCancellationDateRange([undefined, undefined]);
     setArrivalDateRange([undefined, undefined]);
     setPaymentFilter('all');
-    setPaymentDateRange([undefined, undefined]);
+    setInvoicePaymentDateRange([undefined, undefined]);
     setAgentFilter('all');
     setMarketerFilter('all');
     setVisaDateRange([undefined, undefined]);
@@ -304,8 +304,8 @@ export default function MediationContractsPage() {
     pageSize,
     contractNumber: contractNumberFilter ?? undefined,
     musanedContractNumber: musanedNumberFilter || undefined,
-    customerId: customerIdFilter === 'all' ? undefined : customerIdFilter,
-    workerId: workerIdFilter === 'all' ? undefined : workerIdFilter,
+    customerName: customerNameFilter || undefined,
+    workerName: workerNameFilter || undefined,
     customerNationalId: customerNationalIdFilter || undefined,
     workerPassportNumber: workerPassportFilter || undefined,
     workerNumber: workerNumberFilter || undefined,
@@ -345,8 +345,8 @@ export default function MediationContractsPage() {
     hasPreviousExperience:
       previousExperienceFilter === 'all' ? undefined : previousExperienceFilter === 'true',
     isVip: vipFilter === 'all' ? undefined : vipFilter === 'true',
-    paymentDateFrom: paymentDateRange[0],
-    paymentDateTo: paymentDateRange[1],
+    invoicePaymentDateFrom: invoicePaymentDateRange[0],
+    invoicePaymentDateTo: invoicePaymentDateRange[1],
     visaDateFrom: visaDateRange[0],
     visaDateTo: visaDateRange[1],
     hasContractInsurance:
@@ -356,7 +356,6 @@ export default function MediationContractsPage() {
   const { mutateAsync: createComplaint, isPending: isCreatingComplaint } = useCreateComplaint();
 
   const { customers: allCustomers, isLoading: isLoadingCustomers } = useCustomers();
-  const { data: workers = [] } = useWorkers();
   const { data: agents = [] } = useAgents();
   const { data: marketers = [] } = useMarketers();
   const { data: nationalities = [] } = useNationalities();
@@ -1123,8 +1122,8 @@ export default function MediationContractsPage() {
               PageSize: pageSize,
               ContractNumber: contractNumberFilter ?? undefined,
               MusanedContractNumber: musanedNumberFilter || undefined,
-              CustomerId: customerIdFilter === 'all' ? undefined : customerIdFilter,
-              WorkerId: workerIdFilter === 'all' ? undefined : workerIdFilter,
+              CustomerName: customerNameFilter || undefined,
+              WorkerName: workerNameFilter || undefined,
               CustomerNationalId: customerNationalIdFilter || undefined,
               WorkerPassportNumber: workerPassportFilter || undefined,
               WorkerNumber: workerNumberFilter || undefined,
@@ -1166,8 +1165,8 @@ export default function MediationContractsPage() {
               HasPreviousExperience:
                 previousExperienceFilter === 'all' ? undefined : previousExperienceFilter === 'true',
               IsVip: vipFilter === 'all' ? undefined : vipFilter === 'true',
-              PaymentDateFrom: paymentDateRange[0],
-              PaymentDateTo: paymentDateRange[1],
+              InvoicePaymentDateFrom: invoicePaymentDateRange[0],
+              InvoicePaymentDateTo: invoicePaymentDateRange[1],
               VisaDateFrom: visaDateRange[0],
               VisaDateTo: visaDateRange[1],
               HasContractInsurance:
@@ -1201,45 +1200,19 @@ export default function MediationContractsPage() {
 
             <Col xs={24} md={6}>
               <label className={styles.filterLabel}>{language === 'ar' ? 'اسم العميل' : 'Client Name'}</label>
-              <Select
-                value={customerIdFilter}
-                onChange={(v) => { setCustomerIdFilter(v); setCurrentPage(1); }}
-                style={{ width: '100%' }}
-                showSearch
-                optionFilterProp="label"
-                options={[
-                  { value: 'all', label: language === 'ar' ? 'جميع العملاء' : 'All Customers' },
-                  ...(allCustomers as any[]).map((c) => ({
-                    value: String(c.id),
-                    label:
-                      (language === 'ar' ? c.arabicName : c.englishName) ||
-                      c.arabicName ||
-                      c.englishName ||
-                      `#${c.id}`,
-                  })),
-                ]}
+              <Input
+                value={customerNameFilter}
+                onChange={(e) => { setCustomerNameFilter(e.target.value); setCurrentPage(1); }}
+                allowClear
               />
             </Col>
 
             <Col xs={24} md={6}>
               <label className={styles.filterLabel}>{language === 'ar' ? 'اسم العامل' : 'Worker Name'}</label>
-              <Select
-                value={workerIdFilter}
-                onChange={(v) => { setWorkerIdFilter(v); setCurrentPage(1); }}
-                style={{ width: '100%' }}
-                showSearch
-                optionFilterProp="label"
-                options={[
-                  { value: 'all', label: language === 'ar' ? 'جميع العمال' : 'All Workers' },
-                  ...(workers as any[]).map((w) => ({
-                    value: String(w.id),
-                    label:
-                      (language === 'ar' ? w.fullNameAr : w.fullNameEn) ||
-                      w.fullNameAr ||
-                      w.fullNameEn ||
-                      `#${w.id}`,
-                  })),
-                ]}
+              <Input
+                value={workerNameFilter}
+                onChange={(e) => { setWorkerNameFilter(e.target.value); setCurrentPage(1); }}
+                allowClear
               />
             </Col>
 
@@ -1651,8 +1624,8 @@ export default function MediationContractsPage() {
             <Col xs={24} md={12}>
               <label className={styles.filterLabel}>{t.paymentDateLabel}</label>
               <DateRangeFilter
-                value={paymentDateRange}
-                onChange={(range) => { setPaymentDateRange(range); setCurrentPage(1); }}
+                value={invoicePaymentDateRange}
+                onChange={(range) => { setInvoicePaymentDateRange(range); setCurrentPage(1); }}
                 style={{ width: '100%' }}
               />
             </Col>

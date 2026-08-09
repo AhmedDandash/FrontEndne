@@ -1747,6 +1747,8 @@ export interface MediationFollowUpDashboardParams {
   // GET params) — added per the ErpImprovementsJul2026 filter audit.
   CustomerId?: string | null;
   WorkerId?: string | null;
+  CustomerName?: string | null;
+  WorkerName?: string | null;
   AgentId?: string | null;
   MarketerId?: string | null;
   ContractType?: number | null;
@@ -1757,6 +1759,8 @@ export interface MediationFollowUpDashboardParams {
   IsUnpaid?: boolean | null;
   PaymentDateFrom?: string | null;
   PaymentDateTo?: string | null;
+  InvoicePaymentDateFrom?: string | null;
+  InvoicePaymentDateTo?: string | null;
   HasContractInsurance?: boolean | null;
   IsCancel?: boolean | null;
   BranchId?: string | null;

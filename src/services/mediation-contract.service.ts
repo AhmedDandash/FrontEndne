@@ -90,6 +90,8 @@ export class MediationContractService {
     ContractType?: number;
     CustomerId?: string;
     WorkerId?: string;
+    CustomerName?: string;
+    WorkerName?: string;
     AgentId?: string;
     MarketerId?: string;
     CustomerPhone?: string;
@@ -108,6 +110,8 @@ export class MediationContractService {
     IsUnpaid?: boolean;
     PaymentDateFrom?: string;
     PaymentDateTo?: string;
+    InvoicePaymentDateFrom?: string;
+    InvoicePaymentDateTo?: string;
     HasContractInsurance?: boolean;
     VisaDateFrom?: string;
     VisaDateTo?: string;
@@ -155,6 +159,8 @@ export class MediationContractService {
           'ContractType',
           'CustomerId',
           'WorkerId',
+          'CustomerName',
+          'WorkerName',
           'AgentId',
           'MarketerId',
           'CustomerPhone',
@@ -171,6 +177,8 @@ export class MediationContractService {
           'IsUnpaid',
           'PaymentDateFrom',
           'PaymentDateTo',
+          'InvoicePaymentDateFrom',
+          'InvoicePaymentDateTo',
           'HasContractInsurance',
           'VisaDateFrom',
           'VisaDateTo',
