@@ -461,7 +461,6 @@ export default function RentContractsPage() {
   };
 
   const cardActions = {
-    onView: (c: RentContract) => router.push(`/contracts/operation/rent/${c.id}`),
     onEdit: handleEditOpen,
     onDelete: (c: RentContract) => deleteContract(c.id),
     onSign: (c: RentContract) => signContract(c.id),

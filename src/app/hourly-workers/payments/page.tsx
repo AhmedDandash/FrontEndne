@@ -95,7 +95,7 @@ export default function HourlyPaymentsPage() {
     },
     { title: t('المرجع', 'Reference'), dataIndex: 'transactionReference', key: 'ref', render: (v) => v || '—' },
     { title: t('إثبات', 'Proof'), dataIndex: 'transferProofUrl', key: 'proof', width: 80,
-      render: (v) => (v ? <a href={v} target="_blank" rel="noreferrer">{t('عرض', 'View')}</a> : '—') },
+      render: (v) => (v ? <a href={v} target="_blank" rel="noopener noreferrer">{t('عرض', 'View')}</a> : '—') },
     { title: t('تاريخ الدفع', 'Paid At'), dataIndex: 'paidAt', key: 'paid', width: 150,
       render: (v) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '—') },
     ...(canRefund

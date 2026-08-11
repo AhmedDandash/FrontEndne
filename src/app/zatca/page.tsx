@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useZatcaDashboardSummary } from '@/hooks/api/useZatca';
+import { linkProps } from '@/lib/navigation/linkProps';
 import {
   ZatcaLookupTag,
   ZatcaSeverityTag,
@@ -37,7 +38,7 @@ export default function ZatcaDashboardPage() {
       dataIndex: 'invoiceNumber',
       key: 'invoiceNumber',
       render: (v: string, record) => (
-        <a className={styles.docNumber} onClick={() => router.push(`/zatca/invoices/${record.id}`)}>
+        <a className={styles.docNumber} {...linkProps(`/zatca/invoices/${record.id}`, router)}>
           {v || `#${record.id.slice(0, 8)}`}
         </a>
       ),
@@ -92,7 +93,7 @@ export default function ZatcaDashboardPage() {
             <Button icon={<ReloadOutlined spin={isFetching} />} onClick={() => refetch()} className={styles.refreshBtn}>
               {t('تحديث', 'Refresh')}
             </Button>
-            <Button icon={<SettingOutlined />} onClick={() => router.push('/zatca/branch-setup')} className={styles.addBtn} type="primary">
+            <Button icon={<SettingOutlined />} {...linkProps('/zatca/branch-setup', router)} className={styles.addBtn} type="primary">
               {t('إعداد الفرع', 'Branch Setup')}
             </Button>
           </div>
@@ -164,7 +165,7 @@ export default function ZatcaDashboardPage() {
           {t('بيانات البائع غير مكتملة، الحقول الناقصة: ', 'Seller profile is incomplete, missing fields: ')}
           {data.branch.sellerProfileMissingFields.join(', ')}
           {' — '}
-          <a onClick={() => router.push('/zatca/branch-setup')}>{t('إكمال البيانات', 'Complete now')}</a>
+          <a {...linkProps('/zatca/branch-setup', router)}>{t('إكمال البيانات', 'Complete now')}</a>
         </div>
       )}
 
@@ -172,7 +173,7 @@ export default function ZatcaDashboardPage() {
         <Card
           className={styles.detailCard}
           title={t('آخر الفواتير', 'Recent Invoices')}
-          extra={<a onClick={() => router.push('/zatca/invoices')}>{t('عرض الكل', 'View all')}</a>}
+          extra={<a {...linkProps('/zatca/invoices', router)}>{t('عرض الكل', 'View all')}</a>}
           style={{ gridColumn: 'span 2' }}
         >
           <Table<ZatcaInvoiceListItem>
@@ -205,7 +206,7 @@ export default function ZatcaDashboardPage() {
             </div>
           ) : (
             <Empty description={t('لا توجد شهادة نشطة', 'No active certificate')}>
-              <Button icon={<FileTextOutlined />} onClick={() => router.push('/zatca/csr')}>
+              <Button icon={<FileTextOutlined />} {...linkProps('/zatca/csr', router)}>
                 {t('بدء إجراءات CSR', 'Start CSR Workflow')}
               </Button>
             </Empty>

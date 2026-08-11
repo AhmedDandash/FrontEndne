@@ -453,7 +453,7 @@ export default function HourlyOrderDetailPage() {
       { title: t('الحالة', 'Status'), dataIndex: 'status', key: 'status', render: (v) => <EnumTag map={PAYMENT_RECORD_STATUS} value={v} isAr={isAr} /> },
       { title: t('المرجع', 'Reference'), dataIndex: 'transactionReference', key: 'ref', render: (v) => v || '—' },
       { title: t('إثبات', 'Proof'), dataIndex: 'transferProofUrl', key: 'proof', width: 90,
-        render: (v) => (v ? <a href={v} target="_blank" rel="noreferrer">{t('عرض', 'View')}</a> : '—') },
+        render: (v) => (v ? <a href={v} target="_blank" rel="noopener noreferrer">{t('عرض', 'View')}</a> : '—') },
       { title: t('تاريخ الدفع', 'Paid At'), dataIndex: 'paidAt', key: 'paidAt', width: 160, render: (v) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '—') },
     ];
     return <Table rowKey={(r) => r.id ?? ''} size="small" bordered loading={l} columns={cols} dataSource={pays ?? []} pagination={false} />;

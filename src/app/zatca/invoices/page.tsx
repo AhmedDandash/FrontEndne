@@ -8,6 +8,7 @@ import { FileTextOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/ic
 import { useAuthStore } from '@/store/authStore';
 import { useZatcaInvoices, useZatcaLookups } from '@/hooks/api/useZatca';
 import { AdvancedFilterPanel, DateRangeFilter } from '@/components/filters';
+import { linkProps } from '@/lib/navigation/linkProps';
 import { ZatcaLookupTag, formatDateTime, formatMoney } from '../_lib/zatcaDisplay';
 import type { ZatcaInvoiceListItem } from '@/types/zatca.types';
 import styles from '../zatca.module.css';
@@ -56,7 +57,7 @@ export default function ZatcaInvoicesPage() {
       dataIndex: 'invoiceNumber',
       key: 'invoiceNumber',
       render: (v: string, record) => (
-        <a className={styles.docNumber} onClick={() => router.push(`/zatca/invoices/${record.id}`)}>
+        <a className={styles.docNumber} {...linkProps(`/zatca/invoices/${record.id}`, router)}>
           {v || `#${record.id.slice(0, 8)}`}
         </a>
       ),

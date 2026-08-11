@@ -36,6 +36,7 @@ import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useUsers } from '@/hooks/api/useUsers';
 import { MEDIATION_CONTRACT_STATUS, MEDIATION_CONTRACT_TYPE, toSelectOptions } from '@/constants/enums';
+import { linkProps } from '@/lib/navigation/linkProps';
 import type {
   MediationFollowUpDashboardParams,
   MediationFollowUpDashboardRow,
@@ -366,16 +367,9 @@ export default function AutomaticFollowUpPage() {
     setPageSize(size);
   }, []);
 
-  const handleViewDetails = useCallback(
-    (row: MediationFollowUpDashboardRow) => {
-      const id = row.contractId ?? row.id;
-      if (id) router.push(`/contracts/mediationcontract/automaticfollowup/${id}`);
-    },
-    [router]
-  );
-
   const renderCard = useCallback(
     (row: MediationFollowUpDashboardRow) => {
+      const id = row.contractId ?? row.id;
       const createdDate = row.createdAt
         ? new Date(row.createdAt).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-GB')
         : '—';
@@ -502,7 +496,8 @@ export default function AutomaticFollowUpPage() {
                   type="link"
                   icon={<EyeOutlined />}
                   className={styles.actionBtn}
-                  onClick={() => handleViewDetails(row)}
+                  disabled={!id}
+                  {...(id ? linkProps(`/contracts/mediationcontract/automaticfollowup/${id}`, router) : {})}
                 >
                   {t('viewDetails')}
                 </Button>
@@ -512,7 +507,7 @@ export default function AutomaticFollowUpPage() {
         </Card>
       );
     },
-    [t, language, handleViewDetails]
+    [t, language, router]
   );
 
   return (

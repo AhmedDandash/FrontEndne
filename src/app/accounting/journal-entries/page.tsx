@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import {
   Card,
   Table,
@@ -58,6 +58,8 @@ import {
   buildSourceUrl,
   type JournalEntryNavInput,
 } from '@/lib/journal-entry-navigation';
+import { linkProps } from '@/lib/navigation/linkProps';
+import { reserveNewTab } from '@/lib/navigation/openInNewTab';
 import { EntryFormDrawer } from './_components/EntryFormDrawer';
 import { EntryDetailDrawer } from './_components/EntryDetailDrawer';
 import styles from './JournalEntries.module.css';
@@ -172,16 +174,25 @@ export default function JournalEntriesPage() {
     const nav = resolveJournalEntryNavigation(navInput(record));
     return !!nav.route && !nav.disabled;
   };
-  const goToSource = async (record: JournalEntryListItem) => {
+  const isNewTabIntent = (e: MouseEvent<HTMLElement>) =>
+    e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+  const goToSource = async (record: JournalEntryListItem, openInTab = false) => {
     const nav = resolveJournalEntryNavigation(navInput(record));
     if (!nav.route || nav.disabled) return;
+    const reservedTab = openInTab ? reserveNewTab() : null;
     try {
       let route = nav.route;
       if (nav.needsContractResolve && nav.id) {
         route = await resolveContractRoute(nav.id);
       }
-      router.push(buildSourceUrl(route, nav.id, nav.pathParam));
+      const url = buildSourceUrl(route, nav.id, nav.pathParam);
+      if (reservedTab) {
+        reservedTab.navigate(url);
+      } else {
+        router.push(url);
+      }
     } catch {
+      reservedTab?.close();
       message.error(t('تعذّر فتح المصدر', 'Could not open the source'));
     }
   };
@@ -257,14 +268,39 @@ export default function JournalEntriesPage() {
         // Entry number goes to the source document (like the whole row). Manual
         // entries have no source, so there it opens the JE detail instead.
         // The eye icon (Actions) always opens the JE detail.
-        const navigable = isNavigable(record);
+        const nav = resolveJournalEntryNavigation(navInput(record));
+        const navigable = !!nav.route && !nav.disabled;
+        const href =
+          navigable && !nav.needsContractResolve
+            ? buildSourceUrl(nav.route as string, nav.id, nav.pathParam)
+            : null;
         const activate = () => (navigable ? void goToSource(record) : setDetailId(record.id));
+        if (href) {
+          return (
+            <a className={styles.entryNumber} {...linkProps(href, router)}>
+              {v || '—'}
+            </a>
+          );
+        }
         return (
           <a
             role="button"
             tabIndex={0}
             className={styles.entryNumber}
-            onClick={activate}
+            onClick={(e) => {
+              if (navigable) {
+                e.preventDefault();
+                void goToSource(record, isNewTabIntent(e));
+                return;
+              }
+              activate();
+            }}
+            onAuxClick={(e) => {
+              if (navigable && e.button === 1) {
+                e.preventDefault();
+                void goToSource(record, true);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();

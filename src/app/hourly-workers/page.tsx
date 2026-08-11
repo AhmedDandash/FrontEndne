@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Card,
   Table,
@@ -17,6 +17,8 @@ import {
   TimePicker,
   Row,
   Col,
+  Empty,
+  Spin,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -35,10 +37,13 @@ import {
 } from '@ant-design/icons';
 import {
   useHourlyWorkers,
+  useHourlyWorker,
   useHourlyWorkerMutations,
 } from '@/hooks/api/useHourlyWorkers';
 import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { useAuthStore } from '@/store/authStore';
+import { useOpenIdParam } from '@/hooks/useOpenIdParam';
+import { actionLinkProps } from '@/lib/navigation/linkProps';
 import type {
   HourlyWorker,
   CreateHourlyWorkerDto,
@@ -101,7 +106,18 @@ export default function HourlyWorkersPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<HourlyWorker | null>(null);
   const [detail, setDetail] = useState<HourlyWorker | null>(null);
+  const [deepLinkDetailId, setDeepLinkDetailId] = useState<string | null>(null);
   const [form] = Form.useForm();
+  const {
+    data: deepLinkedWorker,
+    isLoading: isDeepLinkLoading,
+  } = useHourlyWorker(deepLinkDetailId ?? undefined);
+
+  useOpenIdParam(setDeepLinkDetailId);
+
+  useEffect(() => {
+    if (deepLinkDetailId && deepLinkedWorker) setDetail(deepLinkedWorker);
+  }, [deepLinkDetailId, deepLinkedWorker]);
 
   const openCreate = () => {
     setEditing(null);
@@ -161,7 +177,14 @@ export default function HourlyWorkersPage() {
       sorter: true,
       sortOrder: sortBy === 'fullName' ? (sortDescending ? 'descend' : 'ascend') : null,
       render: (v: string, record) => (
-        <a className={styles.docNumber} onClick={() => setDetail(record)} style={{ fontFamily: 'inherit' }}>
+        <a
+          {...actionLinkProps(
+            `/hourly-workers?openId=${encodeURIComponent(record.id)}`,
+            () => setDetail(record)
+          )}
+          className={styles.docNumber}
+          style={{ fontFamily: 'inherit' }}
+        >
           {v}
         </a>
       ),
@@ -480,11 +503,18 @@ export default function HourlyWorkersPage() {
       {/* ── Detail Drawer ──────────────────────────────────────── */}
       <Drawer
         title={t('تفاصيل العامل', 'Worker Details')}
-        open={!!detail}
-        onClose={() => setDetail(null)}
+        open={!!detail || !!deepLinkDetailId}
+        onClose={() => {
+          setDetail(null);
+          setDeepLinkDetailId(null);
+        }}
         width={480}
       >
-        {detail && (
+        {!detail && isDeepLinkLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+            <Spin />
+          </div>
+        ) : detail ? (
           <>
             <div className={styles.facts}>
               <div className={styles.factItem}>
@@ -522,11 +552,13 @@ export default function HourlyWorkersPage() {
               </div>
             </div>
             {detail.notes && <div className={styles.notesBox}>{detail.notes}</div>}
-            <Button block icon={<EditOutlined />} onClick={() => { setDetail(null); openEdit(detail); }}>
+            <Button block icon={<EditOutlined />} onClick={() => { setDetail(null); setDeepLinkDetailId(null); openEdit(detail); }}>
               {t('تعديل', 'Edit')}
             </Button>
           </>
-        )}
+        ) : deepLinkDetailId ? (
+          <Empty description={t('تعذّر تحميل تفاصيل العامل', 'Could not load worker details')} />
+        ) : null}
       </Drawer>
 
       {/* ── Create / Edit Drawer ───────────────────────────────── */}

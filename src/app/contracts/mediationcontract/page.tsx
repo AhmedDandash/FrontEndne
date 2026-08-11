@@ -65,6 +65,7 @@ import { useJobs } from '@/hooks/api/useJobs';
 import { useUsers } from '@/hooks/api/useUsers';
 import { useMediationContracts } from '@/hooks/api/useMediationContracts';
 import { useCreateComplaint } from '@/hooks/api/useComplaints';
+import { linkProps } from '@/lib/navigation/linkProps';
 import { formatCurrency, formatDate, getStatusConfigFromName } from './_lib/format';
 import type {
   MediationContract,
@@ -1001,7 +1002,7 @@ export default function MediationContractsPage() {
               <Button
                 icon={<EyeOutlined />}
                 className={styles.detailsBtn}
-                onClick={() => router.push(`/contracts/mediationcontract/${contract.id}`)}
+                {...linkProps(`/contracts/mediationcontract/${contract.id}`, router)}
               >
                 {t.contractDetails}
               </Button>

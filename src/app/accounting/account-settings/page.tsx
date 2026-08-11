@@ -19,6 +19,7 @@ import { getAccountType, getReportSideLabel } from '@/types/accounting.types';
 import type { AccountSettingListDto } from '@/types/accounting.types';
 import { useAuthStore } from '@/store/authStore';
 import { useAccountModals } from '../_components/AccountModals';
+import { linkProps } from '@/lib/navigation/linkProps';
 import styles from './AccountSettings.module.css';
 
 export default function AccountSettingsPage() {
@@ -205,7 +206,7 @@ export default function AccountSettingsPage() {
           <div className={styles.headerActions}>
             <Button
               icon={<ApartmentOutlined />}
-              onClick={() => router.push('/accounting/chart-of-accounts')}
+              {...linkProps('/accounting/chart-of-accounts', router)}
               className={styles.refreshBtn}
             >
               {t('شجرة الحسابات', 'Chart of Accounts')}

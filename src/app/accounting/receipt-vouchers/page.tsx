@@ -28,6 +28,7 @@ import { useReceiptVouchers, useReceiptVoucherTrace, useCreateReceiptVoucher } f
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useAuthStore } from '@/store/authStore';
 import type { ReceiptVoucherDetail, CreateReceiptVoucherNewDto } from '@/types/api.types';
+import { linkProps } from '@/lib/navigation/linkProps';
 import {
   renderPaymentMethod,
   renderJournalLink,
@@ -90,7 +91,7 @@ export default function ReceiptVouchersPage() {
       key: 'voucherNumber',
       width: 130,
       render: (v: string, record) => (
-        <a className={styles.docNumber} onClick={() => openDetail(record.id)}>
+        <a className={styles.docNumber} {...linkProps(`/accounting/receipt-vouchers/${record.id}`, router)}>
           {v || (record.voucherSerialNumber != null ? `#${record.voucherSerialNumber}` : '—')}
         </a>
       ),

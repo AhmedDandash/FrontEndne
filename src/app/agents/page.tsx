@@ -58,6 +58,7 @@ import {
   type DynamicFilterDefinition,
   type DynamicFilterValues,
 } from '@/components/filters';
+import { linkProps } from '@/lib/navigation/linkProps';
 import type { Agent, CreateAgentDto, UpdateAgentDto } from '@/types/api.types';
 import type { AgentQuery } from '@/types/filters.types';
 import { AGENT_CONTRACT_TYPE, toSelectOptions } from '@/constants/enums';
@@ -588,14 +589,12 @@ export default function AgentsPage() {
                     <div className={styles.agentHeaderLeft}>
                       <Avatar size={56} icon={<UserOutlined />} className={styles.agentAvatar} />
                       <div className={styles.agentNameSection}>
-                        <h3
-                          className={styles.agentName}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => openDetail(agent.id)}
-                        >
-                          {language === 'ar'
-                            ? agent.agentNameAr
-                            : agent.agentNameEn || agent.agentNameAr}
+                        <h3 className={styles.agentName}>
+                          <a {...linkProps(`/agents/${agent.id}`, router)}>
+                            {language === 'ar'
+                              ? agent.agentNameAr
+                              : agent.agentNameEn || agent.agentNameAr}
+                          </a>
                         </h3>
                         <Tag color={agent.isActive ? 'green' : 'red'} className={styles.statusTag}>
                           {agent.isActive ? t('active') : t('inactive')}

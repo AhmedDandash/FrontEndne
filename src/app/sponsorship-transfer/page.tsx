@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { linkProps } from '@/lib/navigation/linkProps';
 import {
   Card,
   Row,
@@ -462,7 +463,7 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
 function ContractCard({
   contract,
   language,
-  onViewDetails,
+  viewHref,
   onSign,
   onComplete,
   onAuthority,
@@ -474,7 +475,7 @@ function ContractCard({
 }: {
   contract: TransferContractListItem;
   language: 'ar' | 'en';
-  onViewDetails: () => void;
+  viewHref: string;
   onSign: () => void;
   onComplete: () => void;
   onAuthority: () => void;
@@ -484,6 +485,7 @@ function ContractCard({
   isCompletePending: boolean;
   isDeletePending: boolean;
 }) {
+  const router = useRouter();
   const t      = useT();
   const status = contract.contractStatus ?? 1;
   void language;
@@ -581,7 +583,7 @@ function ContractCard({
               icon={<EyeOutlined />}
               className={styles.actionBtn}
               block
-              onClick={onViewDetails}
+              {...linkProps(viewHref, router)}
             >
               {t('contractDetails')}
             </Button>
@@ -657,7 +659,6 @@ function ContractCard({
 export default function SponsorshipTransferPage() {
   const t        = useT();
   const language = useAuthStore((s) => s.language);
-  const router   = useRouter();
 
   const [searchText,    setSearchText]    = useState('');
   const [statusFilter,  setStatusFilter]  = useState<string>('all');
@@ -1146,7 +1147,7 @@ export default function SponsorshipTransferPage() {
               key={contract.id}
               contract={contract}
               language={language}
-              onViewDetails={() => router.push(`/sponsorship-transfer/${contract.id}`)}
+              viewHref={`/sponsorship-transfer/${contract.id}`}
               onSign={() => handleSign(contract.id)}
               onComplete={() => completeMutation.mutate(contract.id)}
               onAuthority={() => setAuthorityId(contract.id)}

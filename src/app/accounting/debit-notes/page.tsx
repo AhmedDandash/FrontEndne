@@ -28,6 +28,7 @@ import { useDebitNotes, useDebitNoteTrace, useCreateDebitNote } from '@/hooks/ap
 import { useAgents } from '@/hooks/api/useAgents';
 import { useAuthStore } from '@/store/authStore';
 import type { DebitNote, CreateDebitNoteDto } from '@/types/api.types';
+import { linkProps } from '@/lib/navigation/linkProps';
 import { renderJournalLink } from '../_lib/accountingDocDisplay';
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
 import { useAccountingDocFilters } from '../_lib/useAccountingDocFilters';
@@ -84,7 +85,7 @@ export default function DebitNotesPage() {
       key: 'debitNoteNumber',
       width: 140,
       render: (v: string, record) => (
-        <a className={styles.docNumber} onClick={() => openDetail(record.id)}>{v || '—'}</a>
+        <a className={styles.docNumber} {...linkProps(`/accounting/debit-notes/${record.id}`, router)}>{v || '—'}</a>
       ),
     },
     {

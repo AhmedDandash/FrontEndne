@@ -19,6 +19,7 @@ import { AuthService } from '@/services/auth.service';
 import { useHRAttendance } from '@/hooks/api/useHR';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { linkProps } from '@/lib/navigation/linkProps';
 
 const { Title, Text } = Typography;
 
@@ -63,7 +64,6 @@ export default function DashboardPage() {
 
   const { checkIn, checkOut, isCheckingIn, isCheckingOut } = useHRAttendance({});
   const now = useLiveClock();
-  const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const isAr = language === 'ar';
 
@@ -228,7 +228,7 @@ export default function DashboardPage() {
               icon={link.icon}
               label={isAr ? link.labelAr : link.labelEn}
               color={link.color}
-              onClick={() => router.push(link.path)}
+              href={link.path}
             />
           </Col>
         ))}
@@ -238,21 +238,25 @@ export default function DashboardPage() {
 }
 
 function QuickTile({
-  icon, label, color, onClick,
+  icon, label, color, href,
 }: {
   icon: React.ReactNode;
   label: string;
   color: string;
-  onClick: () => void;
+  href: string;
 }) {
   const [hovered, setHovered] = useState(false);
+  const router = useRouter();
 
   return (
-    <div
-      onClick={onClick}
+    <a
+      {...linkProps(href, router)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
       style={{
+        display: 'block',
         background: '#fff',
         borderRadius: 16,
         padding: '22px 16px',
@@ -262,6 +266,8 @@ function QuickTile({
         transform: hovered ? 'translateY(-5px)' : 'translateY(0)',
         boxShadow: hovered ? `0 10px 28px ${color}30` : '0 2px 12px rgba(0,0,0,0.06)',
         border: `1.5px solid ${hovered ? color : 'transparent'}`,
+        color: 'inherit',
+        textDecoration: 'none',
       }}
     >
       <div style={{
@@ -282,7 +288,7 @@ function QuickTile({
       <Text strong style={{ fontSize: 13, color: '#1a1a2e' }}>
         {label}
       </Text>
-    </div>
+    </a>
   );
 }
 

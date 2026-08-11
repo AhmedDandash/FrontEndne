@@ -47,6 +47,7 @@ import { useHREmployees } from '@/hooks/api/useHR';
 import { useAdminPositions, useDepartments } from '@/hooks/api/useAdmin';
 import NationalitySelect from '@/components/common/NationalitySelect';
 import { useBranches } from '@/hooks/api/useBranches';
+import { linkProps } from '@/lib/navigation/linkProps';
 import type { EmployeeDto, CreateEmployeeDto, UpdateEmployeeDto } from '@/types/hr.types';
 
 const { Title } = Typography;
@@ -361,7 +362,7 @@ export default function HREmployeesPage() {
       sortOrder: sortOrder('NameAr'),
       render: (_, r) => (
         <Space orientation="vertical" size={0}>
-          <a style={{ fontWeight: 500 }} onClick={() => openDetail(r.id)}>{r.nameAr || '—'}</a>
+          <a style={{ fontWeight: 500 }} {...linkProps(`/hr/employees/${r.id}`, router)}>{r.nameAr || '—'}</a>
           {r.nameEn && <span style={{ color: '#888', fontSize: 12 }}>{r.nameEn}</span>}
         </Space>
       ),

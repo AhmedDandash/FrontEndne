@@ -9,6 +9,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, Col, Button, Tag, Avatar, Badge, Dropdown, Space, Popconfirm } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -36,12 +37,12 @@ import {
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import type { RentContract } from './types';
+import { linkProps } from '@/lib/navigation/linkProps';
 import { getStatusMeta } from './mapping';
 import { formatDate, formatCurrency } from './format';
 import styles from '../RentContracts.module.css';
 
 export interface ContractCardActions {
-  onView: (c: RentContract) => void;
   onEdit: (c: RentContract) => void;
   onDelete: (c: RentContract) => void;
   onSign: (c: RentContract) => void;
@@ -70,6 +71,8 @@ interface Props {
 }
 
 export default function ContractCard({ contract, isRtl, loading, actions }: Props) {
+  const router = useRouter();
+  const viewHref = `/contracts/operation/rent/${contract.id}`;
   const t = {
     viewDetails: isRtl ? 'عرض التفاصيل' : 'View Details',
     edit: isRtl ? 'تعديل' : 'Edit',
@@ -96,7 +99,11 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
   const statusMeta = getStatusMeta(contract.status, isRtl);
 
   const menuItems: MenuProps['items'] = [
-    { key: 'view', label: t.viewDetails, icon: <EyeOutlined />, onClick: () => actions.onView(contract) },
+    {
+      key: 'view',
+      label: <a {...linkProps(viewHref, router)}>{t.viewDetails}</a>,
+      icon: <EyeOutlined />,
+    },
   ];
   if (contract.contractStatus === 1 || contract.contractStatus === 2) {
     menuItems.push({ key: 'edit', label: t.edit, icon: <EditOutlined />, onClick: () => actions.onEdit(contract) });
@@ -324,7 +331,7 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
               </div>
             </div>
 
-            <Button type="primary" block icon={<EyeOutlined />} className={styles.viewBtn} onClick={() => actions.onView(contract)}>
+            <Button type="primary" block icon={<EyeOutlined />} className={styles.viewBtn} {...linkProps(viewHref, router)}>
               {t.viewDetails}
             </Button>
           </div>

@@ -8,6 +8,7 @@ import { FileSearchOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@a
 import { useAuthStore } from '@/store/authStore';
 import { useZatcaRequestLogs, useZatcaSubmissionLogs, useZatcaLookups } from '@/hooks/api/useZatca';
 import { AdvancedFilterPanel, DateRangeFilter } from '@/components/filters';
+import { linkProps } from '@/lib/navigation/linkProps';
 import { ZatcaLookupTag, formatDateTime } from '../_lib/zatcaDisplay';
 import type { ZatcaApiRequestLog, ZatcaSubmissionLog } from '@/types/zatca.types';
 import styles from '../zatca.module.css';
@@ -67,7 +68,7 @@ function RequestLogsTab({ branchId, isAr }: { branchId: string; isAr: boolean })
       title: t('إجراءات', 'Actions'),
       key: 'actions',
       render: (_, record) => (
-        <a onClick={() => router.push(`/zatca/logs/requests/${record.id}`)}>{t('عرض التفاصيل', 'View Details')}</a>
+        <a {...linkProps(`/zatca/logs/requests/${record.id}`, router)}>{t('عرض التفاصيل', 'View Details')}</a>
       ),
     },
   ];

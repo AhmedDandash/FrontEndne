@@ -34,6 +34,7 @@ import {
 import { GeneralVoucherService } from '@/services/general-voucher.service';
 import { API_ENDPOINTS } from '@/config/api.config';
 import { AdvancedFilterPanel, BranchFilterSelect, ExportButton } from '@/components/filters';
+import { linkProps } from '@/lib/navigation/linkProps';
 import { renderJournalLink, renderJournalStatus } from '../_lib/accountingDocDisplay';
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
 import VoucherTypeDropdown from './_components/VoucherTypeDropdown';
@@ -163,7 +164,7 @@ export default function GeneralVouchersPage() {
       key: 'voucherNumber',
       width: 140,
       render: (v: string | null, record) => (
-        <a className={styles.docNumber} onClick={() => router.push(`${ROUTE}/${record.id}`)}>
+        <a className={styles.docNumber} {...linkProps(`${ROUTE}/${record.id}`, router)}>
           {v || (record.voucherSerialNumber != null ? `#${record.voucherSerialNumber}` : '—')}
         </a>
       ),
@@ -261,7 +262,9 @@ export default function GeneralVouchersPage() {
                 size="small"
                 type="text"
                 icon={<PrinterOutlined />}
-                onClick={() => router.push(`${ROUTE}/${record.id}/print`)}
+                href={`${ROUTE}/${record.id}/print`}
+                target="_blank"
+                rel="noopener noreferrer"
               />
             </Tooltip>
             <Tooltip title={t('تتبع القيد', 'Trace Journal')}>

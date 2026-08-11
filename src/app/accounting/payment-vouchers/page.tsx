@@ -30,6 +30,7 @@ import { useCustomers } from '@/hooks/api/useCustomers';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useAuthStore } from '@/store/authStore';
 import type { PaymentVoucher, CreatePaymentVoucherDto } from '@/types/api.types';
+import { linkProps } from '@/lib/navigation/linkProps';
 import {
   renderPaymentMethod,
   renderJournalLink,
@@ -94,7 +95,7 @@ export default function PaymentVouchersPage() {
       key: 'voucherNumber',
       width: 140,
       render: (v: string, record) => (
-        <a className={styles.docNumber} onClick={() => openDetail(record.id)}>{v || '—'}</a>
+        <a className={styles.docNumber} {...linkProps(`/accounting/payment-vouchers/${record.id}`, router)}>{v || '—'}</a>
       ),
     },
     {

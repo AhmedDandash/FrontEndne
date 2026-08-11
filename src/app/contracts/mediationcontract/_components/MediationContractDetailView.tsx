@@ -628,7 +628,9 @@ export default function MediationContractDetailView({
                           <Button
                             type="link"
                             icon={isPdf ? <DownloadOutlined /> : <EyeOutlined />}
-                            onClick={() => window.open(url, '_blank')}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             style={{ flexShrink: 0 }}
                           >
                             {language === 'ar' ? (isPdf ? 'تحميل' : 'عرض') : (isPdf ? 'Download' : 'View')}

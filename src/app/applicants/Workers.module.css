@@ -284,6 +284,13 @@
   gap: 8px;
 }
 
+.workerName > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+}
+
 .workerDetails {
   display: grid;
   gap: 12px;

@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { Button, Tooltip } from 'antd';
 import { LinkOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { message } from 'antd';
+import { linkProps } from '@/lib/navigation/linkProps';
+import { reserveNewTab } from '@/lib/navigation/openInNewTab';
 import {
   resolveJournalEntryNavigation,
   resolveContractRoute,
@@ -32,6 +34,10 @@ export function GoToSourceButton({ entry, isAr, variant = 'button', size = 'midd
   const [loading, setLoading] = useState(false);
   const nav = resolveJournalEntryNavigation(entry);
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const href =
+    nav.route && !nav.disabled && !nav.needsContractResolve
+      ? buildSourceUrl(nav.route, nav.id, nav.pathParam)
+      : null;
 
   // Manual / unknown with no navigation and not explicitly disabled → hide.
   if (!nav.disabled && !nav.route) return null;
@@ -51,31 +57,69 @@ export function GoToSourceButton({ entry, isAr, variant = 'button', size = 'midd
     return <Tooltip title={`${label} — ${reason}`}>{btn}</Tooltip>;
   }
 
-  const go = async () => {
+  const isNewTabIntent = (e: MouseEvent<HTMLElement>) =>
+    e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+
+  const go = async (openInTab = false) => {
+    const reservedTab = openInTab ? reserveNewTab() : null;
     try {
       setLoading(true);
       let route = nav.route as string;
       if (nav.needsContractResolve && nav.id) {
         route = await resolveContractRoute(nav.id);
       }
-      router.push(buildSourceUrl(route, nav.id));
+      const url = buildSourceUrl(route, nav.id);
+      if (reservedTab) {
+        reservedTab.navigate(url);
+      } else {
+        router.push(url);
+      }
     } catch {
+      reservedTab?.close();
       message.error(t('تعذّر فتح المصدر', 'Could not open the source'));
     } finally {
       setLoading(false);
     }
   };
 
+  const handleAsyncClick = (e: MouseEvent<HTMLElement>) => {
+    e.preventDefault();
+    void go(isNewTabIntent(e));
+  };
+
+  const handleAsyncAuxClick = (e: MouseEvent<HTMLElement>) => {
+    if (e.button !== 1) return;
+    e.preventDefault();
+    void go(true);
+  };
+
+  const asyncClickProps = {
+    onClick: handleAsyncClick,
+    onAuxClick: handleAsyncAuxClick,
+  };
+
   if (variant === 'icon') {
     return (
       <Tooltip title={`${t('الذهاب للمصدر', 'Go to source')}: ${label}`}>
-        <Button size="small" type="text" icon={<LinkOutlined />} loading={loading} onClick={go} />
+        <Button
+          size="small"
+          type="text"
+          icon={<LinkOutlined />}
+          loading={loading}
+          {...(href ? linkProps(href, router) : asyncClickProps)}
+        />
       </Tooltip>
     );
   }
 
   return (
-    <Button size={size} type="dashed" icon={<LinkOutlined />} loading={loading} onClick={go}>
+    <Button
+      size={size}
+      type="dashed"
+      icon={<LinkOutlined />}
+      loading={loading}
+      {...(href ? linkProps(href, router) : asyncClickProps)}
+    >
       {t('الذهاب للمصدر', 'Go to source')} — {label}
     </Button>
   );

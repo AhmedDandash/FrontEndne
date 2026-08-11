@@ -59,6 +59,7 @@ import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import NationalitySelect from '@/components/common/NationalitySelect';
 import { CUSTOMER_COMMON_NATIONALITIES } from '@/constants/nationalities';
+import { linkProps } from '@/lib/navigation/linkProps';
 import HijriDatePicker from '@/components/common/HijriDatePicker';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useMarketers } from '@/hooks/api/useMarketers';
@@ -787,15 +788,17 @@ export default function CustomersPage() {
       },
       {
         key: 'contracts',
-        label: language === 'ar' ? 'عقود الوساطة' : 'Mediation Contracts',
+        label: <a {...linkProps(`/contracts/mediationcontract?customerId=${customer.id}`, router)}>
+          {language === 'ar' ? 'عقود الوساطة' : 'Mediation Contracts'}
+        </a>,
         icon: <FileTextOutlined />,
-        onClick: () => router.push(`/contracts/mediationcontract?customerId=${customer.id}`),
       },
       {
         key: 'addMediationContract',
-        label: language === 'ar' ? 'إنشاء عقد وساطة' : 'Create Mediation Contract',
+        label: <a {...linkProps(`/contracts/mediationcontract/add?customerId=${customer.id}`, router)}>
+          {language === 'ar' ? 'إنشاء عقد وساطة' : 'Create Mediation Contract'}
+        </a>,
         icon: <FileTextOutlined />,
-        onClick: () => router.push(`/contracts/mediationcontract/add?customerId=${customer.id}`),
       },
       {
         key: 'transfer',
@@ -805,15 +808,17 @@ export default function CustomersPage() {
       },
       {
         key: 'rent',
-        label: language === 'ar' ? 'عقود التشغيل' : 'Operation Contracts',
+        label: <a {...linkProps(`/contracts/operation/rent?customerId=${customer.id}`, router)}>
+          {language === 'ar' ? 'عقود التشغيل' : 'Operation Contracts'}
+        </a>,
         icon: <FileTextOutlined />,
-        onClick: () => router.push(`/contracts/operation/rent?customerId=${customer.id}`),
       },
       {
         key: 'statement',
-        label: language === 'ar' ? 'كشف الحساب' : 'Account Statement',
+        label: <a {...linkProps(`/contracts/operation/rent?customerId=${customer.id}`, router)}>
+          {language === 'ar' ? 'كشف الحساب' : 'Account Statement'}
+        </a>,
         icon: <DollarOutlined />,
-        onClick: () => router.push(`/contracts/operation/rent?customerId=${customer.id}`),
       },
       { type: 'divider' },
       {
@@ -1542,9 +1547,7 @@ export default function CustomersPage() {
                   <Button
                     type="primary"
                     icon={<FileTextOutlined />}
-                    onClick={() =>
-                      router.push(`/contracts/mediationcontract/add?customerId=${customer.id}`)
-                    }
+                    {...linkProps(`/contracts/mediationcontract/add?customerId=${customer.id}`, router)}
                     style={{
                       marginRight: language === 'ar' ? 0 : 8,
                       marginLeft: language === 'ar' ? 8 : 0,

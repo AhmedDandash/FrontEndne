@@ -41,6 +41,7 @@ import { getAccountType, ACCOUNT_TYPES } from '@/types/accounting.types';
 import type { AccountTreeNode } from '@/types/accounting.types';
 import { useAuthStore } from '@/store/authStore';
 import { useAccountModals } from '../_components/AccountModals';
+import { linkProps } from '@/lib/navigation/linkProps';
 import styles from './ChartOfAccounts.module.css';
 
 /** Flatten helpers — keep a lookup of every node and its parent chain. */
@@ -299,9 +300,9 @@ export default function ChartOfAccountsPage() {
     setSelectedId(id ?? null);
   };
 
-  const goToSettings = (code?: string) => {
+  const settingsHref = (code?: string) => {
     const query = code ? `?searchTerm=${encodeURIComponent(code)}` : '';
-    router.push(`/accounting/account-settings${query}`);
+    return `/accounting/account-settings${query}`;
   };
 
   const selected = selectedId ? maps.nodeMap.get(selectedId) ?? null : null;
@@ -337,7 +338,7 @@ export default function ChartOfAccountsPage() {
             </Button>
             <Button
               icon={<SettingOutlined />}
-              onClick={() => goToSettings()}
+              {...linkProps(settingsHref(), router)}
               className={styles.refreshBtn}
             >
               {t('إعدادات الحسابات', 'Account Settings')}
@@ -592,7 +593,7 @@ export default function ChartOfAccountsPage() {
                     block
                     type="link"
                     icon={<SettingOutlined />}
-                    onClick={() => goToSettings(selected.code)}
+                    {...linkProps(settingsHref(selected.code), router)}
                     style={{ marginTop: 4 }}
                   >
                     {t('عرض في إعدادات الحسابات', 'Open in Account Settings')}

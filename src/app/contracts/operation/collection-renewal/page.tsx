@@ -43,6 +43,7 @@ import {
   UnorderedListOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { actionLinkProps } from '@/lib/navigation/linkProps';
 import { AdvancedFilterPanel } from '@/components/filters';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useCustomers } from '@/hooks/api/useCustomers';
@@ -529,7 +530,10 @@ export default function CollectionRenewalPage() {
                   <Button
                     type="text"
                     icon={<EyeOutlined />}
-                    onClick={() => handleViewContract(contract)}
+                    {...actionLinkProps(
+                      `/contracts/operation/rent/${contract.id}`,
+                      () => handleViewContract(contract)
+                    )}
                   >
                     {isRTL ? 'عرض' : 'View'}
                   </Button>

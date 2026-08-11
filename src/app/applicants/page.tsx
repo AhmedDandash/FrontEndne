@@ -79,6 +79,7 @@ import {
 import { useAgents } from '@/hooks/api/useAgents';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
+import { linkProps } from '@/lib/navigation/linkProps';
 import NationalitySelect from '@/components/common/NationalitySelect';
 import { useHREmployees } from '@/hooks/api/useHR';
 import { useHousingActiveList } from '@/hooks/api/useHousing';
@@ -1608,13 +1609,11 @@ export default function WorkersPage() {
                   )}
                 </div>
 
-                <h3
-                  className={styles.workerName}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => openDetail(worker.id)}
-                >
-                  <UserOutlined />
-                  {language === 'ar' ? worker.fullNameAr : worker.fullNameEn || worker.fullNameAr}
+                <h3 className={styles.workerName}>
+                  <a {...linkProps(`/applicants/${worker.id}`, router)}>
+                    <UserOutlined />
+                    {language === 'ar' ? worker.fullNameAr : worker.fullNameEn || worker.fullNameAr}
+                  </a>
                 </h3>
 
                 <div className={styles.workerDetails}>
@@ -2047,17 +2046,21 @@ export default function WorkersPage() {
                     return (
                       <div key={idx} style={{ position: 'relative', display: 'inline-block' }}>
                         {isPdf ? (
-                          <div
+                          <a
+                            href={attachment.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={language === 'ar' ? `مرفق PDF ${idx + 1}` : `PDF attachment ${idx + 1}`}
                             style={{
                               width: 72, height: 72, borderRadius: 6, border: '1px solid #e2e8f0',
                               background: '#fff0f0', display: 'flex', flexDirection: 'column',
                               alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                              textDecoration: 'none',
                             }}
-                            onClick={() => window.open(attachment.url, '_blank')}
                           >
                             <FilePdfOutlined style={{ fontSize: 28, color: '#e53e3e' }} />
                             <span style={{ fontSize: 10, color: '#718096', marginTop: 4 }}>PDF</span>
-                          </div>
+                          </a>
                         ) : (
                           <Image
                             src={attachment.url}
@@ -2498,18 +2501,22 @@ export default function WorkersPage() {
                   {allDocs.map((src, idx) => {
                     const isPdf = src.startsWith('data:application/pdf') || src.endsWith('.pdf');
                     return isPdf ? (
-                      <div
+                      <a
                         key={idx}
+                        href={src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={language === 'ar' ? `مستند PDF ${idx + 1}` : `PDF document ${idx + 1}`}
                         style={{
                           width: 150, height: 150, borderRadius: 8, border: '1px solid #e2e8f0',
                           background: '#fff0f0', display: 'flex', flexDirection: 'column',
                           alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                          textDecoration: 'none',
                         }}
-                        onClick={() => window.open(src, '_blank')}
                       >
                         <FilePdfOutlined style={{ fontSize: 40, color: '#e53e3e' }} />
                         <span style={{ fontSize: 12, color: '#718096', marginTop: 8 }}>PDF</span>
-                      </div>
+                      </a>
                     ) : (
                       <Image
                         key={idx}

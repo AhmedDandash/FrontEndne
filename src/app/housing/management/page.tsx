@@ -34,6 +34,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { useHousings } from '@/hooks/api/useHousing';
 import { useOpenIdParam } from '@/hooks/useOpenIdParam';
 import { AdvancedFilterPanel, TextMatchFilter, type TextMatchValue } from '@/components/filters';
+import { linkProps } from '@/lib/navigation/linkProps';
 import fullPage from '@/styles/fullPageModal.module.css';
 import type { Housing, HousingDto } from '@/types/housing.types';
 import styles from './HousingManagement.module.css';
@@ -147,7 +148,7 @@ export default function HousingManagementPage() {
       key: 'name',
       render: (_, record) => (
         <Space orientation="vertical" size={0}>
-          <a onClick={() => openDetail(record.id)}>
+          <a {...linkProps(`/housing/management/${record.id}`, router)}>
             <Text strong>{record.name}</Text>
           </a>
           {record.address && <Text type="secondary" className={styles.addressText}>{record.address}</Text>}

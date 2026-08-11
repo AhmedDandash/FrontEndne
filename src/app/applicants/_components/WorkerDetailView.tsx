@@ -206,18 +206,22 @@ export default function WorkerDetailView({ worker, language }: WorkerDetailViewP
               {allDocs.map((src, idx) => {
                 const isPdf = src.startsWith('data:application/pdf') || src.endsWith('.pdf');
                 return isPdf ? (
-                  <div
+                  <a
                     key={idx}
+                    href={src}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={t(`مستند PDF ${idx + 1}`, `PDF document ${idx + 1}`)}
                     style={{
                       width: 120, height: 120, borderRadius: 8, border: '1px solid #e2e8f0',
                       background: '#fff0f0', display: 'flex', flexDirection: 'column',
                       alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                      textDecoration: 'none',
                     }}
-                    onClick={() => window.open(src, '_blank')}
                   >
                     <FilePdfOutlined style={{ fontSize: 36, color: '#e53e3e' }} />
                     <span style={{ fontSize: 11, color: '#718096', marginTop: 6 }}>PDF</span>
-                  </div>
+                  </a>
                 ) : (
                   <Image
                     key={idx}

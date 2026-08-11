@@ -40,6 +40,7 @@ import { useHourlyPackages, useHourlyServingAreas } from '@/hooks/api/useHourlyC
 import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { useHourlyPermissions } from '@/hooks/useHourlyPermissions';
 import { useAuthStore } from '@/store/authStore';
+import { linkProps } from '@/lib/navigation/linkProps';
 import {
   HourlyRequestStatus,
   HOURLY_REQUEST_STATUSES,
@@ -286,7 +287,7 @@ export default function HourlyWorkerRequestsPage() {
       sorter: true,
       sortOrder: sortBy === 'ticketNumber' ? (sortDescending ? 'descend' : 'ascend') : null,
       render: (v: string, record) => (
-        <a className={styles.docNumber} onClick={() => goDetail(record.id)}>
+        <a className={styles.docNumber} {...linkProps(`/hourly-workers/requests/${record.id}`, router)}>
           {v}
         </a>
       ),

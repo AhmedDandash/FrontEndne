@@ -110,7 +110,9 @@ export default function GeneralVoucherDetailPage({ params }: { params: { id: str
           </Tooltip>
           <Button
             icon={<PrinterOutlined />}
-            onClick={() => router.push(`${LIST_ROUTE}/${id}/print`)}
+            href={`${LIST_ROUTE}/${id}/print`}
+            target="_blank"
+            rel="noopener noreferrer"
           >
             {t('طباعة', 'Print')}
           </Button>
