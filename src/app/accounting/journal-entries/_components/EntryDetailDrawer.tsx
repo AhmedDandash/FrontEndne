@@ -88,18 +88,32 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
 
   const handleDelete = async () => {
     if (!entry) return;
-    await deleteEntry(entry.id);
-    onClose();
+    try {
+      await deleteEntry(entry.id);
+      onClose();
+    } catch {
+      // The mutation's own onError already surfaced a toast; keep the drawer
+      // open (e.g. delete-blocked-because-posted) and swallow the rejection
+      // so it doesn't bubble as an unhandled promise rejection.
+    }
   };
 
   const handlePost = async () => {
     if (!entry) return;
-    await postEntry(entry.id);
+    try {
+      await postEntry(entry.id);
+    } catch {
+      // onError toast already shown; swallow so it doesn't bubble.
+    }
   };
 
   const handleUnpost = async () => {
     if (!entry) return;
-    await unpostEntry(entry.id);
+    try {
+      await unpostEntry(entry.id);
+    } catch {
+      // onError toast already shown; swallow so it doesn't bubble.
+    }
   };
 
   return (

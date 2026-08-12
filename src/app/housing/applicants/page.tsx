@@ -637,14 +637,14 @@ export default function HousingApplicantsPage() {
               worker={w}
               activeTab={activeTab}
               onDeportation={() => { setDeportationModal(w); deportationForm.resetFields(); }}
-              onCancelDeportation={() => cancelDeportation(w.workerId)}
+              onCancelDeportation={() => { cancelDeportation(w.workerId).catch(() => {}); }}
               onHandover={() => { setHandoverModal(w); handoverForm.resetFields(); }}
               onResidency={() => { setResidencyModal(w); residencyForm.resetFields(); }}
               onUpdate={() => { setUpdateModal(w); updateForm.setFieldsValue({ updateDate: dayjs() as any }); }}
               onExitReEntry={() => { setExitModal(w); exitForm.resetFields(); }}
-              onExitHousing={() => exitHousing(w.workerId)}
-              onToggleWork={() => toggleWantsWork(w.workerId)}
-              onToggleTransfer={() => toggleWantsTransfer(w.workerId)}
+              onExitHousing={() => { exitHousing(w.workerId).catch(() => {}); }}
+              onToggleWork={() => { toggleWantsWork(w.workerId).catch(() => {}); }}
+              onToggleTransfer={() => { toggleWantsTransfer(w.workerId).catch(() => {}); }}
             />
           ))}
         </div>

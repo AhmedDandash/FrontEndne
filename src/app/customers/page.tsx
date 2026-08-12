@@ -631,31 +631,68 @@ export default function CustomersPage() {
       // Transform mobile text field → phones array expected by the API.
       // branchId only applies to create (UpdateCustomerDto has no branch field).
       const { mobile, branchId: formBranchId, ...rest } = values;
+
+      // PUT is a full replace (confirmed live, 2026-08-11 Customers-module
+      // audit) — any field this form doesn't manage gets nulled if omitted
+      // from the body. Two things the frontend already knows about an
+      // existing customer aren't form inputs, so they must be re-attached
+      // explicitly or every edit silently erases them:
+      //  - identityNumber: deliberately hidden from this UI (commit
+      //    d318c9a, "Hide identity number in the customer card") — NOT
+      //    re-exposing an input for it here, just preserving whatever value
+      //    it already has instead of letting an unrelated edit wipe it.
+      //  - phones: this form only collects a single "mobile" string, but a
+      //    customer can have multiple phone entries with different types.
+      //    Rebuilding a fresh single-entry array unconditionally (as this
+      //    code used to) silently dropped every phone but the primary and
+      //    force-reset its type/isPrimary flags on every save. Preserve the
+      //    rest, and the primary's original type, updating only the number.
+      const existingPhones = editingCustomer?.phones ?? [];
+      // Must match handleEditCustomer's primaryPhone selection exactly (isPrimary,
+      // falling back to the first entry) — otherwise, for a customer with no phone
+      // marked isPrimary, this would treat existingPhones[0] as still "other" while
+      // the mobile field (seeded from that same phone) re-adds it as primary too,
+      // duplicating it on every save.
+      const previousPrimary = existingPhones.find((p) => p.isPrimary) ?? existingPhones[0];
+      const otherPhones = existingPhones.filter((p) => p !== previousPrimary);
+      const phones: CustomerPhoneDto[] | undefined = mobile
+        ? [
+            { phoneNumber: mobile, type: previousPrimary?.type ?? 1, isPrimary: true } as CustomerPhoneDto,
+            ...otherPhones,
+          ]
+        : otherPhones.length > 0
+          ? otherPhones
+          : undefined;
+
       const payload = {
         ...rest,
-        phones: mobile
-          ? [{ phoneNumber: mobile, type: 1, isPrimary: true } as CustomerPhoneDto]
-          : undefined,
+        phones,
+        ...(editingCustomer ? { identityNumber: editingCustomer.identityNumber } : {}),
+      };
+
+      // Close/reset only on success — closing immediately (the old
+      // behavior) raced the request: on failure the error toast fired
+      // against an already-closed, already-cleared form, losing whatever
+      // the user had typed.
+      const onSaved = () => {
+        setIsModalVisible(false);
+        form.resetFields();
+        setEditingCustomer(null);
       };
 
       if (editingCustomer && editingCustomer.id) {
-        // Update existing customer
-        await updateCustomer({
-          id: editingCustomer.id,
-          data: payload as UpdateCustomerDto,
-        });
+        updateCustomer(
+          { id: editingCustomer.id, data: payload as UpdateCustomerDto },
+          { onSuccess: onSaved }
+        );
       } else {
         // Create new customer — attach branch (explicit selection or user's own;
         // omitted → backend falls back to the JWT branchId).
-        await createCustomer({
-          ...payload,
-          branchId: formBranchId || userBranchId || undefined,
-        } as CreateCustomerDto);
+        createCustomer(
+          { ...payload, branchId: formBranchId || userBranchId || undefined } as CreateCustomerDto,
+          { onSuccess: onSaved }
+        );
       }
-
-      setIsModalVisible(false);
-      form.resetFields();
-      setEditingCustomer(null);
     } catch (error) {
       console.error('Form validation failed:', error);
     }
@@ -768,11 +805,13 @@ export default function CustomersPage() {
         customerId: selectedCustomerForContract?.id || null,
       };
 
-      createContract(contractData);
-
-      setIsContractModalVisible(false);
-      contractForm.resetFields();
-      setSelectedCustomerForContract(null);
+      createContract(contractData, {
+        onSuccess: () => {
+          setIsContractModalVisible(false);
+          contractForm.resetFields();
+          setSelectedCustomerForContract(null);
+        },
+      });
     } catch (error) {
       console.error('Contract form validation failed:', error);
     }

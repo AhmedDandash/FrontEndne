@@ -12,6 +12,8 @@ import {
   resolvePageKey,
   isAdminRole,
   canAccessPage,
+  isPageConfigured,
+  DEFAULT_RESTRICTED_PAGES,
   type PermissionMatrix,
 } from '../config/pagePermissions.config.ts';
 
@@ -72,4 +74,44 @@ test('canAccessPage: empty allow-list locks out everyone but admins', () => {
 
 test('canAccessPage: null page key (no registered page) is open', () => {
   assert.equal(canAccessPage(null, [], {}), true);
+});
+
+// ── DEFAULT_RESTRICTED_PAGES / isPageConfigured ────────────────────────────
+// Regression coverage for a bug caught in the 2026-08 Auth-module audit:
+// canAccessPage's fallback to DEFAULT_RESTRICTED_PAGES was correct in
+// isolation, but usePagePermissions.ts's `check()` had its own earlier
+// "matrix[key] === undefined → allow" guard that returned before
+// canAccessPage ever ran, so a non-admin could still reach /register (Add
+// Admin) with a completely unconfigured (fresh-install) permission matrix.
+// isPageConfigured() is the single source of truth both `check()` and these
+// tests use for that guard, so they can't drift apart again.
+test('DEFAULT_RESTRICTED_PAGES: /register is admin-only by default', () => {
+  assert.deepEqual(DEFAULT_RESTRICTED_PAGES['/register'], []);
+});
+
+test('isPageConfigured: a page with a default restriction counts as configured even with an empty matrix', () => {
+  assert.equal(isPageConfigured('/register', {}), true);
+});
+
+test('isPageConfigured: a page with neither a matrix entry nor a default restriction is unconfigured', () => {
+  assert.equal(isPageConfigured('/hr/payroll', {}), false);
+});
+
+test('isPageConfigured: an explicit matrix entry overrides having no default', () => {
+  assert.equal(isPageConfigured('/hr/payroll', { '/hr/payroll': ['HR'] }), true);
+});
+
+test('canAccessPage: /register with an unconfigured (empty) matrix denies non-admins', () => {
+  assert.equal(canAccessPage('/register', ['Employee'], {}), false);
+  assert.equal(canAccessPage('/register', [], {}), false);
+});
+
+test('canAccessPage: /register with an unconfigured (empty) matrix still allows admins', () => {
+  assert.equal(canAccessPage('/register', ['Admin'], {}), true);
+});
+
+test('canAccessPage: an admin explicitly widening /register access via the matrix still works', () => {
+  const matrix: PermissionMatrix = { '/register': ['HR'] };
+  assert.equal(canAccessPage('/register', ['HR'], matrix), true);
+  assert.equal(canAccessPage('/register', ['Employee'], matrix), false);
 });

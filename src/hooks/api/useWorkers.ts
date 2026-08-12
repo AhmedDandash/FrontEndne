@@ -244,12 +244,18 @@ export function useCreateWorker() {
 
   return useMutation({
     mutationFn: async (data: WorkerDto) => {
-      const response = await api.post<Worker>(
+      // The backend returns a bare success-message string (e.g. "تم إضافة
+      // العامل بنجاح"), not the created worker — confirmed live, 2026-08-11
+      // Workers-module audit (same response shape as every other module's
+      // create/update this session). `response.data` was previously typed
+      // `Worker` but is actually the whole `{success,data,errors,statusCode}`
+      // envelope at runtime; now unwrapped and typed accurately.
+      const response = await api.post<any>(
         API_ENDPOINTS.WORKERS.CREATE,
         workerDtoToFormData(data),
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
-      return response.data;
+      return (response.data?.data ?? response.data) as string;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: WORKERS_KEY });
@@ -267,12 +273,13 @@ export function useUpdateWorker() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number | string; data: WorkerDto }) => {
-      const response = await api.put<Worker>(
+      // Same bare success-message response shape as create() — see comment there.
+      const response = await api.put<any>(
         API_ENDPOINTS.WORKERS.UPDATE(id),
         workerDtoToFormData(data),
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
-      return response.data;
+      return (response.data?.data ?? response.data) as string;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: WORKERS_KEY });

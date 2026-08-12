@@ -146,6 +146,30 @@ export function isAdminRole(roles: string[]): boolean {
 }
 
 /**
+ * Secure-by-default overrides for pages dangerous enough that they must NOT
+ * fall back to "unconfigured → open" until an admin explicitly widens them
+ * via the Settings → Page Permissions screen. Currently just `/register`
+ * (Add Admin): `POST /api/V1/Auth/add-admin` grants the caller a full Admin
+ * account, and the live backend does not enforce auth on that endpoint
+ * itself (confirmed 2026-08-11 Auth-module audit) — this page must not be
+ * reachable by non-admins even by omission.
+ */
+export const DEFAULT_RESTRICTED_PAGES: PermissionMatrix = {
+  '/register': [],
+};
+
+/**
+ * True if `pageKey` has an explicit matrix entry OR a secure-by-default
+ * restriction. Callers must gate on this BEFORE treating a missing matrix
+ * entry as "unconfigured → open" — `canAccessPage`'s own fallback to
+ * `DEFAULT_RESTRICTED_PAGES` is unreachable if the caller already short-
+ * circuited to 'allow' on `matrix[pageKey] === undefined`.
+ */
+export function isPageConfigured(pageKey: string, matrix: PermissionMatrix): boolean {
+  return matrix[pageKey] !== undefined || DEFAULT_RESTRICTED_PAGES[pageKey] !== undefined;
+}
+
+/**
  * Resolve a pathname to the most specific registered page key (longest prefix
  * match), so sub-routes like `/hr/employees/123` map to `/hr/employees`.
  * Returns null when the path maps to no registered page (→ treat as open).
@@ -173,7 +197,7 @@ export function canAccessPage(
 ): boolean {
   if (!pageKey) return true;
   if (isAdminRole(roles)) return true;
-  const allowed = matrix[pageKey];
+  const allowed = matrix[pageKey] ?? DEFAULT_RESTRICTED_PAGES[pageKey];
   if (allowed === undefined) return true; // unconfigured → open
   return roles.some((r) => allowed.includes(r));
 }

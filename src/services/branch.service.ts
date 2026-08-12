@@ -64,19 +64,22 @@ export class BranchService {
   }
 
   /**
-   * Create new branch
+   * Create new branch — the backend returns a bare success-message string
+   * (e.g. "تم إضافة الفرع بنجاح"), NOT the created branch (confirmed live,
+   * 2026-08-11 Branch-module audit). Callers that need the new branch's id
+   * must re-fetch the list (there is no id in this response to unwrap).
    */
-  static async create(data: BranchDto): Promise<Branch> {
+  static async create(data: BranchDto): Promise<string> {
     const response = await api.post<any>(API_ENDPOINTS.BRANCH.CREATE, data);
-    return this.unwrap<Branch>(response.data);
+    return this.unwrap<string>(response.data);
   }
 
   /**
-   * Update branch
+   * Update branch — same bare success-message response shape as create().
    */
-  static async update(id: number | string, data: BranchDto): Promise<Branch> {
+  static async update(id: number | string, data: BranchDto): Promise<string> {
     const response = await api.put<any>(API_ENDPOINTS.BRANCH.UPDATE(id), data);
-    return this.unwrap<Branch>(response.data);
+    return this.unwrap<string>(response.data);
   }
 
   /**

@@ -135,11 +135,21 @@ export class AuthService {
   }
 
   /**
-   * Logout user
+   * Logout user — POST /api/V1/Auth/logout
+   *
+   * The backend's RevokeRefreshTokenRequestDTO requires `refreshToken` in the
+   * body (confirmed live: an empty body 400s with "The RefreshToken field is
+   * required"). Without it this call never actually revoked anything server-side
+   * — the token stayed valid — while the client still behaved as logged out.
    */
   static async logout(): Promise<void> {
+    const storedRefreshToken =
+      typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
     try {
-      await api.post(API_ENDPOINTS.AUTH.LOGOUT);
+      await api.post(
+        API_ENDPOINTS.AUTH.LOGOUT,
+        storedRefreshToken ? { refreshToken: storedRefreshToken } : undefined,
+      );
     } finally {
       // Clear local storage and cookies regardless of API response
       if (typeof window !== 'undefined') {
@@ -152,9 +162,14 @@ export class AuthService {
         localStorage.removeItem('branchName');
         sessionStorage.clear();
 
-        // Best-effort clear of legacy non-HttpOnly cookie (refresh cookie is HttpOnly)
+        // Both cookies are written via `document.cookie` at login time (see
+        // login() above), so neither is actually HttpOnly — clear both here.
+        // Previously only authToken was cleared, so the refreshToken cookie
+        // (which middleware.ts's edge gate keys off) survived logout.
         document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         document.cookie = 'authToken=; path=/; max-age=0';
+        document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'refreshToken=; path=/; max-age=0';
       }
     }
   }

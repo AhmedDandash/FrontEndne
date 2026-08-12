@@ -138,10 +138,16 @@ export interface BranchDto {
   zaka_DistrictAr?: string | null;
   zaka_BuildingNumber?: string | null;
   zaka_StreetAr?: string | null;
-  // ── Geofencing (required for attendance validation) ──
-  latitude?: number | null;
-  longitude?: number | null;
-  allowedRadiusMeters?: number | null;
+  // ── Geofencing — REQUIRED on write, unlike every other field on this DTO.
+  // Confirmed live (2026-08-11 Branch-module audit): POST/PUT both 400 with
+  // "AllowedRadiusMeters must be greater than 0." when omitted, and the live
+  // OpenAPI spec marks only these three as non-nullable on BranchDto/
+  // CreateBranchDto. The edit/create form already enforces this via its own
+  // `required: true` rules — this type just now matches that reality instead
+  // of contradicting it.
+  latitude: number;
+  longitude: number;
+  allowedRadiusMeters: number;
 }
 
 // ==================== Privilege/Role Types ====================

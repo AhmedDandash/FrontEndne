@@ -50,6 +50,7 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useBranches, usePagedBranches } from '@/hooks/api/useBranches';
+import { BranchService } from '@/services';
 import type { Branch, BranchDto } from '@/types/api.types';
 import type { BranchQuery } from '@/types/filters.types';
 import { getCurrentPosition, GeolocationError, geolocationErrorMessage } from '@/utils/geolocation';
@@ -64,6 +65,43 @@ import {
 } from '@/components/filters';
 import styles from './Branch.module.css';
 
+/** The subset of `Branch` that overlaps with `BranchDto`'s writable fields. */
+type BranchDtoOverlap = Omit<
+  Branch,
+  'id' | 'subBranches' | 'parentBranchNameAr' | 'parentBranchNameEn' | 'createdAt' | 'createdDate' | 'createdBy'
+>;
+
+/**
+ * Strip a `Branch` (API response shape) down to just the fields `BranchDto`
+ * (the PUT/POST request shape) accepts — drops `id` and the other
+ * response-only fields (`subBranches`, `parentBranchName*`, `created*`).
+ * Used as a merge base for updates so PUT's full-replace semantics don't
+ * wipe fields the edit form itself doesn't collect. See handleModalSubmit.
+ *
+ * Deliberately typed as `BranchDtoOverlap`, not `BranchDto`: on `Branch` the
+ * geofence fields are still `number | null` (existing branches predating
+ * geofencing can genuinely have them unset), while `BranchDto` requires them
+ * non-null on write — `Partial<BranchDto>` doesn't fit either, since it only
+ * adds `| undefined`, not `| null`. This is only ever used as a spread base
+ * with the form's `values` — which does supply real numbers for all three,
+ * since they're `required` form fields — layered on top in
+ * handleModalSubmit, so the final merged payload is a valid `BranchDto` at
+ * runtime even though this function's own return type isn't one in isolation.
+ */
+function branchToDto(branch: Branch): BranchDtoOverlap {
+  const {
+    id: _id,
+    subBranches: _subBranches,
+    parentBranchNameAr: _parentBranchNameAr,
+    parentBranchNameEn: _parentBranchNameEn,
+    createdAt: _createdAt,
+    createdDate: _createdDate,
+    createdBy: _createdBy,
+    ...dto
+  } = branch;
+  return dto;
+}
+
 export default function BranchPage() {
   const language = useAuthStore((state) => state.language);
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,6 +114,7 @@ export default function BranchPage() {
   const [selectedMainBranch, setSelectedMainBranch] = useState<number>(1);
   const [viewingBranchId, setViewingBranchId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [form] = Form.useForm();
 
@@ -418,28 +457,53 @@ export default function BranchPage() {
     setViewingBranchId(String(branch.id));
   };
 
-  const handleEditBranch = (branch: Branch) => {
-    setEditingBranch(branch);
-    const mainBranchVal = branch.mainBranch ?? 1;
-    setSelectedMainBranch(mainBranchVal);
-    form.setFieldsValue({
-      nameAr: branch.nameAr,
-      nameEn: branch.nameEn,
-      addressAr: branch.addressAr,
-      addressEn: branch.addressEn,
-      phone: branch.phone,
-      mobile: branch.mobile,
-      email: branch.email,
-      branchLicense: branch.branchLicense,
-      commercialRegistrationNumber: branch.commercialRegistrationNumber,
-      taxNumber: branch.taxNumber,
-      mainBranch: mainBranchVal,
-      parentBranchId: branch.parentBranchId ?? undefined,
-      latitude: branch.latitude ?? undefined,
-      longitude: branch.longitude ?? undefined,
-      allowedRadiusMeters: branch.allowedRadiusMeters ?? undefined,
-    });
-    setIsModalVisible(true);
+  /**
+   * Opens the edit modal, always re-fetching the full branch by id first.
+   *
+   * `branch` here may come from the list table (`GET /api/V1/Branch`, which
+   * only returns a slim summary — no geofence fields, address, license,
+   * CR/tax numbers, etc.) rather than the by-id detail endpoint. Populating
+   * the form directly from that shallow row left latitude/longitude/
+   * allowedRadiusMeters `undefined` for the two most common edit entry
+   * points (the table row action and the sub-branch row action) even though
+   * those fields are `required` on save — silently forcing whoever edits a
+   * branch's phone number, say, to also blindly re-enter (or relocate) its
+   * live attendance-geofence location. Confirmed live during the 2026-08-11
+   * Branch-module audit. Only the detail-drawer's edit button happened to be
+   * safe, because `viewBranchData` there is already a full by-id fetch.
+   */
+  const handleEditBranch = async (branch: Branch) => {
+    setEditLoading(true);
+    try {
+      const full = await BranchService.getById(branch.id);
+      setEditingBranch(full);
+      const mainBranchVal = full.mainBranch ?? 1;
+      setSelectedMainBranch(mainBranchVal);
+      form.setFieldsValue({
+        nameAr: full.nameAr,
+        nameEn: full.nameEn,
+        addressAr: full.addressAr,
+        addressEn: full.addressEn,
+        phone: full.phone,
+        mobile: full.mobile,
+        email: full.email,
+        branchLicense: full.branchLicense,
+        commercialRegistrationNumber: full.commercialRegistrationNumber,
+        taxNumber: full.taxNumber,
+        mainBranch: mainBranchVal,
+        parentBranchId: full.parentBranchId ?? undefined,
+        latitude: full.latitude ?? undefined,
+        longitude: full.longitude ?? undefined,
+        allowedRadiusMeters: full.allowedRadiusMeters ?? undefined,
+      });
+      setIsModalVisible(true);
+    } catch {
+      message.error(
+        language === 'ar' ? 'تعذّر تحميل بيانات الفرع' : 'Failed to load branch details'
+      );
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const handleDeleteBranch = (branch: Branch) => {
@@ -457,7 +521,22 @@ export default function BranchPage() {
   const handleModalSubmit = async () => {
     try {
       const values = await form.validateFields();
+
+      // PUT /api/V1/Branch/{id} is a full replace, not a partial merge — any
+      // BranchDto field omitted from the body gets wiped to null server-side
+      // (confirmed live during the 2026-08-11 Branch-module audit: poBox,
+      // postalCode, domain, appUrl, managerNameAr, taxNumber,
+      // organizationTypeAr, cityAr, and every zaka_*/laborLicense*/
+      // commercialRegistrationDate/whatsAppWelcomeTemplate/
+      // philippineEmbassyBranch field all nulled out after a save that only
+      // touched name/address/phone/geofence). The edit form only has inputs
+      // for a subset of BranchDto, so every save through this form used to
+      // silently destroy every other field on the branch being edited. Base
+      // the payload on the full record already fetched into `editingBranch`
+      // (see handleEditBranch) so untouched fields survive; the form's
+      // values still win for anything it actually manages.
       const branchData: BranchDto = {
+        ...(editingBranch ? branchToDto(editingBranch) : {}),
         ...values,
         parentBranchId: values.mainBranch === 0 ? values.parentBranchId : null,
       };
@@ -498,6 +577,7 @@ export default function BranchPage() {
         key: 'edit',
         label: t('edit'),
         icon: <EditOutlined />,
+        disabled: editLoading,
         onClick: () => handleEditBranch(branch),
       },
       {
@@ -797,6 +877,7 @@ export default function BranchPage() {
                               type="text"
                               size="small"
                               icon={<EditOutlined />}
+                              loading={editLoading}
                               onClick={() => handleEditBranch(sub)}
                             />
                             <Button
@@ -825,6 +906,7 @@ export default function BranchPage() {
                   <Button
                     type="link"
                     icon={<EditOutlined />}
+                    loading={editLoading}
                     onClick={() => handleEditBranch(branch)}
                   >
                     {t('edit')}

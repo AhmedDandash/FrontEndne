@@ -435,7 +435,7 @@ export default function JournalEntriesPage() {
                     okText={t('اعتماد', 'Post')}
                     cancelText={t('إلغاء', 'Cancel')}
                     okButtonProps={{ loading: isPosting, disabled: !record.isBalanced }}
-                    onConfirm={() => postEntry(record.id)}
+                    onConfirm={() => void postEntry(record.id).catch(() => {})}
                     disabled={yearClosed}
                   >
                     <Button
@@ -457,7 +457,7 @@ export default function JournalEntriesPage() {
                     okText={t('حذف', 'Delete')}
                     cancelText={t('إلغاء', 'Cancel')}
                     okButtonProps={{ danger: true, loading: isDeleting }}
-                    onConfirm={() => deleteEntry(record.id)}
+                    onConfirm={() => void deleteEntry(record.id).catch(() => {})}
                   >
                     <Button size="small" type="text" danger icon={<DeleteOutlined />} />
                   </Popconfirm>
@@ -480,7 +480,7 @@ export default function JournalEntriesPage() {
                   okText={t('إلغاء الاعتماد', 'Unpost')}
                   cancelText={t('رجوع', 'Back')}
                   okButtonProps={{ loading: isUnposting }}
-                  onConfirm={() => unpostEntry(record.id)}
+                  onConfirm={() => void unpostEntry(record.id).catch(() => {})}
                   disabled={yearClosed}
                 >
                   <Button

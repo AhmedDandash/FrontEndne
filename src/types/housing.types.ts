@@ -33,6 +33,10 @@ export interface WorkerStatusLogDto {
   housingId?: string | null;
   statusDate: string;
   notes?: string | null;
+  /** Present on the live CreateWorkerStatusLogDto schema; unused by any current caller. */
+  penaltyAmount?: number | null;
+  /** Present on the live CreateWorkerStatusLogDto schema; unused by any current caller. */
+  agentId?: string | null;
 }
 
 // ==================== Housed Worker Types ====================

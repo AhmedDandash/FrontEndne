@@ -266,9 +266,15 @@ export default function CollectionRenewalPage() {
 
   const handleRenewSubmit = (newEndDate: string) => {
     if (!renewTarget) return;
-    renewContract({ id: renewTarget.id, newEndDate });
-    setRenewTarget(null);
-    setSelectedContract(null);
+    renewContract(
+      { id: renewTarget.id, newEndDate },
+      {
+        onSuccess: () => {
+          setRenewTarget(null);
+          setSelectedContract(null);
+        },
+      }
+    );
   };
 
   const handleViewContract = (contract: RentalContract) => {

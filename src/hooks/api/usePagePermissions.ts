@@ -17,6 +17,7 @@ import { extractApiError } from '@/lib/api/unwrap';
 import {
   canAccessPage,
   resolvePageKey,
+  isPageConfigured,
   type PermissionMatrix,
 } from '@/config/pagePermissions.config';
 
@@ -119,7 +120,7 @@ export function useCanAccess() {
     const check = (pathname: string): 'allow' | 'deny' | 'pending' => {
       const key = resolvePageKey(pathname);
       if (!key) return 'allow';
-      if (matrix[key] === undefined) return 'allow'; // unconfigured → open
+      if (!isPageConfigured(key, matrix)) return 'allow'; // unconfigured → open
       if (!isReady) return 'pending'; // restricted page, roles still loading
       return canAccessPage(key, roles, matrix) ? 'allow' : 'deny';
     };

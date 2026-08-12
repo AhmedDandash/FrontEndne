@@ -48,10 +48,14 @@ function isBranchExcludedRoute(url: string | undefined): boolean {
  * Primary source is the branch the user explicitly selected after login
  * (persisted by the store / BranchGate). Before that selection exists we fall
  * back to the JWT `branchId` claim (the user's home branch) so bootstrap calls
- * still carry a valid header — the backend REQUIRES `X-Branch-Id` on some
- * authenticated endpoints (e.g. `/api/V1/Auth/me` returns 400 without it). The
- * BranchGate still governs which branch the user actually works in; this fallback
- * only prevents the pre-selection 400s.
+ * still carry a valid header — the backend requires `X-Branch-Id` on every
+ * write endpoint (confirmed live). It does NOT require it on `/api/V1/Auth/me`
+ * specifically, despite an earlier version of this comment claiming otherwise
+ * (re-verified live 2026-08-11: `/me` returns 200 with a bearer token and no
+ * `X-Branch-Id` header at all). The fallback is kept regardless since it's
+ * needed for the write endpoints this client also uses pre-BranchGate-selection.
+ * The BranchGate still governs which branch the user actually works in; this
+ * fallback only prevents pre-selection 400s on those writes.
  */
 function getCurrentBranchId(): string | null {
   if (typeof window === 'undefined') return null;

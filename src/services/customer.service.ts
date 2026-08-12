@@ -59,19 +59,22 @@ export class CustomerService {
   }
 
   /**
-   * Create new customer
+   * Create new customer — the backend returns a bare success-message string
+   * (e.g. "تم اضافة العميل بنجاح"), NOT the created customer (confirmed live,
+   * 2026-08-11 Customers-module audit — same response shape as Auth's
+   * add-admin and Branch's create/update).
    */
-  static async create(data: CreateCustomerDto): Promise<Customer> {
+  static async create(data: CreateCustomerDto): Promise<string> {
     const response = await api.post<any>(API_ENDPOINTS.CUSTOMERS.CREATE, data);
-    return this.unwrap<Customer>(response.data);
+    return this.unwrap<string>(response.data);
   }
 
   /**
-   * Update customer
+   * Update customer — same bare success-message response shape as create().
    */
-  static async update(id: number | string, data: UpdateCustomerDto): Promise<Customer> {
+  static async update(id: number | string, data: UpdateCustomerDto): Promise<string> {
     const response = await api.put<any>(API_ENDPOINTS.CUSTOMERS.UPDATE(id), data);
-    return this.unwrap<Customer>(response.data);
+    return this.unwrap<string>(response.data);
   }
 
   /**

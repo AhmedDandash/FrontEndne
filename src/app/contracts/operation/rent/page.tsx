@@ -314,28 +314,43 @@ export default function RentContractsPage() {
   const handleCreateSubmit = async () => {
     try {
       const v = await createForm.validateFields();
-      createContract({
-        customerId: v.customerId,
-        offerId: v.offerId,
-        nationalityId: v.nationalityId,
-        jobId: v.jobId,
-        duration: v.duration,
-        cost: v.cost,
-        insurance: v.insurance,
-        offerPrice: v.offerPrice,
-        contractStartDate: v.contractStartDate?.toISOString(),
-        contractEndDate: v.contractEndDate?.toISOString(),
-        customerAddress: v.customerAddress,
-        workerId: v.workerId ?? null,
-        workerNameAr: v.workerNameAr,
-        workerNameEn: v.workerNameEn,
-        workerPhone: v.workerPhone,
-        workersCount: v.workersCount,
-        paymentMethod: v.paymentMethod,
-      });
-      setCreateModalOpen(false);
-      createForm.resetFields();
-      setCreateSelectedOffer(null);
+      createContract(
+        {
+          customerId: v.customerId,
+          offerId: v.offerId,
+          nationalityId: v.nationalityId,
+          jobId: v.jobId,
+          duration: v.duration,
+          cost: v.cost,
+          insurance: v.insurance,
+          offerPrice: v.offerPrice,
+          contractStartDate: v.contractStartDate?.toISOString(),
+          contractEndDate: v.contractEndDate?.toISOString(),
+          customerAddress: v.customerAddress,
+          workerId: v.workerId ?? null,
+          workerNameAr: v.workerNameAr,
+          workerNameEn: v.workerNameEn,
+          workerPhone: v.workerPhone,
+          workersCount: v.workersCount,
+          paymentMethod: v.paymentMethod,
+        },
+        {
+          // Close/reset only on success — this fires `createContract` via bare
+          // `.mutate` (not `.mutateAsync`), so closing unconditionally right
+          // after the call (the previous behavior) closed the modal and wiped
+          // the form before the request had even resolved, regardless of
+          // whether it succeeded or failed. The mutation's own `onError` still
+          // shows a toast, but the user had already lost their form state and
+          // moved on. Confirmed live, 2026-08-12 audit: this endpoint can
+          // legitimately fail (e.g. validation, a crashing partial update on
+          // the sibling PUT endpoint), so this isn't a hypothetical.
+          onSuccess: () => {
+            setCreateModalOpen(false);
+            createForm.resetFields();
+            setCreateSelectedOffer(null);
+          },
+        }
+      );
     } catch {
       /* validation handled by form */
     }
@@ -368,29 +383,36 @@ export default function RentContractsPage() {
     if (!editModal.raw) return;
     try {
       const v = await editForm.validateFields();
-      updateContract({
-        id: editModal.raw.id,
-        data: {
-          customerId: v.customerId,
-          nationalityId: v.nationalityId,
-          jobId: v.jobId,
-          duration: v.duration,
-          cost: v.cost,
-          insurance: v.insurance,
-          offerPrice: v.offerPrice,
-          contractStartDate: v.contractStartDate?.toISOString(),
-          contractEndDate: v.contractEndDate?.toISOString(),
-          customerAddress: v.customerAddress,
-          workerId: v.workerId ?? null,
-          workerNameAr: v.workerNameAr,
-          workerNameEn: v.workerNameEn,
-          workerPhone: v.workerPhone,
-          workersCount: v.workersCount,
-          paymentMethod: v.paymentMethod,
+      updateContract(
+        {
+          id: editModal.raw.id,
+          data: {
+            customerId: v.customerId,
+            nationalityId: v.nationalityId,
+            jobId: v.jobId,
+            duration: v.duration,
+            cost: v.cost,
+            insurance: v.insurance,
+            offerPrice: v.offerPrice,
+            contractStartDate: v.contractStartDate?.toISOString(),
+            contractEndDate: v.contractEndDate?.toISOString(),
+            customerAddress: v.customerAddress,
+            workerId: v.workerId ?? null,
+            workerNameAr: v.workerNameAr,
+            workerNameEn: v.workerNameEn,
+            workerPhone: v.workerPhone,
+            workersCount: v.workersCount,
+            paymentMethod: v.paymentMethod,
+          },
         },
-      });
-      setEditModal({ open: false, raw: null });
-      editForm.resetFields();
+        {
+          // See handleCreateSubmit's comment — close/reset only on success.
+          onSuccess: () => {
+            setEditModal({ open: false, raw: null });
+            editForm.resetFields();
+          },
+        }
+      );
     } catch {
       /* validation handled by form */
     }
@@ -398,20 +420,26 @@ export default function RentContractsPage() {
 
   const handleRenewSubmit = (newEndDate: string) => {
     if (!renewModal.id) return;
-    renewContract({ id: renewModal.id, newEndDate });
-    setRenewModal({ open: false, id: null });
+    renewContract(
+      { id: renewModal.id, newEndDate },
+      { onSuccess: () => setRenewModal({ open: false, id: null }) }
+    );
   };
 
   const handleTerminateSubmit = (data: TerminateContractDto) => {
     if (!terminateModal.id) return;
-    terminateContract({ id: terminateModal.id, data });
-    setTerminateModal({ open: false, id: null });
+    terminateContract(
+      { id: terminateModal.id, data },
+      { onSuccess: () => setTerminateModal({ open: false, id: null }) }
+    );
   };
 
   const handleRefundSubmit = (data: CustomerRefundDto) => {
     if (!refundModal.id) return;
-    recordCustomerRefund({ id: refundModal.id, data });
-    setRefundModal({ open: false, id: null });
+    recordCustomerRefund(
+      { id: refundModal.id, data },
+      { onSuccess: () => setRefundModal({ open: false, id: null }) }
+    );
   };
 
   const handlePrint = async (contract: RentContract) => {

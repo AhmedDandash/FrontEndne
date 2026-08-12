@@ -86,6 +86,7 @@ import { useHousingActiveList } from '@/hooks/api/useHousing';
 import { useAssignWorkerHousing } from '@/hooks/api/useWorkerHousing';
 import { BranchFilterSelect, DateRangeFilter, ExportButton, AdvancedFilterPanel } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
+import { api } from '@/lib/api/client';
 import type { Worker, WorkerDto } from '@/types/api.types';
 import {
   GENDER,
@@ -497,6 +498,79 @@ type WorkerAttachmentItem = {
   file?: File;
 };
 
+/**
+ * Strip a full `Worker` (GET /{id} response) down to the fields `WorkerDto`
+ * (the PUT/POST multipart request shape) accepts, for use as a merge base
+ * when only changing one or two fields (e.g. a status transition).
+ *
+ * `PUT /api/V1/Worker/{id}` is a full replace, not a partial merge (confirmed
+ * live, 2026-08-11 Workers-module audit): sending `{ workerStatus: 1 }` alone
+ * — exactly what several one-click status actions in this file used to do —
+ * nulls out the ENTIRE record (name, passport, nationality, job, mobile,
+ * everything) down to just the id and the new status. This is far more
+ * severe than the earlier full-edit-form gap (which only dropped a handful
+ * of rarely-used fields): this one is triggered by routine single-click
+ * status changes and destroys the whole worker.
+ *
+ * `uploadImage`/`uploadVideo`/`attachments` are deliberately excluded: on a
+ * fetched `Worker` these are URL strings (or a URL array), not `File`
+ * objects, and resubmitting a URL string into a binary multipart field is
+ * not meaningful — the existing full-edit flow already handles files
+ * separately via dedicated File state, and this preservation path can't
+ * safely do better without re-downloading and re-uploading the file, which
+ * is out of scope for a status-change fix.
+ */
+function workerToPreservableDto(worker: Worker): WorkerDto {
+  const {
+    id: _id,
+    uploadImage: _uploadImage,
+    uploadVideo: _uploadVideo,
+    attachments: _attachments,
+    agentName: _agentName,
+    userName: _userName,
+    jobName: _jobName,
+    jobname: _jobname,
+    nationalityName: _nationalityName,
+    workerEscape: _workerEscape,
+    workerRefusedWork: _workerRefusedWork,
+    workerOut: _workerOut,
+    workerSick: _workerSick,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...dto
+  } = worker;
+  return dto;
+}
+
+/**
+ * Fetch a worker's full current record and apply a partial change on top of
+ * it, so the full-replace PUT doesn't destroy everything else. Use this for
+ * any one-click worker mutation instead of `updateWorker({ id, data: {...} })`
+ * with a bare partial object.
+ *
+ * Callers fire this without awaiting it (matching the existing fire-and-forget
+ * style of the `updateWorker`/`createWorker` mutations elsewhere in this
+ * file), so a failed pre-flight GET must be caught here — otherwise it's an
+ * unhandled promise rejection with no toast and no visible sign the status
+ * change didn't happen (`useUpdateWorker`'s own `onError` never gets a
+ * chance to run, since `updateWorker` is never reached).
+ */
+async function updateWorkerPreservingRecord(
+  id: number | string,
+  patch: Partial<WorkerDto>,
+  updateWorker: (vars: { id: number | string; data: WorkerDto }) => void
+) {
+  try {
+    const response = await api.get<any>(API_ENDPOINTS.WORKERS.GET_BY_ID(id));
+    const full = (response.data?.data ?? response.data) as Worker;
+    updateWorker({ id, data: { ...workerToPreservableDto(full), ...patch } });
+  } catch {
+    message.error(
+      'تعذّر تحميل بيانات العامل الحالية لإتمام التحديث / Could not load the worker\'s current data to complete the update'
+    );
+  }
+}
+
 export default function WorkersPage() {
   const router = useRouter();
   const language = useAuthStore((state) => state.language);
@@ -783,7 +857,30 @@ export default function WorkersPage() {
 
   const handleSubmit = async (values: any) => {
     const { isActive: _isActive, ...restValues } = values;
+
+    // PUT is a full replace (confirmed live, 2026-08-11 Workers-module audit:
+    // omitting a field nulls it out server-side, not "leaves it unchanged").
+    // relativeNameAr/En, relativeMobile, skills, arabicLanguageLevel,
+    // englishLanguageLevel, and responsibleUserId have no Form.Item in this
+    // page, so every edit was silently wiping them for any worker that had
+    // them set. Base the payload on the full fetched record (editingWorker,
+    // from useWorker(editingWorkerId) above) for exactly those fields, so
+    // they survive an edit that doesn't touch them; restValues (what the
+    // user actually submitted) still wins for everything the form manages.
+    const preservedUnmanagedFields: Partial<WorkerDto> = editingWorker
+      ? {
+          relativeNameAr: editingWorker.relativeNameAr,
+          relativeNameEn: editingWorker.relativeNameEn,
+          relativeMobile: editingWorker.relativeMobile,
+          skills: editingWorker.skills,
+          arabicLanguageLevel: editingWorker.arabicLanguageLevel,
+          englishLanguageLevel: editingWorker.englishLanguageLevel,
+          responsibleUserId: editingWorker.responsibleUserId,
+        }
+      : {};
+
     const workerData: WorkerDto = {
+      ...preservedUnmanagedFields,
       ...restValues,
       birthDate: restValues.birthDate?.format('YYYY-MM-DD'),
       passportIssueDate: restValues.passportIssueDate?.format('YYYY-MM-DD'),
@@ -825,7 +922,7 @@ export default function WorkersPage() {
     const onSuccess = () => {
       // Auto-set WorkerStatus to 4 (Backout) when medical exam result is Failed (3)
       if (medicalStatus === 3) {
-        updateWorker({ id: medicalExamWorkerId, data: { workerStatus: 4 } });
+        updateWorkerPreservingRecord(medicalExamWorkerId, { workerStatus: 4 }, updateWorker);
       }
       medicalExamForm.resetFields();
       setMedicalExamWorkerId(null);
@@ -949,10 +1046,10 @@ export default function WorkersPage() {
         workerOut(worker.id);
         break;
       case 'received':
-        updateWorker({ id: worker.id, data: { workerStatus: 1 } });
+        updateWorkerPreservingRecord(worker.id, { workerStatus: 1 }, updateWorker);
         break;
       case 'suspended':
-        updateWorker({ id: worker.id, data: { workerStatus: 6 } });
+        updateWorkerPreservingRecord(worker.id, { workerStatus: 6 }, updateWorker);
         break;
     }
   };
@@ -1818,16 +1915,30 @@ export default function WorkersPage() {
         width={460}
         destroyOnHidden
         onOk={async () => {
-          const vals = await housingForm.validateFields();
-          await assignToHousing({
-            workerId: housingModalWorkerId!,
-            statusType: 8,
-            housingId: vals.housingId,
-            statusDate: (vals.statusDate as any)?.toISOString?.() ?? new Date().toISOString(),
-            notes: vals.notes ?? null,
-          });
-          setHousingModalWorkerId(null);
-          housingForm.resetFields();
+          // antd's plain <Modal onOk> does not await/catch this handler itself
+          // (unlike Modal.confirm) — confirmed live, 2026-08-11/12 Worker
+          // Master audit: v6's handleOk is a bare `onOk?.(e)` call. Without
+          // this try/catch, both an incomplete-form validation rejection
+          // (the common path) and an API failure become unhandled promise
+          // rejections. The modal intentionally still stays open either way
+          // (the close/reset lines below only run on full success);
+          // validation errors are shown inline and API errors show a toast
+          // via useAssignWorkerHousing's own onError — this just avoids the
+          // unhandled-rejection noise.
+          try {
+            const vals = await housingForm.validateFields();
+            await assignToHousing({
+              workerId: housingModalWorkerId!,
+              statusType: 8,
+              housingId: vals.housingId,
+              statusDate: (vals.statusDate as any)?.toISOString?.() ?? new Date().toISOString(),
+              notes: vals.notes ?? null,
+            });
+            setHousingModalWorkerId(null);
+            housingForm.resetFields();
+          } catch {
+            // handled above — see comment
+          }
         }}
       >
         <Form form={housingForm} layout="vertical" style={{ marginTop: 16 }}>
@@ -2269,7 +2380,18 @@ export default function WorkersPage() {
                 <Select
                   size="large"
                   placeholder={t('workerStatus')}
-                  options={toSelectOptions([...WORKER_SATUS], language)}
+                  // WORKER_SATUS includes 5 (Inside Kingdom) and 6 (Deported)
+                  // as read-side tab/filter categories, but the live
+                  // WorkerStatus enum on this write endpoint only accepts
+                  // [1,2,3,4] (confirmed live, 2026-08-11 audit — 5/6 always
+                  // 400 "The value is invalid"). Those two look like derived
+                  // states reached via the dedicated Deportation/Handover/
+                  // IssueResidency endpoints, not something to set directly
+                  // here. Excluded from this Select only — the read-side
+                  // filter/tab uses of WORKER_SATUS elsewhere are untouched.
+                  options={toSelectOptions([...WORKER_SATUS], language).filter(
+                    (o) => o.value !== 5 && o.value !== 6
+                  )}
                 />
               </Form.Item>
             </Col>
