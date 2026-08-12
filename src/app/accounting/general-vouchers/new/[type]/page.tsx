@@ -55,6 +55,17 @@ export default function NewGeneralVoucherPage({ params }: { params: { type: stri
   }
 
   const handleSave = async () => {
+    try {
+      await handleSaveInner();
+    } catch {
+      // Form-validation rejection (antd already shows the inline field error)
+      // or a mutation failure (the mutation's own onError already shows a
+      // toast). Swallow here so it doesn't bubble as an unhandled promise
+      // rejection — this handler is a bare onClick, so nothing else catches it.
+    }
+  };
+
+  const handleSaveInner = async () => {
     const values = await form.validateFields();
     const lines: JournalLineRow[] = form.getFieldValue('lines') ?? [];
 

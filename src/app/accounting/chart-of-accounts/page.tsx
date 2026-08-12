@@ -160,7 +160,15 @@ export default function ChartOfAccountsPage() {
       okText: t('حذف', 'Delete'),
       okButtonProps: { danger: true },
       cancelText: t('إلغاء', 'Cancel'),
-      onOk: () => deleteAccount(node.id),
+      onOk: async () => {
+        try {
+          await deleteAccount(node.id);
+        } catch {
+          // The mutation's own onError already surfaced a toast; swallow the
+          // rejection here so it doesn't bubble as an unhandled promise
+          // rejection (Modal.confirm's static API doesn't catch it either).
+        }
+      },
     });
   };
 

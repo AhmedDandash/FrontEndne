@@ -175,7 +175,7 @@ export default function AccountSettingsPage() {
                 cancelText={t('إلغاء', 'Cancel')}
                 okButtonProps={{ danger: true, loading: isDeleting }}
                 disabled={!deletable}
-                onConfirm={() => deleteAccount(record.id)}
+                onConfirm={() => void deleteAccount(record.id).catch(() => {})}
               >
                 <Button size="small" type="text" danger disabled={!deletable} icon={<DeleteOutlined />} />
               </Popconfirm>

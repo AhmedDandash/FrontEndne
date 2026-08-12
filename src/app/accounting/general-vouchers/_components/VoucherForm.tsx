@@ -29,6 +29,7 @@ import {
   t as tr,
   voucherTypeLabel,
 } from '../_lib/generalVoucherDisplay';
+import { GENERAL_VOUCHER_TYPE } from '@/types/general-voucher.types';
 import type { CreateGeneralVoucherDto, GeneralVoucherDto } from '@/types/general-voucher.types';
 
 export interface VoucherFormProps {
@@ -288,7 +289,19 @@ export default function VoucherForm({
               </Form.Item>
             </Col>
             <Col xs={24} md={shape.operationType ? 8 : 16}>
-              <Form.Item name="contractId" label={t('العقد', 'Contract')}>
+              <Form.Item
+                name="contractId"
+                label={t('العقد', 'Contract')}
+                // Required for ContractPayment (type 3) — the backend rejects
+                // it with "'Contract Id' must not be empty." Not required for
+                // ForeignCurrencyPayment (type 6), which also sets shape.contract
+                // but accepts a null contractId live.
+                rules={
+                  voucherType === GENERAL_VOUCHER_TYPE.ContractPayment
+                    ? required(t('العقد مطلوب', 'Contract is required'))
+                    : undefined
+                }
+              >
                 <ContractPicker isAr={isAr} contractType={contractType} />
               </Form.Item>
             </Col>
@@ -514,7 +527,15 @@ export function buildVoucherDto(
     dto.exchangeRate = rate || undefined;
     dto.amountInSar = fcAmount * rate;
     dto.amountDeducted = Number(values.amountDeducted) || undefined;
-    dto.exchangeDifference = Number(values.exchangeDifference) || undefined;
+    // Send an explicit 0 rather than omitting the field: live-verified the
+    // backend crashes (500) creating a type-6 voucher whenever the RESOLVED
+    // exchangeDifference is non-zero (omitting it resolves to
+    // fcAmount*rate - fcAmount server-side, so omission crashes too UNLESS
+    // that resolves to exactly 0, e.g. exchangeRate=1 — omission is not
+    // itself the trigger). `Number(x) || undefined` previously coerced a
+    // genuine 0 to undefined, which almost always resolves non-zero and
+    // crashes; sending 0 explicitly sidesteps that for the common case.
+    dto.exchangeDifference = Number(values.exchangeDifference) || 0;
   }
   if (shape.lines) {
     dto.lines = lines

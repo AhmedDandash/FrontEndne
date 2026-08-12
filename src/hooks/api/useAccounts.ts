@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { AccountService } from '@/services/account.service';
+import { getApiErrorMessage } from '@/utils/api-error';
 import type {
   AccountTreeNode,
   CreateAccountDto,
@@ -69,7 +70,7 @@ export function useAccountTree() {
       message.success('تمت إضافة الحساب بنجاح / Account created');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل إضافة الحساب / Failed to create account');
+      message.error(getApiErrorMessage(err, 'فشل إضافة الحساب / Failed to create account'));
     },
   });
 
@@ -81,7 +82,7 @@ export function useAccountTree() {
       message.success('تم تحديث الحساب بنجاح / Account updated');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل تحديث الحساب / Failed to update account');
+      message.error(getApiErrorMessage(err, 'فشل تحديث الحساب / Failed to update account'));
     },
   });
 
@@ -93,7 +94,7 @@ export function useAccountTree() {
       message.success('تم تحديث إعدادات الحساب / Account settings updated');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل تحديث الإعدادات / Failed to update settings');
+      message.error(getApiErrorMessage(err, 'فشل تحديث الإعدادات / Failed to update settings'));
     },
   });
 
@@ -104,7 +105,7 @@ export function useAccountTree() {
       message.success('تم حذف الحساب / Account deleted');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'فشل حذف الحساب / Failed to delete account');
+      message.error(getApiErrorMessage(err, 'فشل حذف الحساب / Failed to delete account'));
     },
   });
 

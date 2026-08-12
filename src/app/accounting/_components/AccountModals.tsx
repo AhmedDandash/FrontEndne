@@ -131,37 +131,55 @@ export function useAccountModals() {
   };
 
   const submitCreate = async () => {
-    const values = await createForm.validateFields();
-    await createAccount({
-      code: values.code.trim(),
-      name: values.name.trim(),
-      parentId: values.parentId ?? null,
-    });
-    setCreateOpen(false);
-    createForm.resetFields();
+    try {
+      const values = await createForm.validateFields();
+      await createAccount({
+        code: values.code.trim(),
+        name: values.name.trim(),
+        parentId: values.parentId ?? null,
+      });
+      setCreateOpen(false);
+      createForm.resetFields();
+    } catch {
+      // Either a form-validation rejection (antd already shows the inline
+      // field error) or a mutation failure (onError toast already shown).
+      // Keep the modal open for retry and swallow so it doesn't bubble as
+      // an unhandled promise rejection (antd's plain <Modal onOk> does not
+      // await/catch this itself).
+    }
   };
 
   const submitName = async () => {
     if (!editing) return;
-    const values = await nameForm.validateFields();
-    await updateAccountName({ id: editing.id, data: { name: values.name.trim() } });
-    setNameOpen(false);
-    setEditing(null);
+    try {
+      const values = await nameForm.validateFields();
+      await updateAccountName({ id: editing.id, data: { name: values.name.trim() } });
+      setNameOpen(false);
+      setEditing(null);
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble.
+    }
   };
 
   const submitReporting = async () => {
     if (!editing) return;
-    const values = await reportingForm.validateFields();
-    await updateAccountReporting({
-      id: editing.id,
-      data: {
-        incomeStatementSide: values.incomeStatementSide,
-        profitLossSide: values.profitLossSide,
-        isGroupedInTrialBalance: !!values.isGroupedInTrialBalance,
-      },
-    });
-    setReportingOpen(false);
-    setEditing(null);
+    try {
+      const values = await reportingForm.validateFields();
+      await updateAccountReporting({
+        id: editing.id,
+        data: {
+          incomeStatementSide: values.incomeStatementSide,
+          profitLossSide: values.profitLossSide,
+          isGroupedInTrialBalance: !!values.isGroupedInTrialBalance,
+        },
+      });
+      setReportingOpen(false);
+      setEditing(null);
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble.
+    }
   };
 
   /** Whether an account id is a known leaf (deletable). Unknown ⇒ treat as leaf. */

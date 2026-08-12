@@ -282,7 +282,7 @@ export default function GeneralVouchersPage() {
               okText={t('حذف', 'Delete')}
               cancelText={t('إلغاء', 'Cancel')}
               disabled={locked}
-              onConfirm={() => deleteVoucher(record.id)}
+              onConfirm={() => void deleteVoucher(record.id).catch(() => {})}
             >
               <Tooltip
                 title={

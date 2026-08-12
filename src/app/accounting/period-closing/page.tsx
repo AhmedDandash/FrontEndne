@@ -57,6 +57,9 @@ export default function PeriodClosingPage() {
     try {
       const result = await closePeriod({ year });
       setLastResults((prev) => ({ ...prev, [year]: result }));
+    } catch {
+      // onError toast already shown; swallow so it doesn't bubble as an
+      // unhandled promise rejection.
     } finally {
       setBusyYear(null);
     }
@@ -71,6 +74,8 @@ export default function PeriodClosingPage() {
         delete next[year];
         return next;
       });
+    } catch {
+      // onError toast already shown; swallow so it doesn't bubble.
     } finally {
       setBusyYear(null);
     }

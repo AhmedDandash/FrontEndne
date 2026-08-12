@@ -75,19 +75,29 @@ export default function GeneralVoucherDetailPage({ params }: { params: { id: str
 
   const handleSave = async () => {
     if (!voucher) return;
-    const values = await form.validateFields();
-    const lines: JournalLineRow[] = form.getFieldValue('lines') ?? [];
-    await updateVoucher({
-      id,
-      data: buildVoucherDto(values, voucher.voucherType, lines),
-    });
-    setIsEditing(false);
-    refetch();
+    try {
+      const values = await form.validateFields();
+      const lines: JournalLineRow[] = form.getFieldValue('lines') ?? [];
+      await updateVoucher({
+        id,
+        data: buildVoucherDto(values, voucher.voucherType, lines),
+      });
+      setIsEditing(false);
+      refetch();
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble as an unhandled
+      // promise rejection — this handler is a bare onClick.
+    }
   };
 
   const handleDelete = async () => {
-    await deleteVoucher(id);
-    router.push(LIST_ROUTE);
+    try {
+      await deleteVoucher(id);
+      router.push(LIST_ROUTE);
+    } catch {
+      // onError toast already shown; swallow so it doesn't bubble.
+    }
   };
 
   const actions = voucher && (
