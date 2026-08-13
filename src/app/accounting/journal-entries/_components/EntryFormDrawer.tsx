@@ -22,6 +22,10 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useRestrictionTypes } from '@/hooks/api/useRestrictionTypes';
+import { useCustomers } from '@/hooks/api/useCustomers';
+import { useAgents } from '@/hooks/api/useAgents';
+import { useWorkers } from '@/hooks/api/useWorkers';
+import { useHREmployees } from '@/hooks/api/useHR';
 import {
   useJournalEntryDetail,
   useJournalEntryMutations,
@@ -48,6 +52,10 @@ interface LineField {
 interface FormValues {
   date: dayjs.Dayjs;
   restrictionTypeId?: string;
+  customerId?: string;
+  agentId?: string;
+  workerId?: string;
+  employeeId?: string;
   description: string;
   lines: LineField[];
 }
@@ -63,6 +71,10 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
 
   const [form] = Form.useForm<FormValues>();
   const { restrictionTypes } = useRestrictionTypes();
+  const { customers = [] } = useCustomers();
+  const { data: agents = [] } = useAgents();
+  const { data: workers = [] } = useWorkers();
+  const { employees = [] } = useHREmployees({ PageSize: 200 });
   const { data: detail, isLoading: loadingDetail } = useJournalEntryDetail(
     mode === 'edit' && open ? entryId ?? null : null
   );
@@ -85,6 +97,10 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
         date: dayjs(),
         description: '',
         restrictionTypeId: undefined,
+        customerId: undefined,
+        agentId: undefined,
+        workerId: undefined,
+        employeeId: undefined,
         lines: EMPTY_LINES.map((l) => ({ ...l })),
       });
     } else if (detail) {
@@ -92,6 +108,10 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
         date: detail.date ? dayjs(detail.date) : dayjs(),
         description: detail.description ?? '',
         restrictionTypeId: detail.restrictionTypeId ?? undefined,
+        customerId: detail.customerId ?? undefined,
+        agentId: detail.agentId ?? undefined,
+        workerId: detail.workerId ?? undefined,
+        employeeId: detail.employeeId ?? undefined,
         lines: detail.lines.map((l) => ({
           accountId: l.accountId,
           accountLabel: `${l.accountCode} — ${l.accountName}`,
@@ -125,10 +145,46 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
       })),
     [restrictionTypes]
   );
+  const customerOptions = useMemo(
+    () =>
+      (customers as any[]).map((c) => ({
+        value: String(c.id),
+        label: c.arabicName || c.englishName || String(c.id),
+      })),
+    [customers]
+  );
+  const agentOptions = useMemo(
+    () =>
+      (agents as any[]).map((a) => ({
+        value: String(a.id),
+        label: a.agentNameAr || a.agentNameEn || String(a.id),
+      })),
+    [agents]
+  );
+  const workerOptions = useMemo(
+    () =>
+      (workers as any[]).map((w) => ({
+        value: String(w.id),
+        label: w.fullNameAr || w.fullNameEn || w.passportNo || String(w.id),
+      })),
+    [workers]
+  );
+  const employeeOptions = useMemo(
+    () =>
+      (employees as any[]).map((e) => ({
+        value: String(e.id),
+        label: e.nameAr || e.nameEn || e.employeeName || String(e.id),
+      })),
+    [employees]
+  );
 
   const buildInput = (values: FormValues): JournalEntryInput => ({
     date: values.date.toISOString(),
     description: values.description.trim(),
+    customerId: values.customerId ?? null,
+    agentId: values.agentId ?? null,
+    workerId: values.workerId ?? null,
+    employeeId: values.employeeId ?? null,
     restrictionTypeId: values.restrictionTypeId ?? null,
     lines: (values.lines ?? []).map((l) => ({
       accountId: l.accountId as string,
@@ -274,6 +330,45 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
               placeholder={t('وصف القيد...', 'Entry description...')}
             />
           </Form.Item>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+            <Form.Item name="customerId" label={t('العميل', 'Customer')}>
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder={t('اختر العميل عند ارتباط القيد بعميل', 'Select customer when relevant')}
+                options={customerOptions}
+              />
+            </Form.Item>
+            <Form.Item name="agentId" label={t('الوكيل', 'Agent')}>
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder={t('اختر الوكيل عند الحاجة', 'Select agent when relevant')}
+                options={agentOptions}
+              />
+            </Form.Item>
+            <Form.Item name="workerId" label={t('العاملة', 'Worker')}>
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder={t('اختر العاملة عند الحاجة', 'Select worker when relevant')}
+                options={workerOptions}
+              />
+            </Form.Item>
+            <Form.Item name="employeeId" label={t('الموظف', 'Employee')}>
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder={t('اختر الموظف عند الحاجة', 'Select employee when relevant')}
+                options={employeeOptions}
+              />
+            </Form.Item>
+          </div>
 
           {/* ── Lines editor ─────────────────────────────────────── */}
           <div className={styles.linesHeader}>

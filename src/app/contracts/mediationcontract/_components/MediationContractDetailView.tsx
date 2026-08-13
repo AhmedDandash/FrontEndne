@@ -35,6 +35,14 @@ export default function MediationContractDetailView({
   const fmtCurrency = (v: number | null | undefined) => formatCurrency(v, language);
   const fmtDate = (v: string | null | undefined) => formatDate(v, language);
   const statusConfig = (name: string | null | undefined) => getStatusConfigFromName(name, language);
+  const workerPhoto =
+    contract.workerImageUrl ||
+    contract.workerPhotoUrl ||
+    (contract as any).worker?.workerImageUrl ||
+    (contract as any).worker?.workerPhotoUrl ||
+    (contract as any).worker?.uploadImage ||
+    (contract as any).workerUploadImage ||
+    (contract as any).uploadImage;
 
   const t = {
     customer: language === 'ar' ? 'العميل' : 'Customer',
@@ -107,10 +115,10 @@ export default function MediationContractDetailView({
               <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
                 {language === 'ar' ? 'بيانات العامل' : 'Worker'}
               </Divider>
-              {(contract.workerImageUrl || contract.workerPhotoUrl) && (
+              {workerPhoto && (
                 <div style={{ marginBlockEnd: 12 }}>
                   <Image
-                    src={resolveImageUrl(contract.workerImageUrl || contract.workerPhotoUrl)}
+                    src={resolveImageUrl(workerPhoto)}
                     alt={contract.workerName || 'worker'}
                     width={96}
                     height={96}

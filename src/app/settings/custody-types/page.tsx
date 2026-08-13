@@ -36,10 +36,17 @@ export default function CustodyTypesSettingsPage() {
   };
 
   const handleOk = async () => {
-    const values = await form.validateFields();
-    await createCustodyType(values as CreateCustodyTypeDto);
-    setModalOpen(false);
-    form.resetFields();
+    try {
+      const values = await form.validateFields();
+      await createCustodyType(values as CreateCustodyTypeDto);
+      setModalOpen(false);
+      form.resetFields();
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble as an unhandled
+      // promise rejection — antd's plain <Modal onOk> does not await/catch
+      // this itself.
+    }
   };
 
   const handleCancel = () => {

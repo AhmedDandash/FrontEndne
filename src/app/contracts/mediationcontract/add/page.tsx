@@ -41,7 +41,6 @@ import type { CreateMediationContractDto, MediationContractOffer, Worker } from 
 import {
   MEDIATION_CONTRACT_TYPE,
   ARRIVAL_DESTINATIONS,
-  CONTRACT_CATEGORY,
   toSelectOptions,
 } from '@/constants/enums';
 import OfferSelector from '@/components/contracts/OfferSelector';
@@ -132,10 +131,7 @@ export default function AddMediationContractPage() {
     customer: isRtl ? 'العميل' : 'Customer',
     marketer: isRtl ? 'مصدر التسويق' : 'Marketer Source',
     contractType: isRtl ? 'نوع العقد' : 'Contract Type',
-    contractCategory: isRtl ? 'تصنيف العقد' : 'Contract Category',
     status: isRtl ? 'الحالة' : 'Status',
-    musanedNumber: isRtl ? 'رقم مساند' : 'Musaned Contract #',
-    documentationNumber: isRtl ? 'رقم التوثيق' : 'Documentation #',
     // Worker step
     selectWorker: isRtl ? 'اختر العامل' : 'Select Worker',
     worker: isRtl ? 'العامل' : 'Worker',
@@ -193,7 +189,7 @@ export default function AddMediationContractPage() {
   const handleNext = async () => {
     try {
       const fieldGroups: string[][] = [
-        ['customerId', 'contractType', 'musanedContractNumber', 'marketerId', 'contractCategory'],
+        ['customerId', 'contractType', 'marketerId'],
         ['workerId', 'offerId'],
         ['visaNumber', 'visaDate', 'arrivalDestinationId'],
         [
@@ -229,10 +225,7 @@ export default function AddMediationContractPage() {
         customerId: vals.customerId ? String(vals.customerId) : null,
         workerId: vals.workerId ? String(vals.workerId) : null,
         workerPassportNumber: vals.workerPassportNumber ?? null,
-        musanedContractNumber: vals.musanedContractNumber ?? null,
         marketerId: vals.marketerId ? String(vals.marketerId) : null,
-        contractCategory: vals.contractCategory ? Number(vals.contractCategory) : null,
-        musanedDocumentationNumber: vals.musanedDocumentationNumber ?? null,
         offerId: vals.offerId ? String(vals.offerId) : null,
         visaNumber: vals.visaNumber ?? null,
         visaDate: vals.visaDate ?? null,
@@ -311,26 +304,6 @@ export default function AddMediationContractPage() {
                 </Option>
               ))}
             </Select>
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
-          <Form.Item name="contractCategory" label={t.contractCategory}>
-            <Select
-              size="large"
-              allowClear
-              placeholder={isRtl ? 'اختر تصنيف العقد' : 'Select contract category'}
-              options={toSelectOptions([...CONTRACT_CATEGORY], language)}
-            />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
-          <Form.Item name="musanedContractNumber" label={t.musanedNumber}>
-            <Input size="large" placeholder={isRtl ? 'رقم مساند' : 'Musaned contract number'} />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
-          <Form.Item name="musanedDocumentationNumber" label={t.documentationNumber}>
-            <Input size="large" placeholder={isRtl ? 'رقم التوثيق' : 'Documentation number'} />
           </Form.Item>
         </Col>
         <Col xs={24} md={12}>

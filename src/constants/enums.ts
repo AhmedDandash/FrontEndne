@@ -456,12 +456,15 @@ export const ARRIVAL_DESTINATIONS = [
 
 // ==================== Transfer Contract Status ====================
 // حالة عقد النقل — values per TransferContractStatus API spec
-// 1=Draft, 4=SentToAuthorities, 5=Approved, 6=Rejected, 8=TransferCompleted
+// 1=Draft, 4=SentToAuthorities, 5=Approved, 6=Rejected, 7=Completed (via
+// complete() after authority approval — live-confirmed statusName "مكتمل"),
+// 8=TransferCompleted (via direct sign())
 export const TRANSFER_CONTRACT_STATUS = [
   { value: 1, labelAr: 'مسودة', labelEn: 'Draft' },
   { value: 4, labelAr: 'أُرسل للجهات المختصة', labelEn: 'Sent To Authorities' },
   { value: 5, labelAr: 'مقبول', labelEn: 'Approved' },
   { value: 6, labelAr: 'مرفوض', labelEn: 'Rejected' },
+  { value: 7, labelAr: 'مكتمل', labelEn: 'Completed' },
   { value: 8, labelAr: 'تم نقل الكفالة', labelEn: 'Transfer Completed' },
 ] as const;
 

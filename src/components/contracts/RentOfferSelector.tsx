@@ -28,6 +28,7 @@ import { useBranches } from '@/hooks/api/useBranches';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import type { EmploymentContractOffer } from '@/types/api.types';
 import { OFFER_TYPE, getEnumLabel } from '@/constants/enums';
+import { formatOperationDuration } from '@/utils/operation-duration';
 
 interface RentOfferSelectorProps {
   /** Currently selected offer ID (controlled) */
@@ -107,7 +108,7 @@ export default function RentOfferSelector({
     totalCostWithTax: isArabic ? 'الإجمالي مع الضريبة' : 'Total with Tax',
     insurance: isArabic ? 'التأمين' : 'Insurance',
     workerSalary: isArabic ? 'راتب العامل' : 'Worker Salary',
-    duration: isArabic ? 'المدة (أشهر)' : 'Duration (months)',
+    duration: isArabic ? 'المدة' : 'Duration',
     offerType: isArabic ? 'نوع العرض' : 'Offer Type',
     branch: isArabic ? 'الفرع' : 'Branch',
     experience: isArabic ? 'الخبرة' : 'Experience',
@@ -284,7 +285,7 @@ export default function RentOfferSelector({
       width: 100,
       align: 'center',
       render: (val: number | null | undefined) =>
-        val ? `${val} ${isArabic ? 'شهر' : 'mo'}` : t.notDefined,
+        val ? formatOperationDuration(val, language) : t.notDefined,
     },
     {
       title: t.cost,

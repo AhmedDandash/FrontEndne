@@ -52,26 +52,40 @@ export default function ZatcaBranchSetupPage() {
   }, [context, profileForm]);
 
   const handleSaveProfile = async () => {
-    const values = await profileForm.validateFields();
-    if (!branchId) return;
-    await updateProfile.mutateAsync({ branchId, ...values });
+    try {
+      const values = await profileForm.validateFields();
+      if (!branchId) return;
+      await updateProfile.mutateAsync({ branchId, ...values });
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble as an unhandled
+      // promise rejection.
+    }
   };
 
   const handleCreateEgsUnit = async () => {
-    const values = await egsForm.validateFields();
-    if (!branchId) return;
-    const dto: CreateZatcaEgsUnitDto = { branchId, ...values };
-    await createEgsUnit.mutateAsync(dto);
-    setEgsDrawerOpen(false);
-    egsForm.resetFields();
+    try {
+      const values = await egsForm.validateFields();
+      if (!branchId) return;
+      const dto: CreateZatcaEgsUnitDto = { branchId, ...values };
+      await createEgsUnit.mutateAsync(dto);
+      setEgsDrawerOpen(false);
+      egsForm.resetFields();
+    } catch {
+      // Form-validation rejection or mutation failure; swallow.
+    }
   };
 
   const handleImportCredentials = async () => {
-    const values = await importForm.validateFields();
-    if (!branchId) return;
-    const dto: ImportZatcaCredentialsDto = { branchId, ...values };
-    await importCredentials.mutateAsync(dto);
-    importForm.resetFields();
+    try {
+      const values = await importForm.validateFields();
+      if (!branchId) return;
+      const dto: ImportZatcaCredentialsDto = { branchId, ...values };
+      await importCredentials.mutateAsync(dto);
+      importForm.resetFields();
+    } catch {
+      // Form-validation rejection or mutation failure; swallow.
+    }
   };
 
   const egsColumns: ColumnsType<ZatcaEgsUnit> = [

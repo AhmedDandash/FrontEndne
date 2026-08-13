@@ -14,6 +14,7 @@ import {
   OperatingContractOfferService,
   type OperatingContractOfferQuery,
 } from '@/services/employment-contract-offer.service';
+import { getApiErrorMessage } from '@/utils/api-error';
 import type {
   CreateOperatingContractOfferDto,
   UpdateOperatingContractOfferDto,
@@ -57,7 +58,7 @@ export function useEmploymentContractOffers(
       message.success('تمت إضافة العرض بنجاح / Offer created successfully');
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'فشل إضافة العرض / Failed to create offer');
+      message.error(getApiErrorMessage(error, 'فشل إضافة العرض / Failed to create offer'));
     },
   });
 
@@ -70,7 +71,7 @@ export function useEmploymentContractOffers(
       message.success('تم تحديث العرض بنجاح / Offer updated successfully');
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'فشل تحديث العرض / Failed to update offer');
+      message.error(getApiErrorMessage(error, 'فشل تحديث العرض / Failed to update offer'));
     },
   });
 
@@ -82,7 +83,7 @@ export function useEmploymentContractOffers(
       message.success('تم حذف العرض بنجاح / Offer deleted successfully');
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'فشل حذف العرض / Failed to delete offer');
+      message.error(getApiErrorMessage(error, 'فشل حذف العرض / Failed to delete offer'));
     },
   });
 

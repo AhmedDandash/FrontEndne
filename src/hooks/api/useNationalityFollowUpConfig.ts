@@ -8,6 +8,13 @@ import type {
 } from '@/types/api.types';
 
 const QK = 'nationality-followup-config';
+const MEDIATION_FOLLOWUP_DASHBOARD_QK = 'mediation-followup-dashboard';
+const MEDIATION_FOLLOWUP_ITEMS_QK = 'mediation-followup-items';
+
+function invalidateFollowUpScreens(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: [MEDIATION_FOLLOWUP_DASHBOARD_QK] });
+  qc.invalidateQueries({ queryKey: [MEDIATION_FOLLOWUP_ITEMS_QK] });
+}
 
 export function useNationalityFollowUpConfig(contractNationalityId: number | null) {
   return useQuery({
@@ -38,6 +45,7 @@ export function useToggleNationalityFollowUpConfig() {
     },
     onSettled: (_d, _e, vars) => {
       qc.invalidateQueries({ queryKey: [QK, vars.contractNationalityId] });
+      invalidateFollowUpScreens(qc);
     },
   });
 }
@@ -49,6 +57,7 @@ export function useUpdateNationalityFollowUpConfig(contractNationalityId: number
       NationalityFollowUpConfigService.update(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QK, contractNationalityId] });
+      invalidateFollowUpScreens(qc);
       message.success('تم حفظ السطر | Row saved');
     },
     onError: () => message.error('فشل حفظ السطر | Row save failed'),
@@ -62,6 +71,7 @@ export function useBulkUpdateNationalityFollowUpConfig() {
       NationalityFollowUpConfigService.bulkUpdate(data),
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: [QK, vars.nationalityId] });
+      invalidateFollowUpScreens(qc);
       message.success('تم حفظ الإعدادات | Settings saved');
     },
     onError: () => message.error('فشل الحفظ | Save failed'),

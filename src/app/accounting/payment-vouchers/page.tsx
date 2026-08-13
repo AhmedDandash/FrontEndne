@@ -66,22 +66,28 @@ export default function PaymentVouchersPage() {
   const openTrace = (id: string) => setTraceId(id);
 
   const handleCreate = async () => {
-    const values = await form.validateFields();
-    const dto: CreatePaymentVoucherDto = {
-      voucherNumber: values.voucherNumber?.trim() || undefined,
-      voucherDate: (values.voucherDate as Dayjs).toISOString(),
-      amount: values.amount,
-      notes: values.notes?.trim() || undefined,
-      paymentMethod: values.paymentMethod,
-      payeeId: values.payeeId,
-      payeeType: values.payeeType,
-      customerId: values.customerId,
-      sourceContractId: values.sourceContractId?.trim() || undefined,
-      sourceContractType: values.sourceContractType?.trim() || undefined,
-    };
-    await createVoucher(dto);
-    setCreateOpen(false);
-    form.resetFields();
+    try {
+      const values = await form.validateFields();
+      const dto: CreatePaymentVoucherDto = {
+        voucherNumber: values.voucherNumber?.trim() || undefined,
+        voucherDate: (values.voucherDate as Dayjs).toISOString(),
+        amount: values.amount,
+        notes: values.notes?.trim() || undefined,
+        paymentMethod: values.paymentMethod,
+        payeeId: values.payeeId,
+        payeeType: values.payeeType,
+        customerId: values.customerId,
+        sourceContractId: values.sourceContractId?.trim() || undefined,
+        sourceContractType: values.sourceContractType?.trim() || undefined,
+      };
+      await createVoucher(dto);
+      setCreateOpen(false);
+      form.resetFields();
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble as an unhandled
+      // promise rejection.
+    }
   };
 
   const totalAmount = useMemo(() => vouchers.reduce((s, v) => s + (v.amount || 0), 0), [vouchers]);

@@ -174,17 +174,23 @@ function ComplaintModal({
   const { data: contract } = useTransferContract(open ? contractId : null);
 
   const handleOk = async () => {
-    const values = await form.validateFields();
-    const dto: CreateComplaintDto = {
-      source:     values.source,
-      priority:   values.priority,
-      customerId: contract?.customerId ?? undefined,
-      workerId:   contract?.workerId   ?? undefined,
-      notesAr:    values.notesAr ?? null,
-    };
-    mutation.mutate(dto, {
-      onSuccess: () => { form.resetFields(); onClose(); },
-    });
+    try {
+      const values = await form.validateFields();
+      const dto: CreateComplaintDto = {
+        source:     values.source,
+        priority:   values.priority,
+        customerId: contract?.customerId ?? undefined,
+        workerId:   contract?.workerId   ?? undefined,
+        notesAr:    values.notesAr ?? null,
+      };
+      mutation.mutate(dto, {
+        onSuccess: () => { form.resetFields(); onClose(); },
+      });
+    } catch {
+      // Form-validation rejection; mutation failures are handled by the
+      // mutation's own onError. Swallow so it doesn't bubble as an unhandled
+      // promise rejection — antd's plain <Modal onOk> does not await/catch this.
+    }
   };
 
   return (
@@ -242,11 +248,15 @@ function AuthorityModal({
   const mutation = useUpdateTransferContractAuthorityStatus();
 
   const handleOk = async () => {
-    const values = await form.validateFields();
-    mutation.mutate(
-      { id: contractId!, status: values.status, note: values.note },
-      { onSuccess: () => { form.resetFields(); onClose(); } }
-    );
+    try {
+      const values = await form.validateFields();
+      mutation.mutate(
+        { id: contractId!, status: values.status, note: values.note },
+        { onSuccess: () => { form.resetFields(); onClose(); } }
+      );
+    } catch {
+      // Form-validation rejection; swallow so it doesn't bubble.
+    }
   };
 
   return (
@@ -306,23 +316,27 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
   const governmentFees = Form.useWatch('governmentFees', form) ?? 0;
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    const dto: CreateTransferContractDto = {
-      customerId:             values.customerId,
-      workerId:               values.workerId,
-      marketerId:             values.marketerId ?? null,
-      transferFees:           values.transferFees  ?? 0,
-      governmentFees:         values.governmentFees ?? 0,
-      totalAmount:            (values.transferFees ?? 0) + (values.governmentFees ?? 0),
-      paymentMeansCodeTypeId: values.paymentMeansCodeTypeId,
-      trialPeriodDays:        values.trialPeriodDays ?? 90,
-      notes:                  values.notes ?? null,
-      // Scope to the creator's branch (backend falls back to JWT branchId).
-      branchId:               useAuthStore.getState().branchId ?? undefined,
-    };
-    createMutation.mutate(dto, {
-      onSuccess: () => { form.resetFields(); onClose(); },
-    });
+    try {
+      const values = await form.validateFields();
+      const dto: CreateTransferContractDto = {
+        customerId:             values.customerId,
+        workerId:               values.workerId,
+        marketerId:             values.marketerId ?? null,
+        transferFees:           values.transferFees  ?? 0,
+        governmentFees:         values.governmentFees ?? 0,
+        totalAmount:            (values.transferFees ?? 0) + (values.governmentFees ?? 0),
+        paymentMeansCodeTypeId: values.paymentMeansCodeTypeId,
+        trialPeriodDays:        values.trialPeriodDays ?? 90,
+        notes:                  values.notes ?? null,
+        // Scope to the creator's branch (backend falls back to JWT branchId).
+        branchId:               useAuthStore.getState().branchId ?? undefined,
+      };
+      createMutation.mutate(dto, {
+        onSuccess: () => { form.resetFields(); onClose(); },
+      });
+    } catch {
+      // Form-validation rejection; swallow so it doesn't bubble.
+    }
   };
 
   const customerOpts = (customers ?? []).map((c: any) => ({

@@ -164,6 +164,8 @@ export interface JournalEntryListItem {
   totalCredit: number;
   isBalanced: boolean;
   restrictionTypeId?: string | null;
+  /** Source contract's human serial/contract number when returned by the API. */
+  sourceContractNumber?: number | string | null;
   customerId?: string | null;
   agentId?: string | null;
   workerId?: string | null;

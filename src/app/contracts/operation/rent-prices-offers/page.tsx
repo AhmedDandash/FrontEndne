@@ -49,6 +49,7 @@ import { useNationalities } from '@/hooks/api/useNationalities';
 import NationalitySelect from '@/components/common/NationalitySelect';
 import { useJobs } from '@/hooks/api/useJobs';
 import type { EmploymentContractOffer, UpdateOperatingContractOfferDto } from '@/types/api.types';
+import { formatOperationDuration } from '@/utils/operation-duration';
 import styles from './RentPricesOffers.module.css';
 
 const periodTypes = [
@@ -244,7 +245,7 @@ export default function RentPricesOffersPage() {
   const getDuration = (id?: number | null) => {
     if (!id) return '—';
     const p = periodTypes.find((x) => x.id === id);
-    return p ? p.label[language] : String(id);
+    return formatOperationDuration(p?.monthsCount ?? id, language, p?.label[language]);
   };
   const formatSAR = (v?: number | null) =>
     v != null ? `${v.toLocaleString(isAr ? 'ar-SA' : 'en-US')} ${isAr ? 'ريال' : 'SAR'}` : '—';

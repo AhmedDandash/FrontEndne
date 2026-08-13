@@ -630,7 +630,7 @@ export default function MediationOffersPage() {
             <Select
               style={{ width: '100%' }}
               value={nationalityFilter}
-              onChange={(v) => setNationalityFilter(v)}
+              onChange={(v) => setNationalityFilter(v ?? null)}
               placeholder={t('all')}
               allowClear
               showSearch
@@ -645,7 +645,7 @@ export default function MediationOffersPage() {
             <Select
               style={{ width: '100%' }}
               value={jobFilter}
-              onChange={(v) => setJobFilter(v)}
+              onChange={(v) => setJobFilter(v ?? null)}
               placeholder={t('all')}
               allowClear
               showSearch
@@ -660,7 +660,7 @@ export default function MediationOffersPage() {
             <Select
               style={{ width: '100%' }}
               value={workerTypeFilter}
-              onChange={(v) => setWorkerTypeFilter(v)}
+              onChange={(v) => setWorkerTypeFilter(v ?? null)}
               placeholder={t('all')}
               allowClear
               options={toSelectOptions([...WORKER_TYPE], language)}

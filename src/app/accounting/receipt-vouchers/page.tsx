@@ -63,20 +63,26 @@ export default function ReceiptVouchersPage() {
   const openTrace = (id: string) => setTraceId(id);
 
   const handleCreate = async () => {
-    const values = await form.validateFields();
-    const dto: CreateReceiptVoucherNewDto = {
-      voucherNumber: values.voucherNumber?.trim() || undefined,
-      voucherDate: (values.voucherDate as Dayjs).toISOString(),
-      amount: values.amount,
-      notes: values.notes?.trim() || undefined,
-      employmentOperatingContractId: values.employmentOperatingContractId,
-      paymentMethod: values.paymentMethod,
-      vatAmount: values.vatAmount || undefined,
-      bankFees: values.bankFees || undefined,
-    };
-    await createVoucher(dto);
-    setCreateOpen(false);
-    form.resetFields();
+    try {
+      const values = await form.validateFields();
+      const dto: CreateReceiptVoucherNewDto = {
+        voucherNumber: values.voucherNumber?.trim() || undefined,
+        voucherDate: (values.voucherDate as Dayjs).toISOString(),
+        amount: values.amount,
+        notes: values.notes?.trim() || undefined,
+        employmentOperatingContractId: values.employmentOperatingContractId,
+        paymentMethod: values.paymentMethod,
+        vatAmount: values.vatAmount || undefined,
+        bankFees: values.bankFees || undefined,
+      };
+      await createVoucher(dto);
+      setCreateOpen(false);
+      form.resetFields();
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble as an unhandled
+      // promise rejection.
+    }
   };
 
   // ── Metrics (truthful to the list payload: amount + journal linkage) ──

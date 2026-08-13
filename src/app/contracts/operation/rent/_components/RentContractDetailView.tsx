@@ -13,6 +13,7 @@ import type { RentContract } from './types';
 import { getStatusMeta } from './mapping';
 import { formatDate, formatCurrency } from './format';
 import { resolveImageUrl } from '@/utils/image';
+import { formatOperationDuration } from '@/utils/operation-duration';
 import styles from '../RentContracts.module.css';
 
 export interface RentContractDetailViewProps {
@@ -36,8 +37,11 @@ export default function RentContractDetailView({ contract, isRtl }: RentContract
   };
 
   const durationLabel =
-    (isRtl ? contract.durationNameAr : contract.durationNameEn) ||
-    (contract.duration != null ? String(contract.duration) : '-');
+    formatOperationDuration(
+      contract.duration,
+      isRtl ? 'ar' : 'en',
+      (isRtl ? contract.durationNameAr : contract.durationNameEn) || null
+    );
 
   return (
     <div className={styles.detailsModal}>

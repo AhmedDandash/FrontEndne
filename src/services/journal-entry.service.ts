@@ -59,6 +59,12 @@ export class JournalEntryService {
           ? raw.isBalanced
           : Math.round((totalDebit - totalCredit) * 100) === 0,
       restrictionTypeId: raw?.restrictionTypeId ?? null,
+      sourceContractNumber:
+        raw?.contractNumber ??
+        raw?.sourceContractNumber ??
+        raw?.referenceContractNumber ??
+        raw?.contractNo ??
+        null,
       customerId: raw?.customerId ?? null,
       agentId: raw?.agentId ?? null,
       workerId: raw?.workerId ?? null,

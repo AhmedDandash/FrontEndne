@@ -50,7 +50,7 @@ import {
   type JournalEntrySource,
   type JournalReferenceType,
 } from '@/types/journal-entry.types';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { message } from 'antd';
 import {
   resolveJournalEntryNavigation,
@@ -68,6 +68,9 @@ export default function JournalEntriesPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const searchParams = useSearchParams();
+  const openIdParam = searchParams.get('openId');
+  const entryNumberParam = searchParams.get('entryNumber');
 
   // ── Query state ─────────────────────────────────────────────
   const [searchInput, setSearchInput] = useState('');
@@ -76,6 +79,9 @@ export default function JournalEntriesPage() {
   const [source, setSource] = useState<JournalEntrySource | undefined>();
   const [referenceType, setReferenceType] = useState<JournalReferenceType | undefined>();
   const [contractNumber, setContractNumber] = useState<number | undefined>();
+  const [exactEntryNumber, setExactEntryNumber] = useState<string | undefined>(
+    entryNumberParam ?? undefined
+  );
   const [branchId, setBranchId] = useState<string | undefined>();
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
   const [range, setRange] = useState<[string | undefined, string | undefined]>([
@@ -83,6 +89,10 @@ export default function JournalEntriesPage() {
     dayjs().endOf('day').toISOString(),
   ]);
   const [updatedRange, setUpdatedRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
+  const [createdRange, setCreatedRange] = useState<[string | undefined, string | undefined]>([
     undefined,
     undefined,
   ]);
@@ -124,10 +134,13 @@ export default function JournalEntriesPage() {
     source,
     referenceType,
     contractNumber,
+    entryNumber: exactEntryNumber,
     branchId,
     includeSubBranches: branchId ? includeSubBranches : undefined,
     from: range[0],
     to: range[1],
+    createdDateFrom: createdRange[0],
+    createdDateTo: createdRange[1],
     updatedDateFrom: updatedRange[0],
     updatedDateTo: updatedRange[1],
     customerId,
@@ -203,6 +216,24 @@ export default function JournalEntriesPage() {
     return map;
   }, [restrictionTypes]);
 
+  useEffect(() => {
+    if (openIdParam) setDetailId(openIdParam);
+  }, [openIdParam]);
+
+  useEffect(() => {
+    if (!entryNumberParam) return;
+    setExactEntryNumber(entryNumberParam);
+    setSearchInput(entryNumberParam);
+    setSearch(entryNumberParam);
+    setPageNumber(1);
+  }, [entryNumberParam]);
+
+  useEffect(() => {
+    if (!entryNumberParam || detailId || items.length === 0) return;
+    const exact = items.find((item) => item.entryNumber === entryNumberParam) ?? items[0];
+    if (exact?.id) setDetailId(exact.id);
+  }, [detailId, entryNumberParam, items]);
+
   // Search + Branch are quick filters and stay untouched by Clear, matching
   // the AdvancedFilterPanel convention used app-wide. Everything below is an
   // "advanced" field: Clear returns each to its mount-time default (the date
@@ -212,12 +243,14 @@ export default function JournalEntriesPage() {
     status,
     source,
     contractNumber,
+    exactEntryNumber,
     referenceType,
     customerId,
     agentId,
     workerId,
     employeeId,
     range[0],
+    createdRange[0],
     updatedRange[0],
     totalDebitFrom,
     totalDebitTo,
@@ -230,10 +263,12 @@ export default function JournalEntriesPage() {
     setSource(undefined);
     setReferenceType(undefined);
     setContractNumber(undefined);
+    setExactEntryNumber(undefined);
     setRange([
       dayjs().subtract(1, 'month').startOf('day').toISOString(),
       dayjs().endOf('day').toISOString(),
     ]);
+    setCreatedRange([undefined, undefined]);
     setUpdatedRange([undefined, undefined]);
     setCustomerId(undefined);
     setAgentId(undefined);
@@ -312,6 +347,17 @@ export default function JournalEntriesPage() {
           </a>
         );
       },
+    },
+    {
+      title: t('رقم العقد', 'Contract No.'),
+      key: 'sourceContractNumber',
+      width: 120,
+      render: (_, record) =>
+        record.sourceContractNumber ? (
+          <Tag color="geekblue">#{record.sourceContractNumber}</Tag>
+        ) : (
+          <span className={styles.muted}>—</span>
+        ),
     },
     {
       title: t('التاريخ', 'Date'),
@@ -643,6 +689,20 @@ export default function JournalEntriesPage() {
               placeholder={t('رقم العقد', 'Contract No.')}
             />
           </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('رقم القيد', 'Entry No.')}</label>
+            <Input
+              allowClear
+              size="large"
+              style={{ width: '100%' }}
+              value={exactEntryNumber}
+              onChange={(e) => {
+                setExactEntryNumber(e.target.value || undefined);
+                setPageNumber(1);
+              }}
+              placeholder={t('رقم القيد', 'Entry No.')}
+            />
+          </Col>
           {/* Reference-type filter (drives source navigation). Replaces the old
               restriction-type filter, which the backend ignored (no such param). */}
           <Col xs={24} md={6}>
@@ -661,6 +721,18 @@ export default function JournalEntriesPage() {
                 value: r.value,
                 label: isAr ? r.ar : r.en,
               }))}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <label className={styles.filterLabel}>{t('تاريخ الإنشاء', 'Created date')}</label>
+            <DateRangeFilter
+              value={createdRange}
+              onChange={(v) => {
+                setCreatedRange(v);
+                setPageNumber(1);
+              }}
+              placeholder={[t('تاريخ الإنشاء من', 'Created from'), t('تاريخ الإنشاء إلى', 'Created to')]}
+              style={{ width: '100%' }}
             />
           </Col>
           <Col xs={24} md={6}>

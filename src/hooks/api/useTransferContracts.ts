@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { TransferContractService } from '@/services/transfer-contract.service';
+import { getApiErrorMessage } from '@/utils/api-error';
 import type { CreateTransferContractDto } from '@/types/api.types';
 
 const QUERY_KEY = ['transfer-contracts'];
@@ -80,11 +81,7 @@ export function useCreateTransferContract() {
       message.success('تمت إضافة عقد نقل الكفالة بنجاح');
     },
     onError: (err: any) => {
-      const msg =
-        err.response?.data?.errors?.[0] ||
-        err.response?.data?.message ||
-        'فشل إنشاء عقد نقل الكفالة';
-      message.error(msg);
+      message.error(getApiErrorMessage(err, 'فشل إنشاء عقد نقل الكفالة'));
     },
   });
 }
@@ -99,9 +96,7 @@ export function useDeleteTransferContract() {
       message.success('تم حذف العقد بنجاح');
     },
     onError: (err: any) => {
-      message.error(
-        err.response?.data?.errors?.[0] || 'فشل حذف العقد — تأكد أن العقد في حالة مسودة'
-      );
+      message.error(getApiErrorMessage(err, 'فشل حذف العقد — تأكد أن العقد في حالة مسودة'));
     },
   });
 }
@@ -117,7 +112,7 @@ export function useSignTransferContract() {
       message.success('تم توقيع العقد وإتمام نقل الكفالة بنجاح');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.errors?.[0] || 'فشل توقيع العقد');
+      message.error(getApiErrorMessage(err, 'فشل توقيع العقد'));
     },
   });
 }
@@ -133,7 +128,7 @@ export function useCompleteTransferContract() {
       message.success('تم إتمام العقد بنجاح');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.errors?.[0] || 'فشل إتمام العقد');
+      message.error(getApiErrorMessage(err, 'فشل إتمام العقد'));
     },
   });
 }
@@ -153,7 +148,7 @@ export function useUpdateTransferContractAuthorityStatus() {
       message.success('تم تحديث حالة الجهة بنجاح');
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.errors?.[0] || 'فشل تحديث حالة الجهة');
+      message.error(getApiErrorMessage(err, 'فشل تحديث حالة الجهة'));
     },
   });
 }

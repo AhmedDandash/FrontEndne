@@ -15,9 +15,13 @@ export function getStatusConfig(status: number | null | undefined) {
     4: { color: 'processing', tagColor: 'processing' },
     5: { color: 'success', tagColor: 'success' },
     6: { color: 'error', tagColor: 'error' },
+    7: { color: 'success', tagColor: 'success' },
     8: { color: 'success', tagColor: 'success' },
   };
-  return configs[status ?? 1] ?? configs[1];
+  // Fall back to neutral 'default' for any genuinely unmapped status rather
+  // than silently reusing Draft's warning styling.
+  if (status == null) return configs[1];
+  return configs[status] ?? { color: 'default', tagColor: 'default' };
 }
 
 export function formatCurrency(amount: number | null | undefined, language: Language): string {

@@ -94,6 +94,13 @@ export default function NationalitySelect({
   const { nationalities, isLoading, getLabel, language, refetch } = useNationalityOptions({
     isActiveOnly,
   });
+  // Duplicate-checking must see EVERY nationality, active or not — callers that
+  // pass isActiveOnly (e.g. customers/page.tsx, agents/page.tsx) would otherwise
+  // only compare against the filtered subset, letting a user "add" a nationality
+  // that already exists but is currently inactive (live-verified: the backend
+  // itself does not reject duplicate names, so this client-side check is the
+  // only guard there is).
+  const { nationalities: allNationalitiesForDupCheck } = useNationalityOptions();
   const createMutation = useCreateNationality();
   const selectRef = useRef<RefSelectProps>(null);
   const t = TEXT[language === 'ar' ? 'ar' : 'en'];
@@ -170,7 +177,7 @@ export default function NationalitySelect({
     }
 
     const norm = (s: string) => s.trim().toLocaleLowerCase();
-    const isDuplicate = nationalities.some(
+    const isDuplicate = allNationalitiesForDupCheck.some(
       (n) =>
         (n.nationalityNameAr && norm(n.nationalityNameAr) === norm(ar)) ||
         (n.nationalityNameEn && norm(n.nationalityNameEn) === norm(en))

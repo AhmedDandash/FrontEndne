@@ -8,6 +8,7 @@ import { AgentService } from '@/services/agent.service';
 import type { Agent, CreateAgentDto, UpdateAgentDto } from '@/types/api.types';
 import type { AgentQuery, PagedResponse } from '@/types/filters.types';
 import { message } from 'antd';
+import { getApiErrorMessage } from '@/utils/api-error';
 
 export const AGENTS_KEY = 'agents';
 
@@ -58,8 +59,7 @@ export const useCreateAgent = () => {
       message.success('Agent created successfully');
     },
     onError: (error: any) => {
-      console.error('Create agent error:', error);
-      message.error(error?.response?.data?.message || 'Failed to create agent');
+      message.error(getApiErrorMessage(error, 'Failed to create agent'));
     },
   });
 };
@@ -77,8 +77,7 @@ export const useUpdateAgent = () => {
       message.success('Agent updated successfully');
     },
     onError: (error: any) => {
-      console.error('Update agent error:', error);
-      message.error(error?.response?.data?.message || 'Failed to update agent');
+      message.error(getApiErrorMessage(error, 'Failed to update agent'));
     },
   });
 };
@@ -96,8 +95,7 @@ export const useDeleteAgent = () => {
       message.success('Agent deleted successfully');
     },
     onError: (error: any) => {
-      console.error('Delete agent error:', error);
-      message.error(error?.response?.data?.message || 'Failed to delete agent');
+      message.error(getApiErrorMessage(error, 'Failed to delete agent'));
     },
   });
 };

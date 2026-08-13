@@ -232,6 +232,8 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
             )}
             {fact(t('المصدر', 'Source'), getSourceLabel(entry.source, isAr))}
             {fact(t('نوع المرجع', 'Reference'), getReferenceTypeLabel(entry.referenceType, isAr))}
+            {entry.sourceContractNumber &&
+              fact(t('رقم العقد', 'Contract No.'), `#${entry.sourceContractNumber}`)}
             {fact(t('التاريخ', 'Date'), entry.date ? new Date(entry.date).toLocaleDateString() : '—')}
             {fact(
               t('التوازن', 'Balanced'),

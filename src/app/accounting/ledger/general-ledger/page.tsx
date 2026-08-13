@@ -5,18 +5,21 @@ import { Card, Table, Empty, Spin, Alert } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { ProfileOutlined } from '@ant-design/icons';
+import { useRouter } from 'next/navigation';
 import { useGeneralLedger } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import type { GeneralLedgerLine } from '@/types/ledger.types';
 import { AccountSelect, AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { LedgerHeader } from '../_components/LedgerHeader';
 import { fmtAmount, fmtBalance, fmtDate } from '../_components/ledgerFormat';
+import { linkProps } from '@/lib/navigation/linkProps';
 import styles from '../Ledger.module.css';
 
 export default function GeneralLedgerPage() {
   const language = useAuthStore((s) => s.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const router = useRouter();
 
   const [accountId, setAccountId] = useState<string | undefined>();
   const [range, setRange] = useState<[string | undefined, string | undefined]>([
@@ -50,7 +53,17 @@ export default function GeneralLedgerPage() {
       dataIndex: 'entryNumber',
       key: 'entryNumber',
       width: 120,
-      render: (v) => <span className={styles.entryNumber}>{v || '—'}</span>,
+      render: (v) =>
+        v ? (
+          <a
+            className={styles.entryNumber}
+            {...linkProps(`/accounting/journal-entries?entryNumber=${encodeURIComponent(v)}`, router)}
+          >
+            {v}
+          </a>
+        ) : (
+          <span className={styles.entryNumber}>—</span>
+        ),
     },
     {
       title: t('الوصف', 'Description'),

@@ -11,6 +11,7 @@
  * so it is not blocked as an unsolicited popup.
  */
 import type { ContractPrintReceiptData } from '@/types/api.types';
+import { formatOperationDuration } from '../../../../../utils/operation-duration.ts';
 
 const PAYMENT_METHOD_LABEL: Record<number, { ar: string; en: string }> = {
   1: { ar: 'نقدًا', en: 'Cash' },
@@ -107,7 +108,11 @@ export function toReceiptSections(
       rows: [
         {
           label: isRtl ? 'المدة' : 'Duration',
-          value: formatValue((isRtl ? c.durationNameAr : c.durationNameEn) ?? c.duration),
+          value: formatOperationDuration(
+            c.duration,
+            isRtl ? 'ar' : 'en',
+            (isRtl ? c.durationNameAr : c.durationNameEn) || null
+          ),
         },
         { label: isRtl ? 'تاريخ البداية' : 'Start Date', value: formatValue(c.contractStartDate) },
         { label: isRtl ? 'تاريخ النهاية' : 'End Date', value: formatValue(c.contractEndDate) },

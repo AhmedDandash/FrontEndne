@@ -9,6 +9,7 @@ import {
   getStatusFieldName,
   type ItemFormType,
 } from '@/types/follow-up-forms.types';
+import { AUTHORIZATION_SYSTEM, toSelectOptions } from '@/constants/enums';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -23,6 +24,17 @@ const AIRLINE_OPTIONS = [
   { value: '6', label: 'فلاي دبي' },
   { value: '7', label: 'العربية للطيران' },
 ];
+
+const BANK_OPTIONS = [
+  'مصرف الراجحي',
+  'البنك الأهلي السعودي',
+  'بنك الرياض',
+  'البنك السعودي الفرنسي',
+  'البنك السعودي الأول',
+  'البنك العربي الوطني',
+  'بنك البلاد',
+  'مصرف الإنماء',
+].map((name) => ({ value: name, label: name }));
 
 // ── Parse existing inputDescription JSON (or treat as empty) ─────────────────
 function parseInitialValues(inputDescription?: string | null): Record<string, unknown> {
@@ -70,6 +82,68 @@ function StandardForm({ type }: { type: ItemFormType }) {
         </Select>
       </Form.Item>
 
+      <Form.Item name="Notes" label="ملاحظات">
+        <TextArea rows={3} placeholder="أدخل ملاحظاتك هنا..." />
+      </Form.Item>
+
+      {type === 'musand' && <AuthorizationFields required={false} />}
+    </>
+  );
+}
+
+function AuthorizationFields({ required }: { required: boolean }) {
+  return (
+    <>
+      <Divider style={{ margin: '8px 0' }} />
+      <Form.Item
+        name="authorizationSystem"
+        label="نظام التفويض"
+        rules={required ? [{ required: true, message: 'يجب اختيار نظام التفويض' }] : undefined}
+      >
+        <Select
+          placeholder="اختر نظام التفويض"
+          allowClear
+          options={toSelectOptions([...AUTHORIZATION_SYSTEM], 'ar')}
+        />
+      </Form.Item>
+      <Form.Item
+        name="authorizationBankName"
+        label="البنك"
+        dependencies={['authorizationSystem']}
+        rules={[
+          ({ getFieldValue }) => ({
+            validator(_, value) {
+              const system = getFieldValue('authorizationSystem');
+              if (!required && !system) return Promise.resolve();
+              if (value) return Promise.resolve();
+              return Promise.reject(new Error('يجب اختيار البنك'));
+            },
+          }),
+        ]}
+      >
+        <Select
+          placeholder="اختر البنك"
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          options={BANK_OPTIONS}
+        />
+      </Form.Item>
+    </>
+  );
+}
+
+function AuthorizationForm() {
+  return (
+    <>
+      <Form.Item
+        name="ActionDate"
+        label="تاريخ الإجراء"
+        rules={[{ required: true, message: 'يجب إدخال تاريخ الإجراء' }]}
+      >
+        <Input type="date" />
+      </Form.Item>
+      <AuthorizationFields required />
       <Form.Item name="Notes" label="ملاحظات">
         <TextArea rows={3} placeholder="أدخل ملاحظاتك هنا..." />
       </Form.Item>
@@ -139,6 +213,7 @@ const MODAL_TITLE: Record<ItemFormType, string> = {
   'visa-stamp': 'بيانات التأشير',
   flight: 'بيانات تذكرة الطيران',
   biometric: 'بيانات البصمة',
+  authorization: 'بيانات التفويض',
 };
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -195,6 +270,8 @@ export function InputDescriptionModal({ item, open, onCancel, onSave, loading }:
           </p>
         ) : formType === 'flight' ? (
           <FlightForm />
+        ) : formType === 'authorization' ? (
+          <AuthorizationForm />
         ) : (
           <StandardForm type={formType} />
         )}

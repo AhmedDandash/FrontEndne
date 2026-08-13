@@ -24,8 +24,12 @@ function GlobalSettingsForm({ isAr }: { isAr: boolean }) {
   }, [data, form]);
 
   const handleSave = async () => {
-    const values = await form.validateFields();
-    await update.mutateAsync(values);
+    try {
+      const values = await form.validateFields();
+      await update.mutateAsync(values);
+    } catch {
+      // Form-validation rejection or mutation failure; swallow.
+    }
   };
 
   return (
@@ -78,8 +82,12 @@ function BranchSettingsForm({ isAr, branchId }: { isAr: boolean; branchId: strin
   }, [data, form]);
 
   const handleSave = async () => {
-    const values = await form.validateFields();
-    await update.mutateAsync({ branchId, ...values });
+    try {
+      const values = await form.validateFields();
+      await update.mutateAsync({ branchId, ...values });
+    } catch {
+      // Form-validation rejection or mutation failure; swallow.
+    }
   };
 
   return (

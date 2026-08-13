@@ -103,6 +103,11 @@ export class LedgerService {
           credit: this.num(l?.credit),
           source: l?.source ?? '',
           sourceId: l?.sourceId ?? null,
+          journalEntryId: l?.journalEntryId ?? l?.entryId ?? null,
+          customerName: l?.customerName ?? l?.customerNameAr ?? l?.customerNameEn ?? null,
+          customerId: l?.customerId ?? null,
+          contractNumber:
+            l?.contractNumber ?? l?.sourceContractNumber ?? l?.referenceContractNumber ?? null,
         })
       ),
     };

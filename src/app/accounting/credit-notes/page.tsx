@@ -58,21 +58,27 @@ export default function CreditNotesPage() {
   const openTrace = (id: string) => setTraceId(id);
 
   const handleCreate = async () => {
-    const values = await form.validateFields();
-    const dto: CreateCreditNoteDto = {
-      creditNoteNumber: values.creditNoteNumber?.trim() || undefined,
-      creditNoteDate: (values.creditNoteDate as Dayjs).toISOString(),
-      amount: values.amount,
-      vatAmount: values.vatAmount || undefined,
-      reason: values.reason?.trim() || undefined,
-      notes: values.notes?.trim() || undefined,
-      customerId: values.customerId,
-      sourceContractId: values.sourceContractId?.trim() || undefined,
-      sourceContractType: values.sourceContractType?.trim() || undefined,
-    };
-    await createNote(dto);
-    setCreateOpen(false);
-    form.resetFields();
+    try {
+      const values = await form.validateFields();
+      const dto: CreateCreditNoteDto = {
+        creditNoteNumber: values.creditNoteNumber?.trim() || undefined,
+        creditNoteDate: (values.creditNoteDate as Dayjs).toISOString(),
+        amount: values.amount,
+        vatAmount: values.vatAmount || undefined,
+        reason: values.reason?.trim() || undefined,
+        notes: values.notes?.trim() || undefined,
+        customerId: values.customerId,
+        sourceContractId: values.sourceContractId?.trim() || undefined,
+        sourceContractType: values.sourceContractType?.trim() || undefined,
+      };
+      await createNote(dto);
+      setCreateOpen(false);
+      form.resetFields();
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble as an unhandled
+      // promise rejection.
+    }
   };
 
   const totalAmount = useMemo(() => notes.reduce((s, n) => s + (n.amount || 0), 0), [notes]);

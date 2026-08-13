@@ -44,10 +44,17 @@ export default function HRPositionsPage() {
   };
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    await createPosition(values as EmployeePositionCreateDto);
-    setModalOpen(false);
-    form.resetFields();
+    try {
+      const values = await form.validateFields();
+      await createPosition(values as EmployeePositionCreateDto);
+      setModalOpen(false);
+      form.resetFields();
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble as an unhandled
+      // promise rejection — antd's plain <Modal onOk> does not await/catch
+      // this itself.
+    }
   };
 
   const columns: ColumnsType<EmployeePosition> = [
@@ -88,7 +95,7 @@ export default function HRPositionsPage() {
                 </span>
               </>
             }
-            onConfirm={() => deletePosition(record.id)}
+            onConfirm={() => deletePosition(record.id).catch(() => {})}
             okText="حذف"
             cancelText="إلغاء"
             okButtonProps={{ danger: true }}

@@ -58,20 +58,26 @@ export default function DebitNotesPage() {
   const openTrace = (id: string) => setTraceId(id);
 
   const handleCreate = async () => {
-    const values = await form.validateFields();
-    const dto: CreateDebitNoteDto = {
-      debitNoteNumber: values.debitNoteNumber?.trim() || undefined,
-      debitNoteDate: (values.debitNoteDate as Dayjs).toISOString(),
-      amount: values.amount,
-      vatAmount: values.vatAmount || undefined,
-      reason: values.reason?.trim() || undefined,
-      agentId: values.agentId,
-      sourceContractId: values.sourceContractId?.trim() || undefined,
-      sourceContractType: values.sourceContractType?.trim() || undefined,
-    };
-    await createNote(dto);
-    setCreateOpen(false);
-    form.resetFields();
+    try {
+      const values = await form.validateFields();
+      const dto: CreateDebitNoteDto = {
+        debitNoteNumber: values.debitNoteNumber?.trim() || undefined,
+        debitNoteDate: (values.debitNoteDate as Dayjs).toISOString(),
+        amount: values.amount,
+        vatAmount: values.vatAmount || undefined,
+        reason: values.reason?.trim() || undefined,
+        agentId: values.agentId,
+        sourceContractId: values.sourceContractId?.trim() || undefined,
+        sourceContractType: values.sourceContractType?.trim() || undefined,
+      };
+      await createNote(dto);
+      setCreateOpen(false);
+      form.resetFields();
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble as an unhandled
+      // promise rejection.
+    }
   };
 
   const totalAmount = useMemo(() => notes.reduce((s, n) => s + (n.amount || 0), 0), [notes]);

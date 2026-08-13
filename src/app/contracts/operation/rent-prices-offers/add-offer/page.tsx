@@ -29,6 +29,7 @@ import { useEmploymentContractOffers } from '@/hooks/api/useEmploymentContractOf
 import { useBranches } from '@/hooks/api/useBranches';
 import { useJobs } from '@/hooks/api/useJobs';
 import NationalitySelect from '@/components/common/NationalitySelect';
+import { getApiErrorMessage } from '@/utils/api-error';
 import styles from '../RentPricesOffers.module.css';
 
 // Period types with months count
@@ -168,10 +169,6 @@ export default function AddSpecialOfferPage() {
   const handleSubmit = async (values: any) => {
     setIsSubmitting(true);
     try {
-      // Debug: Log form values
-      console.log('Form values:', values);
-      console.log('Calculation:', calculation);
-
       // Validate that nationality is selected
       if (!values.nationalityId) {
         message.error(
@@ -211,22 +208,11 @@ export default function AddSpecialOfferPage() {
         branchId: values.branchId || null,
       };
 
-      console.log('Payload being sent:', JSON.stringify(payload, null, 2));
-
       await createOfferAsync(payload);
       message.success(t('createSuccess'));
       router.push('/contracts/operation/rent-prices-offers');
     } catch (error: any) {
-      console.error('Error creating offer:', error);
-      console.error('Error details:', {
-        status: error?.response?.status,
-        message: error?.response?.data?.message,
-        errors: error?.response?.data?.errors,
-        data: error?.response?.data,
-      });
-
-      const errorMsg = error?.response?.data?.message || error?.message || t('createError');
-      message.error(errorMsg);
+      message.error(getApiErrorMessage(error, t('createError')));
     } finally {
       setIsSubmitting(false);
     }

@@ -43,6 +43,7 @@ import {
   getStatusFieldName,
   ITEM_STATUS_OPTIONS,
 } from '@/types/follow-up-forms.types';
+import { AUTHORIZATION_SYSTEM } from '@/constants/enums';
 import type { MediationFollowUpItem } from '@/types/api.types';
 import styles from './ContractFollowUpDetail.module.css';
 
@@ -345,6 +346,11 @@ function getInputDescriptionStatusLabel(item: MediationFollowUpItem): string | n
   const value = parsed[fieldName];
   if (value == null) return null;
 
+  if (fieldName === 'authorizationSystem') {
+    const found = AUTHORIZATION_SYSTEM.find((o) => o.value === Number(value));
+    return found?.labelAr ?? String(value);
+  }
+
   const options = ITEM_STATUS_OPTIONS[formType] ?? [];
   const found = options.find((o) => o.value === value);
   return found?.labelAr ?? String(value);
@@ -494,6 +500,8 @@ const FIELD_LABELS: Record<string, { ar: string; en: string }> = {
   status:                { ar: 'الحالة',                 en: 'Status' },
   contractAgentStatusId: { ar: 'الحالة',                 en: 'Status' },
   Notes:                 { ar: 'الملاحظات',              en: 'Notes' },
+  authorizationSystem:   { ar: 'نظام التفويض',            en: 'Authorization System' },
+  authorizationBankName: { ar: 'البنك',                   en: 'Bank' },
   AirlineCompanyId:      { ar: 'شركة الطيران',           en: 'Airline Company' },
   CarrierLines:          { ar: 'اسم الناقل',             en: 'Carrier Lines' },
   FlightNumber:          { ar: 'رقم الرحلة',             en: 'Flight Number' },
@@ -507,6 +515,10 @@ const FIELD_LABELS: Record<string, { ar: string; en: string }> = {
 const ALL_STATUS_OPTIONS = Object.values(ITEM_STATUS_OPTIONS).flat();
 
 function resolveStatusValue(key: string, value: unknown): string {
+  if (key === 'authorizationSystem') {
+    const found = AUTHORIZATION_SYSTEM.find((o) => o.value === Number(value));
+    return found?.labelAr ?? String(value);
+  }
   const isStatusField =
     key === 'contractAgentStatusId' || key === 'medicalStatus' || key === 'status';
   if (isStatusField && typeof value === 'number') {

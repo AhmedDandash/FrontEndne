@@ -26,15 +26,14 @@ export class NationalityService {
     pageNumber?: number;
     pageSize?: number;
   }): Promise<Nationality[]> {
+    // The backend defaults to a small page size (10) when none is sent —
+    // live-verified this silently truncates the list once more than 10
+    // nationalities exist (confirmed: 12 real nationalities, unparameterized
+    // call returned only 10). Callers that pass their own `pageSize` keep it;
+    // everyone else (most callers, via `useNationalities()` with no params)
+    // gets a large default so they see the full list, not just the first page.
     const response = await api.get<any>(API_ENDPOINTS.NATIONALITY.GET_ALL, {
-      params:
-        params &&
-        (params.isActiveOnly != null ||
-          params.pageSize != null ||
-          params.searchName != null ||
-          params.pageNumber != null)
-          ? params
-          : undefined,
+      params: { ...params, pageSize: params?.pageSize ?? 9999 },
     });
 
     const body = response.data;

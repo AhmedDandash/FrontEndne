@@ -84,37 +84,48 @@ export default function CustodyRequestPage() {
   };
 
   const handleAddType = async () => {
-    const values = await typeForm.validateFields();
-    await createCustodyType(values as CreateCustodyTypeDto);
-    setAddTypeModalOpen(false);
-    typeForm.resetFields();
+    try {
+      const values = await typeForm.validateFields();
+      await createCustodyType(values as CreateCustodyTypeDto);
+      setAddTypeModalOpen(false);
+      typeForm.resetFields();
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble — antd's plain
+      // <Modal onOk> does not await/catch this itself.
+    }
   };
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
+    try {
+      const values = await form.validateFields();
 
-    if (items.length === 0) {
-      message.error('يرجى إضافة صنف عهدة واحد على الأقل');
-      return;
+      if (items.length === 0) {
+        message.error('يرجى إضافة صنف عهدة واحد على الأقل');
+        return;
+      }
+
+      const invalidItem = items.find((i) => !i.custodyTypeId || i.quantity < 1);
+      if (invalidItem) {
+        message.error('يرجى تكملة بيانات جميع أصناف العهد');
+        return;
+      }
+
+      const dto: CreateCustodyRequestDto = {
+        createdTo: values.createdTo,
+        details: values.details,
+        reasons: values.reasons,
+        custodyItems: items.map(({ _key, ...item }) => item),
+      };
+
+      await createCustodyRequest(dto);
+      form.resetFields();
+      setSelectedEmployee(null);
+      setItems([]);
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble.
     }
-
-    const invalidItem = items.find((i) => !i.custodyTypeId || i.quantity < 1);
-    if (invalidItem) {
-      message.error('يرجى تكملة بيانات جميع أصناف العهد');
-      return;
-    }
-
-    const dto: CreateCustodyRequestDto = {
-      createdTo: values.createdTo,
-      details: values.details,
-      reasons: values.reasons,
-      custodyItems: items.map(({ _key, ...item }) => item),
-    };
-
-    await createCustodyRequest(dto);
-    form.resetFields();
-    setSelectedEmployee(null);
-    setItems([]);
   };
 
   const typeOptions = custodyTypes.map((t) => ({

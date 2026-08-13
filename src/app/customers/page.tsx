@@ -73,6 +73,7 @@ import type {
   CreateEmploymentOperatingContractDto,
   EmploymentContractOffer,
 } from '@/types/api.types';
+import { getApiErrorMessage } from '@/utils/api-error';
 import {
   HOUSING_TYPE,
   IDENTITY_TYPE,
@@ -627,6 +628,12 @@ export default function CustomersPage() {
   const handleModalSubmit = async () => {
     try {
       const values = await form.validateFields();
+      form.setFields([
+        { name: 'arabicName', errors: [] },
+        { name: 'englishName', errors: [] },
+        { name: 'nationalId', errors: [] },
+        { name: 'mobile', errors: [] },
+      ]);
 
       // Transform mobile text field → phones array expected by the API.
       // branchId only applies to create (UpdateCustomerDto has no branch field).
@@ -679,18 +686,40 @@ export default function CustomersPage() {
         form.resetFields();
         setEditingCustomer(null);
       };
+      const onSaveError = (error: unknown) => {
+        const detail = getApiErrorMessage(
+          error,
+          language === 'ar'
+            ? 'تعذر حفظ العميل. يرجى مراجعة البيانات.'
+            : 'Could not save customer. Please review the entered data.'
+        );
+        const normalized = detail.toLowerCase();
+        const duplicateText =
+          language === 'ar'
+            ? 'هذا العميل موجود مسبقاً. راجع الحقل المميز أدناه.'
+            : 'This customer already exists. Review the highlighted field below.';
+        const targetField =
+          /mobile|phone|جوال|هاتف/.test(normalized)
+            ? 'mobile'
+            : /national|identity|هوية|رقم/.test(normalized)
+              ? 'nationalId'
+              : /english/.test(normalized)
+                ? 'englishName'
+                : 'arabicName';
+        form.setFields([{ name: targetField, errors: [duplicateText] }]);
+      };
 
       if (editingCustomer && editingCustomer.id) {
         updateCustomer(
           { id: editingCustomer.id, data: payload as UpdateCustomerDto },
-          { onSuccess: onSaved }
+          { onSuccess: onSaved, onError: onSaveError }
         );
       } else {
         // Create new customer — attach branch (explicit selection or user's own;
         // omitted → backend falls back to the JWT branchId).
         createCustomer(
           { ...payload, branchId: formBranchId || userBranchId || undefined } as CreateCustomerDto,
-          { onSuccess: onSaved }
+          { onSuccess: onSaved, onError: onSaveError }
         );
       }
     } catch (error) {

@@ -43,35 +43,47 @@ export default function ZatcaCsrPage() {
 
   const handleGenerate = async () => {
     if (!branchId || !egsUnitId || environment === undefined) return;
-    const result = await generateCsr.mutateAsync({
-      branchId,
-      egsUnitId,
-      requestType: 1,
-      environment,
-    });
-    setCsrRequestId(result.csrRequestId);
-    setCsrPem(result.csrPem ?? undefined);
+    try {
+      const result = await generateCsr.mutateAsync({
+        branchId,
+        egsUnitId,
+        requestType: 1,
+        environment,
+      });
+      setCsrRequestId(result.csrRequestId);
+      setCsrPem(result.csrPem ?? undefined);
+    } catch {
+      // Mutation failure; toast already shown by onError. Swallow.
+    }
   };
 
   const handleComplianceCsid = async () => {
     if (!branchId || !egsUnitId || !csrRequestId) return;
-    const result = await requestComplianceCsid.mutateAsync({
-      branchId,
-      egsUnitId,
-      csrRequestId,
-      otp: otp || undefined,
-    });
-    setComplianceRequestId(result.requestId ?? 'done');
+    try {
+      const result = await requestComplianceCsid.mutateAsync({
+        branchId,
+        egsUnitId,
+        csrRequestId,
+        otp: otp || undefined,
+      });
+      setComplianceRequestId(result.requestId ?? 'done');
+    } catch {
+      // Mutation failure; toast already shown by onError. Swallow.
+    }
   };
 
   const handleProductionCsid = async () => {
     if (!branchId || !egsUnitId || !csrRequestId) return;
-    await requestProductionCsid.mutateAsync({
-      branchId,
-      egsUnitId,
-      csrRequestId,
-      complianceRequestId,
-    });
+    try {
+      await requestProductionCsid.mutateAsync({
+        branchId,
+        egsUnitId,
+        csrRequestId,
+        complianceRequestId,
+      });
+    } catch {
+      // Mutation failure; toast already shown by onError. Swallow.
+    }
   };
 
   const columns: ColumnsType<ZatcaCsrRequest> = [

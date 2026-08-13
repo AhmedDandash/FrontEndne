@@ -62,6 +62,10 @@ export interface PartyLedgerLine {
   /** "Manual" | "System". */
   source: string;
   sourceId?: string | null;
+  journalEntryId?: string | null;
+  customerName?: string | null;
+  customerId?: string | null;
+  contractNumber?: number | string | null;
 }
 
 export interface PartyLedger {

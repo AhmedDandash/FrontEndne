@@ -4,6 +4,15 @@ import { ContractNationalityService } from '@/services/contract-nationality.serv
 import type { CreateContractNationalityDto, UpdateContractNationalityDto } from '@/types/api.types';
 
 const QK = 'contract-nationalities';
+const NATIONALITY_CONFIG_QK = 'nationality-followup-config';
+const MEDIATION_FOLLOWUP_DASHBOARD_QK = 'mediation-followup-dashboard';
+const MEDIATION_FOLLOWUP_ITEMS_QK = 'mediation-followup-items';
+
+function invalidateFollowUpScreens(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: [NATIONALITY_CONFIG_QK] });
+  qc.invalidateQueries({ queryKey: [MEDIATION_FOLLOWUP_DASHBOARD_QK] });
+  qc.invalidateQueries({ queryKey: [MEDIATION_FOLLOWUP_ITEMS_QK] });
+}
 
 export function useContractNationalities() {
   return useQuery({
@@ -18,6 +27,7 @@ export function useCreateContractNationality() {
     mutationFn: (data: CreateContractNationalityDto) => ContractNationalityService.create(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QK] });
+      invalidateFollowUpScreens(qc);
       message.success('تمت إضافة الجنسية للموديول | Nationality added to module');
     },
     onError: () => message.error('فشل إضافة الجنسية | Failed to add nationality'),
@@ -30,6 +40,7 @@ export function useUpdateContractNationality() {
     mutationFn: (data: UpdateContractNationalityDto) => ContractNationalityService.update(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QK] });
+      invalidateFollowUpScreens(qc);
     },
     onError: () => message.error('فشل التعديل | Update failed'),
   });
@@ -41,6 +52,7 @@ export function useDeleteContractNationality() {
     mutationFn: (id: number) => ContractNationalityService.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QK] });
+      invalidateFollowUpScreens(qc);
       message.success('تم حذف الجنسية | Nationality removed');
     },
     onError: () => message.error('فشل الحذف | Delete failed'),

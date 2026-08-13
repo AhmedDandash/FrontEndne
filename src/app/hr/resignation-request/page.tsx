@@ -34,18 +34,24 @@ export default function ResignationRequestPage() {
   };
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
+    try {
+      const values = await form.validateFields();
 
-    const dto: CreateResignationRequestDto = {
-      createdTo: values.createdTo,
-      resignationDate: values.resignationDate.toISOString(),
-      endDate: values.endDate.toISOString(),
-      reasons: values.reasons,
-    };
+      const dto: CreateResignationRequestDto = {
+        createdTo: values.createdTo,
+        resignationDate: values.resignationDate.toISOString(),
+        endDate: values.endDate.toISOString(),
+        reasons: values.reasons,
+      };
 
-    await createResignationRequest(dto);
-    form.resetFields();
-    setSelectedEmployee(null);
+      await createResignationRequest(dto);
+      form.resetFields();
+      setSelectedEmployee(null);
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble as an unhandled
+      // promise rejection.
+    }
   };
 
   return (

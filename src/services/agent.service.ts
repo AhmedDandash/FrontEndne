@@ -11,17 +11,16 @@ import type { AgentQuery, PagedResponse } from '@/types/filters.types';
 
 export class AgentService {
   /**
-   * Get all agents
+   * Get all agents.
+   *
+   * Sends a large PageSize explicitly — the backend defaults to a small page
+   * size (10) when none is supplied, which silently truncates this "get
+   * everything" method once more than 10 agents exist (the identical bug
+   * found and fixed in JobService/NationalityService this session).
    */
   static async getAll(): Promise<Agent[]> {
-    const response = await api.get<Agent[]>(API_ENDPOINTS.AGENT.GET_ALL);
-
-    // Log the actual response to debug
-    console.log('📊 Agent API Response:', {
-      status: response.status,
-      data: response.data,
-      dataType: typeof response.data,
-      isArray: Array.isArray(response.data),
+    const response = await api.get<any>(API_ENDPOINTS.AGENT.GET_ALL, {
+      params: { PageSize: 9999 },
     });
 
     // Handle different response structures
@@ -43,12 +42,9 @@ export class AgentService {
       } else if (Array.isArray(data.data?.items)) {
         // Paginated envelope: { success, data: { items, totalCount, ... }, errors, statusCode }
         agents = data.data.items;
-      } else {
-        console.warn('⚠️ Unexpected response structure for agents:', response.data);
       }
     }
 
-    console.log('📦 Parsed agents:', agents.length, 'agents found');
     return agents;
   }
 

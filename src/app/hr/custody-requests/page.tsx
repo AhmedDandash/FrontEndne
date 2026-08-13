@@ -103,7 +103,9 @@ export default function CustodyRequestsPage() {
 
   const runAction = (id: string, fn: (id: string) => Promise<unknown>) => {
     setActioningId(id);
-    return fn(id).finally(() => setActioningId(null));
+    // onError toast already shown by the mutation; catch here so a rejection
+    // doesn't bubble as unhandled — Popconfirm's onConfirm doesn't await this.
+    return fn(id).catch(() => {}).finally(() => setActioningId(null));
   };
 
   const pendingCount  = custodyRequests.filter((r) => r.status === RequestStatus.Pending).length;

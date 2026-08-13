@@ -74,30 +74,42 @@ export default function AdminUsersPage() {
   };
 
   const handleAddUser = async () => {
-    const values = await addUserForm.validateFields();
-    const dto: AddUserDto = {
-      fullName: values.fullName,
-      email: values.email || null,
-      userName: values.userName || null,
-      password: values.password || null,
-      role: values.role,
-    };
-    await addUser(dto);
-    setAddUserOpen(false);
-    addUserForm.resetFields();
+    try {
+      const values = await addUserForm.validateFields();
+      const dto: AddUserDto = {
+        fullName: values.fullName,
+        email: values.email || null,
+        userName: values.userName || null,
+        password: values.password || null,
+        role: values.role,
+      };
+      await addUser(dto);
+      setAddUserOpen(false);
+      addUserForm.resetFields();
+    } catch {
+      // Form-validation rejection (antd already shows the inline field error)
+      // or a mutation failure (the mutation's own onError already shows a
+      // toast). Swallow here so it doesn't bubble as an unhandled promise
+      // rejection — antd's plain <Modal onOk> does not await/catch this itself.
+    }
   };
 
   const handleRoleAction = async () => {
     if (!roleAction) return;
-    const { roleName } = await roleForm.validateFields();
-    const dto: AssignRoleDto = { userId: roleAction.user.id, role: roleName };
-    if (roleAction.type === 'assign') {
-      await assignRole(dto);
-    } else {
-      await removeRole(dto);
+    try {
+      const { roleName } = await roleForm.validateFields();
+      const dto: AssignRoleDto = { userId: roleAction.user.id, role: roleName };
+      if (roleAction.type === 'assign') {
+        await assignRole(dto);
+      } else {
+        await removeRole(dto);
+      }
+      setRoleAction(null);
+      roleForm.resetFields();
+    } catch {
+      // Form-validation rejection or mutation failure (toast already shown
+      // for the latter); swallow so it doesn't bubble.
     }
-    setRoleAction(null);
-    roleForm.resetFields();
   };
 
   const columns: ColumnsType<AdminUser> = [

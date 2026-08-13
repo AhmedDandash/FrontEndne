@@ -4,12 +4,14 @@ import { useState, type ReactNode } from 'react';
 import { Card, Table, Select, Empty, Spin, Alert, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { useRouter } from 'next/navigation';
 import { usePartyLedger, usePartyOptions } from '@/hooks/api/useLedger';
 import { useAuthStore } from '@/store/authStore';
 import type { PartyKind, PartyLedgerLine } from '@/types/ledger.types';
 import { LedgerHeader } from './LedgerHeader';
 import { AdvancedFilterPanel, BranchFilterSelect, DateRangeFilter } from '@/components/filters';
 import { fmtAmount, fmtDate } from './ledgerFormat';
+import { linkProps } from '@/lib/navigation/linkProps';
 import styles from '../Ledger.module.css';
 
 interface PartyLedgerViewProps {
@@ -25,6 +27,7 @@ export function PartyLedgerView({ kind, icon, title, subtitle, idLabel }: PartyL
   const language = useAuthStore((s) => s.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const router = useRouter();
 
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [range, setRange] = useState<[string | undefined, string | undefined]>([
@@ -35,6 +38,8 @@ export function PartyLedgerView({ kind, icon, title, subtitle, idLabel }: PartyL
   const [includeSubBranches, setIncludeSubBranches] = useState(true);
 
   const { data: partyOptions = [], isLoading: optionsLoading } = usePartyOptions(kind);
+  const selectedPartyLabel =
+    partyOptions.find((option) => String(option.value) === String(selectedId))?.label ?? '';
 
   const { data, isLoading, isFetching, refetch, error } = usePartyLedger(kind, selectedId, {
     from: range[0],
@@ -59,7 +64,35 @@ export function PartyLedgerView({ kind, icon, title, subtitle, idLabel }: PartyL
       dataIndex: 'entryNumber',
       key: 'entryNumber',
       width: 115,
-      render: (v) => <span className={styles.entryNumber}>{v || '—'}</span>,
+      render: (v, row) => {
+        if (!v) return <span className={styles.entryNumber}>—</span>;
+        const href = row.journalEntryId
+          ? `/accounting/journal-entries?openId=${encodeURIComponent(row.journalEntryId)}`
+          : `/accounting/journal-entries?entryNumber=${encodeURIComponent(v)}`;
+        return (
+          <a className={styles.entryNumber} {...linkProps(href, router)}>
+            {v}
+          </a>
+        );
+      },
+    },
+    ...(kind === 'customer'
+      ? [
+          {
+            title: t('العميل', 'Customer'),
+            key: 'customerName',
+            width: 180,
+            render: (_: unknown, row: PartyLedgerLine) =>
+              row.customerName || selectedPartyLabel || row.customerId || '—',
+          },
+        ]
+      : []),
+    {
+      title: t('رقم العقد', 'Contract No.'),
+      key: 'contractNumber',
+      width: 110,
+      render: (_, l) =>
+        l.contractNumber ? <Tag color="geekblue">#{l.contractNumber}</Tag> : <span className={styles.muted}>—</span>,
     },
     {
       title: t('الحساب', 'Account'),

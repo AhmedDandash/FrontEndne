@@ -21,42 +21,36 @@ export class JobService {
    * Get all jobs
    */
   static async getAll(): Promise<Job[]> {
-    try {
-      const response = await api.get<any>(API_ENDPOINTS.JOB.GET_ALL);
+    // The backend defaults to a small page size (10) when no PageSize is
+    // sent — live-verified this silently truncates the list once more than
+    // 10 jobs exist. Force a large page so every dropdown consumer of this
+    // method sees the full list, not just the first page.
+    const response = await api.get<any>(API_ENDPOINTS.JOB.GET_ALL, {
+      params: { PageSize: 9999 },
+    });
 
-      console.log('🔍 Job Response Structure:', {
-        data: response.data,
-        dataType: typeof response.data,
-        isArray: Array.isArray(response.data),
-      });
+    // Handle different response structures
+    const payload = response.data;
+    const candidates = [
+      payload,
+      payload?.data,
+      payload?.result,
+      payload?.items,
+      payload?.jobs,
+      payload?.data?.data,
+      payload?.data?.result,
+      payload?.data?.items,
+      payload?.$values,
+      payload?.data?.$values,
+    ];
 
-      // Handle different response structures
-      const payload = response.data;
-      const candidates = [
-        payload,
-        payload?.data,
-        payload?.result,
-        payload?.items,
-        payload?.jobs,
-        payload?.data?.data,
-        payload?.data?.result,
-        payload?.data?.items,
-        payload?.$values,
-        payload?.data?.$values,
-      ];
-
-      let jobs: Job[] = [];
-      for (const candidate of candidates) {
-        if (Array.isArray(candidate)) { jobs = candidate; break; }
-        if (Array.isArray(candidate?.$values)) { jobs = candidate.$values; break; }
-      }
-
-      console.log('✅ Parsed Jobs:', jobs.length, 'items');
-      return jobs;
-    } catch (error) {
-      console.error('❌ Error fetching jobs:', error);
-      return [];
+    let jobs: Job[] = [];
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) { jobs = candidate; break; }
+      if (Array.isArray(candidate?.$values)) { jobs = candidate.$values; break; }
     }
+
+    return jobs;
   }
 
   /**
@@ -107,7 +101,6 @@ export class JobService {
       isActive: Boolean(data.isActive),
     };
 
-    console.log('📤 Creating job with payload:', payload);
     const response = await api.post<Job>(API_ENDPOINTS.JOB.CREATE, payload);
     return response.data;
   }
@@ -124,7 +117,6 @@ export class JobService {
       isActive: Boolean(data.isActive),
     };
 
-    console.log('📤 Updating job with payload:', payload);
     const response = await api.put<Job>(API_ENDPOINTS.JOB.UPDATE(id), payload);
     return response.data;
   }

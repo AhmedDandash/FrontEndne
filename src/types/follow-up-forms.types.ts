@@ -11,7 +11,8 @@ export type ItemFormType =
   | 'oce'
   | 'visa-stamp'
   | 'flight'
-  | 'biometric';
+  | 'biometric'
+  | 'authorization';
 
 export interface MedicalFormData {
   ActionDate: string;
@@ -24,6 +25,15 @@ export interface MusandFormData {
   ActionDate: string;
   /** 101=تم انشاء العقد  102=تم القبول  103=موافقة وزارة  105=تم الالغاء */
   status: number;
+  authorizationSystem?: number;
+  authorizationBankName?: string;
+  Notes?: string;
+}
+
+export interface AuthorizationFormData {
+  ActionDate: string;
+  authorizationSystem: number;
+  authorizationBankName?: string;
   Notes?: string;
 }
 
@@ -90,7 +100,8 @@ export type AnyFormData =
   | OceFormData
   | VisaStampFormData
   | FlightFormData
-  | BiometricFormData;
+  | BiometricFormData
+  | AuthorizationFormData;
 
 // ── Item type detection ───────────────────────────────────────────────────────
 // Matches against statusNameEn / statusNameAr using keywords from the backend.
@@ -115,6 +126,7 @@ export function detectItemFormType(item: {
   if (/visa.?stamp|تأشير/.test(raw)) return 'visa-stamp';
   if (/flight|ticket|طيران|تذكرة/.test(raw)) return 'flight';
   if (/biometric|بصمة|تبصيم/.test(raw)) return 'biometric';
+  if (/authorization|authorisation|delegation|تفويض/.test(raw)) return 'authorization';
 
   return null;
 }
@@ -177,11 +189,13 @@ export const ITEM_STATUS_OPTIONS: Partial<Record<ItemFormType, { value: number; 
     { value: 68, labelAr: 'التبصيم مجدول' },
     { value: 69, labelAr: 'تم التبصيم' },
   ],
+  authorization: [],
 };
 
 // Returns the backend field name for the status dropdown per type
 export function getStatusFieldName(type: ItemFormType): string {
   if (type === 'medical') return 'medicalStatus';
   if (type === 'musand') return 'status';
+  if (type === 'authorization') return 'authorizationSystem';
   return 'contractAgentStatusId';
 }
