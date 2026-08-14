@@ -72,7 +72,9 @@ export default function PermissionRequestsPage() {
 
   const runAction = (id: string, fn: (id: string) => Promise<unknown>) => {
     setActioningId(id);
-    return fn(id).finally(() => setActioningId(null));
+    return fn(id)
+      .catch(() => {})
+      .finally(() => setActioningId(null));
   };
 
   const pendingCount  = permissionRequests.filter((r) => r.status === RequestStatus.Pending).length;
@@ -216,8 +218,11 @@ export default function PermissionRequestsPage() {
       </Row>
 
       <AdvancedFilterPanel
-        activeCount={statusFilter != null ? 1 : 0}
-        onClear={() => setStatusFilter(undefined)}
+        activeCount={(statusFilter != null ? 1 : 0) + (searchText.trim() ? 1 : 0)}
+        onClear={() => {
+          setStatusFilter(undefined);
+          setSearchText('');
+        }}
         quickFilters={
           <>
             <Input

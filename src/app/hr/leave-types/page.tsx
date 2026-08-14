@@ -66,15 +66,19 @@ export default function HRLeaveTypesPage() {
   };
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    const dto = values as CreateLeaveTypeDto | UpdateLeaveTypeDto;
-    if (editing) {
-      await updateLeaveType({ id: editing.id, data: dto as UpdateLeaveTypeDto });
-    } else {
-      await createLeaveType(dto as CreateLeaveTypeDto);
+    try {
+      const values = await form.validateFields();
+      const dto = values as CreateLeaveTypeDto | UpdateLeaveTypeDto;
+      if (editing) {
+        await updateLeaveType({ id: editing.id, data: dto as UpdateLeaveTypeDto });
+      } else {
+        await createLeaveType(dto as CreateLeaveTypeDto);
+      }
+      setModalOpen(false);
+      form.resetFields();
+    } catch {
+      // Mutation hooks surface the API error. Keep the modal open for retry.
     }
-    setModalOpen(false);
-    form.resetFields();
   };
 
   const columns: ColumnsType<LeaveTypeDto> = [
@@ -128,7 +132,7 @@ export default function HRLeaveTypesPage() {
                   </span>
                 </>
               }
-              onConfirm={() => deleteLeaveType(record.id)}
+              onConfirm={() => deleteLeaveType(record.id).catch(() => {})}
               okText="حذف"
               cancelText="إلغاء"
               okButtonProps={{ danger: true }}

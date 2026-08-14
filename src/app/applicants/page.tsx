@@ -87,6 +87,7 @@ import { useAssignWorkerHousing } from '@/hooks/api/useWorkerHousing';
 import { BranchFilterSelect, DateRangeFilter, ExportButton, AdvancedFilterPanel } from '@/components/filters';
 import { API_ENDPOINTS } from '@/config/api.config';
 import { api } from '@/lib/api/client';
+import { MedicalExaminationService } from '@/services/medical-examination.service';
 import type { Worker, WorkerDto } from '@/types/api.types';
 import {
   GENDER,
@@ -585,6 +586,7 @@ export default function WorkersPage() {
   const [pendingMedicalCheckId, setPendingMedicalCheckId] = useState<string | null>(null);
   /** exam data returned by the check-worker API, used in the view-only modal */
   const [checkedMedicalExam, setCheckedMedicalExam] = useState<import('@/types/api.types').MedicalExamination | null>(null);
+  const [medicalReportLoading, setMedicalReportLoading] = useState(false);
   /** worker id whose uploaded document (passport scan) is being previewed */
   const [docViewerWorkerId, setDocViewerWorkerId] = useState<number | string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
@@ -960,6 +962,57 @@ export default function WorkersPage() {
         });
       },
     });
+  };
+
+  const handleViewMedicalExamReport = async () => {
+    if (medicalExamId === null) return;
+    setMedicalReportLoading(true);
+    try {
+      const report = await MedicalExaminationService.getReport(medicalExamId);
+      Modal.info({
+        title: language === 'ar' ? 'تقرير الفحص الطبي' : 'Medical Examination Report',
+        width: 720,
+        content: (
+          <Descriptions bordered column={1} size="small" style={{ marginTop: 12 }}>
+            <Descriptions.Item label={language === 'ar' ? 'اسم العامل' : 'Worker Name'}>
+              {report.workerFullNameAr || report.workerFullNameEn || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('referenceNo')}>
+              {report.workerReferenceNo || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('passportNo')}>
+              {report.passportNo || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('nationality')}>
+              {report.nationalityName || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label={language === 'ar' ? 'الوظيفة' : 'Job'}>
+              {report.jobName || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('examDate')}>
+              {report.examDate ? dayjs(report.examDate).format('YYYY-MM-DD') : '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('medicalStatus')}>
+              {report.medicalStatusName || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('notes')}>
+              {report.notes || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('createdBy')}>
+              {report.createdByName || '-'}
+            </Descriptions.Item>
+          </Descriptions>
+        ),
+        okText: t('close'),
+      });
+    } catch (error: any) {
+      message.error(
+        error.response?.data?.message ||
+          (language === 'ar' ? 'فشل تحميل تقرير الفحص الطبي' : 'Failed to load medical examination report')
+      );
+    } finally {
+      setMedicalReportLoading(false);
+    }
   };
 
   const handleOpenMedicalExam = async (workerId: number | string) => {
@@ -2484,6 +2537,13 @@ export default function WorkersPage() {
                   </Descriptions.Item>
                 </Descriptions>
                 <div className={styles.modalActions}>
+                  <Button
+                    icon={<FileTextOutlined />}
+                    loading={medicalReportLoading}
+                    onClick={handleViewMedicalExamReport}
+                  >
+                    {language === 'ar' ? 'عرض التقرير' : 'View Report'}
+                  </Button>
                   <Button
                     danger
                     icon={<DeleteOutlined />}

@@ -245,14 +245,7 @@ export async function resolveContractRoute(sourceId: string): Promise<string> {
   if (await tryGet(() => TransferContractService.getById(sourceId))) {
     return JE_SOURCE_ROUTES.transferContract;
   }
-  // Housing has no `GET /api/Housing/{id}` endpoint (§4.6 housing-revenue contract);
-  // probe the list and match by id instead.
-  if (
-    await tryGet(async () => {
-      const list = await HousingService.getAll();
-      if (!list.some((h) => h.id === sourceId)) throw new Error('not found');
-    })
-  ) {
+  if (await tryGet(() => HousingService.getById(sourceId))) {
     return JE_SOURCE_ROUTES.housing;
   }
   // Fallback: stay on the journal entries screen if nothing matched.

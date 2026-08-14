@@ -7,6 +7,7 @@ import {
 import { getApiErrorMessage } from '@/utils/api-error';
 import type {
   HourlyWorkerListParams,
+  HourlyWorkerAvailabilityParams,
   CreateHourlyWorkerDto,
   UpdateHourlyWorkerDto,
   HourlyWorkerRequestListParams,
@@ -32,6 +33,17 @@ export function useHourlyWorker(id: string | undefined) {
     queryKey: [...WORKERS_KEY, id],
     queryFn: () => HourlyWorkerService.getById(id!),
     enabled: !!id,
+  });
+}
+
+export function useAvailableHourlyWorkers(
+  params?: HourlyWorkerAvailabilityParams,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: [...WORKERS_KEY, 'available', params],
+    queryFn: () => HourlyWorkerService.getAvailable(params),
+    enabled,
   });
 }
 
@@ -108,6 +120,14 @@ export function useHourlyWorkerRequest(id: string | undefined) {
     queryKey: [...REQUESTS_KEY, id],
     queryFn: () => HourlyWorkerRequestService.getById(id!),
     enabled: !!id,
+  });
+}
+
+export function useHourlyWorkerRequestTracking(ticketNumber: string | undefined) {
+  return useQuery({
+    queryKey: [...REQUESTS_KEY, 'track', ticketNumber],
+    queryFn: () => HourlyWorkerRequestService.trackByTicket(ticketNumber!),
+    enabled: !!ticketNumber,
   });
 }
 

@@ -13,8 +13,12 @@ import {
   Popconfirm,
   Drawer,
   Form,
+  Modal,
+  Empty,
+  InputNumber,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
 import {
   CarOutlined,
   ReloadOutlined,
@@ -25,12 +29,22 @@ import {
   CheckCircleOutlined,
   StopOutlined,
   PhoneOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import { AdvancedFilterPanel } from '@/components/filters';
-import { useHourlyDrivers, useHourlyDriverMutations } from '@/hooks/api/useHourlyDrivers';
+import {
+  useHourlyDrivers,
+  useHourlyDriverMutations,
+  useHourlyDriverOrders,
+} from '@/hooks/api/useHourlyDrivers';
 import { useHourlyPermissions } from '@/hooks/useHourlyPermissions';
 import { useAuthStore } from '@/store/authStore';
-import type { HourlyDriver, CreateHourlyDriverDto } from '@/types/hourly-worker.types';
+import type {
+  HourlyDriver,
+  HourlyDriverOrder,
+  CreateHourlyDriverDto,
+} from '@/types/hourly-worker.types';
+import { DRIVER_ASSIGNMENT_STATUS, EnumTag, fmtTime } from '../_lib/hourlyDisplay';
 import styles from '../hourly-workers.module.css';
 
 const PAGE_SIZE = 10;
@@ -59,11 +73,16 @@ export default function HourlyDriversPage() {
   const drivers = useMemo(() => data?.items ?? [], [data]);
   const totalCount = data?.totalCount ?? 0;
 
-  const { create, update, remove, activate, deactivate } = useHourlyDriverMutations();
+  const { create, update, remove, activate, deactivate, updateTransportStatus } =
+    useHourlyDriverMutations();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<HourlyDriver | null>(null);
+  const [viewing, setViewing] = useState<HourlyDriver | null>(null);
+  const [transportFor, setTransportFor] = useState<HourlyDriverOrder | null>(null);
   const [form] = Form.useForm();
+  const [transportForm] = Form.useForm();
+  const { data: driverOrders, isLoading: ordersLoading } = useHourlyDriverOrders(viewing?.id);
 
   const openCreate = () => {
     setEditing(null);
@@ -89,19 +108,39 @@ export default function HourlyDriversPage() {
     form.resetFields();
   };
   const handleSubmit = async () => {
-    const v = await form.validateFields();
-    const dto: CreateHourlyDriverDto = {
-      fullName: v.fullName.trim(),
-      phoneNumber: v.phoneNumber.trim(),
-      nationalId: v.nationalId?.trim() || undefined,
-      licenseNumber: v.licenseNumber?.trim() || undefined,
-      vehicleType: v.vehicleType?.trim() || undefined,
-      vehiclePlateNumber: v.vehiclePlateNumber?.trim() || undefined,
-      notes: v.notes?.trim() || undefined,
-    };
-    if (editing) await update.mutateAsync({ id: editing.id, data: dto });
-    else await create.mutateAsync(dto);
-    closeForm();
+    try {
+      const v = await form.validateFields();
+      const dto: CreateHourlyDriverDto = {
+        fullName: v.fullName.trim(),
+        phoneNumber: v.phoneNumber.trim(),
+        nationalId: v.nationalId?.trim() || undefined,
+        licenseNumber: v.licenseNumber?.trim() || undefined,
+        vehicleType: v.vehicleType?.trim() || undefined,
+        vehiclePlateNumber: v.vehiclePlateNumber?.trim() || undefined,
+        notes: v.notes?.trim() || undefined,
+      };
+      if (editing) await update.mutateAsync({ id: editing.id, data: dto });
+      else await create.mutateAsync(dto);
+      closeForm();
+    } catch {
+      // Mutation hooks surface API errors. Keep the drawer open for correction.
+    }
+  };
+
+  const getOrderId = (orderRow: HourlyDriverOrder) => orderRow.orderId ?? orderRow.id;
+  const getTransportStatus = (orderRow: HourlyDriverOrder) =>
+    orderRow.transportStatus ??
+    orderRow.driverStatus ??
+    orderRow.driverAssignmentStatus ??
+    orderRow.status;
+
+  const openTransport = (orderRow: HourlyDriverOrder) => {
+    setTransportFor(orderRow);
+    transportForm.setFieldsValue({
+      status: getTransportStatus(orderRow),
+      notes: orderRow.notes,
+      trackingSource: 2,
+    });
   };
 
   const columns: ColumnsType<HourlyDriver> = [
@@ -127,20 +166,23 @@ export default function HourlyDriversPage() {
           title: t('إجراءات', 'Actions'), key: 'actions', width: 150, fixed: 'right' as const,
           render: (_: unknown, r: HourlyDriver) => (
             <Space size={2}>
+              <Tooltip title={t('الطلبات', 'Orders')}>
+                <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => setViewing(r)} />
+              </Tooltip>
               <Tooltip title={t('تعديل', 'Edit')}>
                 <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(r)} />
               </Tooltip>
               {r.isActive ? (
                 <Tooltip title={t('إلغاء التفعيل', 'Deactivate')}>
-                  <Button size="small" type="text" icon={<StopOutlined />} loading={deactivate.isPending} onClick={() => deactivate.mutate(r.id)} />
+                  <Button size="small" type="text" icon={<StopOutlined />} loading={deactivate.isPending} onClick={() => deactivate.mutateAsync(r.id).catch(() => {})} />
                 </Tooltip>
               ) : (
                 <Tooltip title={t('تفعيل', 'Activate')}>
-                  <Button size="small" type="text" icon={<CheckCircleOutlined />} loading={activate.isPending} onClick={() => activate.mutate(r.id)} />
+                  <Button size="small" type="text" icon={<CheckCircleOutlined />} loading={activate.isPending} onClick={() => activate.mutateAsync(r.id).catch(() => {})} />
                 </Tooltip>
               )}
               <Popconfirm title={t('حذف السائق؟', 'Delete driver?')} okText={t('حذف', 'Delete')} cancelText={t('إلغاء', 'Cancel')}
-                okButtonProps={{ danger: true, loading: remove.isPending }} onConfirm={() => remove.mutate(r.id)}>
+                okButtonProps={{ danger: true, loading: remove.isPending }} onConfirm={() => remove.mutateAsync(r.id).catch(() => {})}>
                 <Tooltip title={t('حذف', 'Delete')}>
                   <Button size="small" type="text" danger icon={<DeleteOutlined />} />
                 </Tooltip>
@@ -239,6 +281,124 @@ export default function HourlyDriversPage() {
           </Form.Item>
         </Form>
       </Drawer>
+
+      <Drawer
+        title={viewing ? t(`طلبات ${viewing.fullName}`, `${viewing.fullName} Orders`) : t('طلبات السائق', 'Driver Orders')}
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        width={760}
+      >
+        <Table<HourlyDriverOrder>
+          rowKey={(r) => getOrderId(r) ?? r.ticketNumber ?? ''}
+          size="small"
+          bordered
+          loading={ordersLoading}
+          dataSource={driverOrders ?? []}
+          pagination={false}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('لا توجد طلبات', 'No orders')} /> }}
+          columns={[
+            {
+              title: t('التذكرة', 'Ticket'),
+              dataIndex: 'ticketNumber',
+              key: 'ticketNumber',
+              width: 140,
+              render: (v) => <span className={styles.docNumber}>{v || '—'}</span>,
+            },
+            {
+              title: t('العميل', 'Customer'),
+              dataIndex: 'customerName',
+              key: 'customerName',
+              render: (v, r) => (
+                <div>
+                  <div className={styles.assignmentName}>{v || '—'}</div>
+                  {r.customerPhone && <div className={styles.assignmentPhone}>{r.customerPhone}</div>}
+                </div>
+              ),
+            },
+            {
+              title: t('التاريخ', 'Date'),
+              dataIndex: 'requestDate',
+              key: 'requestDate',
+              width: 135,
+              render: (v, r) => v ? `${dayjs(v).format('YYYY-MM-DD')} ${fmtTime(r.requestedStartTime)}` : '—',
+            },
+            {
+              title: t('حالة النقل', 'Transport'),
+              key: 'transport',
+              width: 140,
+              render: (_, r) => <EnumTag map={DRIVER_ASSIGNMENT_STATUS} value={getTransportStatus(r)} isAr={isAr} />,
+            },
+            ...(canWrite
+              ? [{
+                  title: t('إجراءات', 'Actions'),
+                  key: 'actions',
+                  width: 120,
+                  render: (_: unknown, r: HourlyDriverOrder) =>
+                    getOrderId(r) ? (
+                      <Button size="small" icon={<EditOutlined />} onClick={() => openTransport(r)}>
+                        {t('تحديث', 'Update')}
+                      </Button>
+                    ) : (
+                      <span className={styles.muted}>—</span>
+                    ),
+                }]
+              : []),
+          ]}
+        />
+      </Drawer>
+
+      <Modal
+        title={t('تحديث حالة النقل', 'Update Transport Status')}
+        open={!!transportFor}
+        onCancel={() => setTransportFor(null)}
+        onOk={async () => {
+          try {
+            const v = await transportForm.validateFields();
+            await updateTransportStatus.mutateAsync({
+              driverId: viewing!.id,
+              orderId: getOrderId(transportFor!)!,
+              data: {
+                status: v.status,
+                notes: v.notes?.trim() || undefined,
+                latitude: v.latitude ?? undefined,
+                longitude: v.longitude ?? undefined,
+                device: v.device?.trim() || undefined,
+                trackingSource: v.trackingSource,
+              },
+            });
+            setTransportFor(null);
+          } catch {
+            // Mutation hooks surface API errors. Keep the modal open for correction.
+          }
+        }}
+        okText={t('حفظ', 'Save')}
+        okButtonProps={{ loading: updateTransportStatus.isPending }}
+        cancelText={t('إلغاء', 'Cancel')}
+        destroyOnHidden
+      >
+        <Form form={transportForm} layout="vertical">
+          <Form.Item name="status" label={t('الحالة', 'Status')} rules={[{ required: true, message: t('مطلوب', 'Required') }]}>
+            <Select options={Object.entries(DRIVER_ASSIGNMENT_STATUS).map(([val, def]) => ({ value: Number(val), label: isAr ? def.ar : def.en }))} />
+          </Form.Item>
+          <Space style={{ display: 'flex' }} size={12}>
+            <Form.Item name="latitude" label={t('خط العرض', 'Latitude')} style={{ flex: 1 }}>
+              <InputNumber step={0.0001} style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item name="longitude" label={t('خط الطول', 'Longitude')} style={{ flex: 1 }}>
+              <InputNumber step={0.0001} style={{ width: '100%' }} />
+            </Form.Item>
+          </Space>
+          <Form.Item name="device" label={t('الجهاز (اختياري)', 'Device (optional)')}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="trackingSource" hidden>
+            <InputNumber />
+          </Form.Item>
+          <Form.Item name="notes" label={t('ملاحظات (اختياري)', 'Notes (optional)')}>
+            <Input.TextArea rows={2} maxLength={500} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

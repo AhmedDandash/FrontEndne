@@ -93,7 +93,7 @@ export default function HourlyNotificationsPage() {
           render: (_: unknown, r: HourlyOrderNotification) =>
             r.deliveryStatus === HourlyNotificationDeliveryStatus.Failed ? (
               <Tooltip title={t('إعادة الإرسال', 'Retry')}>
-                <Button size="small" icon={<RedoOutlined />} loading={retry.isPending} onClick={() => retry.mutate(r.id)}>
+                <Button size="small" icon={<RedoOutlined />} loading={retry.isPending} onClick={() => retry.mutateAsync(r.id).catch(() => {})}>
                   {t('إعادة', 'Retry')}
                 </Button>
               </Tooltip>

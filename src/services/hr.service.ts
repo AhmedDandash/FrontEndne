@@ -173,12 +173,6 @@ export class HRLeaveService {
     await api.put(API_ENDPOINTS.HR_LEAVE.REJECT(requestId), dto ?? {});
   }
 
-  static async cancel(requestId: string): Promise<void> {
-    // Send an explicit empty body so a Content-Length:0 header is emitted —
-    // a bodyless PUT returns HTTP 411 (Length Required) from this backend.
-    await api.put(API_ENDPOINTS.HR_LEAVE.CANCEL(requestId), {});
-  }
-
   static async getEmployeeBalances(params: {
     employeeId?: string;
     leaveTypeId?: string;

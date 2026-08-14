@@ -104,7 +104,7 @@ export default function HourlyPaymentsPage() {
           render: (_: unknown, r: HourlyPaymentListItem) =>
             r.status === HourlyPaymentRecordStatus.Completed ? (
               <Popconfirm title={t('استرداد هذا المبلغ؟', 'Refund this payment?')} okText={t('استرداد', 'Refund')} cancelText={t('إلغاء', 'Cancel')}
-                okButtonProps={{ danger: true, loading: refund.isPending }} onConfirm={() => refund.mutate({ id: r.id })}>
+                okButtonProps={{ danger: true, loading: refund.isPending }} onConfirm={() => refund.mutateAsync({ id: r.id }).catch(() => {})}>
                 <Tooltip title={t('استرداد', 'Refund')}>
                   <Button size="small" danger icon={<RollbackOutlined />}>{t('استرداد', 'Refund')}</Button>
                 </Tooltip>

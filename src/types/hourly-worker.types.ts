@@ -43,11 +43,18 @@ export interface CreateHourlyWorkerDto {
   availableFromTime: string;
   availableToTime: string;
   notes?: string | null;
+  linkedUserId?: string | null;
 }
 
 export type UpdateHourlyWorkerDto = CreateHourlyWorkerDto;
 
 export interface HourlyWorkerListParams {
+  fullName?: string;
+  fullNameMatch?: number;
+  phoneNumber?: string;
+  phoneNumberMatch?: number;
+  nationalId?: string;
+  nationalIdMatch?: number;
   search?: string;
   isActive?: boolean;
   isAvailableNow?: boolean;
@@ -126,7 +133,11 @@ export interface RejectRequestDto {
 
 export interface HourlyWorkerRequestListParams {
   ticketNumber?: string;
+  ticketNumberMatch?: number;
   customerName?: string;
+  customerNameMatch?: number;
+  customerPhone?: string;
+  customerPhoneMatch?: number;
   status?: HourlyRequestStatus;
   dateFrom?: string;
   dateTo?: string;
@@ -139,7 +150,6 @@ export interface HourlyWorkerRequestListParams {
   branchId?: string;
   includeSubBranches?: boolean;
   search?: string;
-  customerPhone?: string;
   serviceCity?: string;
   serviceDistrict?: string;
   packageId?: string;
@@ -279,6 +289,17 @@ export interface HourlyOrderTrackingDto {
   recordedAt?: string;
 }
 
+export interface RecordOrderTrackingDto {
+  eventType: number;
+  subjectType: number;
+  subjectId?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  notes?: string | null;
+  device?: string | null;
+  trackingSource: number;
+}
+
 export interface HourlyWorkerAssignmentDetailDto {
   id: string;
   workerId: string;
@@ -395,6 +416,35 @@ export interface HourlyDriverListParams {
   sortDescending?: boolean;
   pageNumber?: number;
   pageSize?: number;
+}
+
+export interface HourlyDriverOrder {
+  id?: string;
+  orderId?: string;
+  ticketNumber?: string;
+  customerName?: string;
+  customerPhone?: string;
+  serviceCity?: string | null;
+  serviceDistrict?: string | null;
+  requestDate?: string;
+  requestedStartTime?: string;
+  requestedEndTime?: string;
+  assignedDate?: string;
+  status?: number;
+  statusName?: string;
+  transportStatus?: number;
+  driverStatus?: number;
+  driverAssignmentStatus?: number;
+  notes?: string | null;
+}
+
+export interface UpdateDriverTransportStatusDto {
+  status: number;
+  notes?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  device?: string | null;
+  trackingSource?: number;
 }
 
 // ==================== Catalog — Packages ====================
@@ -731,13 +781,11 @@ export enum HourlyOrderPaymentStatus {
 /** GET /api/V1/HourlyWorkers/Available — workers free for a given window. */
 export interface HourlyWorkerAvailabilityParams {
   /** ISO date. */
-  date?: string;
+  requestDate?: string;
   /** "HH:mm:ss" */
   startTime?: string;
   /** "HH:mm:ss" */
   endTime?: string;
-  branchId?: string;
-  includeSubBranches?: boolean;
 }
 
 /** GET /api/V1/HourlyCustomer/Orders — the authenticated customer's own order history. */

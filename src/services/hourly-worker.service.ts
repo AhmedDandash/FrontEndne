@@ -26,15 +26,18 @@ import type {
   RecommendedWorkerDto,
   AssignDriverDto,
   HourlyOrderTrackingDto,
+  RecordOrderTrackingDto,
   HourlyOrderInvoice,
   IssueHourlyOrderInvoiceDto,
   HourlyOrderAccommodation,
   BookHourlyOrderAccommodationDto,
   UpdateHourlyAccommodationStatusDto,
   HourlyDriver,
+  HourlyDriverOrder,
   CreateHourlyDriverDto,
   UpdateHourlyDriverDto,
   HourlyDriverListParams,
+  UpdateDriverTransportStatusDto,
   HourlyServicePackage,
   CreateHourlyServicePackageDto,
   UpdateHourlyServicePackageDto,
@@ -86,21 +89,27 @@ export class HourlyWorkerService {
   static async getAll(params: HourlyWorkerListParams = {}): Promise<Paged<HourlyWorker>> {
     const response = await api.get<any>(API_ENDPOINTS.HOURLY_WORKERS.GET_ALL, {
       params: {
-        search: params.search || undefined,
-        isActive: params.isActive,
-        isAvailableNow: params.isAvailableNow,
-        hourlyRateFrom: params.hourlyRateFrom ?? undefined,
-        hourlyRateTo: params.hourlyRateTo ?? undefined,
-        sortBy: params.sortBy || undefined,
-        sortDescending: params.sortDescending,
-        branchId: params.branchId || undefined,
-        includeSubBranches: params.branchId ? params.includeSubBranches : undefined,
-        createdDateFrom: params.createdDateFrom || undefined,
-        createdDateTo: params.createdDateTo || undefined,
-        updatedDateFrom: params.updatedDateFrom || undefined,
-        updatedDateTo: params.updatedDateTo || undefined,
-        pageNumber: params.pageNumber ?? 1,
-        pageSize: params.pageSize ?? 10,
+        FullName: params.fullName || undefined,
+        FullNameMatch: params.fullNameMatch,
+        PhoneNumber: params.phoneNumber || undefined,
+        PhoneNumberMatch: params.phoneNumberMatch,
+        NationalId: params.nationalId || undefined,
+        NationalIdMatch: params.nationalIdMatch,
+        Search: params.search || undefined,
+        IsActive: params.isActive,
+        IsAvailableNow: params.isAvailableNow,
+        HourlyRateFrom: params.hourlyRateFrom ?? undefined,
+        HourlyRateTo: params.hourlyRateTo ?? undefined,
+        SortBy: params.sortBy || undefined,
+        SortDescending: params.sortDescending,
+        BranchId: params.branchId || undefined,
+        IncludeSubBranches: params.branchId ? params.includeSubBranches : undefined,
+        CreatedDateFrom: params.createdDateFrom || undefined,
+        CreatedDateTo: params.createdDateTo || undefined,
+        UpdatedDateFrom: params.updatedDateFrom || undefined,
+        UpdatedDateTo: params.updatedDateTo || undefined,
+        PageNumber: params.pageNumber ?? 1,
+        PageSize: params.pageSize ?? 10,
       },
     });
     return unwrapPaged<HourlyWorker>(response.data, params);
@@ -140,7 +149,13 @@ export class HourlyWorkerService {
    * feature build, out of scope for this parameter-completion pass.
    */
   static async getAvailable(params: HourlyWorkerAvailabilityParams = {}): Promise<HourlyWorker[]> {
-    const response = await api.get<any>(API_ENDPOINTS.HOURLY_WORKERS.GET_AVAILABLE, { params });
+    const response = await api.get<any>(API_ENDPOINTS.HOURLY_WORKERS.GET_AVAILABLE, {
+      params: {
+        requestDate: params.requestDate || undefined,
+        startTime: params.startTime || undefined,
+        endTime: params.endTime || undefined,
+      },
+    });
     return unwrapList<HourlyWorker>(response.data);
   }
 }
@@ -153,28 +168,31 @@ export class HourlyWorkerRequestService {
   ): Promise<Paged<HourlyWorkerRequest>> {
     const response = await api.get<any>(API_ENDPOINTS.HOURLY_WORKER_REQUESTS.GET_ALL, {
       params: {
-        ticketNumber: params.ticketNumber || undefined,
-        customerName: params.customerName || undefined,
-        status: params.status,
-        dateFrom: params.dateFrom || undefined,
-        dateTo: params.dateTo || undefined,
-        sortBy: params.sortBy || undefined,
-        sortDescending: params.sortDescending,
-        branchId: params.branchId || undefined,
-        includeSubBranches: params.branchId ? params.includeSubBranches : undefined,
-        search: params.search || undefined,
-        customerPhone: params.customerPhone || undefined,
-        serviceCity: params.serviceCity || undefined,
-        serviceDistrict: params.serviceDistrict || undefined,
-        packageId: params.packageId || undefined,
-        servingAreaId: params.servingAreaId || undefined,
-        paymentStatus: params.paymentStatus,
-        createdDateFrom: params.createdDateFrom || undefined,
-        createdDateTo: params.createdDateTo || undefined,
-        updatedDateFrom: params.updatedDateFrom || undefined,
-        updatedDateTo: params.updatedDateTo || undefined,
-        pageNumber: params.pageNumber ?? 1,
-        pageSize: params.pageSize ?? 10,
+        ServiceCity: params.serviceCity || undefined,
+        ServiceDistrict: params.serviceDistrict || undefined,
+        PackageId: params.packageId || undefined,
+        ServingAreaId: params.servingAreaId || undefined,
+        PaymentStatus: params.paymentStatus,
+        Search: params.search || undefined,
+        TicketNumber: params.ticketNumber || undefined,
+        TicketNumberMatch: params.ticketNumberMatch,
+        CustomerName: params.customerName || undefined,
+        CustomerNameMatch: params.customerNameMatch,
+        CustomerPhone: params.customerPhone || undefined,
+        CustomerPhoneMatch: params.customerPhoneMatch,
+        Status: params.status,
+        DateFrom: params.dateFrom || undefined,
+        DateTo: params.dateTo || undefined,
+        BranchId: params.branchId || undefined,
+        IncludeSubBranches: params.branchId ? params.includeSubBranches : undefined,
+        CreatedDateFrom: params.createdDateFrom || undefined,
+        CreatedDateTo: params.createdDateTo || undefined,
+        UpdatedDateFrom: params.updatedDateFrom || undefined,
+        UpdatedDateTo: params.updatedDateTo || undefined,
+        PageNumber: params.pageNumber ?? 1,
+        PageSize: params.pageSize ?? 10,
+        SortBy: params.sortBy || undefined,
+        SortDescending: params.sortDescending,
       },
     });
     return unwrapPaged<HourlyWorkerRequest>(response.data, params);
@@ -287,7 +305,7 @@ export class HourlyWorkerOrderService {
 
   static async recordTracking(
     orderId: string,
-    data: Record<string, unknown>
+    data: RecordOrderTrackingDto
   ): Promise<HourlyOrderTrackingDto> {
     const response = await api.post<any>(
       API_ENDPOINTS.HOURLY_WORKER_ORDERS.POST_TRACKING(orderId),
@@ -354,12 +372,12 @@ export class HourlyDriverService {
   static async getAll(params: HourlyDriverListParams = {}): Promise<Paged<HourlyDriver>> {
     const response = await api.get<any>(API_ENDPOINTS.HOURLY_DRIVERS.GET_ALL, {
       params: {
-        search: params.search || undefined,
-        isActive: params.isActive,
-        sortBy: params.sortBy || undefined,
-        sortDescending: params.sortDescending,
-        pageNumber: params.pageNumber ?? 1,
-        pageSize: params.pageSize ?? 10,
+        Search: params.search || undefined,
+        IsActive: params.isActive,
+        SortBy: params.sortBy || undefined,
+        SortDescending: params.sortDescending,
+        PageNumber: params.pageNumber ?? 1,
+        PageSize: params.pageSize ?? 10,
       },
     });
     return unwrapPaged<HourlyDriver>(response.data, params);
@@ -391,6 +409,19 @@ export class HourlyDriverService {
   static async deactivate(id: string): Promise<void> {
     await api.post(API_ENDPOINTS.HOURLY_DRIVERS.DEACTIVATE(id), {});
   }
+
+  static async getOrders(driverId: string): Promise<HourlyDriverOrder[]> {
+    const response = await api.get<any>(API_ENDPOINTS.HOURLY_DRIVERS.GET_ORDERS(driverId));
+    return unwrapList<HourlyDriverOrder>(response.data);
+  }
+
+  static async updateTransportStatus(
+    driverId: string,
+    orderId: string,
+    data: UpdateDriverTransportStatusDto
+  ): Promise<void> {
+    await api.post(API_ENDPOINTS.HOURLY_DRIVERS.TRANSPORT_STATUS(driverId, orderId), data);
+  }
 }
 
 // ─── Catalog: Packages ──────────────────────────────────────────────────────────
@@ -401,12 +432,12 @@ export class HourlyPackageService {
   ): Promise<Paged<HourlyServicePackage>> {
     const response = await api.get<any>(API_ENDPOINTS.HOURLY_CATALOG.ADMIN_PACKAGES, {
       params: {
-        search: params.search || undefined,
-        isActive: params.isActive,
-        sortBy: params.sortBy || undefined,
-        sortDescending: params.sortDescending,
-        pageNumber: params.pageNumber ?? 1,
-        pageSize: params.pageSize ?? 10,
+        Search: params.search || undefined,
+        IsActive: params.isActive,
+        SortBy: params.sortBy || undefined,
+        SortDescending: params.sortDescending,
+        PageNumber: params.pageNumber ?? 1,
+        PageSize: params.pageSize ?? 10,
       },
     });
     return unwrapPaged<HourlyServicePackage>(response.data, params);
@@ -446,13 +477,13 @@ export class HourlyServingAreaService {
   ): Promise<Paged<HourlyServingArea>> {
     const response = await api.get<any>(API_ENDPOINTS.HOURLY_CATALOG.ADMIN_SERVING_AREAS, {
       params: {
-        search: params.search || undefined,
-        isActive: params.isActive,
-        city: params.city || undefined,
-        sortBy: params.sortBy || undefined,
-        sortDescending: params.sortDescending,
-        pageNumber: params.pageNumber ?? 1,
-        pageSize: params.pageSize ?? 10,
+        Search: params.search || undefined,
+        IsActive: params.isActive,
+        City: params.city || undefined,
+        SortBy: params.sortBy || undefined,
+        SortDescending: params.sortDescending,
+        PageNumber: params.pageNumber ?? 1,
+        PageSize: params.pageSize ?? 10,
       },
     });
     return unwrapPaged<HourlyServingArea>(response.data, params);
@@ -492,15 +523,15 @@ export class HourlyPaymentsService {
   ): Promise<Paged<HourlyPaymentListItem>> {
     const response = await api.get<any>(API_ENDPOINTS.HOURLY_ORDER_PAYMENTS.GET_ALL, {
       params: {
-        orderId: params.orderId || undefined,
-        status: params.status,
-        dateFrom: params.dateFrom || undefined,
-        dateTo: params.dateTo || undefined,
-        search: params.search || undefined,
-        sortBy: params.sortBy || undefined,
-        sortDescending: params.sortDescending,
-        pageNumber: params.pageNumber ?? 1,
-        pageSize: params.pageSize ?? 10,
+        OrderId: params.orderId || undefined,
+        Status: params.status,
+        DateFrom: params.dateFrom || undefined,
+        DateTo: params.dateTo || undefined,
+        Search: params.search || undefined,
+        SortBy: params.sortBy || undefined,
+        SortDescending: params.sortDescending,
+        PageNumber: params.pageNumber ?? 1,
+        PageSize: params.pageSize ?? 10,
       },
     });
     return unwrapPaged<HourlyPaymentListItem>(response.data, params);
@@ -519,14 +550,14 @@ export class HourlyNotificationsService {
   ): Promise<Paged<HourlyOrderNotification>> {
     const response = await api.get<any>(API_ENDPOINTS.HOURLY_ORDER_NOTIFICATIONS.GET_ALL, {
       params: {
-        orderId: params.orderId || undefined,
-        deliveryStatus: params.deliveryStatus,
-        recipientPhone: params.recipientPhone || undefined,
-        search: params.search || undefined,
-        sortBy: params.sortBy || undefined,
-        sortDescending: params.sortDescending,
-        pageNumber: params.pageNumber ?? 1,
-        pageSize: params.pageSize ?? 10,
+        OrderId: params.orderId || undefined,
+        DeliveryStatus: params.deliveryStatus,
+        RecipientPhone: params.recipientPhone || undefined,
+        Search: params.search || undefined,
+        SortBy: params.sortBy || undefined,
+        SortDescending: params.sortDescending,
+        PageNumber: params.pageNumber ?? 1,
+        PageSize: params.pageSize ?? 10,
       },
     });
     return unwrapPaged<HourlyOrderNotification>(response.data, params);

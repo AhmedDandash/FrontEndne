@@ -480,6 +480,7 @@ export interface CustodyRequestDto {
 export interface GeneratePayrollDto {
   month: number;
   year: number;
+  includeWorkers?: boolean;
 }
 
 export interface PayrollEmployeeDto {

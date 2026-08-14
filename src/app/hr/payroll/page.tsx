@@ -9,6 +9,7 @@ import {
   Modal,
   Form,
   Select,
+  Switch,
   Tag,
   Typography,
   Popconfirm,
@@ -30,8 +31,8 @@ import {
 import Link from 'next/link';
 import type { ColumnsType } from 'antd/es/table';
 import { AdvancedFilterPanel } from '@/components/filters';
-import { useHRPayroll } from '@/hooks/api/useHR';
-import { PayrollStatus, type PayrollEmployeeDto } from '@/types/hr.types';
+import { useHRPayroll, useHRPayrollHistory } from '@/hooks/api/useHR';
+import { PayrollStatus, type PayrollEmployeeDto, type PayrollRunDto } from '@/types/hr.types';
 
 const { Title, Text } = Typography;
 
@@ -79,6 +80,8 @@ export default function HRPayrollPage() {
     isClosing,
     isExporting,
   } = useHRPayroll(selectedMonth, selectedYear);
+  const { data: payrollHistory = [], isLoading: isHistoryLoading } =
+    useHRPayrollHistory(selectedYear);
 
   const employees: PayrollEmployeeDto[] = payroll?.employees ?? [];
 
@@ -105,9 +108,13 @@ export default function HRPayrollPage() {
   const isApproved = status >= PayrollStatus.Approved;
 
   const handleGenerate = async () => {
-    const values = await genForm.validateFields();
     try {
-      await generatePayroll({ month: values.month, year: values.year });
+      const values = await genForm.validateFields();
+      await generatePayroll({
+        month: values.month,
+        year: values.year,
+        includeWorkers: values.includeWorkers ?? false,
+      });
       setSelectedMonth(values.month);
       setSelectedYear(values.year);
       setGenerateModalOpen(false);
@@ -116,6 +123,10 @@ export default function HRPayrollPage() {
       // Error toast is surfaced by the mutation's onError; keep the modal open
       // so the user can retry (generate can 500 when a branch has no employees).
     }
+  };
+
+  const handleExport = () => {
+    exportPayroll({ m: selectedMonth, y: selectedYear }).catch(() => {});
   };
 
   const columns: ColumnsType<PayrollEmployeeDto> = [
@@ -221,6 +232,61 @@ export default function HRPayrollPage() {
     },
   ];
 
+  const historyColumns: ColumnsType<PayrollRunDto> = [
+    {
+      title: 'الشهر',
+      dataIndex: 'month',
+      width: 110,
+      render: (v) => MONTHS.find((m) => m.value === v)?.label ?? v ?? '—',
+    },
+    {
+      title: 'السنة',
+      dataIndex: 'year',
+      width: 90,
+      render: (v) => v ?? '—',
+    },
+    {
+      title: 'الحالة',
+      dataIndex: 'status',
+      width: 120,
+      render: (v: number | null | undefined, r) => {
+        const closed = r.isClosed || v === PayrollStatus.Closed;
+        const approved = (v ?? PayrollStatus.Draft) >= PayrollStatus.Approved;
+        return (
+          <Tag color={closed ? 'error' : approved ? 'blue' : 'warning'}>
+            {closed ? 'مغلق' : approved ? 'معتمد' : 'مسودة'}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: 'صافي الرواتب',
+      dataIndex: 'totalNetAmount',
+      render: (v) => formatSAR(v),
+    },
+    {
+      title: 'المدفوع',
+      dataIndex: 'totalPaidAmount',
+      render: (v) => formatSAR(v),
+    },
+    {
+      title: 'الإجراءات',
+      key: 'actions',
+      width: 100,
+      render: (_, r) => (
+        <Button
+          size="small"
+          onClick={() => {
+            if (r.month) setSelectedMonth(r.month);
+            if (r.year) setSelectedYear(r.year);
+          }}
+        >
+          عرض
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -295,7 +361,7 @@ export default function HRPayrollPage() {
                   <Popconfirm
                     title="اعتماد كشف الرواتب"
                     description="سيتم اعتماد الكشف تمهيداً لإغلاقه وترحيله محاسبياً. هل تريد المتابعة؟"
-                    onConfirm={() => approvePayroll(payroll.id)}
+                    onConfirm={() => approvePayroll(payroll.id).catch(() => {})}
                     okText="اعتماد"
                     cancelText="إلغاء"
                   >
@@ -316,7 +382,7 @@ export default function HRPayrollPage() {
                   <Popconfirm
                     title="إغلاق كشف الرواتب"
                     description="بعد الإغلاق لا يمكن إعادة فتح الكشف. هل تريد المتابعة؟"
-                    onConfirm={() => closePayroll(payroll.id)}
+                    onConfirm={() => closePayroll(payroll.id).catch(() => {})}
                     okText="إغلاق"
                     cancelText="إلغاء"
                     okButtonProps={{ danger: true }}
@@ -336,7 +402,7 @@ export default function HRPayrollPage() {
                 icon={<FileExcelOutlined />}
                 loading={isExporting}
                 style={{ color: '#52c41a', borderColor: '#52c41a' }}
-                onClick={() => exportPayroll({ m: selectedMonth, y: selectedYear })}
+                onClick={handleExport}
               >
                 تصدير Excel
               </Button>
@@ -438,6 +504,18 @@ export default function HRPayrollPage() {
         )}
       </Card>
 
+      <Card title="سجل كشوف الرواتب" style={{ marginTop: 16 }}>
+        <Table<PayrollRunDto>
+          dataSource={payrollHistory}
+          columns={historyColumns}
+          rowKey="id"
+          loading={isHistoryLoading}
+          pagination={{ pageSize: 6, showSizeChanger: false }}
+          locale={{ emptyText: 'لا توجد كشوف رواتب في هذه السنة' }}
+          scroll={{ x: 760 }}
+        />
+      </Card>
+
       <Modal
         open={generateModalOpen}
         title="إنشاء كشف رواتب جديد"
@@ -457,7 +535,7 @@ export default function HRPayrollPage() {
           title="سيتم احتساب الرواتب لجميع الموظفين النشطين بناءً على سجلات الحضور والإجازات المعتمدة."
           style={{ marginBottom: 16 }}
         />
-        <Form form={genForm} layout="vertical">
+        <Form form={genForm} layout="vertical" initialValues={{ includeWorkers: false }}>
           <Form.Item
             name="month"
             label="الشهر"
@@ -471,6 +549,13 @@ export default function HRPayrollPage() {
             rules={[{ required: true, message: 'يرجى اختيار السنة' }]}
           >
             <Select options={YEARS} placeholder="اختر السنة" />
+          </Form.Item>
+          <Form.Item
+            name="includeWorkers"
+            label="تضمين العمال"
+            valuePropName="checked"
+          >
+            <Switch checkedChildren="نعم" unCheckedChildren="لا" />
           </Form.Item>
         </Form>
       </Modal>

@@ -23,7 +23,12 @@ export default function HRDepartmentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
 
-  const { departments, isLoading, createDepartment, isCreating } = useDepartments();
+  const {
+    departments,
+    isLoading,
+    createDepartment,
+    isCreating,
+  } = useDepartments();
 
   const openCreate = () => {
     form.resetFields();
@@ -31,10 +36,14 @@ export default function HRDepartmentsPage() {
   };
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    await createDepartment(values as CreateDepartmentDto);
-    setModalOpen(false);
-    form.resetFields();
+    try {
+      const values = await form.validateFields();
+      await createDepartment(values as CreateDepartmentDto);
+      setModalOpen(false);
+      form.resetFields();
+    } catch {
+      // Form validation or API errors are surfaced by antd / the mutation toast.
+    }
   };
 
   const columns: ColumnsType<Department> = [

@@ -18,6 +18,7 @@ import { message } from 'antd';
 import { API_ENDPOINTS } from '@/config/api.config';
 import type { Worker, WorkerDto, MedicalExaminationDto, MedicalExamination } from '@/types/api.types';
 import { api } from '@/lib/api/client';
+import { MedicalExaminationService } from '@/services/medical-examination.service';
 
 const WORKERS_KEY = ['workers'];
 const MEDICAL_EXAMINATIONS_KEY = ['medical-examinations'];
@@ -392,10 +393,7 @@ export function useCreateMedicalExamination() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: MedicalExaminationDto) => {
-      const response = await api.post(API_ENDPOINTS.MEDICAL_EXAMINATION.CREATE, data);
-      return response.data;
-    },
+    mutationFn: (data: MedicalExaminationDto) => MedicalExaminationService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: WORKERS_KEY });
       queryClient.invalidateQueries({ queryKey: MEDICAL_EXAMINATIONS_KEY });
@@ -411,13 +409,7 @@ export function useCreateMedicalExamination() {
 export function useMedicalExaminations() {
   return useQuery<MedicalExamination[]>({
     queryKey: MEDICAL_EXAMINATIONS_KEY,
-    queryFn: async () => {
-      const response = await api.get(API_ENDPOINTS.MEDICAL_EXAMINATION.GET_ALL);
-      const payload = response.data;
-      if (Array.isArray(payload)) return payload as MedicalExamination[];
-      if (payload?.data && Array.isArray(payload.data)) return payload.data as MedicalExamination[];
-      return [] as MedicalExamination[];
-    },
+    queryFn: () => MedicalExaminationService.getAll({ pageNumber: 1, pageSize: 9999 }),
   });
 }
 
@@ -427,8 +419,7 @@ export function useUpdateMedicalExamination() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number | string; data: Partial<MedicalExaminationDto> }) => {
-      const response = await api.put(API_ENDPOINTS.MEDICAL_EXAMINATION.UPDATE(id), data);
-      return response.data;
+      return MedicalExaminationService.update(id, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MEDICAL_EXAMINATIONS_KEY });
@@ -445,11 +436,9 @@ export function useCheckWorkerMedicalExamination() {
   return useMutation({
     mutationFn: async (workerId: string | number) => {
       try {
-        const response = await api.get(API_ENDPOINTS.MEDICAL_EXAMINATION.CHECK_WORKER(workerId));
-        const payload = response.data;
-        if (payload?.success && payload?.data) return payload.data as MedicalExamination;
-        return null;
-      } catch {
+        return await MedicalExaminationService.checkWorker(workerId);
+      } catch (error: any) {
+        if (error.response?.status !== 404) throw error;
         return null;
       }
     },
@@ -462,8 +451,7 @@ export function useDeleteMedicalExamination() {
 
   return useMutation({
     mutationFn: async (id: number | string) => {
-      const response = await api.delete(API_ENDPOINTS.MEDICAL_EXAMINATION.DELETE(id));
-      return response.data;
+      await MedicalExaminationService.delete(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MEDICAL_EXAMINATIONS_KEY });

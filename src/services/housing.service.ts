@@ -77,6 +77,11 @@ export class HousingService {
     return this.unwrapList<HousingActiveItem>(response.data);
   }
 
+  static async getById(id: string): Promise<Housing> {
+    const response = await api.get<any>(API_ENDPOINTS.HOUSING.GET_BY_ID(id));
+    return this.unwrap<Housing>(response.data);
+  }
+
   static async create(data: HousingDto): Promise<Housing> {
     const response = await api.post<any>(API_ENDPOINTS.HOUSING.CREATE, {
       name: data.name,
@@ -91,6 +96,7 @@ export class HousingService {
 
   static async update(id: string, data: HousingDto): Promise<Housing> {
     const response = await api.put<any>(API_ENDPOINTS.HOUSING.UPDATE(id), {
+      id,
       name: data.name,
       address: data.address ?? null,
       capacity: Number(data.capacity),

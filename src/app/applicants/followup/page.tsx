@@ -263,7 +263,7 @@ export default function WorkersFollowupPage() {
     dateAddedFrom?: string;
     dateAddedTo?: string;
   }>({});
-  const [editingExamId, setEditingExamId] = useState<number | null>(null);
+  const [editingExamId, setEditingExamId] = useState<number | string | null>(null);
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
   const [examFormData, setExamFormData] = useState<{
     examDate: dayjs.Dayjs;
@@ -415,21 +415,21 @@ export default function WorkersFollowupPage() {
   };
 
   // Handlers for medical examination
-  // const handleOpenUpdateExamModal = (worker: Worker) => {
-  //   const exam = medicalExaminations.find((e) => e.workerId === worker.id);
-  //   if (!exam) return;
+  const handleOpenUpdateExamModal = (worker: Worker) => {
+    const exam = medicalExaminations.find((e) => String(e.workerId) === String(worker.id));
+    if (!exam) return;
 
-  //   setEditingExamId(exam.id);
-  //   setExamFormData({
-  //     examDate: exam.examDate ? dayjs(exam.examDate) : dayjs(),
-  //     medicalStatus: exam.medicalStatus,
-  //     notes: exam.notes || '',
-  //   });
-  //   setIsExamModalOpen(true);
-  // };
+    setEditingExamId(exam.id);
+    setExamFormData({
+      examDate: exam.examDate ? dayjs(exam.examDate) : dayjs(),
+      medicalStatus: exam.medicalStatus,
+      notes: exam.notes || '',
+    });
+    setIsExamModalOpen(true);
+  };
 
   const handleDeleteExam = (worker: Worker) => {
-    const exam = medicalExaminations.find((e) => e.workerId === worker.id);
+    const exam = medicalExaminations.find((e) => String(e.workerId) === String(worker.id));
     if (!exam) return;
 
     Modal.confirm({
@@ -472,7 +472,7 @@ export default function WorkersFollowupPage() {
 
   // Action menu for each row - only medical examination actions
   const getActionMenu = (worker: Worker): MenuProps => {
-    const exam = medicalExaminations.find((e) => e.workerId === worker.id);
+    const exam = medicalExaminations.find((e) => String(e.workerId) === String(worker.id));
 
     if (!exam) {
       return {
@@ -488,12 +488,12 @@ export default function WorkersFollowupPage() {
 
     return {
       items: [
-        // {
-        //   key: 'update',
-        //   label: t('updateMedicalExam'),
-        //   icon: <EditOutlined />,
-        //   onClick: () => handleOpenUpdateExamModal(worker),
-        // },
+        {
+          key: 'update',
+          label: t('updateMedicalExam'),
+          icon: <EditOutlined />,
+          onClick: () => handleOpenUpdateExamModal(worker),
+        },
         {
           key: 'delete',
           label: t('deleteMedicalExam'),
@@ -542,7 +542,7 @@ export default function WorkersFollowupPage() {
       key: 'medicalExamination',
       width: 120,
       render: (_, worker) => {
-        const workerExam = medicalExaminations.find((exam) => exam.workerId === worker.id);
+        const workerExam = medicalExaminations.find((exam) => String(exam.workerId) === String(worker.id));
         if (!workerExam) return '-';
         const statusMap: Record<number, { label: string; color: string }> = {
           0: { label: language === 'ar' ? 'قيد الانتظار' : 'Pending', color: 'default' },

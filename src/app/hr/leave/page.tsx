@@ -113,28 +113,36 @@ export default function HRLeavePage() {
   }, [leaveRequests, statusFilter, searchText, employeeNameById, leaveTypeNameById]);
 
   const handleCreate = async () => {
-    const values = await form.validateFields();
-    const dto: CreateLeaveRequestDto = {
-      leaveTypeId: values.leaveTypeId,
-      fromDate: values.dateRange[0].format('YYYY-MM-DD'),
-      toDate: values.dateRange[1].format('YYYY-MM-DD'),
-      reason: values.reason,
-    };
-    await createLeave(dto);
-    setCreateModalOpen(false);
-    form.resetFields();
+    try {
+      const values = await form.validateFields();
+      const dto: CreateLeaveRequestDto = {
+        leaveTypeId: values.leaveTypeId,
+        fromDate: values.dateRange[0].format('YYYY-MM-DD'),
+        toDate: values.dateRange[1].format('YYYY-MM-DD'),
+        reason: values.reason,
+      };
+      await createLeave(dto);
+      setCreateModalOpen(false);
+      form.resetFields();
+    } catch {
+      // Form validation and API failures are already shown inline or by mutation toasts.
+    }
   };
 
   const handleActionConfirm = async () => {
     if (!actionModal) return;
-    const { approvalComment } = commentForm.getFieldsValue();
-    if (actionModal.type === 'approve') {
-      await approveLeave({ requestId: actionModal.record.id, approvalComment });
-    } else {
-      await rejectLeave({ requestId: actionModal.record.id, approvalComment });
+    try {
+      const { approvalComment } = commentForm.getFieldsValue();
+      if (actionModal.type === 'approve') {
+        await approveLeave({ requestId: actionModal.record.id, approvalComment });
+      } else {
+        await rejectLeave({ requestId: actionModal.record.id, approvalComment });
+      }
+      setActionModal(null);
+      commentForm.resetFields();
+    } catch {
+      // Mutation toast already explains the failure; keep the decision modal open.
     }
-    setActionModal(null);
-    commentForm.resetFields();
   };
 
   const handleActionCancel = () => {
@@ -269,8 +277,11 @@ export default function HRLeavePage() {
       </Row>
 
       <AdvancedFilterPanel
-        activeCount={statusFilter != null ? 1 : 0}
-        onClear={() => setStatusFilter(undefined)}
+        activeCount={(statusFilter != null ? 1 : 0) + (searchText.trim() ? 1 : 0)}
+        onClear={() => {
+          setStatusFilter(undefined);
+          setSearchText('');
+        }}
         quickFilters={
           <>
             <Input

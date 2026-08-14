@@ -110,12 +110,16 @@ export default function HourlyOrderDetailPage() {
   const [statusFor, setStatusFor] = useState<{ assignmentId: string } | null>(null);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [accomOpen, setAccomOpen] = useState(false);
+  const [trackingOpen, setTrackingOpen] = useState(false);
+  const [accomStatusFor, setAccomStatusFor] = useState<{ accommodationId: string } | null>(null);
 
   const [rejectForm] = Form.useForm();
   const [noteForm] = Form.useForm();
   const [statusForm] = Form.useForm();
   const [invoiceForm] = Form.useForm();
   const [accomForm] = Form.useForm();
+  const [trackingForm] = Form.useForm();
+  const [accomStatusForm] = Form.useForm();
 
   const remaining = useMemo(
     () => (order ? Math.max(0, order.numberOfWorkers - order.assignedWorkersCount) : 0),
@@ -156,7 +160,7 @@ export default function HourlyOrderDetailPage() {
   const runAction = (a: HourlyRequestAction) => {
     switch (a) {
       case 'approve':
-        actions.approve.mutate();
+        actions.approve.mutateAsync().catch(() => {});
         break;
       case 'reject':
         rejectForm.resetFields();
@@ -166,10 +170,10 @@ export default function HourlyOrderDetailPage() {
         setAssignOpen(true);
         break;
       case 'inProgress':
-        actions.markInProgress.mutate();
+        actions.markInProgress.mutateAsync().catch(() => {});
         break;
       case 'complete':
-        actions.complete.mutate();
+        actions.complete.mutateAsync().catch(() => {});
         break;
       case 'cancel':
         Modal.confirm({
@@ -178,7 +182,7 @@ export default function HourlyOrderDetailPage() {
           okText: t('إلغاء الطلب', 'Cancel Order'),
           okButtonProps: { danger: true },
           cancelText: t('رجوع', 'Back'),
-          onOk: () => actions.cancel.mutateAsync(),
+          onOk: () => actions.cancel.mutateAsync().catch(() => {}),
         });
         break;
     }
@@ -359,7 +363,7 @@ export default function HourlyOrderDetailPage() {
                 </Tooltip>
                 <Popconfirm title={t('إلغاء تعيين العامل؟', 'Unassign worker?')} okText={t('نعم', 'Yes')} cancelText={t('لا', 'No')}
                   okButtonProps={{ danger: true, loading: actions.unassign.isPending }}
-                  onConfirm={() => actions.unassign.mutate(r.id)}>
+                  onConfirm={() => actions.unassign.mutateAsync(r.id).catch(() => {})}>
                   <Tooltip title={t('إلغاء التعيين', 'Unassign')}>
                     <Button size="small" type="text" danger icon={<DeleteOutlined />} />
                   </Tooltip>
@@ -510,6 +514,20 @@ export default function HourlyOrderDetailPage() {
           </Descriptions.Item>
           <Descriptions.Item label={t('ملاحظات', 'Notes')}>{accom.notes || '—'}</Descriptions.Item>
         </Descriptions>
+        {perms.canManageOrders && !isTerminalStatus(order.status) && (
+          <div style={{ marginTop: 12, textAlign: isAr ? 'left' : 'right' }}>
+            <Button
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => {
+                accomStatusForm.setFieldsValue({ status: accom.status, notes: accom.notes });
+                setAccomStatusFor({ accommodationId: accom.id });
+              }}
+            >
+              {t('تحديث الحالة', 'Update Status')}
+            </Button>
+          </div>
+        )}
       </Card>
     );
   };
@@ -517,25 +535,50 @@ export default function HourlyOrderDetailPage() {
   // ── Tab: Tracking ─────────────────────────────────────────────────────────
   const TrackingTab = () => {
     const { data: tr, isLoading: l } = useOrderTracking(id);
+    const trackingAction = perms.canManageOrders && !isTerminalStatus(order.status) ? (
+      <div style={{ marginBottom: 12, textAlign: isAr ? 'left' : 'right' }}>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => {
+            trackingForm.resetFields();
+            trackingForm.setFieldsValue({ eventType: 0, subjectType: 0, trackingSource: 2 });
+            setTrackingOpen(true);
+          }}
+        >
+          {t('إضافة تتبع', 'Add Tracking')}
+        </Button>
+      </div>
+    ) : null;
     if (l) return <Spin />;
-    if (!tr || tr.length === 0) return <Empty description={t('لا يوجد تتبع', 'No tracking data')} />;
+    if (!tr || tr.length === 0) {
+      return (
+        <>
+          {trackingAction}
+          <Empty description={t('لا يوجد تتبع', 'No tracking data')} />
+        </>
+      );
+    }
     return (
-      <Timeline
-        items={tr.map((e) => ({
-          dot: <AimOutlined />,
-          children: (
-            <div>
-              <div style={{ fontWeight: 600 }}>{e.notes || `Event ${e.eventType}`}</div>
-              {(e.latitude || e.longitude) && (
-                <div style={{ fontSize: 12.5, color: '#6b7280' }}>
-                  {e.latitude}, {e.longitude}
-                </div>
-              )}
-              {e.recordedAt && <div style={{ fontSize: 12, color: '#9ca3af' }}>{dayjs(e.recordedAt).format('YYYY-MM-DD HH:mm')}</div>}
-            </div>
-          ),
-        }))}
-      />
+      <>
+        {trackingAction}
+        <Timeline
+          items={tr.map((e) => ({
+            dot: <AimOutlined />,
+            children: (
+              <div>
+                <div style={{ fontWeight: 600 }}>{e.notes || `Event ${e.eventType}`}</div>
+                {(e.latitude || e.longitude) && (
+                  <div style={{ fontSize: 12.5, color: '#6b7280' }}>
+                    {e.latitude}, {e.longitude}
+                  </div>
+                )}
+                {e.recordedAt && <div style={{ fontSize: 12, color: '#9ca3af' }}>{dayjs(e.recordedAt).format('YYYY-MM-DD HH:mm')}</div>}
+              </div>
+            ),
+          }))}
+        />
+      </>
     );
   };
 
@@ -593,8 +636,12 @@ export default function HourlyOrderDetailPage() {
         loading={actions.assignWorkers.isPending}
         onClose={() => setAssignOpen(false)}
         onAssign={async (ids) => {
-          await actions.assignWorkers.mutateAsync(ids);
-          setAssignOpen(false);
+          try {
+            await actions.assignWorkers.mutateAsync(ids);
+            setAssignOpen(false);
+          } catch {
+            // Mutation hooks surface API errors. Keep the modal open for correction.
+          }
         }}
       />
 
@@ -605,8 +652,12 @@ export default function HourlyOrderDetailPage() {
         loading={actions.assignDriver.isPending}
         onClose={() => setDriverOpen(false)}
         onAssign={async (driverId) => {
-          await actions.assignDriver.mutateAsync({ driverId });
-          setDriverOpen(false);
+          try {
+            await actions.assignDriver.mutateAsync({ driverId });
+            setDriverOpen(false);
+          } catch {
+            // Mutation hooks surface API errors. Keep the modal open for correction.
+          }
         }}
       />
 
@@ -616,9 +667,13 @@ export default function HourlyOrderDetailPage() {
         open={rejectOpen}
         onCancel={() => setRejectOpen(false)}
         onOk={async () => {
-          const v = await rejectForm.validateFields();
-          await actions.reject.mutateAsync(v.notes?.trim() || undefined);
-          setRejectOpen(false);
+          try {
+            const v = await rejectForm.validateFields();
+            await actions.reject.mutateAsync(v.notes?.trim() || undefined);
+            setRejectOpen(false);
+          } catch {
+            // Mutation hooks surface API errors. Keep the modal open for correction.
+          }
         }}
         okText={t('رفض', 'Reject')}
         okButtonProps={{ danger: true, loading: actions.reject.isPending }}
@@ -638,9 +693,13 @@ export default function HourlyOrderDetailPage() {
         open={noteOpen}
         onCancel={() => setNoteOpen(false)}
         onOk={async () => {
-          const v = await noteForm.validateFields();
-          await actions.addInternalNote.mutateAsync({ note: v.note.trim() });
-          setNoteOpen(false);
+          try {
+            const v = await noteForm.validateFields();
+            await actions.addInternalNote.mutateAsync({ note: v.note.trim() });
+            setNoteOpen(false);
+          } catch {
+            // Mutation hooks surface API errors. Keep the modal open for correction.
+          }
         }}
         okText={t('حفظ', 'Save')}
         okButtonProps={{ loading: actions.addInternalNote.isPending }}
@@ -660,12 +719,16 @@ export default function HourlyOrderDetailPage() {
         open={!!statusFor}
         onCancel={() => setStatusFor(null)}
         onOk={async () => {
-          const v = await statusForm.validateFields();
-          await actions.updateAssignmentStatus.mutateAsync({
-            assignmentId: statusFor!.assignmentId,
-            data: { status: v.status, notes: v.notes?.trim() || undefined },
-          });
-          setStatusFor(null);
+          try {
+            const v = await statusForm.validateFields();
+            await actions.updateAssignmentStatus.mutateAsync({
+              assignmentId: statusFor!.assignmentId,
+              data: { status: v.status, notes: v.notes?.trim() || undefined },
+            });
+            setStatusFor(null);
+          } catch {
+            // Mutation hooks surface API errors. Keep the modal open for correction.
+          }
         }}
         okText={t('حفظ', 'Save')}
         okButtonProps={{ loading: actions.updateAssignmentStatus.isPending }}
@@ -693,12 +756,16 @@ export default function HourlyOrderDetailPage() {
         open={invoiceOpen}
         onCancel={() => setInvoiceOpen(false)}
         onOk={async () => {
-          const v = await invoiceForm.validateFields();
-          await actions.issueInvoice.mutateAsync({
-            dueDate: v.dueDate ? (v.dueDate as Dayjs).format('YYYY-MM-DD') : undefined,
-            notes: v.notes?.trim() || undefined,
-          });
-          setInvoiceOpen(false);
+          try {
+            const v = await invoiceForm.validateFields();
+            await actions.issueInvoice.mutateAsync({
+              dueDate: v.dueDate ? (v.dueDate as Dayjs).format('YYYY-MM-DD') : undefined,
+              notes: v.notes?.trim() || undefined,
+            });
+            setInvoiceOpen(false);
+          } catch {
+            // Mutation hooks surface API errors. Keep the modal open for correction.
+          }
         }}
         okText={t('إصدار', 'Issue')}
         okButtonProps={{ loading: actions.issueInvoice.isPending }}
@@ -721,15 +788,19 @@ export default function HourlyOrderDetailPage() {
         open={accomOpen}
         onCancel={() => setAccomOpen(false)}
         onOk={async () => {
-          const v = await accomForm.validateFields();
-          await actions.bookAccommodation.mutateAsync({
-            checkInDate: (v.checkInDate as Dayjs).format('YYYY-MM-DD'),
-            checkOutDate: (v.checkOutDate as Dayjs).format('YYYY-MM-DD'),
-            numberOfWorkers: v.numberOfWorkers,
-            cost: v.cost,
-            notes: v.notes?.trim() || undefined,
-          });
-          setAccomOpen(false);
+          try {
+            const v = await accomForm.validateFields();
+            await actions.bookAccommodation.mutateAsync({
+              checkInDate: (v.checkInDate as Dayjs).format('YYYY-MM-DD'),
+              checkOutDate: (v.checkOutDate as Dayjs).format('YYYY-MM-DD'),
+              numberOfWorkers: v.numberOfWorkers,
+              cost: v.cost,
+              notes: v.notes?.trim() || undefined,
+            });
+            setAccomOpen(false);
+          } catch {
+            // Mutation hooks surface API errors. Keep the modal open for correction.
+          }
         }}
         okText={t('حجز', 'Book')}
         okButtonProps={{ loading: actions.bookAccommodation.isPending }}
@@ -748,6 +819,124 @@ export default function HourlyOrderDetailPage() {
           </Form.Item>
           <Form.Item name="cost" label={t('التكلفة', 'Cost')} rules={[{ required: true, message: t('مطلوب', 'Required') }]}>
             <InputNumber min={0} precision={2} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="notes" label={t('ملاحظات (اختياري)', 'Notes (optional)')}>
+            <Input.TextArea rows={2} maxLength={500} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Record tracking modal */}
+      <Modal
+        title={t('إضافة تتبع', 'Add Tracking')}
+        open={trackingOpen}
+        onCancel={() => setTrackingOpen(false)}
+        onOk={async () => {
+          try {
+            const v = await trackingForm.validateFields();
+            await actions.recordTracking.mutateAsync({
+              eventType: v.eventType,
+              subjectType: v.subjectType,
+              subjectId: v.subjectId?.trim() || undefined,
+              latitude: v.latitude ?? undefined,
+              longitude: v.longitude ?? undefined,
+              notes: v.notes?.trim() || undefined,
+              device: v.device?.trim() || undefined,
+              trackingSource: v.trackingSource,
+            });
+            setTrackingOpen(false);
+          } catch {
+            // Mutation hooks surface API errors. Keep the modal open for correction.
+          }
+        }}
+        okText={t('حفظ', 'Save')}
+        okButtonProps={{ loading: actions.recordTracking.isPending }}
+        cancelText={t('إلغاء', 'Cancel')}
+        destroyOnHidden
+      >
+        <Form form={trackingForm} layout="vertical">
+          <Form.Item name="eventType" label={t('نوع الحدث', 'Event Type')} rules={[{ required: true, message: t('مطلوب', 'Required') }]}>
+            <Select
+              options={[
+                { value: 0, label: t('حدث عام', 'General Event') },
+                { value: 1, label: t('تعيين سائق', 'Driver Assigned') },
+                { value: 2, label: t('تعيين عامل', 'Worker Assigned') },
+                { value: 3, label: t('السائق في الطريق', 'Driver En Route') },
+                { value: 4, label: t('السائق وصل', 'Driver Arrived') },
+                { value: 5, label: t('العامل في الطريق', 'Worker En Route') },
+                { value: 6, label: t('العامل وصل', 'Worker Arrived') },
+                { value: 7, label: t('بدء الخدمة', 'Service Started') },
+                { value: 8, label: t('اكتمال الخدمة', 'Service Completed') },
+                { value: 9, label: t('اكتمل الطلب', 'Order Completed') },
+                { value: 10, label: t('إلغاء الطلب', 'Order Cancelled') },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="subjectType" label={t('الكيان', 'Subject')} rules={[{ required: true, message: t('مطلوب', 'Required') }]}>
+            <Select
+              options={[
+                { value: 0, label: t('الطلب', 'Order') },
+                { value: 1, label: t('عامل', 'Worker') },
+                { value: 2, label: t('سائق', 'Driver') },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="subjectId" label={t('معرف الكيان (اختياري)', 'Subject ID (optional)')}>
+            <Input />
+          </Form.Item>
+          <Space style={{ display: 'flex' }} size={12}>
+            <Form.Item name="latitude" label={t('خط العرض', 'Latitude')} style={{ flex: 1 }}>
+              <InputNumber step={0.0001} style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item name="longitude" label={t('خط الطول', 'Longitude')} style={{ flex: 1 }}>
+              <InputNumber step={0.0001} style={{ width: '100%' }} />
+            </Form.Item>
+          </Space>
+          <Form.Item name="device" label={t('الجهاز (اختياري)', 'Device (optional)')}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="trackingSource" hidden>
+            <InputNumber />
+          </Form.Item>
+          <Form.Item name="notes" label={t('ملاحظات (اختياري)', 'Notes (optional)')}>
+            <Input.TextArea rows={2} maxLength={500} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Accommodation status modal */}
+      <Modal
+        title={t('تحديث حالة السكن', 'Update Accommodation Status')}
+        open={!!accomStatusFor}
+        onCancel={() => setAccomStatusFor(null)}
+        onOk={async () => {
+          try {
+            const v = await accomStatusForm.validateFields();
+            await actions.updateAccommodationStatus.mutateAsync({
+              accommodationId: accomStatusFor!.accommodationId,
+              data: {
+                status: v.status,
+                notes: v.notes?.trim() || undefined,
+              },
+            });
+            setAccomStatusFor(null);
+          } catch {
+            // Mutation hooks surface API errors. Keep the modal open for correction.
+          }
+        }}
+        okText={t('حفظ', 'Save')}
+        okButtonProps={{ loading: actions.updateAccommodationStatus.isPending }}
+        cancelText={t('إلغاء', 'Cancel')}
+        destroyOnHidden
+      >
+        <Form form={accomStatusForm} layout="vertical">
+          <Form.Item name="status" label={t('الحالة', 'Status')} rules={[{ required: true, message: t('مطلوب', 'Required') }]}>
+            <Select
+              options={Object.entries(ACCOMMODATION_STATUS).map(([val, def]) => ({
+                value: Number(val),
+                label: isAr ? def.ar : def.en,
+              }))}
+            />
           </Form.Item>
           <Form.Item name="notes" label={t('ملاحظات (اختياري)', 'Notes (optional)')}>
             <Input.TextArea rows={2} maxLength={500} />

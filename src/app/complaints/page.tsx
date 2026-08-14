@@ -33,10 +33,7 @@ import {
   ClockCircleOutlined,
   FileTextOutlined,
   PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
   MoreOutlined,
-  ExclamationCircleOutlined,
   WarningOutlined,
   PauseCircleOutlined,
   FileAddOutlined,
@@ -46,9 +43,9 @@ import {
 import {
   useComplaints,
   useCreateComplaint,
-  useDeleteComplaint,
   useFinishComplaint,
   useToggleHoldComplaint,
+  useAddComplaintUpdate,
   useAddIssue,
   useComplaintIssues,
 } from '@/hooks/api/useComplaints';
@@ -524,14 +521,13 @@ export default function ComplaintsPage() {
   const { data: workers = [] } = useWorkers();
   const { contracts = [] } = useEmploymentOperatingContracts();
   const createMutation = useCreateComplaint();
-  const deleteMutation = useDeleteComplaint();
   const finishMutation = useFinishComplaint();
   const toggleHoldMutation = useToggleHoldComplaint();
+  const addUpdateMutation = useAddComplaintUpdate();
   const addIssueMutation = useAddIssue();
 
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingComplaint, setEditingComplaint] = useState<Complaint | null>(null);
   const [form] = Form.useForm();
 
   // Finish modal state
@@ -543,6 +539,11 @@ export default function ComplaintsPage() {
   const [isIssueModalVisible, setIsIssueModalVisible] = useState(false);
   const [issueComplaint, setIssueComplaint] = useState<Complaint | null>(null);
   const [issueForm] = Form.useForm();
+
+  // Add Update modal state
+  const [isUpdateModalVisible, setIsUpdateModalVisible] = useState(false);
+  const [updatingComplaint, setUpdatingComplaint] = useState<Complaint | null>(null);
+  const [updateForm] = Form.useForm();
 
   // View Details modal state
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
@@ -883,37 +884,8 @@ export default function ComplaintsPage() {
 
   // Modal handlers
   const handleAdd = () => {
-    setEditingComplaint(null);
     form.resetFields();
     setIsModalVisible(true);
-  };
-
-  const handleEdit = (complaint: Complaint) => {
-    setEditingComplaint(complaint);
-    form.setFieldsValue({
-      source: complaint.source,
-      priority: complaint.priority,
-      customerId: complaint.customerId,
-      workerId: complaint.workerId,
-      workerLocation: complaint.workerLocation,
-      relatedContractType: complaint.relatedContractType,
-      relatedContractId: complaint.relatedContractId,
-      notesAr: complaint.notesAr,
-      notesEn: complaint.notesEn,
-    });
-    setIsModalVisible(true);
-  };
-
-  const handleDelete = (complaint: Complaint) => {
-    Modal.confirm({
-      title: t('deleteTitle'),
-      icon: <ExclamationCircleOutlined />,
-      content: t('confirmDelete'),
-      okText: t('delete'),
-      cancelText: t('cancel'),
-      okButtonProps: { danger: true },
-      onOk: () => deleteMutation.mutate(complaint.id),
-    });
   };
 
   const handleModalSubmit = async () => {
@@ -927,7 +899,6 @@ export default function ComplaintsPage() {
           setCurrentPage(1);
           setIsModalVisible(false);
           form.resetFields();
-          setEditingComplaint(null);
         },
       });
     } catch (error) {
@@ -938,7 +909,6 @@ export default function ComplaintsPage() {
   const handleModalCancel = () => {
     setIsModalVisible(false);
     form.resetFields();
-    setEditingComplaint(null);
   };
 
   // Finish complaint handlers
@@ -1008,6 +978,36 @@ export default function ComplaintsPage() {
     });
   };
 
+  const handleAddUpdate = (complaint: Complaint) => {
+    setUpdatingComplaint(complaint);
+    updateForm.resetFields();
+    setIsUpdateModalVisible(true);
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (!updatingComplaint) return;
+
+    try {
+      const values = await updateForm.validateFields();
+      addUpdateMutation.mutate(
+        {
+          complaintId: updatingComplaint.id,
+          noteAr: values.noteAr || null,
+          noteEn: values.noteEn || null,
+        },
+        {
+          onSuccess: () => {
+            setIsUpdateModalVisible(false);
+            setUpdatingComplaint(null);
+            updateForm.resetFields();
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Validation failed:', error);
+    }
+  };
+
   // Add Issue handlers
   const handleAddIssue = (complaint: Complaint) => {
     setIssueComplaint(complaint);
@@ -1024,6 +1024,15 @@ export default function ComplaintsPage() {
       const file1: File | undefined = values.attachmentFile?.[0]?.originFileObj;
       const file2: File | undefined = values.attachmentFile2?.[0]?.originFileObj;
 
+      if (file1 || file2) {
+        message.warning(
+          isArabic
+            ? 'رفع مرفقات القضايا غير متاح حالياً. احفظ القضية بدون مرفقات.'
+            : 'Issue attachment upload is currently unavailable. Save the issue without attachments.'
+        );
+        return;
+      }
+
       const dto: AddIssueDto = {
         complaintId: issueComplaint.id,
         incomingNumber: values.incomingNumber || null,
@@ -1031,8 +1040,8 @@ export default function ComplaintsPage() {
         transactionDate: values.transactionDate
           ? values.transactionDate.format('YYYY-MM-DDTHH:mm:ss.SSS[Z]')
           : null,
-        file1: file1 ?? null,
-        file2: file2 ?? null,
+        file1: null,
+        file2: null,
       };
       addIssueMutation.mutate(dto, {
         onSuccess: () => {
@@ -1071,10 +1080,10 @@ export default function ComplaintsPage() {
       items.push(
         { type: 'divider' as const },
         {
-          key: 'edit',
-          label: t('edit'),
-          icon: <EditOutlined />,
-          onClick: () => handleEdit(complaint),
+          key: 'addUpdate',
+          label: isArabic ? 'إضافة تحديث' : 'Add Update',
+          icon: <MessageOutlined />,
+          onClick: () => handleAddUpdate(complaint),
         },
         {
           key: 'finish',
@@ -1098,17 +1107,6 @@ export default function ComplaintsPage() {
         onClick: () => handleAddIssue(complaint),
       });
     }
-
-    items.push(
-      { type: 'divider' as const },
-      {
-        key: 'delete',
-        label: t('delete'),
-        icon: <DeleteOutlined />,
-        danger: true,
-        onClick: () => handleDelete(complaint),
-      }
-    );
 
     return { items };
   };
@@ -1589,9 +1587,9 @@ export default function ComplaintsPage() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
+      {/* Add Complaint Modal */}
       <Modal
-        title={editingComplaint ? t('editComplaint') : t('addComplaint')}
+        title={t('addComplaint')}
         open={isModalVisible}
         onOk={handleModalSubmit}
         onCancel={handleModalCancel}
@@ -1638,6 +1636,53 @@ export default function ComplaintsPage() {
             </p>
           </div>
         )}
+      </Modal>
+
+      {/* Add Complaint Update Modal */}
+      <Modal
+        title={
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#003366' }}>
+            <MessageOutlined /> {isArabic ? 'إضافة تحديث' : 'Add Update'}
+          </span>
+        }
+        open={isUpdateModalVisible}
+        onOk={handleUpdateSubmit}
+        onCancel={() => {
+          setIsUpdateModalVisible(false);
+          setUpdatingComplaint(null);
+          updateForm.resetFields();
+        }}
+        okText={t('save')}
+        cancelText={t('cancel')}
+        confirmLoading={addUpdateMutation.isPending}
+        width={560}
+        destroyOnHidden
+      >
+        {updatingComplaint && (
+          <div style={{ marginBottom: 16, padding: 12, background: '#f5f7fa', borderRadius: 8 }}>
+            <strong>#{getComplaintDisplayNumber(updatingComplaint)}</strong>{' '}
+            {getResolvedCustomerName(updatingComplaint) || getResolvedWorkerName(updatingComplaint)}
+          </div>
+        )}
+        <Form form={updateForm} layout="vertical">
+          <Form.Item
+            name="noteAr"
+            label={t('notesAr')}
+            rules={[
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (value || getFieldValue('noteEn')) return Promise.resolve();
+                  return Promise.reject(new Error(isArabic ? 'مطلوب' : 'Required'));
+                },
+              }),
+            ]}
+          >
+            <TextArea rows={3} placeholder={t('notesAr')} />
+          </Form.Item>
+          <Form.Item name="noteEn" label={t('notesEn')}>
+            <TextArea rows={3} placeholder={t('notesEn')} />
+          </Form.Item>
+        </Form>
       </Modal>
 
       {/* Add Issue Modal */}

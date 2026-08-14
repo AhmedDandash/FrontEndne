@@ -18,6 +18,7 @@ import type { RentContract } from './types';
 import { resolveImageUrl } from '@/utils/image';
 import SignaturePad from '@/components/common/SignaturePad';
 import {
+  clearStoredWorkerDeliveryRecordId,
   getStoredWorkerDeliveryRecordId,
   useWorkerDeliveryRecord,
   useCreateWorkerDeliveryRecord,
@@ -61,6 +62,9 @@ export default function WorkerDeliveryRecordModal({ open, isRtl, contract, onClo
     signatureDropped: isRtl
       ? 'تم حفظ الإيصال لكن تعذّر إرفاق التوقيع (مشكلة في الخادم). حاول توقيعًا أصغر أو أعد المحاولة لاحقًا.'
       : 'The receipt was saved, but the signature could not be attached (a server issue). Try a smaller signature or retry later.',
+    staleRecord: isRtl
+      ? 'تعذر العثور على الإيصال المحفوظ محليًا. يمكنك إنشاء إيصال جديد.'
+      : 'The locally remembered receipt was not found. You can create a new receipt.',
   };
 
   const hasWorker = !!contract?.workerId;
@@ -74,10 +78,24 @@ export default function WorkerDeliveryRecordModal({ open, isRtl, contract, onClo
     setRecordId(getStoredWorkerDeliveryRecordId(contract.id));
   }, [open, contract?.id]);
 
-  const { data: existingRecord, isLoading: isLoadingRecord } = useWorkerDeliveryRecord(recordId);
+  const {
+    data: existingRecord,
+    isLoading: isLoadingRecord,
+    error: recordError,
+  } = useWorkerDeliveryRecord(recordId);
   const createMutation = useCreateWorkerDeliveryRecord();
   const updateMutation = useUpdateWorkerDeliveryRecord();
   const printMutation = usePrintWorkerDeliveryRecord();
+
+  useEffect(() => {
+    const status = (recordError as { response?: { status?: number } } | undefined)?.response?.status;
+    if (!open || !contract?.id || !recordId || status !== 404) return;
+    clearStoredWorkerDeliveryRecordId(contract.id);
+    setRecordId(null);
+    form.resetFields();
+    setSignature(null);
+    message.warning(t.staleRecord);
+  }, [open, contract?.id, recordId, recordError, form, t.staleRecord]);
 
   // Hydrate the form once an existing record loads.
   useEffect(() => {

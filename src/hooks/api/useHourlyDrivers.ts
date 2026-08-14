@@ -12,6 +12,7 @@ import type {
   HourlyDriverListParams,
   CreateHourlyDriverDto,
   UpdateHourlyDriverDto,
+  UpdateDriverTransportStatusDto,
 } from '@/types/hourly-worker.types';
 
 const DRIVERS_KEY = ['hourly-drivers'];
@@ -29,6 +30,14 @@ export function useHourlyDriver(id: string | undefined) {
     queryKey: [...DRIVERS_KEY, id],
     queryFn: () => HourlyDriverService.getById(id!),
     enabled: !!id,
+  });
+}
+
+export function useHourlyDriverOrders(driverId: string | undefined) {
+  return useQuery({
+    queryKey: [...DRIVERS_KEY, driverId, 'orders'],
+    queryFn: () => HourlyDriverService.getOrders(driverId!),
+    enabled: !!driverId,
   });
 }
 
@@ -83,5 +92,24 @@ export function useHourlyDriverMutations() {
     onError: (err) => message.error(getApiErrorMessage(err, 'فشل إلغاء التفعيل / Failed to deactivate')),
   });
 
-  return { create, update, remove, activate, deactivate };
+  const updateTransportStatus = useMutation({
+    mutationFn: ({
+      driverId,
+      orderId,
+      data,
+    }: {
+      driverId: string;
+      orderId: string;
+      data: UpdateDriverTransportStatusDto;
+    }) => HourlyDriverService.updateTransportStatus(driverId, orderId, data),
+    onSuccess: (_data, vars) => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: [...DRIVERS_KEY, vars.driverId, 'orders'] });
+      message.success('تم تحديث حالة النقل / Transport status updated');
+    },
+    onError: (err) =>
+      message.error(getApiErrorMessage(err, 'فشل تحديث حالة النقل / Failed to update transport status')),
+  });
+
+  return { create, update, remove, activate, deactivate, updateTransportStatus };
 }

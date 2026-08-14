@@ -45,32 +45,36 @@ export default function PermissionRequestPage() {
   };
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
+    try {
+      const values = await form.validateFields();
 
-    const dto: CreatePermissionRequestDto = {
-      createdTo: values.createdTo,
-      permissionDate: values.permissionDate.toISOString(),
-      permissionType: values.permissionType as PermissionType,
-      permissionNature: values.permissionNature as PermissionNature,
-      comeLateTime: values.permissionType === 1 && values.comeLateTime
-        ? values.comeLateTime.format('HH:mm')
-        : null,
-      partTimeStart: values.permissionType === 2 && values.partTimeStart
-        ? values.partTimeStart.format('HH:mm')
-        : null,
-      partTimeFinish: values.permissionType === 2 && values.partTimeFinish
-        ? values.partTimeFinish.format('HH:mm')
-        : null,
-      outEarlyTime: values.permissionType === 3 && values.outEarlyTime
-        ? values.outEarlyTime.format('HH:mm')
-        : null,
-      reasons: values.reasons,
-    };
+      const dto: CreatePermissionRequestDto = {
+        createdTo: values.createdTo,
+        permissionDate: values.permissionDate.toISOString(),
+        permissionType: values.permissionType as PermissionType,
+        permissionNature: values.permissionNature as PermissionNature,
+        comeLateTime: values.permissionType === 1 && values.comeLateTime
+          ? values.comeLateTime.format('HH:mm')
+          : null,
+        partTimeStart: values.permissionType === 2 && values.partTimeStart
+          ? values.partTimeStart.format('HH:mm')
+          : null,
+        partTimeFinish: values.permissionType === 2 && values.partTimeFinish
+          ? values.partTimeFinish.format('HH:mm')
+          : null,
+        outEarlyTime: values.permissionType === 3 && values.outEarlyTime
+          ? values.outEarlyTime.format('HH:mm')
+          : null,
+        reasons: values.reasons,
+      };
 
-    await createPermissionRequest(dto);
-    form.resetFields();
-    setSelectedEmployee(null);
-    setPermissionType(3);
+      await createPermissionRequest(dto);
+      form.resetFields();
+      setSelectedEmployee(null);
+      setPermissionType(3);
+    } catch {
+      // Mutation hooks surface the API error. Keep the form values for retry.
+    }
   };
 
   return (

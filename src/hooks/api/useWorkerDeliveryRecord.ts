@@ -10,7 +10,7 @@
  * be more robust later.
  */
 
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { WorkerDeliveryRecordService } from '@/services/worker-delivery-record.service';
 import { getApiErrorMessage } from '@/utils/api-error';
@@ -45,6 +45,15 @@ function storeWorkerDeliveryRecordId(contractId: string, recordId: string): void
   }
 }
 
+function removeStoredWorkerDeliveryRecordId(contractId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(storageKey(contractId));
+  } catch {
+    // localStorage unavailable — non-fatal.
+  }
+}
+
 /** GET /api/WorkerDeliveryRecord/{id} — enabled only once a local id is known. */
 export function useWorkerDeliveryRecord(id: string | null | undefined) {
   return useQuery({
@@ -55,12 +64,14 @@ export function useWorkerDeliveryRecord(id: string | null | undefined) {
 }
 
 export function useCreateWorkerDeliveryRecord() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateWorkerDeliveryRecordDto) =>
       WorkerDeliveryRecordService.create(data),
     onSuccess: (created) => {
       if (created?.id && created.operationContractId) {
         storeWorkerDeliveryRecordId(created.operationContractId, created.id);
+        queryClient.setQueryData([QUERY_KEY, created.id], created);
       }
       message.success('تم حفظ إيصال الاستلام / Handover receipt saved');
     },
@@ -70,10 +81,12 @@ export function useCreateWorkerDeliveryRecord() {
 }
 
 export function useUpdateWorkerDeliveryRecord() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateWorkerDeliveryRecordDto }) =>
       WorkerDeliveryRecordService.update(id, data),
-    onSuccess: () => {
+    onSuccess: (updated, vars) => {
+      queryClient.setQueryData([QUERY_KEY, vars.id], updated);
       message.success('تم تحديث إيصال الاستلام / Handover receipt updated');
     },
     onError: (error) =>
@@ -81,6 +94,10 @@ export function useUpdateWorkerDeliveryRecord() {
         getApiErrorMessage(error, 'فشل تحديث إيصال الاستلام / Failed to update receipt')
       ),
   });
+}
+
+export function clearStoredWorkerDeliveryRecordId(contractId: string): void {
+  removeStoredWorkerDeliveryRecordId(contractId);
 }
 
 export function usePrintWorkerDeliveryRecord() {

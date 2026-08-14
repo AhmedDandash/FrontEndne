@@ -16,54 +16,110 @@ import type { MedicalExamination, MedicalExaminationDto } from '@/types/api.type
 export interface MedicalExaminationQuery {
   workerId?: number | string;
   workerSearch?: string;
+  workerSearchMatch?: number;
+  notes?: string;
+  notesMatch?: number;
   medicalStatus?: number;
   fromDate?: string;
   toDate?: string;
+  branchId?: string;
+  includeSubBranches?: boolean;
+  search?: string;
+  createdDateFrom?: string;
+  createdDateTo?: string;
+  updatedDateFrom?: string;
+  updatedDateTo?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
   pageNumber?: number;
   pageSize?: number;
 }
 
 export class MedicalExaminationService {
+  private static unwrap<T>(payload: any): T {
+    return (payload?.data?.value ?? payload?.value ?? payload?.data ?? payload) as T;
+  }
+
+  private static unwrapList<T>(payload: any): T[] {
+    const candidates = [
+      payload,
+      payload?.data,
+      payload?.data?.value,
+      payload?.value,
+      payload?.result,
+      payload?.data?.result,
+      payload?.items,
+      payload?.data?.items,
+      payload?.value?.items,
+      payload?.records,
+      payload?.data?.records,
+    ];
+
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) return candidate as T[];
+      if (Array.isArray(candidate?.$values)) return candidate.$values as T[];
+    }
+
+    return [];
+  }
+
   /**
    * GET /api/V1/MedicalExamination
    */
   static async getAll(params?: MedicalExaminationQuery): Promise<MedicalExamination[]> {
-    const clean = params
-      ? Object.fromEntries(
-          Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
-        )
+    const query = params
+      ? {
+          WorkerId: params.workerId,
+          WorkerSearch: params.workerSearch,
+          WorkerSearchMatch: params.workerSearchMatch,
+          Notes: params.notes,
+          NotesMatch: params.notesMatch,
+          MedicalStatus: params.medicalStatus,
+          FromDate: params.fromDate,
+          ToDate: params.toDate,
+          BranchId: params.branchId,
+          IncludeSubBranches: params.includeSubBranches,
+          Search: params.search,
+          CreatedDateFrom: params.createdDateFrom,
+          CreatedDateTo: params.createdDateTo,
+          UpdatedDateFrom: params.updatedDateFrom,
+          UpdatedDateTo: params.updatedDateTo,
+          PageNumber: params.pageNumber,
+          PageSize: params.pageSize,
+          SortBy: params.sortBy,
+          SortDescending: params.sortDescending,
+        }
+      : undefined;
+    const clean = query
+      ? Object.fromEntries(Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== ''))
       : undefined;
     const response = await api.get<any>(API_ENDPOINTS.MEDICAL_EXAMINATION.GET_ALL, {
       params: clean,
     });
 
-    if (Array.isArray(response.data)) return response.data;
-    if (response.data?.data && Array.isArray(response.data.data)) return response.data.data;
-    if (response.data?.result && Array.isArray(response.data.result)) return response.data.result;
-    if (response.data?.items && Array.isArray(response.data.items)) return response.data.items;
-    return [];
+    return this.unwrapList<MedicalExamination>(response.data);
   }
 
   /**
    * GET /api/V1/MedicalExamination/{id}
    */
   static async getById(id: number | string): Promise<MedicalExamination> {
-    const response = await api.get<MedicalExamination>(
+    const response = await api.get<any>(
       API_ENDPOINTS.MEDICAL_EXAMINATION.GET_BY_ID(id)
     );
-    return response.data;
+    return this.unwrap<MedicalExamination>(response.data);
   }
 
   /**
    * POST /api/V1/MedicalExamination
    * Body: { workerId (uuid), examDate, medicalStatus, notes }
    */
-  static async create(data: MedicalExaminationDto): Promise<MedicalExamination> {
-    const response = await api.post<MedicalExamination>(
+  static async create(data: MedicalExaminationDto): Promise<MedicalExamination | string> {
+    const response = await api.post<any>(
       API_ENDPOINTS.MEDICAL_EXAMINATION.CREATE,
       data
     );
-    return response.data;
+    return this.unwrap<MedicalExamination | string>(response.data);
   }
 
   /**
@@ -72,12 +128,12 @@ export class MedicalExaminationService {
   static async update(
     id: number | string,
     data: Partial<MedicalExaminationDto>
-  ): Promise<MedicalExamination> {
-    const response = await api.put<MedicalExamination>(
+  ): Promise<MedicalExamination | string> {
+    const response = await api.put<any>(
       API_ENDPOINTS.MEDICAL_EXAMINATION.UPDATE(id),
       data
     );
-    return response.data;
+    return this.unwrap<MedicalExamination | string>(response.data);
   }
 
   /**
@@ -88,11 +144,21 @@ export class MedicalExaminationService {
   }
 
   /**
+   * GET /api/V1/MedicalExamination/check-worker/{workerId}
+   */
+  static async checkWorker(workerId: number | string): Promise<MedicalExamination> {
+    const response = await api.get<any>(
+      API_ENDPOINTS.MEDICAL_EXAMINATION.CHECK_WORKER(workerId)
+    );
+    return this.unwrap<MedicalExamination>(response.data);
+  }
+
+  /**
    * GET /api/V1/MedicalExamination/report/{id}
    * Fetches the medical report data for printing.
    */
   static async getReport(id: number | string): Promise<any> {
-    const response = await api.get(API_ENDPOINTS.MEDICAL_EXAMINATION.REPORT(id));
-    return response.data;
+    const response = await api.get<any>(API_ENDPOINTS.MEDICAL_EXAMINATION.REPORT(id));
+    return this.unwrap<any>(response.data);
   }
 }

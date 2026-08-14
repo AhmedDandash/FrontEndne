@@ -50,6 +50,7 @@ const QK = {
     ['hr-employee-balances', employeeId, leaveTypeId, year, month] as const,
   leaveTypes: ['hr-leave-types'] as const,
   payroll: (month: number, year: number) => ['hr-payroll', month, year] as const,
+  payrollHistory: (year?: number) => ['hr-payroll-history', year] as const,
 };
 
 // ─── Employee hooks ───────────────────────────────────────────────────────────
@@ -122,6 +123,14 @@ export function useHREmployees(params?: EmployeeListQuery) {
     isDeleting: deleteMutation.isPending,
     isResettingPassword: resetPasswordMutation.isPending,
   };
+}
+
+export function useHRPayrollHistory(year?: number) {
+  return useQuery({
+    queryKey: QK.payrollHistory(year),
+    queryFn: () => HRPayrollService.getHistory(year),
+    enabled: !!year,
+  });
 }
 
 export function useHREmployee(id: string) {
@@ -236,17 +245,6 @@ export function useHRLeave() {
     },
   });
 
-  const cancelMutation = useMutation({
-    mutationFn: (requestId: string) => HRLeaveService.cancel(requestId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QK.leave });
-      message.success('تم إلغاء طلب الإجازة');
-    },
-    onError: (err) => {
-      message.error(extractApiError(err, 'فشل إلغاء الإجازة'));
-    },
-  });
-
   return {
     leaveRequests: query.data ?? [],
     isLoading: query.isLoading,
@@ -254,11 +252,9 @@ export function useHRLeave() {
     createLeave: createMutation.mutateAsync,
     approveLeave: approveMutation.mutateAsync,
     rejectLeave: rejectMutation.mutateAsync,
-    cancelLeave: cancelMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isApproving: approveMutation.isPending,
     isRejecting: rejectMutation.isPending,
-    isCancelling: cancelMutation.isPending,
   };
 }
 
@@ -546,6 +542,7 @@ export function useHRPayroll(month: number, year: number) {
     mutationFn: (dto: GeneratePayrollDto) => HRPayrollService.generate(dto),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: QK.payroll(vars.month, vars.year) });
+      queryClient.invalidateQueries({ queryKey: QK.payrollHistory(vars.year) });
       message.success('تم إنشاء كشف الرواتب بنجاح');
     },
     onError: (err) => {
@@ -557,6 +554,7 @@ export function useHRPayroll(month: number, year: number) {
     mutationFn: (id: string) => HRPayrollService.approve(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.payroll(month, year) });
+      queryClient.invalidateQueries({ queryKey: QK.payrollHistory(year) });
       message.success('تم اعتماد كشف الرواتب');
     },
     onError: (err) => {
@@ -568,6 +566,7 @@ export function useHRPayroll(month: number, year: number) {
     mutationFn: (id: string) => HRPayrollService.close(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.payroll(month, year) });
+      queryClient.invalidateQueries({ queryKey: QK.payrollHistory(year) });
       message.success('تم إغلاق كشف الرواتب');
     },
     onError: (err) => {

@@ -85,23 +85,27 @@ export default function HourlyPackagesPage() {
     form.resetFields();
   };
   const handleSubmit = async () => {
-    const v = await form.validateFields();
-    const dto: CreateHourlyServicePackageDto = {
-      code: v.code.trim(),
-      nameAr: v.nameAr.trim(),
-      nameEn: v.nameEn.trim(),
-      descriptionAr: v.descriptionAr?.trim() || undefined,
-      descriptionEn: v.descriptionEn?.trim() || undefined,
-      durationHours: v.durationHours,
-      numberOfWorkers: v.numberOfWorkers,
-      basePrice: v.basePrice,
-      hourlyRate: v.hourlyRate,
-      sortOrder: v.sortOrder ?? 0,
-      isActive: v.isActive,
-    };
-    if (editing) await update.mutateAsync({ id: editing.id, data: dto });
-    else await create.mutateAsync(dto);
-    closeForm();
+    try {
+      const v = await form.validateFields();
+      const dto: CreateHourlyServicePackageDto = {
+        code: v.code.trim(),
+        nameAr: v.nameAr.trim(),
+        nameEn: v.nameEn.trim(),
+        descriptionAr: v.descriptionAr?.trim() || undefined,
+        descriptionEn: v.descriptionEn?.trim() || undefined,
+        durationHours: v.durationHours,
+        numberOfWorkers: v.numberOfWorkers,
+        basePrice: v.basePrice,
+        hourlyRate: v.hourlyRate,
+        sortOrder: v.sortOrder ?? 0,
+        isActive: v.isActive,
+      };
+      if (editing) await update.mutateAsync({ id: editing.id, data: dto });
+      else await create.mutateAsync(dto);
+      closeForm();
+    } catch {
+      // Mutation hooks surface API errors. Keep the drawer open for correction.
+    }
   };
 
   const columns: ColumnsType<HourlyServicePackage> = [
@@ -155,7 +159,7 @@ export default function HourlyPackagesPage() {
                 <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(r)} />
               </Tooltip>
               <Popconfirm title={t('حذف الباقة؟', 'Delete package?')} okText={t('حذف', 'Delete')} cancelText={t('إلغاء', 'Cancel')}
-                okButtonProps={{ danger: true, loading: remove.isPending }} onConfirm={() => remove.mutate(r.id)}>
+                okButtonProps={{ danger: true, loading: remove.isPending }} onConfirm={() => remove.mutateAsync(r.id).catch(() => {})}>
                 <Tooltip title={t('حذف', 'Delete')}>
                   <Button size="small" type="text" danger icon={<DeleteOutlined />} />
                 </Tooltip>

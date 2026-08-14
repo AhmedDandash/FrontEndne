@@ -5,13 +5,6 @@
  * entities), mirroring Phase 1's contract routes and Phase 2's accounting
  * documents.
  *
- * SPECIAL CASE: unlike the other Phase 3 entities, there is no
- * `GET /api/Housing/{id}` endpoint (only `getAll()` / `useHousings()` —
- * see the same constraint documented in `resolveContractRoute()`'s housing
- * probe in `src/lib/journal-entry-navigation.ts`). So this route fetches the
- * full list via `useHousings()` and finds the record client-side by id,
- * rather than a single-record fetch hook like the other 3 entities.
- *
  * The create/edit flow stays on the list page (`?openId=` still opens the
  * edit modal there via `useOpenIdParam`); this route's "Edit" action just
  * deep-links back to it.
@@ -20,7 +13,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
-import { useHousings } from '@/hooks/api/useHousing';
+import { useHousing } from '@/hooks/api/useHousing';
 import RecordDetailShell from '@/components/record-detail/RecordDetailShell';
 import HousingDetailView from '../_components/HousingDetailView';
 
@@ -35,8 +28,7 @@ export default function HousingDetailPage({ params }: { params: { id: string } }
   const isAr = true;
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
-  const { housings, isLoading, error, refetch } = useHousings();
-  const housing = (housings ?? []).find((h) => h.id === id);
+  const { data: housing, isLoading, error, refetch } = useHousing(id);
 
   const notFound = !isLoading && !error && !housing;
 

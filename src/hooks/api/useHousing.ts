@@ -101,3 +101,11 @@ export function useHousingActiveList() {
     queryFn: () => HousingService.getActiveList(),
   });
 }
+
+export function useHousing(id?: string) {
+  return useQuery({
+    queryKey: [HOUSING_KEY, id],
+    queryFn: () => HousingService.getById(id!),
+    enabled: !!id,
+  });
+}

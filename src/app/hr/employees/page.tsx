@@ -269,62 +269,66 @@ export default function HREmployeesPage() {
   const n = (v: unknown) => (v === undefined ? null : v) as any;
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
+    try {
+      const values = await form.validateFields();
 
-    if (editing) {
-      const payload: UpdateEmployeeDto = {
-        // Backend requires userName on update (400 if missing).
-        userName: values.userName ?? editing.userName ?? '',
-        employeeNumber: n(values.employeeNumber),
-        nameAr: n(values.nameAr),
-        nameEn: n(values.nameEn),
-        idNumber: n(values.idNumber),
-        mobileNumber: n(values.mobileNumber),
-        jobId: n(values.jobId),
-        departmentId: n(values.departmentId),
-        // The list/detail responses omit branchId, so it can't be pre-filled on
-        // edit. Only send it when the user actively picks one — otherwise leave
-        // it out so the backend keeps the employee's existing branch.
-        ...(values.branchId ? { branchId: values.branchId } : {}),
-        nationalityId: n(values.nationalityId),
-        hiringDate: values.hiringDate ? values.hiringDate.format('YYYY-MM-DD') : null,
-        basicSalary: n(values.basicSalary),
-        housingAllowance: n(values.housingAllowance),
-        mobilityAllowance: n(values.mobilityAllowance),
-        otherAllowances: n(values.otherAllowances),
-        isActive: values.isActive ?? true,
-        bankName: n(values.bankName),
-        bankAccountNumber: n(values.bankAccountNumber),
-        iban: n(values.iban),
-      };
-      await updateEmployee({ id: editing.id, data: payload });
-    } else {
-      const payload: CreateEmployeeDto = {
-        email: values.email,
-        employeeNumber: n(values.employeeNumber),
-        nameAr: n(values.nameAr),
-        nameEn: n(values.nameEn),
-        idNumber: n(values.idNumber),
-        mobileNumber: n(values.mobileNumber),
-        jobId: n(values.jobId),
-        departmentId: n(values.departmentId),
-        branchId: n(values.branchId),
-        nationalityId: n(values.nationalityId),
-        hiringDate: values.hiringDate ? values.hiringDate.format('YYYY-MM-DD') : null,
-        basicSalary: n(values.basicSalary),
-        housingAllowance: n(values.housingAllowance),
-        mobilityAllowance: n(values.mobilityAllowance),
-        otherAllowances: n(values.otherAllowances),
-        isActive: values.isActive ?? true,
-        bankName: n(values.bankName),
-        bankAccountNumber: n(values.bankAccountNumber),
-        iban: n(values.iban),
-        userName: n(values.userName),
-      };
-      await createEmployee(payload);
+      if (editing) {
+        const payload: UpdateEmployeeDto = {
+          // Backend requires userName on update (400 if missing).
+          userName: values.userName ?? editing.userName ?? '',
+          employeeNumber: n(values.employeeNumber),
+          nameAr: n(values.nameAr),
+          nameEn: n(values.nameEn),
+          idNumber: n(values.idNumber),
+          mobileNumber: n(values.mobileNumber),
+          jobId: n(values.jobId),
+          departmentId: n(values.departmentId),
+          // The list/detail responses omit branchId, so it can't be pre-filled on
+          // edit. Only send it when the user actively picks one — otherwise leave
+          // it out so the backend keeps the employee's existing branch.
+          ...(values.branchId ? { branchId: values.branchId } : {}),
+          nationalityId: n(values.nationalityId),
+          hiringDate: values.hiringDate ? values.hiringDate.format('YYYY-MM-DD') : null,
+          basicSalary: n(values.basicSalary),
+          housingAllowance: n(values.housingAllowance),
+          mobilityAllowance: n(values.mobilityAllowance),
+          otherAllowances: n(values.otherAllowances),
+          isActive: values.isActive ?? true,
+          bankName: n(values.bankName),
+          bankAccountNumber: n(values.bankAccountNumber),
+          iban: n(values.iban),
+        };
+        await updateEmployee({ id: editing.id, data: payload });
+      } else {
+        const payload: CreateEmployeeDto = {
+          email: values.email,
+          employeeNumber: n(values.employeeNumber),
+          nameAr: n(values.nameAr),
+          nameEn: n(values.nameEn),
+          idNumber: n(values.idNumber),
+          mobileNumber: n(values.mobileNumber),
+          jobId: n(values.jobId),
+          departmentId: n(values.departmentId),
+          branchId: n(values.branchId),
+          nationalityId: n(values.nationalityId),
+          hiringDate: values.hiringDate ? values.hiringDate.format('YYYY-MM-DD') : null,
+          basicSalary: n(values.basicSalary),
+          housingAllowance: n(values.housingAllowance),
+          mobilityAllowance: n(values.mobilityAllowance),
+          otherAllowances: n(values.otherAllowances),
+          isActive: values.isActive ?? true,
+          bankName: n(values.bankName),
+          bankAccountNumber: n(values.bankAccountNumber),
+          iban: n(values.iban),
+          userName: n(values.userName),
+        };
+        await createEmployee(payload);
+      }
+      setModalOpen(false);
+      form.resetFields();
+    } catch {
+      // Form validation and API failures are already shown inline or by mutation toasts.
     }
-    setModalOpen(false);
-    form.resetFields();
   };
 
   const positionOptions = positions.map((p) => ({

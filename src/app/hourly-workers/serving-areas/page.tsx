@@ -89,23 +89,27 @@ export default function HourlyServingAreasPage() {
     form.resetFields();
   };
   const handleSubmit = async () => {
-    const v = await form.validateFields();
-    const dto: CreateHourlyServingAreaDto = {
-      nameAr: v.nameAr.trim(),
-      nameEn: v.nameEn.trim(),
-      cityAr: v.cityAr.trim(),
-      cityEn: v.cityEn.trim(),
-      districtAr: v.districtAr?.trim() || undefined,
-      districtEn: v.districtEn?.trim() || undefined,
-      postalCode: v.postalCode?.trim() || undefined,
-      centerLatitude: v.centerLatitude ?? undefined,
-      centerLongitude: v.centerLongitude ?? undefined,
-      radiusKm: v.radiusKm ?? undefined,
-      isActive: v.isActive,
-    };
-    if (editing) await update.mutateAsync({ id: editing.id, data: dto });
-    else await create.mutateAsync(dto);
-    closeForm();
+    try {
+      const v = await form.validateFields();
+      const dto: CreateHourlyServingAreaDto = {
+        nameAr: v.nameAr.trim(),
+        nameEn: v.nameEn.trim(),
+        cityAr: v.cityAr.trim(),
+        cityEn: v.cityEn.trim(),
+        districtAr: v.districtAr?.trim() || undefined,
+        districtEn: v.districtEn?.trim() || undefined,
+        postalCode: v.postalCode?.trim() || undefined,
+        centerLatitude: v.centerLatitude ?? undefined,
+        centerLongitude: v.centerLongitude ?? undefined,
+        radiusKm: v.radiusKm ?? undefined,
+        isActive: v.isActive,
+      };
+      if (editing) await update.mutateAsync({ id: editing.id, data: dto });
+      else await create.mutateAsync(dto);
+      closeForm();
+    } catch {
+      // Mutation hooks surface API errors. Keep the drawer open for correction.
+    }
   };
 
   const columns: ColumnsType<HourlyServingArea> = [
@@ -137,7 +141,7 @@ export default function HourlyServingAreasPage() {
                 <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(r)} />
               </Tooltip>
               <Popconfirm title={t('حذف المنطقة؟', 'Delete area?')} okText={t('حذف', 'Delete')} cancelText={t('إلغاء', 'Cancel')}
-                okButtonProps={{ danger: true, loading: remove.isPending }} onConfirm={() => remove.mutate(r.id)}>
+                okButtonProps={{ danger: true, loading: remove.isPending }} onConfirm={() => remove.mutateAsync(r.id).catch(() => {})}>
                 <Tooltip title={t('حذف', 'Delete')}>
                   <Button size="small" type="text" danger icon={<DeleteOutlined />} />
                 </Tooltip>

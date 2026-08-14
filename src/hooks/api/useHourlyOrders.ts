@@ -18,6 +18,7 @@ import type {
   UpdateAssignmentStatusDto,
   AddInternalNoteDto,
   AssignDriverDto,
+  RecordOrderTrackingDto,
   IssueHourlyOrderInvoiceDto,
   BookHourlyOrderAccommodationDto,
   UpdateHourlyAccommodationStatusDto,
@@ -207,6 +208,16 @@ export function useHourlyOrderActions(id: string) {
       message.error(getApiErrorMessage(err, 'فشل تعيين السائق / Failed to assign driver')),
   });
 
+  const recordTracking = useMutation({
+    mutationFn: (data: RecordOrderTrackingDto) => HourlyWorkerOrderService.recordTracking(id, data),
+    onSuccess: () => {
+      invalidate();
+      message.success('تمت إضافة حدث التتبع / Tracking event added');
+    },
+    onError: (err) =>
+      message.error(getApiErrorMessage(err, 'فشل إضافة حدث التتبع / Failed to add tracking event')),
+  });
+
   const issueInvoice = useMutation({
     mutationFn: (data: IssueHourlyOrderInvoiceDto) =>
       HourlyWorkerOrderService.issueInvoice(id, data),
@@ -256,6 +267,7 @@ export function useHourlyOrderActions(id: string) {
     unassign,
     addInternalNote,
     assignDriver,
+    recordTracking,
     issueInvoice,
     bookAccommodation,
     updateAccommodationStatus,

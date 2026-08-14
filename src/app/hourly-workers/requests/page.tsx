@@ -30,6 +30,7 @@ import {
   PlayCircleOutlined,
   CheckCircleOutlined,
   StopOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 import {
   useHourlyWorkerRequests,
@@ -129,11 +130,9 @@ export default function HourlyWorkerRequestsPage() {
   const { data: servingAreaData } = useHourlyServingAreas({ isActive: true, pageSize: 100 });
   const servingAreaOptions = servingAreaData?.items ?? [];
 
-  // Search, Branch, and Request date are quick filters and stay untouched by
-  // Clear (Request date still counts toward the badge/reset, matching the
-  // primary-date-range convention used elsewhere). Everything else is the
-  // "advanced" tier.
   const activeFilterCount = [
+    search !== '',
+    branchId !== undefined,
     ticketNumber !== '',
     customerName !== '',
     status !== undefined,
@@ -152,6 +151,9 @@ export default function HourlyWorkerRequestsPage() {
     setTicketNumber('');
     setCustomerName('');
     setStatus(undefined);
+    setSearch('');
+    setBranchId(undefined);
+    setIncludeSubBranches(true);
     setCustomerPhone('');
     setServiceCity('');
     setServiceDistrict('');
@@ -197,7 +199,7 @@ export default function HourlyWorkerRequestsPage() {
   const runAction = (action: HourlyRequestAction, req: HourlyWorkerRequest) => {
     switch (action) {
       case 'approve':
-        actions.approve.mutate(req.id);
+        actions.approve.mutateAsync(req.id).catch(() => {});
         break;
       case 'reject':
         setRejectFor(req);
@@ -208,10 +210,10 @@ export default function HourlyWorkerRequestsPage() {
         assignForm.resetFields();
         break;
       case 'inProgress':
-        actions.markInProgress.mutate(req.id);
+        actions.markInProgress.mutateAsync(req.id).catch(() => {});
         break;
       case 'complete':
-        actions.complete.mutate(req.id);
+        actions.complete.mutateAsync(req.id).catch(() => {});
         break;
       case 'cancel':
         Modal.confirm({
@@ -220,22 +222,30 @@ export default function HourlyWorkerRequestsPage() {
           okText: t('إلغاء الطلب', 'Cancel Request'),
           okButtonProps: { danger: true },
           cancelText: t('رجوع', 'Back'),
-          onOk: () => actions.cancel.mutateAsync(req.id),
+          onOk: () => actions.cancel.mutateAsync(req.id).catch(() => {}),
         });
         break;
     }
   };
 
   const submitAssign = async () => {
-    const values = await assignForm.validateFields();
-    await actions.assign.mutateAsync({ id: assignFor!.id, data: { workerId: values.workerId } });
-    setAssignFor(null);
+    try {
+      const values = await assignForm.validateFields();
+      await actions.assign.mutateAsync({ id: assignFor!.id, data: { workerId: values.workerId } });
+      setAssignFor(null);
+    } catch {
+      // Mutation hooks surface API errors. Keep the modal open for correction.
+    }
   };
 
   const submitReject = async () => {
-    const values = await rejectForm.validateFields();
-    await actions.reject.mutateAsync({ id: rejectFor!.id, data: { notes: values.notes?.trim() || undefined } });
-    setRejectFor(null);
+    try {
+      const values = await rejectForm.validateFields();
+      await actions.reject.mutateAsync({ id: rejectFor!.id, data: { notes: values.notes?.trim() || undefined } });
+      setRejectFor(null);
+    } catch {
+      // Mutation hooks surface API errors. Keep the modal open for correction.
+    }
   };
 
   const ACTION_META: Record<
@@ -378,6 +388,9 @@ export default function HourlyWorkerRequestsPage() {
             </div>
           </div>
           <div className={styles.headerActions}>
+            <Button icon={<HistoryOutlined />} onClick={() => router.push('/hourly-workers/track')} className={styles.refreshBtn}>
+              {t('تتبع تذكرة', 'Track Ticket')}
+            </Button>
             <Button icon={<ReloadOutlined spin={isFetching} />} onClick={() => refetch()} className={styles.refreshBtn}>
               {t('تحديث', 'Refresh')}
             </Button>
@@ -425,7 +438,10 @@ export default function HourlyWorkerRequestsPage() {
               value={branchId}
               onChange={(v) => { setBranchId(v); setPageNumber(1); }}
               includeSubBranches={includeSubBranches}
-              onIncludeSubBranchesChange={setIncludeSubBranches}
+              onIncludeSubBranchesChange={(v) => {
+                setIncludeSubBranches(v);
+                setPageNumber(1);
+              }}
             />
             <div>
               <label className={styles.filterLabel}>{t('تاريخ الطلب', 'Request date')}</label>

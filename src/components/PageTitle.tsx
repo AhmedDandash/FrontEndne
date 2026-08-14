@@ -37,6 +37,7 @@ const ROUTE_TITLES: Array<[string, Title]> = [
   ['/housing/applicants', { ar: 'العمال بالسكن', en: 'Housing Applicants' }],
 
   // Hourly workers
+  ['/hourly-workers/track', { ar: 'تتبع طلب العمل بالساعة', en: 'Track Hourly Request' }],
   ['/hourly-workers/requests', { ar: 'طلبات العمل بالساعة', en: 'Service Requests' }],
   ['/hourly-workers/drivers', { ar: 'السائقون', en: 'Drivers' }],
   ['/hourly-workers/packages', { ar: 'باقات الخدمة', en: 'Service Packages' }],

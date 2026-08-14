@@ -11,6 +11,8 @@ import type {
 
 const QUERY_KEY = 'complaints';
 
+type ComplaintListQueryData = { complaints: Complaint[]; total: number };
+
 const upsertComplaint = (
   complaints: Complaint[] | undefined,
   createdComplaint: Complaint
@@ -28,12 +30,15 @@ const updateCachedComplaint = (
   id: number | string,
   updater: (complaint: Complaint) => Complaint
 ) => {
-  queryClient.setQueriesData<Complaint[]>({ queryKey: [QUERY_KEY] }, (current) => {
-    if (!Array.isArray(current)) return current;
+  queryClient.setQueriesData<ComplaintListQueryData>({ queryKey: [QUERY_KEY] }, (current) => {
+    if (!current || !Array.isArray(current.complaints)) return current;
 
-    return current.map((complaint) =>
-      String(complaint.id ?? '') === String(id) ? updater(complaint) : complaint
-    );
+    return {
+      ...current,
+      complaints: current.complaints.map((complaint) =>
+        String(complaint.id ?? '') === String(id) ? updater(complaint) : complaint
+      ),
+    };
   });
 };
 
@@ -73,10 +78,14 @@ export const useCreateComplaint = () => {
     mutationFn: ComplaintService.create,
     onSuccess: (createdComplaint) => {
       if (createdComplaint?.id != null) {
-        queryClient.setQueryData<Complaint[]>(
-          [QUERY_KEY, undefined],
-          (current) => upsertComplaint(current, createdComplaint)
-        );
+        queryClient.setQueriesData<ComplaintListQueryData>({ queryKey: [QUERY_KEY] }, (current) => {
+          if (!current || !Array.isArray(current.complaints)) return current;
+          return {
+            ...current,
+            complaints: upsertComplaint(current.complaints, createdComplaint),
+            total: current.total + 1,
+          };
+        });
       }
 
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
@@ -96,9 +105,15 @@ export const useDeleteComplaint = () => {
   return useMutation<void, Error, number | string>({
     mutationFn: ComplaintService.delete,
     onSuccess: (_data, id) => {
-      queryClient.setQueriesData<Complaint[]>({ queryKey: [QUERY_KEY] }, (current) => {
-        if (!Array.isArray(current)) return current;
-        return current.filter((complaint) => String(complaint.id ?? '') !== String(id));
+      queryClient.setQueriesData<ComplaintListQueryData>({ queryKey: [QUERY_KEY] }, (current) => {
+        if (!current || !Array.isArray(current.complaints)) return current;
+        return {
+          ...current,
+          complaints: current.complaints.filter(
+            (complaint) => String(complaint.id ?? '') !== String(id)
+          ),
+          total: Math.max(0, current.total - 1),
+        };
       });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       message.success('تم حذف الشكوى بنجاح / Complaint deleted successfully');

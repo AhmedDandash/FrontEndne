@@ -416,7 +416,6 @@ export const API_ENDPOINTS = {
     EMPLOYEE_BALANCES: '/api/V1/Leave/employee-balances',
     APPROVE: (requestId: string) => `/api/V1/Leave/${requestId}/approve`,
     REJECT: (requestId: string) => `/api/V1/Leave/${requestId}/reject`,
-    CANCEL: (requestId: string) => `/api/V1/Leave/${requestId}/cancel`,
   },
 
   HR_LEAVE_TYPE: {
@@ -499,6 +498,7 @@ export const API_ENDPOINTS = {
   // ─── Housing Management — /api/Housing/* ─────────────────────────────────
   HOUSING: {
     GET_ALL: '/api/Housing/GetAll',
+    GET_BY_ID: (id: string) => `/api/Housing/${id}`,
     GET_ACTIVE_LIST: '/api/Housing/GetActiveList',
     CREATE: '/api/Housing',
     UPDATE: (id: string) => `/api/Housing/${id}`,

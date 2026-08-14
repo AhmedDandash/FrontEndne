@@ -146,22 +146,26 @@ export default function HourlyWorkersPage() {
   };
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    const dto: CreateHourlyWorkerDto = {
-      fullName: values.fullName.trim(),
-      phoneNumber: values.phoneNumber.trim(),
-      nationalId: values.nationalId?.trim() || undefined,
-      hourlyRate: values.hourlyRate,
-      availableFromTime: (values.availableFromTime as Dayjs).format(TIME_FMT),
-      availableToTime: (values.availableToTime as Dayjs).format(TIME_FMT),
-      notes: values.notes?.trim() || undefined,
-    };
-    if (editing) {
-      await update.mutateAsync({ id: editing.id, data: dto });
-    } else {
-      await create.mutateAsync(dto);
+    try {
+      const values = await form.validateFields();
+      const dto: CreateHourlyWorkerDto = {
+        fullName: values.fullName.trim(),
+        phoneNumber: values.phoneNumber.trim(),
+        nationalId: values.nationalId?.trim() || undefined,
+        hourlyRate: values.hourlyRate,
+        availableFromTime: (values.availableFromTime as Dayjs).format(TIME_FMT),
+        availableToTime: (values.availableToTime as Dayjs).format(TIME_FMT),
+        notes: values.notes?.trim() || undefined,
+      };
+      if (editing) {
+        await update.mutateAsync({ id: editing.id, data: dto });
+      } else {
+        await create.mutateAsync(dto);
+      }
+      closeForm();
+    } catch {
+      // Mutation hooks surface API errors. Keep the drawer open for correction.
     }
-    closeForm();
   };
 
   // ── Metrics (current page) ──────────────────────────────────
@@ -347,6 +351,8 @@ export default function HourlyWorkersPage() {
         activeCount={[
           isActive !== undefined,
           isAvailableNow !== undefined,
+          search.trim(),
+          branchId,
           Boolean(updatedRange[0]),
           Boolean(createdRange[0]),
           hourlyRateFrom !== undefined,
@@ -355,10 +361,14 @@ export default function HourlyWorkersPage() {
         onClear={() => {
           setIsActive(undefined);
           setIsAvailableNow(undefined);
+          setSearch('');
+          setBranchId(undefined);
+          setIncludeSubBranches(true);
           setUpdatedRange([undefined, undefined]);
           setCreatedRange([undefined, undefined]);
           setHourlyRateFrom(undefined);
           setHourlyRateTo(undefined);
+          setPageNumber(1);
         }}
         contentLayout="block"
         quickFilters={
@@ -379,7 +389,10 @@ export default function HourlyWorkersPage() {
               value={branchId}
               onChange={(v) => { setBranchId(v); setPageNumber(1); }}
               includeSubBranches={includeSubBranches}
-              onIncludeSubBranchesChange={setIncludeSubBranches}
+              onIncludeSubBranchesChange={(v) => {
+                setIncludeSubBranches(v);
+                setPageNumber(1);
+              }}
             />
             <div>
               <label className={styles.filterLabel}>{t('تاريخ الإنشاء', 'Created date')}</label>
