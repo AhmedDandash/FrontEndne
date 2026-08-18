@@ -41,8 +41,11 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { APP_PERMISSIONS } from '@/config/appPermissions';
+import { useHasPermission } from '@/hooks/api/usePagePermissions';
 import {
   useAgentsPaged,
+  useAgentMe,
   useCreateAgent,
   useUpdateAgent,
   useDeleteAgent,
@@ -67,6 +70,21 @@ import styles from './Agents.module.css';
 export default function AgentsPage() {
   const router = useRouter();
   const language = useAuthStore((state) => state.language);
+  const { has } = useHasPermission();
+  const canViewAllAgents = has(APP_PERMISSIONS.AGENTS_VIEW);
+  const canViewOwnAgent = has([
+    APP_PERMISSIONS.AGENTS_VIEW,
+    APP_PERMISSIONS.AGENTS_OWN_DATA_VIEW,
+  ]);
+  const canCreateAgent = has([
+    APP_PERMISSIONS.AGENTS_CREATE,
+    APP_PERMISSIONS.AGENTS_OWN_DATA_CREATE,
+  ]);
+  const canUpdateAgent = has([
+    APP_PERMISSIONS.AGENTS_UPDATE,
+    APP_PERMISSIONS.AGENTS_OWN_DATA_UPDATE,
+  ]);
+  const canDeleteAgent = has(APP_PERMISSIONS.AGENTS_DELETE);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [branchIdFilter, setBranchIdFilter] = useState<string | undefined>(undefined);
@@ -130,6 +148,10 @@ export default function AgentsPage() {
       active: { ar: 'نشط', en: 'Active' },
       inactive: { ar: 'غير نشط', en: 'Inactive' },
       noAgents: { ar: 'لا توجد وكلاء', en: 'No Agents Found' },
+      noLinkedAgent: {
+        ar: 'لا يوجد ملف وكيل مرتبط بهذا المستخدم',
+        en: 'No agent profile is linked to this user',
+      },
       print: { ar: 'طباعة', en: 'Print' },
       export: { ar: 'تصدير', en: 'Export' },
       showingResults: { ar: 'عرض النتائج', en: 'Showing Results' },
@@ -312,9 +334,18 @@ export default function AgentsPage() {
     ]
   );
 
-  const { data: agentsPage, isLoading } = useAgentsPaged(agentQuery);
-  const agents = agentsPage?.items ?? [];
-  const totalAgentsCount = agentsPage?.totalCount ?? agents.length;
+  const { data: agentsPage, isLoading: isLoadingAgentsPage } = useAgentsPaged(
+    agentQuery,
+    canViewAllAgents
+  );
+  const { data: ownAgent, isLoading: isLoadingOwnAgent } = useAgentMe(
+    !canViewAllAgents && canViewOwnAgent
+  );
+  const agents = canViewAllAgents ? (agentsPage?.items ?? []) : ownAgent ? [ownAgent] : [];
+  const totalAgentsCount = canViewAllAgents
+    ? (agentsPage?.totalCount ?? agents.length)
+    : agents.length;
+  const isLoading = canViewAllAgents ? isLoadingAgentsPage : isLoadingOwnAgent;
 
   const handleFilterValueChange = (key: string, value: unknown) => {
     setFilterValues((current) => ({ ...current, [key]: value }));
@@ -426,32 +457,41 @@ export default function AgentsPage() {
     return id;
   };
 
-  const getActionMenu = (agent: Agent): MenuProps => ({
-    items: [
+  const getActionMenu = (agent: Agent): MenuProps => {
+    const items: MenuProps['items'] = [
       {
         key: 'view',
         label: t('view'),
         icon: <EyeOutlined />,
         onClick: () => openDetail(agent.id),
       },
-      {
+    ];
+
+    if (canUpdateAgent) {
+      items.push({
         key: 'edit',
         label: t('edit'),
         icon: <EditOutlined />,
         onClick: () => handleOpenModal(agent),
-      },
-      {
-        type: 'divider',
-      },
-      {
-        key: 'delete',
-        label: t('delete'),
-        icon: <DeleteOutlined />,
-        danger: true,
-        onClick: () => handleDelete(agent.id),
-      },
-    ],
-  });
+      });
+    }
+    if (canDeleteAgent) {
+      items.push(
+        {
+          type: 'divider',
+        },
+        {
+          key: 'delete',
+          label: t('delete'),
+          icon: <DeleteOutlined />,
+          danger: true,
+          onClick: () => handleDelete(agent.id),
+        }
+      );
+    }
+
+    return { items };
+  };
 
   if (isLoading) {
     return (
@@ -485,16 +525,18 @@ export default function AgentsPage() {
             </div>
           </div>
           <Space>
-            <Button
-              type="primary"
-              size="large"
-              icon={<PlusOutlined />}
-              className={styles.addButton}
-              onClick={() => handleOpenModal()}
-              loading={isCreating}
-            >
-              {t('addAgent')}
-            </Button>
+            {canCreateAgent && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<PlusOutlined />}
+                className={styles.addButton}
+                onClick={() => handleOpenModal()}
+                loading={isCreating}
+              >
+                {t('addAgent')}
+              </Button>
+            )}
           </Space>
         </div>
       </div>
@@ -700,21 +742,25 @@ export default function AgentsPage() {
                     >
                       {t('view')}
                     </Button>
-                    <Button
-                      type="link"
-                      icon={<EditOutlined />}
-                      onClick={() => handleOpenModal(agent)}
-                    >
-                      {t('edit')}
-                    </Button>
-                    <Button
-                      type="link"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleDelete(agent.id)}
-                    >
-                      {t('delete')}
-                    </Button>
+                    {canUpdateAgent && (
+                      <Button
+                        type="link"
+                        icon={<EditOutlined />}
+                        onClick={() => handleOpenModal(agent)}
+                      >
+                        {t('edit')}
+                      </Button>
+                    )}
+                    {canDeleteAgent && (
+                      <Button
+                        type="link"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleDelete(agent.id)}
+                      >
+                        {t('delete')}
+                      </Button>
+                    )}
                   </div>
                 </Card>
               </Col>
@@ -739,7 +785,7 @@ export default function AgentsPage() {
         </>
       ) : (
         <Card>
-          <Empty description={t('noAgents')} />
+          <Empty description={canViewAllAgents ? t('noAgents') : t('noLinkedAgent')} />
         </Card>
       )}
 

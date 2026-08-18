@@ -30,6 +30,7 @@ import {
 import dayjs from 'dayjs';
 import { AdvancedFilterPanel } from '@/components/filters';
 import { useHRCustodyRequests, useHREmployees } from '@/hooks/api/useHR';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import { RequestStatus, type CustodyRequestDto, type CustodyRequestItemDto } from '@/types/hr.types';
 import styles from './CustodyRequests.module.css';
 
@@ -81,6 +82,7 @@ const itemColumns: ColumnsType<CustodyRequestItemDto> = [
 
 export default function CustodyRequestsPage() {
   const [detailRecord, setDetailRecord] = useState<CustodyRequestDto | null>(null);
+  const hrGates = useHrActionGates();
 
   const {
     custodyRequests,
@@ -102,6 +104,7 @@ export default function CustodyRequestsPage() {
   const [actioningId, setActioningId] = useState<string | null>(null);
 
   const runAction = (id: string, fn: (id: string) => Promise<unknown>) => {
+    if (!hrGates.canManage) return Promise.resolve();
     setActioningId(id);
     // onError toast already shown by the mutation; catch here so a rejection
     // doesn't bubble as unhandled — Popconfirm's onConfirm doesn't await this.
@@ -162,7 +165,7 @@ export default function CustodyRequestsPage() {
             <Tooltip title="عرض التفاصيل">
               <Button type="text" icon={<EyeOutlined />} onClick={() => setDetailRecord(record)} />
             </Tooltip>
-            {isPending && (
+            {isPending && hrGates.canManage && (
               <>
                 <Tooltip title="موافقة">
                   <Popconfirm

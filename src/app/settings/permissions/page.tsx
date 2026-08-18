@@ -8,7 +8,6 @@ import {
   Input,
   Select,
   Space,
-  Switch,
   Checkbox,
   Tag,
   Tooltip,
@@ -23,8 +22,10 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import { useAdminRoles } from '@/hooks/api/useAdmin';
-import { usePagePermissions } from '@/hooks/api/usePagePermissions';
+import { useHasPermission, usePagePermissions } from '@/hooks/api/usePagePermissions';
 import { useAuthStore } from '@/store/authStore';
+import AccessDenied from '@/components/common/AccessDenied';
+import { APP_PERMISSIONS } from '@/config/appPermissions';
 import {
   PAGE_REGISTRY,
   isAdminRole,
@@ -45,6 +46,8 @@ export default function PermissionsPage() {
 
   const { data: roles = [], isLoading: rolesLoading } = useAdminRoles();
   const { matrix, isLoading, refetch, savePermissions, isSaving } = usePagePermissions();
+  const { has, isReady } = useHasPermission();
+  const canManagePermissions = has(APP_PERMISSIONS.ADMINISTRATION_MANAGE);
 
   // Editable working copy of the persisted matrix.
   const [draft, setDraft] = useState<PermissionMatrix>(matrix);
@@ -79,17 +82,6 @@ export default function PermissionsPage() {
   }, [search, groupFilter]);
 
   // ── Draft mutations ──
-  const isRestricted = (key: string) => draft[key] !== undefined;
-
-  const toggleRestricted = (key: string, restricted: boolean) => {
-    setDraft((prev) => {
-      const next = { ...prev };
-      if (restricted) next[key] = prev[key] ?? [];
-      else delete next[key];
-      return next;
-    });
-  };
-
   const toggleRole = (key: string, role: string, checked: boolean) => {
     setDraft((prev) => {
       const current = prev[key] ?? [];
@@ -101,6 +93,7 @@ export default function PermissionsPage() {
   };
 
   const handleSave = async () => {
+    if (!canManagePermissions) return;
     await savePermissions(draft);
   };
 
@@ -136,11 +129,9 @@ export default function PermissionsPage() {
             </Tooltip>
           );
         }
-        const restricted = isRestricted(page.key);
         return (
           <Checkbox
-            checked={restricted && (draft[page.key] ?? []).includes(role)}
-            disabled={!restricted}
+            checked={(draft[page.key] ?? []).includes(role)}
             onChange={(e) => toggleRole(page.key, role, e.target.checked)}
           />
         );
@@ -169,31 +160,14 @@ export default function PermissionsPage() {
         <Tag>{isAr ? page.groupAr : page.groupEn}</Tag>
       ),
     },
-    {
-      title: isAr ? 'مقيّدة' : 'Restricted',
-      key: 'restricted',
-      align: 'center',
-      width: 120,
-      render: (_: unknown, page: PageDef) => (
-        <Tooltip
-          title={
-            isAr
-              ? 'عند الإيقاف: الصفحة متاحة للجميع. عند التفعيل: للأدوار المحددة فقط'
-              : 'Off: open to everyone. On: only the selected roles'
-          }
-        >
-          <Switch
-            size="small"
-            checked={isRestricted(page.key)}
-            onChange={(checked) => toggleRestricted(page.key, checked)}
-          />
-        </Tooltip>
-      ),
-    },
     ...roleColumns,
   ];
 
   const loading = isLoading || rolesLoading;
+
+  if (isReady && !canManagePermissions) {
+    return <AccessDenied />;
+  }
 
   return (
     <div className={styles.page}>
@@ -227,7 +201,7 @@ export default function PermissionsPage() {
               icon={<SaveOutlined />}
               onClick={handleSave}
               loading={isSaving}
-              disabled={!hasChanges}
+              disabled={!hasChanges || !canManagePermissions}
               className={styles.saveBtn}
             >
               {isAr ? 'حفظ التغييرات' : 'Save Changes'}

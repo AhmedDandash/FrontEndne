@@ -32,6 +32,7 @@ import {
 } from '@/hooks/api/useJournalEntries';
 import { sumLines, type JournalEntryInput } from '@/types/journal-entry.types';
 import { AccountSelect } from '@/components/filters';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import styles from '../JournalEntries.module.css';
 
 interface EntryFormDrawerProps {
@@ -86,6 +87,8 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
     isUpdating,
     isPosting,
   } = useJournalEntryMutations();
+  const accountingGates = useAccountingActionGates();
+  const canSubmit = mode === 'create' ? accountingGates.canCreate : accountingGates.canUpdate;
 
   const busy = isCreating || isUpdating || isPosting;
 
@@ -214,6 +217,7 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
   };
 
   const handleSave = async (postAfter: boolean) => {
+    if (!canSubmit || (postAfter && !accountingGates.canPost)) return;
     const values = await form.validateFields();
     const ruleError = validateBusinessRules(values);
     if (ruleError) {
@@ -244,7 +248,7 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
 
   return (
     <Drawer
-      open={open}
+      open={open && canSubmit}
       onClose={onClose}
       width={620}
       destroyOnHidden
@@ -265,7 +269,7 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
             type="default"
             icon={<SaveOutlined />}
             loading={isCreating || isUpdating}
-            disabled={isPosting}
+            disabled={isPosting || !canSubmit}
             onClick={() => handleSave(false)}
           >
             {t('حفظ كمسودة', 'Save as Draft')}
@@ -281,7 +285,7 @@ export function EntryFormDrawer({ open, mode, entryId, onClose }: EntryFormDrawe
               type="primary"
               icon={<CheckCircleFilled />}
               loading={isPosting}
-              disabled={!balance.isBalanced || busy}
+              disabled={!balance.isBalanced || busy || !canSubmit || !accountingGates.canPost}
               onClick={() => handleSave(true)}
             >
               {t('حفظ واعتماد', 'Save & Post')}

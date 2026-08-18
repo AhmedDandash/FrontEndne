@@ -48,6 +48,7 @@ import { useAdminPositions, useDepartments } from '@/hooks/api/useAdmin';
 import NationalitySelect from '@/components/common/NationalitySelect';
 import { useBranches } from '@/hooks/api/useBranches';
 import { linkProps } from '@/lib/navigation/linkProps';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import type { EmployeeDto, CreateEmployeeDto, UpdateEmployeeDto } from '@/types/hr.types';
 
 const { Title } = Typography;
@@ -88,6 +89,7 @@ export default function HREmployeesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<EmployeeDto | null>(null);
   const [form] = Form.useForm();
+  const hrGates = useHrActionGates();
 
   // Advanced filters (gap-audit addition).
   const [idFilter, setIdFilter] = useState('');
@@ -237,6 +239,7 @@ export default function HREmployeesPage() {
   };
 
   const openCreate = () => {
+    if (!hrGates.canCreate) return;
     setEditing(null);
     form.resetFields();
     form.setFieldsValue({ isActive: true });
@@ -244,6 +247,7 @@ export default function HREmployeesPage() {
   };
 
   const openEdit = (record: EmployeeDto) => {
+    if (!hrGates.canUpdate) return;
     setEditing(record);
     form.setFieldsValue({
       employeeNumber: record.employeeNumber,
@@ -269,6 +273,7 @@ export default function HREmployeesPage() {
   const n = (v: unknown) => (v === undefined ? null : v) as any;
 
   const handleSubmit = async () => {
+    if (editing ? !hrGates.canUpdate : !hrGates.canCreate) return;
     try {
       const values = await form.validateFields();
 
@@ -419,31 +424,39 @@ export default function HREmployeesPage() {
             <Button type="text" icon={<EyeOutlined />} onClick={() => openDetail(record.id)} />
           </Tooltip>
           <Tooltip title="تعديل">
-            <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+            {hrGates.canUpdate ? (
+              <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+            ) : (
+              <span />
+            )}
           </Tooltip>
-          <Tooltip title="إعادة تعيين كلمة المرور">
-            <Popconfirm
-              title="إعادة تعيين كلمة المرور"
-              description="هل تريد إعادة تعيين كلمة مرور هذا الموظف؟"
-              onConfirm={() => resetPassword(record.id)}
-              okText="نعم"
-              cancelText="لا"
-            >
-              <Button type="text" icon={<KeyOutlined />} loading={isResettingPassword} />
-            </Popconfirm>
-          </Tooltip>
-          <Tooltip title="تعطيل الموظف">
-            <Popconfirm
-              title="تعطيل الموظف"
-              description="هل تريد تعطيل هذا الموظف؟ لن يتم حذف السجل."
-              onConfirm={() => deleteEmployee(record.id)}
-              okText="تعطيل"
-              cancelText="إلغاء"
-              okButtonProps={{ danger: true }}
-            >
-              <Button type="text" danger icon={<DeleteOutlined />} loading={isDeleting} />
-            </Popconfirm>
-          </Tooltip>
+          {hrGates.canResetPassword && (
+            <Tooltip title="إعادة تعيين كلمة المرور">
+              <Popconfirm
+                title="إعادة تعيين كلمة المرور"
+                description="هل تريد إعادة تعيين كلمة مرور هذا الموظف؟"
+                onConfirm={() => resetPassword(record.id)}
+                okText="نعم"
+                cancelText="لا"
+              >
+                <Button type="text" icon={<KeyOutlined />} loading={isResettingPassword} />
+              </Popconfirm>
+            </Tooltip>
+          )}
+          {hrGates.canDelete && (
+            <Tooltip title="تعطيل الموظف">
+              <Popconfirm
+                title="تعطيل الموظف"
+                description="هل تريد تعطيل هذا الموظف؟ لن يتم حذف السجل."
+                onConfirm={() => deleteEmployee(record.id)}
+                okText="تعطيل"
+                cancelText="إلغاء"
+                okButtonProps={{ danger: true }}
+              >
+                <Button type="text" danger icon={<DeleteOutlined />} loading={isDeleting} />
+              </Popconfirm>
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -482,9 +495,11 @@ export default function HREmployeesPage() {
             إدارة الموظفين
           </Title>
         </Space>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} size="large">
-          إضافة موظف
-        </Button>
+        {hrGates.canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} size="large">
+            إضافة موظف
+          </Button>
+        )}
       </div>
 
       <AdvancedFilterPanel
@@ -801,7 +816,7 @@ export default function HREmployeesPage() {
       </Card>
 
       <Modal
-        open={modalOpen}
+        open={modalOpen && (editing ? hrGates.canUpdate : hrGates.canCreate)}
         title={
           <Space>
             <IdcardOutlined style={{ color: '#1677ff' }} />

@@ -12,6 +12,8 @@ import {
   useValidateVoucherBalance,
 } from '@/hooks/api/useGeneralVouchers';
 import RecordDetailShell from '@/components/record-detail/RecordDetailShell';
+import AccessDenied from '@/components/common/AccessDenied';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import VoucherForm, { buildVoucherDto } from '../../_components/VoucherForm';
 import { voucherTypeLabel } from '../../_lib/generalVoucherDisplay';
 import { GENERAL_VOUCHER_TYPE, VOUCHER_TYPE_SLUGS } from '@/types/general-voucher.types';
@@ -24,6 +26,7 @@ export default function NewGeneralVoucherPage({ params }: { params: { type: stri
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const accountingGates = useAccountingActionGates();
 
   const [form] = Form.useForm();
   const [attachment, setAttachment] = useState<UploadFile[]>([]);
@@ -54,7 +57,12 @@ export default function NewGeneralVoucherPage({ params }: { params: { type: stri
     );
   }
 
+  if (accountingGates.isReady && !accountingGates.canCreate) {
+    return <AccessDenied />;
+  }
+
   const handleSave = async () => {
+    if (!accountingGates.canCreate) return;
     try {
       await handleSaveInner();
     } catch {

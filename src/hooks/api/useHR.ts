@@ -55,13 +55,14 @@ const QK = {
 
 // ─── Employee hooks ───────────────────────────────────────────────────────────
 
-export function useHREmployees(params?: EmployeeListQuery) {
+export function useHREmployees(params?: EmployeeListQuery, enabled = true) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: QK.employees(params),
     queryFn: () => HREmployeeService.getAll(params),
     placeholderData: (previous) => previous,
+    enabled,
   });
 
   const createMutation = useMutation({

@@ -27,6 +27,7 @@ import {
   useOpenPeriod,
 } from '@/hooks/api/usePeriodClosing';
 import { useAuthStore } from '@/store/authStore';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import type { PeriodYearStatus, PeriodClosingResult } from '@/types/api.types';
 import styles from '../accounting-doc.module.css';
 
@@ -36,6 +37,7 @@ export default function PeriodClosingPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const accountingGates = useAccountingActionGates();
 
   const { data: years, isLoading, error, refetch } = usePeriodClosingYears();
   const { mutateAsync: closePeriod, isPending: isClosing } = useClosePeriod();
@@ -53,6 +55,7 @@ export default function PeriodClosingPage() {
   const isForbidden = errorCode === 401 || errorCode === 403;
 
   const handleClose = async (year: number) => {
+    if (!accountingGates.canClose) return;
     setBusyYear(year);
     try {
       const result = await closePeriod({ year });
@@ -66,6 +69,7 @@ export default function PeriodClosingPage() {
   };
 
   const handleOpen = async (year: number) => {
+    if (!accountingGates.canOpen) return;
     setBusyYear(year);
     try {
       await openPeriod({ year });
@@ -132,7 +136,7 @@ export default function PeriodClosingPage() {
           </div>
         </Space>
 
-        {isClosed ? (
+        {accountingGates.canManage && (isClosed ? (
           <Popconfirm
             title={t('فتح السنة المالية؟', 'Reopen fiscal year?')}
             description={
@@ -172,7 +176,7 @@ export default function PeriodClosingPage() {
               {t('إغلاق السنة', 'Close Year')}
             </Button>
           </Popconfirm>
-        )}
+        ))}
       </div>
     );
   };

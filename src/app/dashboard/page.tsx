@@ -12,14 +12,19 @@ import {
   ShopOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { useState, useEffect } from 'react';
-import { AuthService } from '@/services/auth.service';
+import { useMemo, useState, useEffect } from 'react';
 import { useHRAttendance } from '@/hooks/api/useHR';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { linkProps } from '@/lib/navigation/linkProps';
+import { useCanAccess } from '@/hooks/api/usePagePermissions';
+import { getAttendanceAccessGates } from '@/config/attendanceAccess';
+import {
+  DASHBOARD_QUICK_LINKS,
+  filterDashboardQuickLinksByAccess,
+  type DashboardQuickLink,
+} from '@/config/dashboardQuickLinks';
 
 const { Title, Text } = Typography;
 
@@ -37,14 +42,14 @@ const ROLE_HERO_GRADIENT: Record<string, string> = {
   Manager: 'linear-gradient(135deg, #7a3500 0%, #d97706 100%)',
 };
 
-const QUICK_LINKS = [
-  { key: 'employees',  path: '/hr/employees',                    labelAr: 'الموظفون',   labelEn: 'Employees',   icon: <IdcardOutlined />,  color: '#00478c' },
-  { key: 'workers',    path: '/applicants',                       labelAr: 'العمالة',    labelEn: 'Workers',     icon: <TeamOutlined />,    color: '#00aa64' },
-  { key: 'contracts',  path: '/contracts/mediationcontract',      labelAr: 'العقود',     labelEn: 'Contracts',   icon: <FileTextOutlined /> , color: '#7b2fa8' },
-  { key: 'housing',    path: '/housing/management',               labelAr: 'السكن',      labelEn: 'Housing',     icon: <HomeOutlined />,    color: '#d97706' },
-  { key: 'customers',  path: '/customers',                        labelAr: 'العملاء',    labelEn: 'Customers',   icon: <ShopOutlined />,    color: '#0891b2' },
-  { key: 'complaints', path: '/complaints',                       labelAr: 'الشكاوى',   labelEn: 'Complaints',  icon: <WarningOutlined />, color: '#dc2626' },
-];
+const QUICK_LINK_ICONS: Record<DashboardQuickLink['key'], React.ReactNode> = {
+  employees: <IdcardOutlined />,
+  workers: <TeamOutlined />,
+  contracts: <FileTextOutlined />,
+  housing: <HomeOutlined />,
+  customers: <ShopOutlined />,
+  complaints: <WarningOutlined />,
+};
 
 function useLiveClock() {
   const [now, setNow] = useState(dayjs());
@@ -56,20 +61,31 @@ function useLiveClock() {
 }
 
 export default function DashboardPage() {
-  const { data: me, isLoading: isMeLoading } = useQuery({
-    queryKey: ['auth-me'],
-    queryFn: () => AuthService.me(),
-    staleTime: 5 * 60 * 1000,
-  });
+  const {
+    check,
+    roles: accessRoles,
+    permissions: accessPermissions,
+    me,
+    isLoading: isMeLoading,
+  } = useCanAccess();
+  const visibleQuickLinks = useMemo(
+    () => filterDashboardQuickLinksByAccess(DASHBOARD_QUICK_LINKS, check),
+    [check]
+  );
 
-  const { checkIn, checkOut, isCheckingIn, isCheckingOut } = useHRAttendance({});
+  const { checkIn, checkOut, isCheckingIn, isCheckingOut } = useHRAttendance({}, false);
   const now = useLiveClock();
   const language = useAuthStore((state) => state.language);
   const isAr = language === 'ar';
 
-  const isEmployee = me?.roles?.includes('Employee');
+  const displayRoles = me?.roles ?? accessRoles;
+  const displayPermissions = me?.permissions ?? accessPermissions;
+  const attendanceGates = useMemo(
+    () => getAttendanceAccessGates({ roles: displayRoles, permissions: displayPermissions }),
+    [displayRoles, displayPermissions]
+  );
 
-  const primaryRole = me?.roles?.[0] ?? 'Admin';
+  const primaryRole = displayRoles[0] ?? 'Admin';
   const heroGradient = ROLE_HERO_GRADIENT[primaryRole] ?? ROLE_HERO_GRADIENT.Admin;
 
   const greeting = () => {
@@ -157,7 +173,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Attendance card (employees only) ── */}
-      {isEmployee && (
+      {attendanceGates.canUseMutationControls && (
         <div style={{
           background: '#fff',
           borderRadius: 16,
@@ -222,10 +238,10 @@ export default function DashboardPage() {
         {isAr ? 'الوصول السريع' : 'Quick Access'}
       </Title>
       <Row gutter={[16, 16]}>
-        {QUICK_LINKS.map((link) => (
+        {visibleQuickLinks.map((link) => (
           <Col key={link.key} xs={12} sm={8} md={6} lg={4}>
             <QuickTile
-              icon={link.icon}
+              icon={QUICK_LINK_ICONS[link.key]}
               label={isAr ? link.labelAr : link.labelEn}
               color={link.color}
               href={link.path}

@@ -27,6 +27,7 @@ import {
 import dayjs from 'dayjs';
 import { AdvancedFilterPanel } from '@/components/filters';
 import { useHRPermissionRequests } from '@/hooks/api/useHR';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import { RequestStatus, type PermissionRequestDto } from '@/types/hr.types';
 import styles from './PermissionRequests.module.css';
 
@@ -56,6 +57,7 @@ const NATURE_LABEL: Record<number, string> = {
 };
 
 export default function PermissionRequestsPage() {
+  const hrGates = useHrActionGates();
   const {
     permissionRequests,
     isLoading,
@@ -71,6 +73,7 @@ export default function PermissionRequestsPage() {
   const [actioningId, setActioningId] = useState<string | null>(null);
 
   const runAction = (id: string, fn: (id: string) => Promise<unknown>) => {
+    if (!hrGates.canManage) return Promise.resolve();
     setActioningId(id);
     return fn(id)
       .catch(() => {})
@@ -149,7 +152,7 @@ export default function PermissionRequestsPage() {
       key: 'actions',
       width: 100,
       render: (_, record) => {
-        if (record.status !== RequestStatus.Pending) return null;
+        if (record.status !== RequestStatus.Pending || !hrGates.canManage) return null;
         return (
           <Space>
             <Tooltip title="موافقة">

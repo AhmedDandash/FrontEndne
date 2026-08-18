@@ -26,6 +26,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useHRLeaveTypes } from '@/hooks/api/useHR';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import type { LeaveTypeDto, CreateLeaveTypeDto, UpdateLeaveTypeDto } from '@/types/hr.types';
 
 const { Title } = Typography;
@@ -34,6 +35,7 @@ export default function HRLeaveTypesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<LeaveTypeDto | null>(null);
   const [form] = Form.useForm();
+  const hrGates = useHrActionGates();
 
   const {
     leaveTypes,
@@ -47,6 +49,7 @@ export default function HRLeaveTypesPage() {
   } = useHRLeaveTypes();
 
   const openCreate = () => {
+    if (!hrGates.canCreate) return;
     setEditing(null);
     form.resetFields();
     form.setFieldsValue({ isActive: true, allowCarryForward: false, isPaid: true });
@@ -54,6 +57,7 @@ export default function HRLeaveTypesPage() {
   };
 
   const openEdit = (record: LeaveTypeDto) => {
+    if (!hrGates.canUpdate) return;
     setEditing(record);
     form.setFieldsValue({
       name: record.name,
@@ -66,6 +70,7 @@ export default function HRLeaveTypesPage() {
   };
 
   const handleSubmit = async () => {
+    if (editing ? !hrGates.canUpdate : !hrGates.canCreate) return;
     try {
       const values = await form.validateFields();
       const dto = values as CreateLeaveTypeDto | UpdateLeaveTypeDto;
@@ -115,38 +120,45 @@ export default function HRLeaveTypesPage() {
       title: 'الإجراءات',
       key: 'actions',
       width: 110,
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="تعديل">
-            <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
-          </Tooltip>
-          <Tooltip title="حذف">
-            <Popconfirm
-              title="حذف نوع الإجازة"
-              description={
-                <>
-                  هل تريد حذف <strong>{record.name}</strong>؟
-                  <br />
-                  <span style={{ color: '#ff4d4f', fontSize: 12 }}>
-                    تحذير: هذا حذف نهائي. يُفضّل تعطيل النوع بدلاً من حذفه.
-                  </span>
-                </>
-              }
-              onConfirm={() => deleteLeaveType(record.id).catch(() => {})}
-              okText="حذف"
-              cancelText="إلغاء"
-              okButtonProps={{ danger: true }}
-            >
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                loading={isDeleting}
-              />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
+      render: (_, record) =>
+        hrGates.canManage ? (
+          <Space>
+            {hrGates.canUpdate && (
+              <Tooltip title="تعديل">
+                <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+              </Tooltip>
+            )}
+            {hrGates.canDelete && (
+              <Tooltip title="حذف">
+                <Popconfirm
+                  title="حذف نوع الإجازة"
+                  description={
+                    <>
+                      هل تريد حذف <strong>{record.name}</strong>؟
+                      <br />
+                      <span style={{ color: '#ff4d4f', fontSize: 12 }}>
+                        تحذير: هذا حذف نهائي. يُفضّل تعطيل النوع بدلاً من حذفه.
+                      </span>
+                    </>
+                  }
+                  onConfirm={() => deleteLeaveType(record.id).catch(() => {})}
+                  okText="حذف"
+                  cancelText="إلغاء"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    loading={isDeleting}
+                  />
+                </Popconfirm>
+              </Tooltip>
+            )}
+          </Space>
+        ) : (
+          <span style={{ color: '#bbb' }}>—</span>
+        ),
     },
   ];
 
@@ -157,9 +169,11 @@ export default function HRLeaveTypesPage() {
           <TagsOutlined style={{ fontSize: 22, color: '#1677ff' }} />
           <Title level={4} style={{ margin: 0 }}>أنواع الإجازات</Title>
         </Space>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} size="large">
-          إضافة نوع إجازة
-        </Button>
+        {hrGates.canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} size="large">
+            إضافة نوع إجازة
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -174,7 +188,7 @@ export default function HRLeaveTypesPage() {
       </Card>
 
       <Modal
-        open={modalOpen}
+        open={modalOpen && (editing ? hrGates.canUpdate : hrGates.canCreate)}
         title={editing ? 'تعديل نوع الإجازة' : 'إضافة نوع إجازة جديد'}
         onCancel={() => {
           setModalOpen(false);

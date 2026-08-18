@@ -33,6 +33,9 @@ import {
   CheckOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import AccessDenied from '@/components/common/AccessDenied';
+import { APP_PERMISSIONS } from '@/config/appPermissions';
+import { useHasPermission } from '@/hooks/api/usePagePermissions';
 import { useMediationContracts } from '@/hooks/api/useMediationContracts';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import { useAvailableMediationWorkers } from '@/hooks/api/useWorkers';
@@ -57,6 +60,7 @@ export default function AddMediationContractPage() {
 
   const language = useAuthStore((state) => state.language);
   const isRtl = language === 'ar';
+  const { has, isReady } = useHasPermission();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
@@ -735,6 +739,10 @@ export default function AddMediationContractPage() {
   );
 
   const stepContent = [renderStep1, renderStep2, renderStep3, renderStep4, renderStep5];
+
+  if (isReady && !has(APP_PERMISSIONS.CONTRACTS_CREATE)) {
+    return <AccessDenied />;
+  }
 
   return (
     <div className={styles.addPage} dir={isRtl ? 'rtl' : 'ltr'}>

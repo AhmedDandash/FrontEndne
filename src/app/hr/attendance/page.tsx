@@ -29,6 +29,7 @@ import dayjs from 'dayjs';
 import { AdvancedFilterPanel } from '@/components/filters';
 import { useHRAttendance, useHREmployees } from '@/hooks/api/useHR';
 import type { AttendanceFilterDto, AttendanceRecord } from '@/types/hr.types';
+import { useAttendanceAccessGates } from '@/hooks/useActionPermissionGates';
 
 const { Title, Text } = Typography;
 
@@ -81,6 +82,7 @@ function renderLocation(
 
 export default function HRAttendancePage() {
   const [form] = Form.useForm();
+  const attendanceGates = useAttendanceAccessGates();
   // The applied filter drives both the server fetch (employeeId/attendanceDay/
   // month/year — all honoured by the backend Filter endpoint) and client-side
   // narrowing by status below (the backend does not support status filtering).
@@ -95,10 +97,10 @@ export default function HRAttendancePage() {
         month: filter.month ?? undefined,
         year: filter.year ?? undefined,
       },
-      hasSearched
+      attendanceGates.canFilterRecords && hasSearched
     );
 
-  const { employees } = useHREmployees({ pageSize: 200 });
+  const { employees } = useHREmployees({ pageSize: 200 }, attendanceGates.canFilterRecords);
 
   const employeeOptions = employees.map((e) => ({
     value: e.id,
@@ -252,27 +254,29 @@ export default function HRAttendancePage() {
             description="يجب أن تكون داخل النطاق الجغرافي المسموح لفرعك. سيُرفض التسجيل إذا تم رفض إذن الموقع أو كنت خارج النطاق."
             style={{ marginBottom: 8 }}
           />
-          <Space>
-            <Button
-              type="primary"
-              icon={<LoginOutlined />}
-              loading={isCheckingIn}
-              onClick={() => checkIn()}
-              size="large"
-              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-            >
-              تسجيل الحضور
-            </Button>
-            <Button
-              icon={<LogoutOutlined />}
-              loading={isCheckingOut}
-              onClick={() => checkOut()}
-              size="large"
-              danger
-            >
-              تسجيل الانصراف
-            </Button>
-          </Space>
+          {attendanceGates.canUseMutationControls && (
+            <Space>
+              <Button
+                type="primary"
+                icon={<LoginOutlined />}
+                loading={isCheckingIn}
+                onClick={() => checkIn()}
+                size="large"
+                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              >
+                تسجيل الحضور
+              </Button>
+              <Button
+                icon={<LogoutOutlined />}
+                loading={isCheckingOut}
+                onClick={() => checkOut()}
+                size="large"
+                danger
+              >
+                تسجيل الانصراف
+              </Button>
+            </Space>
+          )}
         </Space>
       </Card>
 

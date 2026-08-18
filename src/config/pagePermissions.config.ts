@@ -4,13 +4,10 @@
  * Single source of truth for the application's manageable pages/modules and the
  * pure helpers used to decide whether a set of roles may access a given page.
  *
- * Background: the Sigma backend exposes role *assignment* (assign/remove a named
- * role to a user) but has NO endpoint for storing "which roles can access which
- * page", and performs no role-based authorization server-side. Page-level access
- * is therefore owned by the frontend. The page→roles mapping (PermissionMatrix)
- * is persisted by `PermissionService` (localStorage today, swappable for a real
- * endpoint later). User roles come from `GET /api/V1/Auth/me` (the JWT does not
- * carry role claims).
+ * Background: the Sigma backend is the authorization source of truth and now
+ * returns both roles and permissions from `GET /api/V1/Auth/me`. This matrix is
+ * the frontend UX layer for menu/route visibility. It defaults to the backend
+ * RBAC matrix and may be widened/narrowed by an admin's saved local override.
  */
 
 /** localStorage key under which the PermissionMatrix is persisted. */
@@ -20,7 +17,7 @@ export const PERMISSIONS_STORAGE_KEY = 'pagePermissions';
  * Roles that always have full access and can never be locked out of any page.
  * Matched case-insensitively.
  */
-export const ADMIN_ROLES = ['Admin', 'SuperAdmin'] as const;
+export const ADMIN_ROLES = ['Admin', 'Owner', 'SuperAdmin'] as const;
 
 /** A single navigable page/module that access can be granted/revoked on. */
 export interface PageDef {
@@ -37,9 +34,9 @@ export interface PageDef {
 /**
  * Map of pageKey → list of role names allowed to access it.
  * Semantics (see `canAccessPage`):
- *  - key absent           → page is unconfigured → open to everyone
- *  - key present, []       → restricted to admins only
- *  - key present, [roles]  → admins + any listed role
+ *  - key absent           → unknown/unregistered page → denied by default
+ *  - key present, []       → restricted to admins/owners only
+ *  - key present, [roles]  → admins/owners + any listed role
  */
 export type PermissionMatrix = Record<string, string[]>;
 
@@ -146,13 +143,8 @@ export function isAdminRole(roles: string[]): boolean {
 }
 
 /**
- * Secure-by-default overrides for pages dangerous enough that they must NOT
- * fall back to "unconfigured → open" until an admin explicitly widens them
- * via the Settings → Page Permissions screen. Currently just `/register`
- * (Add Admin): `POST /api/V1/Auth/add-admin` grants the caller a full Admin
- * account, and the live backend does not enforce auth on that endpoint
- * itself (confirmed 2026-08-11 Auth-module audit) — this page must not be
- * reachable by non-admins even by omission.
+ * Kept for backward-compatible imports. The real default matrix now lives in
+ * `defaultRolePageMatrix.ts` and is merged by `PermissionService`.
  */
 export const DEFAULT_RESTRICTED_PAGES: PermissionMatrix = {
   '/register': [],
@@ -172,7 +164,7 @@ export function isPageConfigured(pageKey: string, matrix: PermissionMatrix): boo
 /**
  * Resolve a pathname to the most specific registered page key (longest prefix
  * match), so sub-routes like `/hr/employees/123` map to `/hr/employees`.
- * Returns null when the path maps to no registered page (→ treat as open).
+ * Returns null when the path maps to no registered page.
  */
 export function resolvePageKey(pathname: string): string | null {
   let best: string | null = null;
@@ -186,8 +178,10 @@ export function resolvePageKey(pathname: string): string | null {
 
 /**
  * Pure access decision for a single page key.
- *  - admins always pass
- *  - unconfigured pages (no matrix entry) are open to everyone
+ *  - admins/owners always pass
+ *  - known pages must have an entry in the merged default/admin matrix
+ *  - unknown routes are allowed so technical pages that are not registered do
+ *    not get caught by the module-level RBAC layer
  *  - otherwise the user must hold at least one of the page's allowed roles
  */
 export function canAccessPage(
@@ -198,6 +192,6 @@ export function canAccessPage(
   if (!pageKey) return true;
   if (isAdminRole(roles)) return true;
   const allowed = matrix[pageKey] ?? DEFAULT_RESTRICTED_PAGES[pageKey];
-  if (allowed === undefined) return true; // unconfigured → open
+  if (allowed === undefined) return false;
   return roles.some((r) => allowed.includes(r));
 }

@@ -42,6 +42,7 @@ import type { AccountTreeNode } from '@/types/accounting.types';
 import { useAuthStore } from '@/store/authStore';
 import { useAccountModals } from '../_components/AccountModals';
 import { linkProps } from '@/lib/navigation/linkProps';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import styles from './ChartOfAccounts.module.css';
 
 /** Flatten helpers — keep a lookup of every node and its parent chain. */
@@ -92,6 +93,7 @@ export default function ChartOfAccountsPage() {
   const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
+  const accountingGates = useAccountingActionGates();
 
   const { tree, isLoading, isFetching, refetch, loadChildren } = useAccountTree();
 
@@ -145,6 +147,7 @@ export default function ChartOfAccountsPage() {
 
   /** Confirm + delete a leaf account. */
   const confirmDelete = (node: AccountTreeNode) => {
+    if (!accountingGates.canDelete) return;
     Modal.confirm({
       title: t('تأكيد الحذف', 'Confirm delete'),
       icon: <ExclamationCircleFilled />,
@@ -216,48 +219,50 @@ export default function ChartOfAccountsPage() {
               <span className={styles.nodeName}>{nameNode}</span>
             </span>
 
-            <span className={styles.nodeActions} onClick={stop}>
-              <Tooltip title={t('إضافة حساب فرعي', 'Add sub-account')}>
-                <Button
-                  size="small"
-                  type="text"
-                  icon={<PlusOutlined />}
-                  onClick={() => openCreate(node.id)}
-                />
-              </Tooltip>
-              <Tooltip title={t('تعديل الاسم', 'Edit name')}>
-                <Button
-                  size="small"
-                  type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => openEditName({ id: node.id, code: node.code, name: node.name })}
-                />
-              </Tooltip>
-              <Tooltip title={t('إعدادات التقارير', 'Reporting settings')}>
-                <Button
-                  size="small"
-                  type="text"
-                  icon={<SlidersOutlined />}
-                  onClick={() => openReporting({ id: node.id, code: node.code, name: node.name })}
-                />
-              </Tooltip>
-              <Tooltip
-                title={
-                  leaf
-                    ? t('حذف الحساب', 'Delete account')
-                    : t('لا يمكن حذف حساب له فروع', 'Cannot delete an account with sub-accounts')
-                }
-              >
-                <Button
-                  size="small"
-                  type="text"
-                  danger
-                  disabled={!leaf}
-                  icon={<DeleteOutlined />}
-                  onClick={() => confirmDelete(node)}
-                />
-              </Tooltip>
-            </span>
+            {accountingGates.canManage && (
+              <span className={styles.nodeActions} onClick={stop}>
+                <Tooltip title={t('إضافة حساب فرعي', 'Add sub-account')}>
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<PlusOutlined />}
+                    onClick={() => openCreate(node.id)}
+                  />
+                </Tooltip>
+                <Tooltip title={t('تعديل الاسم', 'Edit name')}>
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => openEditName({ id: node.id, code: node.code, name: node.name })}
+                  />
+                </Tooltip>
+                <Tooltip title={t('إعدادات التقارير', 'Reporting settings')}>
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<SlidersOutlined />}
+                    onClick={() => openReporting({ id: node.id, code: node.code, name: node.name })}
+                  />
+                </Tooltip>
+                <Tooltip
+                  title={
+                    leaf
+                      ? t('حذف الحساب', 'Delete account')
+                      : t('لا يمكن حذف حساب له فروع', 'Cannot delete an account with sub-accounts')
+                  }
+                >
+                  <Button
+                    size="small"
+                    type="text"
+                    danger
+                    disabled={!leaf}
+                    icon={<DeleteOutlined />}
+                    onClick={() => confirmDelete(node)}
+                  />
+                </Tooltip>
+              </span>
+            )}
           </span>
         );
 
@@ -272,7 +277,7 @@ export default function ChartOfAccountsPage() {
 
     return render(tree);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree, searchValue, isAr]);
+  }, [tree, searchValue, isAr, accountingGates.canManage]);
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
@@ -351,14 +356,16 @@ export default function ChartOfAccountsPage() {
             >
               {t('إعدادات الحسابات', 'Account Settings')}
             </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => openCreate()}
-              className={styles.addBtn}
-            >
-              {t('إضافة حساب رئيسي', 'Add Root Account')}
-            </Button>
+            {accountingGates.canCreate && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => openCreate()}
+                className={styles.addBtn}
+              >
+                {t('إضافة حساب رئيسي', 'Add Root Account')}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -549,54 +556,62 @@ export default function ChartOfAccountsPage() {
 
                 {/* ── Action buttons ── */}
                 <div className={styles.detailActions}>
-                  <Button
-                    block
-                    type="primary"
-                    ghost
-                    icon={<PlusOutlined />}
-                    onClick={() => openCreate(selected.id)}
-                    className={styles.detailActionBtn}
-                  >
-                    {t('إضافة حساب فرعي', 'Add sub-account')}
-                  </Button>
-                  <Button
-                    block
-                    icon={<EditOutlined />}
-                    onClick={() =>
-                      openEditName({ id: selected.id, code: selected.code, name: selected.name })
-                    }
-                    className={styles.detailActionBtn}
-                  >
-                    {t('تعديل الاسم', 'Edit name')}
-                  </Button>
-                  <Button
-                    block
-                    icon={<SlidersOutlined />}
-                    onClick={() =>
-                      openReporting({ id: selected.id, code: selected.code, name: selected.name })
-                    }
-                    className={styles.detailActionBtn}
-                  >
-                    {t('إعدادات التقارير', 'Reporting settings')}
-                  </Button>
-                  <Tooltip
-                    title={
-                      !selectedIsLeaf
-                        ? t('لا يمكن حذف حساب له فروع', 'Cannot delete an account with sub-accounts')
-                        : ''
-                    }
-                  >
+                  {accountingGates.canCreate && (
                     <Button
                       block
-                      danger
-                      icon={<DeleteOutlined />}
-                      disabled={!selectedIsLeaf}
-                      onClick={() => confirmDelete(selected)}
+                      type="primary"
+                      ghost
+                      icon={<PlusOutlined />}
+                      onClick={() => openCreate(selected.id)}
                       className={styles.detailActionBtn}
                     >
-                      {t('حذف الحساب', 'Delete account')}
+                      {t('إضافة حساب فرعي', 'Add sub-account')}
                     </Button>
-                  </Tooltip>
+                  )}
+                  {accountingGates.canUpdate && (
+                    <>
+                      <Button
+                        block
+                        icon={<EditOutlined />}
+                        onClick={() =>
+                          openEditName({ id: selected.id, code: selected.code, name: selected.name })
+                        }
+                        className={styles.detailActionBtn}
+                      >
+                        {t('تعديل الاسم', 'Edit name')}
+                      </Button>
+                      <Button
+                        block
+                        icon={<SlidersOutlined />}
+                        onClick={() =>
+                          openReporting({ id: selected.id, code: selected.code, name: selected.name })
+                        }
+                        className={styles.detailActionBtn}
+                      >
+                        {t('إعدادات التقارير', 'Reporting settings')}
+                      </Button>
+                    </>
+                  )}
+                  {accountingGates.canDelete && (
+                    <Tooltip
+                      title={
+                        !selectedIsLeaf
+                          ? t('لا يمكن حذف حساب له فروع', 'Cannot delete an account with sub-accounts')
+                          : ''
+                      }
+                    >
+                      <Button
+                        block
+                        danger
+                        icon={<DeleteOutlined />}
+                        disabled={!selectedIsLeaf}
+                        onClick={() => confirmDelete(selected)}
+                        className={styles.detailActionBtn}
+                      >
+                        {t('حذف الحساب', 'Delete account')}
+                      </Button>
+                    </Tooltip>
+                  )}
                   <Button
                     block
                     type="link"

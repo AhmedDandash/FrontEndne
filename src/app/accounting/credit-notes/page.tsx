@@ -33,6 +33,7 @@ import { renderJournalLink } from '../_lib/accountingDocDisplay';
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
 import { useAccountingDocFilters } from '../_lib/useAccountingDocFilters';
 import AccountingDocFilters from '../_lib/AccountingDocFilters';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import styles from '../accounting-doc.module.css';
 
 export default function CreditNotesPage() {
@@ -40,6 +41,7 @@ export default function CreditNotesPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const accountingGates = useAccountingActionGates();
 
   const filters = useAccountingDocFilters();
 
@@ -58,6 +60,7 @@ export default function CreditNotesPage() {
   const openTrace = (id: string) => setTraceId(id);
 
   const handleCreate = async () => {
+    if (!accountingGates.canCreate) return;
     try {
       const values = await form.validateFields();
       const dto: CreateCreditNoteDto = {
@@ -167,9 +170,11 @@ export default function CreditNotesPage() {
             <Button icon={<ReloadOutlined spin={isFetching} />} onClick={() => refetch()} className={styles.refreshBtn}>
               {t('تحديث', 'Refresh')}
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} className={styles.addBtn}>
-              {t('إضافة إشعار', 'New Note')}
-            </Button>
+            {accountingGates.canCreate && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} className={styles.addBtn}>
+                {t('إضافة إشعار', 'New Note')}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -210,7 +215,7 @@ export default function CreditNotesPage() {
       {/* Create Drawer */}
       <Drawer
         title={t('إضافة إشعار دائن', 'New Credit Note')}
-        open={createOpen}
+        open={createOpen && accountingGates.canCreate}
         onClose={() => { setCreateOpen(false); form.resetFields(); }}
         width={480}
         footer={

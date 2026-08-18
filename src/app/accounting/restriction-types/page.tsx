@@ -36,6 +36,7 @@ import type {
 } from '@/types/accounting.types';
 import { ACCOUNTING_EVENTS, getAccountingEventLabel } from '@/types/accounting.types';
 import { useAuthStore } from '@/store/authStore';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import styles from './RestrictionTypes.module.css';
 
 interface AccountOption {
@@ -80,6 +81,7 @@ export default function RestrictionTypesPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const accountingGates = useAccountingActionGates();
 
   const {
     restrictionTypes,
@@ -135,6 +137,7 @@ export default function RestrictionTypesPage() {
   const [form] = Form.useForm();
 
   const openCreate = () => {
+    if (!accountingGates.canCreate) return;
     setEditing(null);
     form.resetFields();
     form.setFieldsValue({ isManual: true, isActive: true });
@@ -142,6 +145,7 @@ export default function RestrictionTypesPage() {
   };
 
   const openEdit = (record: RestrictionType) => {
+    if (!accountingGates.canUpdate) return;
     setEditing(record);
     form.setFieldsValue({
       nameAr: record.nameAr ?? '',
@@ -166,6 +170,7 @@ export default function RestrictionTypesPage() {
   };
 
   const submitModal = async () => {
+    if (editing ? !accountingGates.canUpdate : !accountingGates.canCreate) return;
     const values = await form.validateFields();
     const data: RestrictionTypeCreateDto = {
       accountingEvent: values.accountingEvent ?? null,
@@ -185,6 +190,7 @@ export default function RestrictionTypesPage() {
   };
 
   const onToggleActive = async (record: RestrictionType, checked: boolean) => {
+    if (!accountingGates.canUpdate) return;
     setTogglingId(record.id);
     try {
       await updateType({ id: record.id, data: { ...toDto(record), isActive: checked } });
@@ -194,6 +200,7 @@ export default function RestrictionTypesPage() {
   };
 
   const onDelete = async (record: RestrictionType) => {
+    if (!accountingGates.canDelete) return;
     await deleteType(record.id);
   };
 
@@ -265,6 +272,7 @@ export default function RestrictionTypesPage() {
       render: (_, r) => (
         <Switch
           checked={!!r.isActive}
+          disabled={!accountingGates.canUpdate}
           loading={togglingId === r.id && isUpdating}
           checkedChildren={t('مفعّل', 'On')}
           unCheckedChildren={t('معطّل', 'Off')}
@@ -277,28 +285,35 @@ export default function RestrictionTypesPage() {
       key: 'actions',
       width: 110,
       fixed: 'right',
-      render: (_, record) => (
-        <Space size={4}>
-          <Tooltip title={t('تعديل', 'Edit')}>
-            <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
-          </Tooltip>
-          <Tooltip title={t('حذف', 'Delete')}>
-            <Popconfirm
-              title={t('تأكيد الحذف', 'Confirm delete')}
-              description={t(
-                'سيتم حذف نوع القيد نهائيًا. لا يمكن التراجع.',
-                'This restriction type will be permanently deleted.'
-              )}
-              okText={t('حذف', 'Delete')}
-              cancelText={t('إلغاء', 'Cancel')}
-              okButtonProps={{ danger: true, loading: isDeleting }}
-              onConfirm={() => onDelete(record)}
-            >
-              <Button size="small" type="text" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
+      render: (_, record) =>
+        accountingGates.canManage ? (
+          <Space size={4}>
+            {accountingGates.canUpdate && (
+              <Tooltip title={t('تعديل', 'Edit')}>
+                <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+              </Tooltip>
+            )}
+            {accountingGates.canDelete && (
+              <Tooltip title={t('حذف', 'Delete')}>
+                <Popconfirm
+                  title={t('تأكيد الحذف', 'Confirm delete')}
+                  description={t(
+                    'سيتم حذف نوع القيد نهائيًا. لا يمكن التراجع.',
+                    'This restriction type will be permanently deleted.'
+                  )}
+                  okText={t('حذف', 'Delete')}
+                  cancelText={t('إلغاء', 'Cancel')}
+                  okButtonProps={{ danger: true, loading: isDeleting }}
+                  onConfirm={() => onDelete(record)}
+                >
+                  <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+                </Popconfirm>
+              </Tooltip>
+            )}
+          </Space>
+        ) : (
+          <span className={styles.muted}>—</span>
+        ),
     },
   ];
 
@@ -327,14 +342,16 @@ export default function RestrictionTypesPage() {
             >
               {t('تحديث', 'Refresh')}
             </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={openCreate}
-              className={styles.addBtn}
-            >
-              {t('إضافة نوع', 'Add Type')}
-            </Button>
+            {accountingGates.canCreate && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={openCreate}
+                className={styles.addBtn}
+              >
+                {t('إضافة نوع', 'Add Type')}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -406,7 +423,7 @@ export default function RestrictionTypesPage() {
 
       {/* ── Edit Modal ───────────────────────────────────────── */}
       <Modal
-        open={editOpen}
+        open={editOpen && accountingGates.canManage}
         title={
           <Space>
             {editing ? <EditOutlined /> : <PlusOutlined />}

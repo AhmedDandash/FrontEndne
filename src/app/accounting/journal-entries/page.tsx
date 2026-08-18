@@ -62,12 +62,14 @@ import { linkProps } from '@/lib/navigation/linkProps';
 import { reserveNewTab } from '@/lib/navigation/openInNewTab';
 import { EntryFormDrawer } from './_components/EntryFormDrawer';
 import { EntryDetailDrawer } from './_components/EntryDetailDrawer';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import styles from './JournalEntries.module.css';
 
 export default function JournalEntriesPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const accountingGates = useAccountingActionGates();
   const searchParams = useSearchParams();
   const openIdParam = searchParams.get('openId');
   const entryNumberParam = searchParams.get('entryNumber');
@@ -162,8 +164,12 @@ export default function JournalEntriesPage() {
     null
   );
 
-  const openCreate = () => setFormState({ mode: 'create' });
+  const openCreate = () => {
+    if (!accountingGates.canCreate) return;
+    setFormState({ mode: 'create' });
+  };
   const openEdit = (id: string) => {
+    if (!accountingGates.canUpdate) return;
     setDetailId(null);
     setFormState({ mode: 'edit', id });
   };
@@ -457,87 +463,93 @@ export default function JournalEntriesPage() {
             </Tooltip>
             {isDraft ? (
               <>
-                <Tooltip title={t('تعديل', 'Edit')}>
-                  <Button
-                    size="small"
-                    type="text"
-                    icon={<EditOutlined />}
-                    onClick={() => openEdit(record.id)}
-                  />
-                </Tooltip>
+                {accountingGates.canManage && (
+                  <>
+                    <Tooltip title={t('تعديل', 'Edit')}>
+                      <Button
+                        size="small"
+                        type="text"
+                        icon={<EditOutlined />}
+                        onClick={() => openEdit(record.id)}
+                      />
+                    </Tooltip>
+                    <Tooltip
+                      title={
+                        yearClosed
+                          ? t('السنة المالية مغلقة', 'Fiscal year is closed')
+                          : t('اعتماد', 'Post')
+                      }
+                    >
+                      <Popconfirm
+                        title={t('اعتماد القيد؟', 'Post this entry?')}
+                        description={t(
+                          'سيتم ترحيل الحركات إلى الأستاذ العام.',
+                          'Ledger movements will be written for all lines.'
+                        )}
+                        okText={t('اعتماد', 'Post')}
+                        cancelText={t('إلغاء', 'Cancel')}
+                        okButtonProps={{ loading: isPosting, disabled: !record.isBalanced }}
+                        onConfirm={() => void postEntry(record.id).catch(() => {})}
+                        disabled={yearClosed}
+                      >
+                        <Button
+                          size="small"
+                          type="text"
+                          style={yearClosed ? undefined : { color: '#52c41a' }}
+                          icon={<CheckCircleOutlined />}
+                          disabled={yearClosed}
+                        />
+                      </Popconfirm>
+                    </Tooltip>
+                    <Tooltip title={t('حذف', 'Delete')}>
+                      <Popconfirm
+                        title={t('حذف القيد؟', 'Delete this entry?')}
+                        description={t(
+                          'سيتم حذف القيد نهائيًا. لا يمكن التراجع.',
+                          'This draft entry will be permanently deleted.'
+                        )}
+                        okText={t('حذف', 'Delete')}
+                        cancelText={t('إلغاء', 'Cancel')}
+                        okButtonProps={{ danger: true, loading: isDeleting }}
+                        onConfirm={() => void deleteEntry(record.id).catch(() => {})}
+                      >
+                        <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+                      </Popconfirm>
+                    </Tooltip>
+                  </>
+                )}
+              </>
+            ) : (
+              accountingGates.canManage && (
                 <Tooltip
                   title={
                     yearClosed
                       ? t('السنة المالية مغلقة', 'Fiscal year is closed')
-                      : t('اعتماد', 'Post')
+                      : t('إلغاء الاعتماد', 'Unpost')
                   }
                 >
                   <Popconfirm
-                    title={t('اعتماد القيد؟', 'Post this entry?')}
+                    title={t('إلغاء اعتماد القيد؟', 'Unpost this entry?')}
                     description={t(
-                      'سيتم ترحيل الحركات إلى الأستاذ العام.',
-                      'Ledger movements will be written for all lines.'
+                      'سيتم عكس الحركات وإعادة القيد إلى مسودة.',
+                      'Ledger movements will be reversed; entry returns to Draft.'
                     )}
-                    okText={t('اعتماد', 'Post')}
-                    cancelText={t('إلغاء', 'Cancel')}
-                    okButtonProps={{ loading: isPosting, disabled: !record.isBalanced }}
-                    onConfirm={() => void postEntry(record.id).catch(() => {})}
+                    okText={t('إلغاء الاعتماد', 'Unpost')}
+                    cancelText={t('رجوع', 'Back')}
+                    okButtonProps={{ loading: isUnposting }}
+                    onConfirm={() => void unpostEntry(record.id).catch(() => {})}
                     disabled={yearClosed}
                   >
                     <Button
                       size="small"
                       type="text"
-                      style={yearClosed ? undefined : { color: '#52c41a' }}
-                      icon={<CheckCircleOutlined />}
+                      style={yearClosed ? undefined : { color: '#fa8c16' }}
+                      icon={<RollbackOutlined />}
                       disabled={yearClosed}
                     />
                   </Popconfirm>
                 </Tooltip>
-                <Tooltip title={t('حذف', 'Delete')}>
-                  <Popconfirm
-                    title={t('حذف القيد؟', 'Delete this entry?')}
-                    description={t(
-                      'سيتم حذف القيد نهائيًا. لا يمكن التراجع.',
-                      'This draft entry will be permanently deleted.'
-                    )}
-                    okText={t('حذف', 'Delete')}
-                    cancelText={t('إلغاء', 'Cancel')}
-                    okButtonProps={{ danger: true, loading: isDeleting }}
-                    onConfirm={() => void deleteEntry(record.id).catch(() => {})}
-                  >
-                    <Button size="small" type="text" danger icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                </Tooltip>
-              </>
-            ) : (
-              <Tooltip
-                title={
-                  yearClosed
-                    ? t('السنة المالية مغلقة', 'Fiscal year is closed')
-                    : t('إلغاء الاعتماد', 'Unpost')
-                }
-              >
-                <Popconfirm
-                  title={t('إلغاء اعتماد القيد؟', 'Unpost this entry?')}
-                  description={t(
-                    'سيتم عكس الحركات وإعادة القيد إلى مسودة.',
-                    'Ledger movements will be reversed; entry returns to Draft.'
-                  )}
-                  okText={t('إلغاء الاعتماد', 'Unpost')}
-                  cancelText={t('رجوع', 'Back')}
-                  okButtonProps={{ loading: isUnposting }}
-                  onConfirm={() => void unpostEntry(record.id).catch(() => {})}
-                  disabled={yearClosed}
-                >
-                  <Button
-                    size="small"
-                    type="text"
-                    style={yearClosed ? undefined : { color: '#fa8c16' }}
-                    icon={<RollbackOutlined />}
-                    disabled={yearClosed}
-                  />
-                </Popconfirm>
-              </Tooltip>
+              )
             )}
           </Space>
         );
@@ -570,14 +582,16 @@ export default function JournalEntriesPage() {
             >
               {t('تحديث', 'Refresh')}
             </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={openCreate}
-              className={styles.addBtn}
-            >
-              {t('قيد جديد', 'Add Entry')}
-            </Button>
+            {accountingGates.canCreate && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={openCreate}
+                className={styles.addBtn}
+              >
+                {t('قيد جديد', 'Add Entry')}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -924,7 +938,7 @@ export default function JournalEntriesPage() {
         open={!!detailId}
         entryId={detailId}
         onClose={() => setDetailId(null)}
-        onEdit={openEdit}
+        onEdit={accountingGates.canUpdate ? openEdit : undefined}
       />
       {formState && (
         <EntryFormDrawer

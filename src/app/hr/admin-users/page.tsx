@@ -25,13 +25,36 @@ import type { ColumnsType } from 'antd/es/table';
 import { AdvancedFilterPanel } from '@/components/filters';
 import { useAdminUsers, useAdminRoles } from '@/hooks/api/useAdmin';
 import type { AdminUser, AssignRoleDto, AddUserDto } from '@/types/hr.types';
+import AccessDenied from '@/components/common/AccessDenied';
+import { APP_PERMISSIONS } from '@/config/appPermissions';
+import { useHasPermission } from '@/hooks/api/usePagePermissions';
 import styles from './AdminUsers.module.css';
 
 const { Title, Text } = Typography;
 
 type RoleAction = { type: 'assign' | 'remove'; user: AdminUser };
 
+const ROLE_LABELS_AR: Record<string, string> = {
+  Admin: 'مدير النظام',
+  Owner: 'مالك النظام',
+  CustomerServiceEmployee: 'موظف خدمة عملاء (كول سنتر)',
+  CustomerServiceCallCenter: 'موظف خدمة عملاء (كول سنتر)',
+  SalesEmployee: 'موظف خدمة عملاء (مبيعات)',
+  CustomerServiceSales: 'موظف خدمة عملاء (مبيعات)',
+  FollowUpEmployee: 'موظف المتابعة',
+  Agent: 'الوكيل',
+  AccountingEmployee: 'المحاسب',
+  HREmployee: 'الموارد البشرية',
+};
+
+function roleOptionLabel(role: string): string {
+  const ar = ROLE_LABELS_AR[role];
+  return ar ? `${ar} - ${role}` : role;
+}
+
 export default function AdminUsersPage() {
+  const { has, isReady } = useHasPermission();
+  const canManageAdministration = has(APP_PERMISSIONS.ADMINISTRATION_MANAGE);
   const [roleAction, setRoleAction] = useState<RoleAction | null>(null);
   const [roleForm] = Form.useForm();
   const [addUserOpen, setAddUserOpen] = useState(false);
@@ -49,7 +72,7 @@ export default function AdminUsersPage() {
   } = useAdminUsers();
 
   const { data: roles = [] } = useAdminRoles();
-  const roleOptions = roles.map((r) => ({ value: r, label: r }));
+  const roleOptions = roles.map((r) => ({ value: r, label: roleOptionLabel(r) }));
 
   const [searchText, setSearchText] = useState('');
   const [roleFilter, setRoleFilter] = useState<string | undefined>(undefined);
@@ -69,11 +92,13 @@ export default function AdminUsersPage() {
   }, [users, searchText, roleFilter]);
 
   const openRoleAction = (type: 'assign' | 'remove', user: AdminUser) => {
+    if (!canManageAdministration) return;
     roleForm.resetFields();
     setRoleAction({ type, user });
   };
 
   const handleAddUser = async () => {
+    if (!canManageAdministration) return;
     try {
       const values = await addUserForm.validateFields();
       const dto: AddUserDto = {
@@ -96,6 +121,7 @@ export default function AdminUsersPage() {
 
   const handleRoleAction = async () => {
     if (!roleAction) return;
+    if (!canManageAdministration) return;
     try {
       const { roleName } = await roleForm.validateFields();
       const dto: AssignRoleDto = { userId: roleAction.user.id, role: roleName };
@@ -143,27 +169,32 @@ export default function AdminUsersPage() {
       title: 'إدارة الأدوار',
       key: 'roleActions',
       width: 160,
-      render: (_, record) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
-            onClick={() => openRoleAction('assign', record)}
-          >
-            إسناد
-          </Button>
-          <Button
-            type="text"
-            icon={<MinusCircleOutlined style={{ color: '#ff4d4f' }} />}
-            onClick={() => openRoleAction('remove', record)}
-            disabled={!record.roles?.length}
-          >
-            إزالة
-          </Button>
-        </Space>
-      ),
+      render: (_, record) =>
+        canManageAdministration ? (
+          <Space>
+            <Button
+              type="text"
+              icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
+              onClick={() => openRoleAction('assign', record)}
+            >
+              إسناد
+            </Button>
+            <Button
+              type="text"
+              icon={<MinusCircleOutlined style={{ color: '#ff4d4f' }} />}
+              onClick={() => openRoleAction('remove', record)}
+              disabled={!record.roles?.length}
+            >
+              إزالة
+            </Button>
+          </Space>
+        ) : null,
     },
   ];
+
+  if (isReady && !canManageAdministration) {
+    return <AccessDenied />;
+  }
 
   return (
     <div style={{ padding: 24 }}>
@@ -181,17 +212,19 @@ export default function AdminUsersPage() {
             إدارة المستخدمين والأدوار
           </Title>
         </Space>
-        <Button
-          type="primary"
-          icon={<UserAddOutlined />}
-          size="large"
-          onClick={() => {
-            addUserForm.resetFields();
-            setAddUserOpen(true);
-          }}
-        >
-          إضافة مستخدم
-        </Button>
+        {canManageAdministration && (
+          <Button
+            type="primary"
+            icon={<UserAddOutlined />}
+            size="large"
+            onClick={() => {
+              addUserForm.resetFields();
+              setAddUserOpen(true);
+            }}
+          >
+            إضافة مستخدم
+          </Button>
+        )}
       </div>
 
       <AdvancedFilterPanel
@@ -298,7 +331,7 @@ export default function AdminUsersPage() {
                   placeholder="اختر الدور"
                   options={
                     roleAction.type === 'remove' && roleAction.user.roles?.length
-                      ? roleAction.user.roles.map((r) => ({ value: r, label: r }))
+                      ? roleAction.user.roles.map((r) => ({ value: r, label: roleOptionLabel(r) }))
                       : roleOptions
                   }
                 />

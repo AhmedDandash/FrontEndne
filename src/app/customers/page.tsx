@@ -42,6 +42,8 @@ import {
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
+import { APP_PERMISSIONS } from '@/config/appPermissions';
+import { useHasPermission } from '@/hooks/api/usePagePermissions';
 import { useCustomers, useCustomersFiltered } from '@/hooks/api/useCustomers';
 import { CustomerService } from '@/services';
 import {
@@ -112,6 +114,11 @@ export default function CustomersPage() {
   const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const userBranchId = useAuthStore((state) => state.branchId);
+  const { has } = useHasPermission();
+  const canCreateCustomer = has(APP_PERMISSIONS.CUSTOMERS_CREATE);
+  const canUpdateCustomer = has(APP_PERMISSIONS.CUSTOMERS_UPDATE);
+  const canDeleteCustomer = has(APP_PERMISSIONS.CUSTOMERS_DELETE);
+  const canCreateContract = has(APP_PERMISSIONS.CONTRACTS_CREATE);
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [cityFilter, setCityFilter] = useState<string>('all');
@@ -846,8 +853,8 @@ export default function CustomersPage() {
     }
   };
 
-  const getActionMenu = (customer: Customer): MenuProps => ({
-    items: [
+  const getActionMenu = (customer: Customer): MenuProps => {
+    const items: MenuProps['items'] = [
       {
         key: 'view',
         label: language === 'ar' ? 'عرض التفاصيل' : 'View Details',
@@ -861,13 +868,19 @@ export default function CustomersPage() {
         </a>,
         icon: <FileTextOutlined />,
       },
-      {
-        key: 'addMediationContract',
-        label: <a {...linkProps(`/contracts/mediationcontract/add?customerId=${customer.id}`, router)}>
-          {language === 'ar' ? 'إنشاء عقد وساطة' : 'Create Mediation Contract'}
-        </a>,
-        icon: <FileTextOutlined />,
-      },
+      ...(canCreateContract
+        ? [
+            {
+              key: 'addMediationContract',
+              label: (
+                <a {...linkProps(`/contracts/mediationcontract/add?customerId=${customer.id}`, router)}>
+                  {language === 'ar' ? 'إنشاء عقد وساطة' : 'Create Mediation Contract'}
+                </a>
+              ),
+              icon: <FileTextOutlined />,
+            },
+          ]
+        : []),
       {
         key: 'transfer',
         label: language === 'ar' ? 'عقود نقل الكفالة' : 'Transfer Contracts',
@@ -888,22 +901,30 @@ export default function CustomersPage() {
         </a>,
         icon: <DollarOutlined />,
       },
-      { type: 'divider' },
-      {
+    ];
+
+    const mutationItems: MenuProps['items'] = [];
+    if (canUpdateCustomer) {
+      mutationItems.push({
         key: 'edit',
         label: t('edit'),
         icon: <EditOutlined />,
         onClick: () => handleEditCustomer(customer),
-      },
-      {
+      });
+    }
+    if (canDeleteCustomer) {
+      mutationItems.push({
         key: 'delete',
         label: t('delete'),
         icon: <DeleteOutlined />,
         danger: true,
         onClick: () => handleDeleteCustomer(customer),
-      },
-    ],
-  });
+      });
+    }
+    if (mutationItems.length > 0) items.push({ type: 'divider' }, ...mutationItems);
+
+    return { items };
+  };
 
   // Housing type mapping — backed by HOUSING_TYPE enum
   const getHousingType = (type: string | number | null | undefined) =>
@@ -932,16 +953,18 @@ export default function CustomersPage() {
               </p>
             </div>
           </div>
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            className={styles.addButton}
-            onClick={handleAddCustomer}
-            loading={isCreating}
-          >
-            {t('addCustomer')}
-          </Button>
+          {canCreateCustomer && (
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlusOutlined />}
+              className={styles.addButton}
+              onClick={handleAddCustomer}
+              loading={isCreating}
+            >
+              {t('addCustomer')}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1612,44 +1635,52 @@ export default function CustomersPage() {
 
                 {/* Card Footer Actions */}
                 <div className={styles.cardFooter}>
-                  <Button
-                    type="primary"
-                    icon={<FileTextOutlined />}
-                    {...linkProps(`/contracts/mediationcontract/add?customerId=${customer.id}`, router)}
-                    style={{
-                      marginRight: language === 'ar' ? 0 : 8,
-                      marginLeft: language === 'ar' ? 8 : 0,
-                    }}
-                  >
-                    {language === 'ar' ? 'إنشاء عقد وساطة' : 'Create Mediation Contract'}
-                  </Button>
-                  <Button
-                    type="primary"
-                    icon={<FileTextOutlined />}
-                    onClick={() => handleCreateOperationContract(customer)}
-                    style={{
-                      marginRight: language === 'ar' ? 0 : 8,
-                      marginLeft: language === 'ar' ? 8 : 0,
-                    }}
-                  >
-                    {language === 'ar' ? 'إنشاء عقد تشغيل' : 'Create Operation Contract'}
-                  </Button>
-                  <Button
-                    type="link"
-                    icon={<EditOutlined />}
-                    onClick={() => handleEditCustomer(customer)}
-                  >
-                    {t('edit')}
-                  </Button>
-                  <Button
-                    type="link"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDeleteCustomer(customer)}
-                    loading={isDeleting}
-                  >
-                    {t('delete')}
-                  </Button>
+                  {canCreateContract && (
+                    <>
+                      <Button
+                        type="primary"
+                        icon={<FileTextOutlined />}
+                        {...linkProps(`/contracts/mediationcontract/add?customerId=${customer.id}`, router)}
+                        style={{
+                          marginRight: language === 'ar' ? 0 : 8,
+                          marginLeft: language === 'ar' ? 8 : 0,
+                        }}
+                      >
+                        {language === 'ar' ? 'إنشاء عقد وساطة' : 'Create Mediation Contract'}
+                      </Button>
+                      <Button
+                        type="primary"
+                        icon={<FileTextOutlined />}
+                        onClick={() => handleCreateOperationContract(customer)}
+                        style={{
+                          marginRight: language === 'ar' ? 0 : 8,
+                          marginLeft: language === 'ar' ? 8 : 0,
+                        }}
+                      >
+                        {language === 'ar' ? 'إنشاء عقد تشغيل' : 'Create Operation Contract'}
+                      </Button>
+                    </>
+                  )}
+                  {canUpdateCustomer && (
+                    <Button
+                      type="link"
+                      icon={<EditOutlined />}
+                      onClick={() => handleEditCustomer(customer)}
+                    >
+                      {t('edit')}
+                    </Button>
+                  )}
+                  {canDeleteCustomer && (
+                    <Button
+                      type="link"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleDeleteCustomer(customer)}
+                      loading={isDeleting}
+                    >
+                      {t('delete')}
+                    </Button>
+                  )}
                 </div>
               </Card>
             </Col>

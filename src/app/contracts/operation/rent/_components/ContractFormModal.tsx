@@ -11,6 +11,7 @@ import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import type { FormInstance } from 'antd';
 import RentOfferSelector from '@/components/contracts/RentOfferSelector';
 import type { EmploymentContractOffer } from '@/types/api.types';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import ContractFormFields from './ContractFormFields';
 
 interface Props {
@@ -44,6 +45,8 @@ export default function ContractFormModal({
   onOfferSelect,
 }: Props) {
   const isCreate = mode === 'create';
+  const contractGates = useContractActionGates();
+  const canSubmit = isCreate ? contractGates.canCreate : contractGates.canUpdate;
 
   return (
     <Modal
@@ -63,13 +66,13 @@ export default function ContractFormModal({
               : 'Edit Contract'}
         </span>
       }
-      open={open}
+      open={open && canSubmit}
       onCancel={onCancel}
       footer={[
         <Button key="cancel" onClick={onCancel}>
           {isRtl ? 'إلغاء' : 'Cancel'}
         </Button>,
-        <Button key="submit" type="primary" loading={loading} onClick={onSubmit}>
+        <Button key="submit" type="primary" loading={loading} onClick={canSubmit ? onSubmit : undefined} disabled={!canSubmit}>
           {isCreate ? (isRtl ? 'إنشاء العقد' : 'Create Contract') : isRtl ? 'حفظ التعديلات' : 'Save Changes'}
         </Button>,
       ]}

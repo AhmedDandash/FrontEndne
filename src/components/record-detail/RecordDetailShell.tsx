@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { Breadcrumb, Button, Result, Spin } from 'antd';
 import { ArrowLeftOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import AccessDenied from '@/components/common/AccessDenied';
 import styles from './RecordDetailShell.module.css';
 
 export interface RecordDetailShellProps {
@@ -54,6 +55,8 @@ export default function RecordDetailShell({
   const language = useAuthStore((state) => state.language);
   const isRtl = language === 'ar';
   const BackIcon = isRtl ? ArrowRightOutlined : ArrowLeftOutlined;
+  const forbidden =
+    (error as { response?: { status?: number } } | undefined)?.response?.status === 403;
 
   const t = {
     back: isRtl ? 'رجوع' : 'Back',
@@ -97,6 +100,8 @@ export default function RecordDetailShell({
         <div className={styles.centerState}>
           <Spin size="large" />
         </div>
+      ) : forbidden ? (
+        <AccessDenied />
       ) : error ? (
         <Result
           status="error"

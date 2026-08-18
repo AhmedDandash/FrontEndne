@@ -9,6 +9,7 @@ import React from 'react';
 import { Modal, Button, Form, Input, InputNumber, Select, Alert } from 'antd';
 import { DollarOutlined } from '@ant-design/icons';
 import { REFUND_PAYMENT_METHOD, toSelectOptions } from '@/constants/enums';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import type { CustomerRefundDto } from '@/types/api.types';
 
 interface Props {
@@ -22,8 +23,10 @@ interface Props {
 export default function CustomerRefundModal({ open, isRtl, loading, onCancel, onSubmit }: Props) {
   const [form] = Form.useForm();
   const lang = isRtl ? 'ar' : 'en';
+  const contractGates = useContractActionGates();
 
   const handleOk = async () => {
+    if (!contractGates.canUpdate) return;
     try {
       const values = await form.validateFields();
       onSubmit({
@@ -50,13 +53,13 @@ export default function CustomerRefundModal({ open, isRtl, loading, onCancel, on
           {isRtl ? 'تسجيل استرداد العميل' : 'Record Customer Refund'}
         </span>
       }
-      open={open}
+      open={open && contractGates.canUpdate}
       onCancel={close}
       footer={[
         <Button key="cancel" onClick={close}>
           {isRtl ? 'إلغاء' : 'Cancel'}
         </Button>,
-        <Button key="submit" type="primary" loading={loading} onClick={handleOk}>
+        <Button key="submit" type="primary" loading={loading} onClick={handleOk} disabled={!contractGates.canUpdate}>
           {isRtl ? 'تسجيل الاسترداد' : 'Record Refund'}
         </Button>,
       ]}

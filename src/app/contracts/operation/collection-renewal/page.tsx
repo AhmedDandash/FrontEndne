@@ -47,6 +47,7 @@ import { actionLinkProps } from '@/lib/navigation/linkProps';
 import { AdvancedFilterPanel } from '@/components/filters';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useCustomers } from '@/hooks/api/useCustomers';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import { unwrapList } from '@/utils/api-response';
 import { buildCustomerResolver } from '../rent/_components/mapping';
 import type { EmploymentOperatingContract } from '@/types/api.types';
@@ -91,6 +92,7 @@ function isValidPhone(phone?: string): boolean {
 export default function CollectionRenewalPage() {
   const language = useAuthStore((state) => state.language);
   const isRTL = language === 'ar';
+  const contractGates = useContractActionGates();
 
   // Fetch contracts from API
   const { contracts: apiContracts, isLoading, renewContract, isRenewing } =
@@ -261,11 +263,12 @@ export default function CollectionRenewalPage() {
   };
 
   const handleRenewContract = (contract: RentalContract) => {
+    if (!contractGates.canUpdate) return;
     setRenewTarget(contract);
   };
 
   const handleRenewSubmit = (newEndDate: string) => {
-    if (!renewTarget) return;
+    if (!renewTarget || !contractGates.canUpdate) return;
     renewContract(
       { id: renewTarget.id, newEndDate },
       {
@@ -543,7 +546,7 @@ export default function CollectionRenewalPage() {
                   >
                     {isRTL ? 'عرض' : 'View'}
                   </Button>
-                  {(contract.status === 'expired' || contract.status === 'expiring-soon') && (
+                  {contractGates.canUpdate && (contract.status === 'expired' || contract.status === 'expiring-soon') && (
                     <Button
                       type="primary"
                       icon={<ReloadOutlined />}
@@ -632,7 +635,8 @@ export default function CollectionRenewalPage() {
           <Button key="close" onClick={() => setSelectedContract(null)}>
             {isRTL ? 'إغلاق' : 'Close'}
           </Button>,
-          selectedContract &&
+          contractGates.canUpdate &&
+            selectedContract &&
             (selectedContract.status === 'expired' ||
               selectedContract.status === 'expiring-soon') && (
               <Button

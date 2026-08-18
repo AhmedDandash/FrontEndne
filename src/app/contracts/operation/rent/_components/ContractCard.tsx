@@ -43,17 +43,17 @@ import { formatDate, formatCurrency } from './format';
 import styles from '../RentContracts.module.css';
 
 export interface ContractCardActions {
-  onEdit: (c: RentContract) => void;
-  onDelete: (c: RentContract) => void;
-  onSign: (c: RentContract) => void;
-  onStartExecution: (c: RentContract) => void;
-  onRenew: (c: RentContract) => void;
-  onTerminate: (c: RentContract) => void;
-  onRefund: (c: RentContract) => void;
+  onEdit?: (c: RentContract) => void;
+  onDelete?: (c: RentContract) => void;
+  onSign?: (c: RentContract) => void;
+  onStartExecution?: (c: RentContract) => void;
+  onRenew?: (c: RentContract) => void;
+  onTerminate?: (c: RentContract) => void;
+  onRefund?: (c: RentContract) => void;
   onReceipts: (c: RentContract) => void;
   onPrint: (c: RentContract) => void;
-  onDeliveryForm: (c: RentContract) => void;
-  onHandoverReceipt: (c: RentContract) => void;
+  onDeliveryForm?: (c: RentContract) => void;
+  onHandoverReceipt?: (c: RentContract) => void;
 }
 
 interface Props {
@@ -105,8 +105,8 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
       icon: <EyeOutlined />,
     },
   ];
-  if (contract.contractStatus === 1 || contract.contractStatus === 2) {
-    menuItems.push({ key: 'edit', label: t.edit, icon: <EditOutlined />, onClick: () => actions.onEdit(contract) });
+  if ((contract.contractStatus === 1 || contract.contractStatus === 2) && actions.onEdit) {
+    menuItems.push({ key: 'edit', label: t.edit, icon: <EditOutlined />, onClick: () => actions.onEdit?.(contract) });
   }
   if (contract.contractStatus !== 1) {
     menuItems.push({
@@ -123,24 +123,24 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
     onClick: () => actions.onPrint(contract),
   });
   // Delivery form — relevant once a worker is handed over (not for a bare Draft).
-  if (contract.contractStatus !== 1) {
+  if (contract.contractStatus !== 1 && actions.onDeliveryForm) {
     menuItems.push({
       key: 'delivery-form',
       label: t.deliveryForm,
       icon: <SolutionOutlined />,
-      onClick: () => actions.onDeliveryForm(contract),
+      onClick: () => actions.onDeliveryForm?.(contract),
     });
   }
   // Signed handover receipt — needs an assigned worker and a Signed/Executing contract.
-  if (contract.workerId && (contract.contractStatus === 2 || contract.contractStatus === 3)) {
+  if (contract.workerId && (contract.contractStatus === 2 || contract.contractStatus === 3) && actions.onHandoverReceipt) {
     menuItems.push({
       key: 'handover-receipt',
       label: t.handoverReceipt,
       icon: <SafetyCertificateOutlined />,
-      onClick: () => actions.onHandoverReceipt(contract),
+      onClick: () => actions.onHandoverReceipt?.(contract),
     });
   }
-  if (contract.contractStatus === 1) {
+  if (contract.contractStatus === 1 && actions.onDelete) {
     menuItems.push({ type: 'divider' });
     menuItems.push({
       key: 'delete',
@@ -149,7 +149,7 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
           title={t.confirmDelete}
           okText={t.yes}
           cancelText={t.no}
-          onConfirm={() => actions.onDelete(contract)}
+          onConfirm={() => actions.onDelete?.(contract)}
         >
           <span style={{ color: '#ff4d4f' }}>
             <DeleteOutlined style={{ marginInlineEnd: 8 }} />
@@ -165,64 +165,78 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
       case 1:
         return (
           <Space wrap>
-            <Popconfirm
-              title={isRtl ? 'هل تريد توقيع هذا العقد؟' : 'Sign this contract?'}
-              okText={t.yes}
-              cancelText={t.no}
-              onConfirm={() => actions.onSign(contract)}
-            >
-              <Button type="primary" icon={<CheckCircleOutlined />} loading={loading.isSigning} size="small">
-                {t.signContract}
+            {actions.onSign && (
+              <Popconfirm
+                title={isRtl ? 'هل تريد توقيع هذا العقد؟' : 'Sign this contract?'}
+                okText={t.yes}
+                cancelText={t.no}
+                onConfirm={() => actions.onSign?.(contract)}
+              >
+                <Button type="primary" icon={<CheckCircleOutlined />} loading={loading.isSigning} size="small">
+                  {t.signContract}
+                </Button>
+              </Popconfirm>
+            )}
+            {actions.onEdit && (
+              <Button icon={<EditOutlined />} size="small" onClick={() => actions.onEdit?.(contract)}>
+                {t.edit}
               </Button>
-            </Popconfirm>
-            <Button icon={<EditOutlined />} size="small" onClick={() => actions.onEdit(contract)}>
-              {t.edit}
-            </Button>
-            <Popconfirm
-              title={t.confirmDelete}
-              okText={t.yes}
-              cancelText={t.no}
-              onConfirm={() => actions.onDelete(contract)}
-            >
-              <Button danger icon={<DeleteOutlined />} size="small" loading={loading.isDeleting}>
-                {t.delete}
-              </Button>
-            </Popconfirm>
+            )}
+            {actions.onDelete && (
+              <Popconfirm
+                title={t.confirmDelete}
+                okText={t.yes}
+                cancelText={t.no}
+                onConfirm={() => actions.onDelete?.(contract)}
+              >
+                <Button danger icon={<DeleteOutlined />} size="small" loading={loading.isDeleting}>
+                  {t.delete}
+                </Button>
+              </Popconfirm>
+            )}
           </Space>
         );
       case 2:
         return (
           <Space wrap>
-            <Popconfirm
-              title={isRtl ? 'هل تريد بدء تنفيذ العقد؟' : 'Start contract execution?'}
-              okText={t.yes}
-              cancelText={t.no}
-              onConfirm={() => actions.onStartExecution(contract)}
-            >
-              <Button type="primary" icon={<PlayCircleOutlined />} loading={loading.isStartingExecution} size="small">
-                {t.startExecution}
-              </Button>
-            </Popconfirm>
+            {actions.onStartExecution && (
+              <Popconfirm
+                title={isRtl ? 'هل تريد بدء تنفيذ العقد؟' : 'Start contract execution?'}
+                okText={t.yes}
+                cancelText={t.no}
+                onConfirm={() => actions.onStartExecution?.(contract)}
+              >
+                <Button type="primary" icon={<PlayCircleOutlined />} loading={loading.isStartingExecution} size="small">
+                  {t.startExecution}
+                </Button>
+              </Popconfirm>
+            )}
             <Button icon={<PrinterOutlined />} size="small" onClick={() => actions.onPrint(contract)}>
               {t.printReceipt}
             </Button>
-            <Button icon={<EditOutlined />} size="small" onClick={() => actions.onEdit(contract)}>
-              {t.edit}
-            </Button>
+            {actions.onEdit && (
+              <Button icon={<EditOutlined />} size="small" onClick={() => actions.onEdit?.(contract)}>
+                {t.edit}
+              </Button>
+            )}
           </Space>
         );
       case 3:
         return (
           <Space wrap>
-            <Button type="primary" icon={<ReloadOutlined />} size="small" onClick={() => actions.onRenew(contract)} loading={loading.isRenewing}>
-              {t.renewContract}
-            </Button>
+            {actions.onRenew && (
+              <Button type="primary" icon={<ReloadOutlined />} size="small" onClick={() => actions.onRenew?.(contract)} loading={loading.isRenewing}>
+                {t.renewContract}
+              </Button>
+            )}
             <Button icon={<FileDoneOutlined />} size="small" onClick={() => actions.onReceipts(contract)}>
               {t.receipts}
             </Button>
-            <Button danger icon={<StopOutlined />} size="small" onClick={() => actions.onTerminate(contract)} loading={loading.isTerminating}>
-              {t.terminateContract}
-            </Button>
+            {actions.onTerminate && (
+              <Button danger icon={<StopOutlined />} size="small" onClick={() => actions.onTerminate?.(contract)} loading={loading.isTerminating}>
+                {t.terminateContract}
+              </Button>
+            )}
             <Button icon={<PrinterOutlined />} size="small" onClick={() => actions.onPrint(contract)}>
               {t.printReceipt}
             </Button>
@@ -231,9 +245,11 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
       case 4:
         return (
           <Space wrap>
-            <Button type="primary" icon={<DollarOutlined />} size="small" onClick={() => actions.onRefund(contract)} loading={loading.isRefunding}>
-              {t.customerRefund}
-            </Button>
+            {actions.onRefund && (
+              <Button type="primary" icon={<DollarOutlined />} size="small" onClick={() => actions.onRefund?.(contract)} loading={loading.isRefunding}>
+                {t.customerRefund}
+              </Button>
+            )}
             <Button icon={<PrinterOutlined />} size="small" onClick={() => actions.onPrint(contract)}>
               {t.printReceipt}
             </Button>

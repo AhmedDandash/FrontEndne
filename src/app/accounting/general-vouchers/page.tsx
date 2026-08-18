@@ -38,6 +38,7 @@ import { linkProps } from '@/lib/navigation/linkProps';
 import { renderJournalLink, renderJournalStatus } from '../_lib/accountingDocDisplay';
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
 import VoucherTypeDropdown from './_components/VoucherTypeDropdown';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import {
   VOUCHER_PAYMENT_METHOD_OPTIONS,
   VOUCHER_TYPE_OPTIONS,
@@ -63,6 +64,7 @@ export default function GeneralVouchersPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const accountingGates = useAccountingActionGates();
 
   // ── Filters ─────────────────────────────────────────────────
   const [search, setSearch] = useState<string>();
@@ -249,13 +251,17 @@ export default function GeneralVouchersPage() {
               />
             </Tooltip>
             <Tooltip title={t('تعديل', 'Edit')}>
-              <Button
-                size="small"
-                type="text"
-                disabled={locked}
-                icon={<EditOutlined />}
-                onClick={() => router.push(`${ROUTE}/${record.id}?edit=1`)}
-              />
+              {accountingGates.canUpdate ? (
+                <Button
+                  size="small"
+                  type="text"
+                  disabled={locked}
+                  icon={<EditOutlined />}
+                  onClick={() => router.push(`${ROUTE}/${record.id}?edit=1`)}
+                />
+              ) : (
+                <span />
+              )}
             </Tooltip>
             <Tooltip title={t('طباعة', 'Print')}>
               <Button
@@ -275,25 +281,27 @@ export default function GeneralVouchersPage() {
                 onClick={() => setTraceId(record.id)}
               />
             </Tooltip>
-            <Popconfirm
-              title={t('حذف السند؟', 'Delete voucher?')}
-              description={t('لا يمكن التراجع عن هذا الإجراء.', 'This action cannot be undone.')}
-              okButtonProps={{ danger: true }}
-              okText={t('حذف', 'Delete')}
-              cancelText={t('إلغاء', 'Cancel')}
-              disabled={locked}
-              onConfirm={() => void deleteVoucher(record.id).catch(() => {})}
-            >
-              <Tooltip
-                title={
-                  locked
-                    ? t('لا يمكن حذف سند معمد', 'Cannot delete a posted voucher')
-                    : t('حذف', 'Delete')
-                }
+            {accountingGates.canDelete && (
+              <Popconfirm
+                title={t('حذف السند؟', 'Delete voucher?')}
+                description={t('لا يمكن التراجع عن هذا الإجراء.', 'This action cannot be undone.')}
+                okButtonProps={{ danger: true }}
+                okText={t('حذف', 'Delete')}
+                cancelText={t('إلغاء', 'Cancel')}
+                disabled={locked}
+                onConfirm={() => void deleteVoucher(record.id).catch(() => {})}
               >
-                <Button size="small" type="text" danger disabled={locked} icon={<DeleteOutlined />} />
-              </Tooltip>
-            </Popconfirm>
+                <Tooltip
+                  title={
+                    locked
+                      ? t('لا يمكن حذف سند معمد', 'Cannot delete a posted voucher')
+                      : t('حذف', 'Delete')
+                  }
+                >
+                  <Button size="small" type="text" danger disabled={locked} icon={<DeleteOutlined />} />
+                </Tooltip>
+              </Popconfirm>
+            )}
           </Space>
         );
       },
@@ -325,7 +333,11 @@ export default function GeneralVouchersPage() {
             >
               {t('تحديث', 'Refresh')}
             </Button>
-            <VoucherTypeDropdown isAr={isAr} className={styles.addBtn} />
+            <VoucherTypeDropdown
+              isAr={isAr}
+              className={styles.addBtn}
+              canCreate={accountingGates.canCreate}
+            />
           </div>
         </div>
       </div>

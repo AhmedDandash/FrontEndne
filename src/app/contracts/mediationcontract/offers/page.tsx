@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import { AdvancedFilterPanel } from '@/components/filters';
 import {
   Table,
@@ -56,6 +57,10 @@ import styles from './MediationOffers.module.css';
 export default function MediationOffersPage() {
   const { language } = useAuthStore();
   const isArabic = language === 'ar';
+  const contractGates = useContractActionGates();
+  const canCreateOffer = contractGates.canCreate;
+  const canUpdateOffer = contractGates.canUpdate;
+  const canDeleteOffer = contractGates.canDelete;
 
   // Filter state — nationalityId is UUID string
   const [nationalityFilter, setNationalityFilter] = useState<string | null>(null);
@@ -287,12 +292,14 @@ export default function MediationOffersPage() {
   }, [jobs, getLocalizedName]);
 
   const handleAdd = () => {
+    if (!canCreateOffer) return;
     setEditingOffer(null);
     form.resetFields();
     setIsModalVisible(true);
   };
 
   const handleEdit = (offer: MediationContractOffer) => {
+    if (!canUpdateOffer) return;
     setEditingOffer(offer);
     const localCost = offer.localCost ?? 0;
     const taxLocalCost = offer.taxLocalCost ?? Math.round(localCost * 0.15 * 100) / 100;
@@ -324,6 +331,7 @@ export default function MediationOffersPage() {
     try {
       const values = await form.validateFields();
       if (editingOffer) {
+        if (!canUpdateOffer) return;
         const dto: UpdateMediationContractOfferDto = {
           id: editingOffer.id,
           nationalityId: values.nationalityId ?? null,
@@ -345,6 +353,7 @@ export default function MediationOffersPage() {
           },
         });
       } else {
+        if (!canCreateOffer) return;
         const dto: CreateMediationContractOfferDto = {
           nationalityId: values.nationalityId ?? null,
           jobId: values.jobId ?? null,
@@ -373,6 +382,16 @@ export default function MediationOffersPage() {
     setIsModalVisible(false);
     form.resetFields();
     setEditingOffer(null);
+  };
+
+  const handleToggleActive = (id: string) => {
+    if (!canUpdateOffer) return;
+    toggleMutation.mutate(id);
+  };
+
+  const handleDelete = (id: string) => {
+    if (!canDeleteOffer) return;
+    deleteMutation.mutate(id);
   };
 
   const columns: ColumnsType<MediationContractOffer> = [
@@ -474,14 +493,20 @@ export default function MediationOffersPage() {
       key: 'isActive',
       width: 100,
       render: (_: any, record: MediationContractOffer) => (
-        <Switch
-          size="small"
-          checked={record.isActive !== false}
-          loading={toggleMutation.isPending && toggleMutation.variables === record.id}
-          onChange={() => toggleMutation.mutate(record.id)}
-          checkedChildren={t('active')}
-          unCheckedChildren={t('inactive')}
-        />
+        canUpdateOffer ? (
+          <Switch
+            size="small"
+            checked={record.isActive !== false}
+            loading={toggleMutation.isPending && toggleMutation.variables === record.id}
+            onChange={() => handleToggleActive(record.id)}
+            checkedChildren={t('active')}
+            unCheckedChildren={t('inactive')}
+          />
+        ) : (
+          <Tag color={record.isActive !== false ? 'green' : 'default'}>
+            {record.isActive !== false ? t('active') : t('inactive')}
+          </Tag>
+        )
       ),
     },
     {
@@ -491,29 +516,33 @@ export default function MediationOffersPage() {
       fixed: 'right' as const,
       render: (_: any, record: MediationContractOffer) => (
         <Space size="small">
-          <Button
-            type="text"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            className={styles.actionBtn}
-          />
-          <Popconfirm
-            title={t('confirmDelete')}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-            okButtonProps={{ danger: true }}
-            okText={isArabic ? 'حذف' : 'Delete'}
-            cancelText={t('cancel')}
-          >
+          {canUpdateOffer && (
             <Button
               type="text"
               size="small"
-              danger
-              icon={<DeleteOutlined />}
-              loading={deleteMutation.isPending && deleteMutation.variables === record.id}
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
               className={styles.actionBtn}
             />
-          </Popconfirm>
+          )}
+          {canDeleteOffer && (
+            <Popconfirm
+              title={t('confirmDelete')}
+              onConfirm={() => handleDelete(record.id)}
+              okButtonProps={{ danger: true }}
+              okText={isArabic ? 'حذف' : 'Delete'}
+              cancelText={t('cancel')}
+            >
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                loading={deleteMutation.isPending && deleteMutation.variables === record.id}
+                className={styles.actionBtn}
+              />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -541,16 +570,18 @@ export default function MediationOffersPage() {
               <h1 className={styles.pageTitle}>{t('mediationOffers')}</h1>
             </div>
           </div>
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            className={styles.addButton}
-            onClick={handleAdd}
-            loading={createMutation.isPending}
-          >
-            {t('addOffer')}
-          </Button>
+          {canCreateOffer && (
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlusOutlined />}
+              className={styles.addButton}
+              onClick={handleAdd}
+              loading={createMutation.isPending}
+            >
+              {t('addOffer')}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -759,7 +790,7 @@ export default function MediationOffersPage() {
       {/* Add/Edit Modal */}
       <Modal
         title={editingOffer ? t('editOffer') : t('addOffer')}
-        open={isModalVisible}
+        open={isModalVisible && (editingOffer ? canUpdateOffer : canCreateOffer)}
         onOk={handleModalSubmit}
         onCancel={handleModalCancel}
         okText={t('save')}

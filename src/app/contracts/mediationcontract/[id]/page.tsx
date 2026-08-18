@@ -22,6 +22,7 @@ import MediationContractDetailView from '../_components/MediationContractDetailV
 import { getStatusConfigFromName } from '../_lib/format';
 import { MEDIATION_PAYMENT_METHOD, toSelectOptions } from '@/constants/enums';
 import type { CreateMediationContractPaymentDto } from '@/types/api.types';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 
 const LIST_ROUTE = '/contracts/mediationcontract';
 
@@ -33,6 +34,7 @@ export default function MediationContractDetailPage({ params }: { params: { id: 
   const { id } = params;
   const language = useAuthStore((state) => state.language);
   const isRtl = language === 'ar';
+  const accountingGates = useAccountingActionGates();
 
   const { data: contract, isLoading, isError, error, refetch } = useMediationContract(id);
   const { recordPayment, isRecordingPayment } = useRecordMediationPayment();
@@ -58,12 +60,14 @@ export default function MediationContractDetailPage({ params }: { params: { id: 
   const genericError = isError && !notFound;
 
   const openPaymentModal = () => {
+    if (!accountingGates.canCreate) return;
     paymentForm.resetFields();
     paymentForm.setFieldsValue({ paymentDate: dayjs() });
     setShowPaymentModal(true);
   };
 
   const handleRecordPayment = async () => {
+    if (!accountingGates.canCreate) return;
     try {
       const values = await paymentForm.validateFields();
       const payload: CreateMediationContractPaymentDto = {
@@ -83,7 +87,7 @@ export default function MediationContractDetailPage({ params }: { params: { id: 
     }
   };
 
-  const canRecordPayment = !!contract && contract.paymentStatusCode !== 2;
+  const canRecordPayment = !!contract && contract.paymentStatusCode !== 2 && accountingGates.canCreate;
 
   return (
     <>
@@ -120,12 +124,12 @@ export default function MediationContractDetailPage({ params }: { params: { id: 
       {/* ========== RECORD PAYMENT MODAL ========== */}
       <Modal
         title={t.recordPayment}
-        open={showPaymentModal}
+        open={showPaymentModal && accountingGates.canCreate}
         onCancel={() => {
           setShowPaymentModal(false);
           paymentForm.resetFields();
         }}
-        onOk={handleRecordPayment}
+        onOk={accountingGates.canCreate ? handleRecordPayment : undefined}
         okText={t.save}
         cancelText={t.cancel}
         confirmLoading={isRecordingPayment}

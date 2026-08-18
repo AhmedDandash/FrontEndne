@@ -69,6 +69,7 @@ import type {
 } from '@/types/api.types';
 import styles from './SponsorshipTransfer.module.css';
 import { useWorkersWantsTransfer } from '@/hooks/api/useWorkers';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import { formatCurrency, formatDate, getStatusConfig } from './_lib/format';
 
 const { TextArea } = Input;
@@ -172,8 +173,10 @@ function ComplaintModal({
   const [form]   = Form.useForm();
   const mutation = useCreateComplaint();
   const { data: contract } = useTransferContract(open ? contractId : null);
+  const contractGates = useContractActionGates();
 
   const handleOk = async () => {
+    if (!contractGates.canUpdate) return;
     try {
       const values = await form.validateFields();
       const dto: CreateComplaintDto = {
@@ -200,8 +203,8 @@ function ComplaintModal({
           <WarningOutlined /> {t('addComplaint')}
         </span>
       }
-      open={open}
-      onOk={handleOk}
+      open={open && contractGates.canUpdate}
+      onOk={contractGates.canUpdate ? handleOk : undefined}
       onCancel={() => { form.resetFields(); onClose(); }}
       okText={t('save')}
       cancelText={t('cancel')}
@@ -246,8 +249,10 @@ function AuthorityModal({
   const isAr     = language === 'ar';
   const [form]   = Form.useForm();
   const mutation = useUpdateTransferContractAuthorityStatus();
+  const contractGates = useContractActionGates();
 
   const handleOk = async () => {
+    if (!contractId || !contractGates.canUpdate) return;
     try {
       const values = await form.validateFields();
       mutation.mutate(
@@ -266,8 +271,8 @@ function AuthorityModal({
           <SendOutlined /> {t('sendToAuthority')}
         </span>
       }
-      open={open}
-      onOk={handleOk}
+      open={open && contractGates.canUpdate}
+      onOk={contractGates.canUpdate ? handleOk : undefined}
       onCancel={() => { form.resetFields(); onClose(); }}
       okText={t('save')}
       cancelText={t('cancel')}
@@ -307,6 +312,7 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
   const isAr = language === 'ar';
   const [form] = Form.useForm();
   const createMutation = useCreateTransferContract();
+  const contractGates = useContractActionGates();
 
   const { customers }         = useCustomers();
   const { data: workers }     = useWorkersWantsTransfer();
@@ -316,6 +322,7 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
   const governmentFees = Form.useWatch('governmentFees', form) ?? 0;
 
   const handleSubmit = async () => {
+    if (!contractGates.canCreate) return;
     try {
       const values = await form.validateFields();
       const dto: CreateTransferContractDto = {
@@ -359,8 +366,8 @@ function CreateTransferModal({ open, onClose }: { open: boolean; onClose: () => 
           <PlusOutlined /> {t('addContract')}
         </span>
       }
-      open={open}
-      onOk={handleSubmit}
+      open={open && contractGates.canCreate}
+      onOk={contractGates.canCreate ? handleSubmit : undefined}
       onCancel={() => { form.resetFields(); onClose(); }}
       okText={t('save')}
       cancelText={t('cancel')}
@@ -483,6 +490,11 @@ function ContractCard({
   onAuthority,
   onComplaint,
   onDelete,
+  canSign,
+  canComplete,
+  canUpdateAuthority,
+  canAddComplaint,
+  canDelete,
   isSignPending,
   isCompletePending,
   isDeletePending,
@@ -490,11 +502,16 @@ function ContractCard({
   contract: TransferContractListItem;
   language: 'ar' | 'en';
   viewHref: string;
-  onSign: () => void;
-  onComplete: () => void;
-  onAuthority: () => void;
-  onComplaint: () => void;
-  onDelete: () => void;
+  onSign?: () => void;
+  onComplete?: () => void;
+  onAuthority?: () => void;
+  onComplaint?: () => void;
+  onDelete?: () => void;
+  canSign: boolean;
+  canComplete: boolean;
+  canUpdateAuthority: boolean;
+  canAddComplaint: boolean;
+  canDelete: boolean;
   isSignPending: boolean;
   isCompletePending: boolean;
   isDeletePending: boolean;
@@ -602,7 +619,7 @@ function ContractCard({
               {t('contractDetails')}
             </Button>
 
-            {isDraft && (
+            {isDraft && canSign && (
               <Button
                 type="link"
                 icon={<EditOutlined />}
@@ -615,7 +632,7 @@ function ContractCard({
               </Button>
             )}
 
-            {isApproved && (
+            {isApproved && canComplete && (
               <Button
                 type="link"
                 icon={<CheckCircleOutlined />}
@@ -628,27 +645,31 @@ function ContractCard({
               </Button>
             )}
 
-            <Button
-              type="link"
-              icon={<SendOutlined />}
-              className={styles.actionBtn}
-              block
-              onClick={onAuthority}
-            >
-              {t('sendToAuthority')}
-            </Button>
+            {canUpdateAuthority && (
+              <Button
+                type="link"
+                icon={<SendOutlined />}
+                className={styles.actionBtn}
+                block
+                onClick={onAuthority}
+              >
+                {t('sendToAuthority')}
+              </Button>
+            )}
 
-            <Button
-              type="link"
-              icon={<WarningOutlined />}
-              className={styles.actionBtn}
-              block
-              onClick={onComplaint}
-            >
-              {t('addComplaint')}
-            </Button>
+            {canAddComplaint && (
+              <Button
+                type="link"
+                icon={<WarningOutlined />}
+                className={styles.actionBtn}
+                block
+                onClick={onComplaint}
+              >
+                {t('addComplaint')}
+              </Button>
+            )}
 
-            {isDraft && (
+            {isDraft && canDelete && (
               <Button
                 type="link"
                 icon={<DeleteOutlined />}
@@ -673,6 +694,7 @@ function ContractCard({
 export default function SponsorshipTransferPage() {
   const t        = useT();
   const language = useAuthStore((s) => s.language);
+  const contractGates = useContractActionGates();
 
   const [searchText,    setSearchText]    = useState('');
   const [statusFilter,  setStatusFilter]  = useState<string>('all');
@@ -841,6 +863,7 @@ export default function SponsorshipTransferPage() {
   };
 
   const handleSign = (id: string) => {
+    if (!contractGates.canSign) return;
     Modal.confirm({
       title:   t('confirmSignTitle'),
       icon:    <ExclamationCircleOutlined style={{ color: '#faad14' }} />,
@@ -852,6 +875,7 @@ export default function SponsorshipTransferPage() {
   };
 
   const handleDelete = (id: string) => {
+    if (!contractGates.canDelete) return;
     Modal.confirm({
       title:   t('confirmDeleteTitle'),
       icon:    <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
@@ -884,14 +908,16 @@ export default function SponsorshipTransferPage() {
             >
               {t('refresh')}
             </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              className={styles.primaryBtn}
-              onClick={() => setCreateModal(true)}
-            >
-              {t('addContract')}
-            </Button>
+            {contractGates.canCreate && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className={styles.primaryBtn}
+                onClick={() => setCreateModal(true)}
+              >
+                {t('addContract')}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -1162,11 +1188,16 @@ export default function SponsorshipTransferPage() {
               contract={contract}
               language={language}
               viewHref={`/sponsorship-transfer/${contract.id}`}
-              onSign={() => handleSign(contract.id)}
-              onComplete={() => completeMutation.mutate(contract.id)}
-              onAuthority={() => setAuthorityId(contract.id)}
-              onComplaint={() => setComplaintId(contract.id)}
-              onDelete={() => handleDelete(contract.id)}
+              onSign={contractGates.canSign ? () => handleSign(contract.id) : undefined}
+              onComplete={contractGates.canUpdate ? () => completeMutation.mutate(contract.id) : undefined}
+              onAuthority={contractGates.canUpdate ? () => setAuthorityId(contract.id) : undefined}
+              onComplaint={contractGates.canUpdate ? () => setComplaintId(contract.id) : undefined}
+              onDelete={contractGates.canDelete ? () => handleDelete(contract.id) : undefined}
+              canSign={contractGates.canSign}
+              canComplete={contractGates.canUpdate}
+              canUpdateAuthority={contractGates.canUpdate}
+              canAddComplaint={contractGates.canUpdate}
+              canDelete={contractGates.canDelete}
               isSignPending={signMutation.isPending}
               isCompletePending={completeMutation.isPending}
               isDeletePending={deleteMutation.isPending}
@@ -1193,17 +1224,17 @@ export default function SponsorshipTransferPage() {
       {/* ── Modals ── */}
       <ComplaintModal
         contractId={complaintId}
-        open={!!complaintId}
+        open={!!complaintId && contractGates.canUpdate}
         onClose={() => setComplaintId(null)}
       />
 
       <AuthorityModal
         contractId={authorityId}
-        open={!!authorityId}
+        open={!!authorityId && contractGates.canUpdate}
         onClose={() => setAuthorityId(null)}
       />
 
-      <CreateTransferModal open={createModal} onClose={() => setCreateModal(false)} />
+      <CreateTransferModal open={createModal && contractGates.canCreate} onClose={() => setCreateModal(false)} />
     </div>
   );
 }

@@ -48,6 +48,7 @@ import { useBranches } from '@/hooks/api/useBranches';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import NationalitySelect from '@/components/common/NationalitySelect';
 import { useJobs } from '@/hooks/api/useJobs';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import type { EmploymentContractOffer, UpdateOperatingContractOfferDto } from '@/types/api.types';
 import { formatOperationDuration } from '@/utils/operation-duration';
 import styles from './RentPricesOffers.module.css';
@@ -69,6 +70,7 @@ const offerTypeLabels: Record<number, { ar: string; en: string }> = {
 export default function RentPricesOffersPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language === 'ar';
+  const contractGates = useContractActionGates();
 
   const [searchText, setSearchText] = useState('');
   const [nationalityFilter, setNationalityFilter] = useState<string>('all');
@@ -286,6 +288,7 @@ export default function RentPricesOffersPage() {
   const editTotal = Math.round(editCost + editTax + editSalary * editMonths + editInsurance);
 
   const openEdit = (offer: EmploymentContractOffer) => {
+    if (!contractGates.canUpdate) return;
     setEditingOffer(offer);
     const c = offer.cost ?? 0;
     const ins = offer.insurance ?? 0;
@@ -311,7 +314,7 @@ export default function RentPricesOffersPage() {
   };
 
   const handleUpdate = async () => {
-    if (!editingOffer) return;
+    if (!editingOffer || !contractGates.canUpdate) return;
     try {
       const vals = editForm.getFieldsValue();
       const payload: UpdateOperatingContractOfferDto = {
@@ -340,6 +343,7 @@ export default function RentPricesOffersPage() {
   };
 
   const handleDelete = (id: number | string) => {
+    if (!contractGates.canDelete) return;
     deleteOffer(id, {
       onSuccess: () => message.success(t('deleteSuccess')),
     });
@@ -478,28 +482,35 @@ export default function RentPricesOffersPage() {
       align: 'center',
       width: 100,
       fixed: 'right',
-      render: (_: any, r) => (
-        <Space>
-          <Tooltip title={t('edit')}>
-            <Button
-              type="primary"
-              icon={<EditOutlined />}
-              size="small"
-              ghost
-              onClick={() => openEdit(r)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title={t('deleteConfirm')}
-            okText={t('delete')}
-            cancelText={t('cancel')}
-            okButtonProps={{ danger: true, loading: isDeleting }}
-            onConfirm={() => handleDelete(r.id)}
-          >
-            <Button danger icon={<DeleteOutlined />} size="small" />
-          </Popconfirm>
-        </Space>
-      ),
+      render: (_: any, r) =>
+        contractGates.canUpdate || contractGates.canDelete ? (
+          <Space>
+            {contractGates.canUpdate && (
+              <Tooltip title={t('edit')}>
+                <Button
+                  type="primary"
+                  icon={<EditOutlined />}
+                  size="small"
+                  ghost
+                  onClick={() => openEdit(r)}
+                />
+              </Tooltip>
+            )}
+            {contractGates.canDelete && (
+              <Popconfirm
+                title={t('deleteConfirm')}
+                okText={t('delete')}
+                cancelText={t('cancel')}
+                okButtonProps={{ danger: true, loading: isDeleting }}
+                onConfirm={() => handleDelete(r.id)}
+              >
+                <Button danger icon={<DeleteOutlined />} size="small" />
+              </Popconfirm>
+            )}
+          </Space>
+        ) : (
+          <span style={{ color: '#bbb' }}>—</span>
+        ),
     },
   ];
 
@@ -518,22 +529,26 @@ export default function RentPricesOffersPage() {
             </div>
           </div>
           <div className={styles.headerActions}>
-            <Dropdown menu={{ items: addOfferMenuItems }} trigger={['click']}>
-              <Button type="primary" size="large" icon={<PlusOutlined />} className={styles.addButton}>
-                {t('addOffer')} <DownOutlined />
-              </Button>
-            </Dropdown>
-            <Dropdown menu={{ items: addSpecialMenuItems }} trigger={['click']}>
-              <Button size="large" icon={<GiftOutlined />}
-                style={{ background: '#17a2b8', color: '#fff', border: 'none' }}>
-                {t('addSpecialOffer')} <DownOutlined />
-              </Button>
-            </Dropdown>
-            <Dropdown menu={{ items: addPackageMenuItems }} trigger={['click']}>
-              <Button type="primary" size="large" icon={<AppstoreOutlined />}>
-                {t('addPackageOffer')} <DownOutlined />
-              </Button>
-            </Dropdown>
+            {contractGates.canCreate && (
+              <>
+                <Dropdown menu={{ items: addOfferMenuItems }} trigger={['click']}>
+                  <Button type="primary" size="large" icon={<PlusOutlined />} className={styles.addButton}>
+                    {t('addOffer')} <DownOutlined />
+                  </Button>
+                </Dropdown>
+                <Dropdown menu={{ items: addSpecialMenuItems }} trigger={['click']}>
+                  <Button size="large" icon={<GiftOutlined />}
+                    style={{ background: '#17a2b8', color: '#fff', border: 'none' }}>
+                    {t('addSpecialOffer')} <DownOutlined />
+                  </Button>
+                </Dropdown>
+                <Dropdown menu={{ items: addPackageMenuItems }} trigger={['click']}>
+                  <Button type="primary" size="large" icon={<AppstoreOutlined />}>
+                    {t('addPackageOffer')} <DownOutlined />
+                  </Button>
+                </Dropdown>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -789,7 +804,7 @@ export default function RentPricesOffersPage() {
 
       {/* ── Edit Modal ── */}
       <Modal
-        open={editModalOpen}
+        open={editModalOpen && contractGates.canUpdate}
         title={
           <Space>
             <EditOutlined />
@@ -918,6 +933,7 @@ export default function RentPricesOffersPage() {
                   type="primary" icon={<SaveOutlined />} size="large"
                   loading={isUpdating} style={{ minWidth: 140, background: '#00AA64' }}
                   onClick={handleUpdate}
+                  disabled={!contractGates.canUpdate}
                 >
                   {t('save')}
                 </Button>

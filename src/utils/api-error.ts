@@ -13,6 +13,10 @@
  * pattern that was duplicated across every mutation hook.
  */
 export function getApiErrorMessage(err: any, fallback: string): string {
+  if (err?.response?.status === 403) {
+    return 'ليست لديك صلاحية لتنفيذ هذا الإجراء / You do not have permission to perform this action';
+  }
+
   const data = err?.response?.data;
   const errors = data?.errors;
 

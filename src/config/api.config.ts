@@ -73,6 +73,7 @@ export const API_ENDPOINTS = {
   // Agent — RESTful /api/V1/Agent
   AGENT: {
     GET_ALL: '/api/V1/Agent',
+    ME: '/api/V1/Agent/me',
     GET_BY_ID: (id: number | string) => `/api/V1/Agent/${id}`,
     CREATE: '/api/V1/Agent',
     UPDATE: (id: number | string) => `/api/V1/Agent/${id}`,

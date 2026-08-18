@@ -15,6 +15,7 @@ import {
 import { PlusOutlined, ApartmentOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useDepartments } from '@/hooks/api/useAdmin';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import type { Department, CreateDepartmentDto } from '@/types/hr.types';
 
 const { Title } = Typography;
@@ -22,6 +23,7 @@ const { Title } = Typography;
 export default function HRDepartmentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const hrGates = useHrActionGates();
 
   const {
     departments,
@@ -31,11 +33,13 @@ export default function HRDepartmentsPage() {
   } = useDepartments();
 
   const openCreate = () => {
+    if (!hrGates.canCreate) return;
     form.resetFields();
     setModalOpen(true);
   };
 
   const handleSubmit = async () => {
+    if (!hrGates.canCreate) return;
     try {
       const values = await form.validateFields();
       await createDepartment(values as CreateDepartmentDto);
@@ -85,9 +89,11 @@ export default function HRDepartmentsPage() {
             الأقسام
           </Title>
         </Space>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} size="large">
-          إضافة قسم
-        </Button>
+        {hrGates.canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} size="large">
+            إضافة قسم
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -102,7 +108,7 @@ export default function HRDepartmentsPage() {
       </Card>
 
       <Modal
-        open={modalOpen}
+        open={modalOpen && hrGates.canCreate}
         title="إضافة قسم جديد"
         onCancel={() => {
           setModalOpen(false);

@@ -3,67 +3,167 @@
  *
  *  - useCurrentRoles    : the signed-in user's roles (from /api/V1/Auth/me, with
  *                         a JWT role-claim fallback for forward-compatibility)
+ *                         and permissions (from /me, with JWT fallback)
  *  - usePagePermissions : load + save the page→roles matrix (management screen)
  *  - useCanAccess       : combine roles + matrix into an access decision used by
  *                         the Sidebar and the route guard
+ *  - useHasPermission   : gate buttons/actions using backend permission claims
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { AuthService } from '@/services/auth.service';
 import { PermissionService, getPermissionsSync } from '@/services/permission.service';
 import { extractApiError } from '@/lib/api/unwrap';
 import {
-  canAccessPage,
+  isAdminRole,
   resolvePageKey,
   isPageConfigured,
   type PermissionMatrix,
 } from '@/config/pagePermissions.config';
+import { hasAccessPermission } from '@/config/appPermissions';
+import { canAccessPageWithPermissionRequirements } from '@/config/pagePermissionRequirements';
+import {
+  AUTH_ME_PENDING_FALLBACK_MS,
+  isCurrentAccessClaimsReady,
+  resolveMeClaimsState,
+  resolveCurrentAccessClaims,
+  type TokenRefreshClaimsState,
+  type MeClaimsState,
+} from '@/config/accessClaims';
+import { AUTH_ME_QUERY_KEY, subscribeToAuthTokenRefresh } from '@/config/authMeQuery';
 
 const PERMISSIONS_QK = ['page-permissions'] as const;
-const ME_QK = ['auth', 'me'] as const;
+const EMPTY_PERMISSION_MATRIX: PermissionMatrix = {};
 
-/** Decode role claims from the stored JWT, if the backend ever adds them. */
-function decodeTokenRoles(): string[] {
+function toStringArray(raw: unknown): string[] {
+  if (!raw) return [];
+  return Array.isArray(raw) ? raw.map(String) : [String(raw)];
+}
+
+function decodeTokenClaims(claimNames: string[]): string[] {
   if (typeof window === 'undefined') return [];
   const token = AuthService.getToken();
   if (!token) return [];
   try {
     const payloadBase64 = token.split('.')[1];
     const payload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
-    const raw =
-      payload?.role ??
-      payload?.roles ??
-      payload?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-    if (!raw) return [];
-    return Array.isArray(raw) ? raw.map(String) : [String(raw)];
+    for (const claimName of claimNames) {
+      const values = toStringArray(payload?.[claimName]);
+      if (values.length > 0) return values;
+    }
   } catch {
-    return [];
+    // JWT decode failed; callers will continue with an empty fallback.
   }
+  return [];
 }
 
-/** The current user's roles. Source of truth is `/api/V1/Auth/me`. */
-export function useCurrentRoles() {
-  const query = useQuery({
-    queryKey: ME_QK,
-    queryFn: () => AuthService.me(),
-    enabled: AuthService.isAuthenticated(),
-    staleTime: 5 * 60 * 1000,
-  });
+/** Decode role claims from the stored JWT if `/me` is unavailable. */
+function decodeTokenRoles(): string[] {
+  return decodeTokenClaims([
+    'role',
+    'roles',
+    'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
+  ]);
+}
 
-  const roles = useMemo(() => {
-    const fromMe = query.data?.roles ?? [];
-    if (fromMe.length > 0) return fromMe;
-    return decodeTokenRoles();
-  }, [query.data]);
+/** Decode permission claims from the stored JWT if `/me` is unavailable. */
+function decodeTokenPermissions(): string[] {
+  return decodeTokenClaims([
+    'permission',
+    'permissions',
+    'http://schemas.microsoft.com/ws/2008/06/identity/claims/permission',
+  ]);
+}
+
+export function useCurrentRoles() {
+  const isAuthenticated = AuthService.isAuthenticated();
+  const [tokenRefreshState, setTokenRefreshState] = useState<{
+    revision: number;
+    state: TokenRefreshClaimsState;
+  }>({ revision: 0, state: 'idle' });
+  const tokenRefreshRevisionRef = useRef(0);
+  const query = useQuery({
+    queryKey: AUTH_ME_QUERY_KEY,
+    queryFn: () => AuthService.me(),
+    enabled: isAuthenticated,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+  const refetchMe = query.refetch;
+  const queryClaimsState = query.isSuccess ? 'success' : query.isError ? 'error' : 'pending';
+  const claimsState: MeClaimsState = resolveMeClaimsState({
+    isAuthenticated,
+    queryState: queryClaimsState,
+    tokenRefreshState: tokenRefreshState.state,
+  });
+  const [pendingFallbackElapsed, setPendingFallbackElapsed] = useState(false);
+
+  useEffect(() => {
+    return subscribeToAuthTokenRefresh(() => {
+      const refreshRevision = tokenRefreshRevisionRef.current + 1;
+      tokenRefreshRevisionRef.current = refreshRevision;
+      setTokenRefreshState({ revision: refreshRevision, state: 'pending' });
+
+      void refetchMe().then((result) => {
+        setTokenRefreshState((current) => {
+          if (current.revision !== refreshRevision) return current;
+          return {
+            revision: current.revision,
+            state: result.isSuccess ? 'idle' : 'error',
+          };
+        });
+      });
+    });
+  }, [refetchMe]);
+
+  useEffect(() => {
+    if (claimsState !== 'pending') {
+      setPendingFallbackElapsed(false);
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setPendingFallbackElapsed(true);
+    }, AUTH_ME_PENDING_FALLBACK_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [claimsState]);
+
+  const { roles, permissions } = useMemo(
+    () =>
+      resolveCurrentAccessClaims(
+        claimsState,
+        query.data,
+        {
+          roles: decodeTokenRoles(),
+          permissions: decodeTokenPermissions(),
+        }
+      ),
+    [claimsState, query.data]
+  );
 
   return {
     roles,
+    permissions,
+    me: query.data,
     isLoading: query.isLoading,
-    // "settled" enough to make an enforcement decision without flashing a 403
-    isReady: !AuthService.isAuthenticated() || query.isFetched,
+    isReady: isCurrentAccessClaimsReady(claimsState, isAuthenticated, pendingFallbackElapsed),
   };
+}
+
+export function useHasPermission() {
+  const { roles, permissions, isReady } = useCurrentRoles();
+
+  const has = useMemo(
+    () => (required: string | readonly string[]) =>
+      hasAccessPermission({ roles, permissions }, required),
+    [roles, permissions]
+  );
+
+  return { has, roles, permissions, isReady };
 }
 
 /** Load + persist the page→roles matrix (used by the management screen). */
@@ -105,26 +205,28 @@ export function usePagePermissions() {
  *  - 'pending' : roles not yet known for a restricted page → wait
  */
 export function useCanAccess() {
-  const { roles, isReady } = useCurrentRoles();
+  const { roles, permissions, me, isLoading, isReady } = useCurrentRoles();
   const query = useQuery({
     queryKey: PERMISSIONS_QK,
     queryFn: () => PermissionService.getPermissions(),
     initialData: getPermissionsSync,
     staleTime: Infinity,
   });
-  const matrix = query.data ?? {};
+  const matrix = query.data ?? EMPTY_PERMISSION_MATRIX;
 
   return useMemo(() => {
-    const canAccess = (pageKey: string | null) => canAccessPage(pageKey, roles, matrix);
+    const canAccess = (pageKey: string | null) =>
+      canAccessPageWithPermissionRequirements(pageKey, roles, permissions, matrix);
 
     const check = (pathname: string): 'allow' | 'deny' | 'pending' => {
       const key = resolvePageKey(pathname);
       if (!key) return 'allow';
-      if (!isPageConfigured(key, matrix)) return 'allow'; // unconfigured → open
-      if (!isReady) return 'pending'; // restricted page, roles still loading
-      return canAccessPage(key, roles, matrix) ? 'allow' : 'deny';
+      if (!isReady) return 'pending';
+      if (isAdminRole(roles)) return 'allow';
+      if (!isPageConfigured(key, matrix)) return 'deny';
+      return canAccess(key) ? 'allow' : 'deny';
     };
 
-    return { canAccess, check, roles, isReady };
-  }, [roles, matrix, isReady]);
+    return { canAccess, check, roles, permissions, me, isLoading, isReady };
+  }, [roles, permissions, matrix, me, isLoading, isReady]);
 }

@@ -16,6 +16,7 @@ import { useCustomers } from '@/hooks/api/useCustomers';
 import RecordDetailShell from '@/components/record-detail/RecordDetailShell';
 import RentContractDetailView from '../_components/RentContractDetailView';
 import WorkerDeliveryRecordModal from '../_components/WorkerDeliveryRecordModal';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import { buildNationalityResolver, buildJobResolver, buildCustomerResolver, mapContract, getStatusMeta } from '../_components/mapping';
 
 const LIST_ROUTE = '/contracts/operation/rent';
@@ -28,6 +29,7 @@ export default function RentContractDetailPage({ params }: { params: { id: strin
   const { id } = params;
   const language = useAuthStore((state) => state.language);
   const isRtl = language === 'ar';
+  const contractGates = useContractActionGates();
 
   const { data: rawContract, isLoading, isError, error, refetch } = useEmploymentOperatingContract(id);
   const { data: jobs = [] } = useJobs();
@@ -53,7 +55,9 @@ export default function RentContractDetailPage({ params }: { params: { id: strin
   // Same enablement guard as the list card action: needs an assigned worker
   // and a Signed/Executing contract.
   const canCreateHandoverReceipt =
-    !!contract?.workerId && (contract?.contractStatus === 2 || contract?.contractStatus === 3);
+    contractGates.canUpdate &&
+    !!contract?.workerId &&
+    (contract?.contractStatus === 2 || contract?.contractStatus === 3);
 
   return (
     <>
@@ -87,12 +91,14 @@ export default function RentContractDetailPage({ params }: { params: { id: strin
         {contract && <RentContractDetailView contract={contract} isRtl={isRtl} />}
       </RecordDetailShell>
 
-      <WorkerDeliveryRecordModal
-        open={handoverOpen}
-        isRtl={isRtl}
-        contract={contract}
-        onClose={() => setHandoverOpen(false)}
-      />
+      {contractGates.canUpdate && (
+        <WorkerDeliveryRecordModal
+          open={handoverOpen}
+          isRtl={isRtl}
+          contract={contract}
+          onClose={() => setHandoverOpen(false)}
+        />
+      )}
     </>
   );
 }

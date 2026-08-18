@@ -6,8 +6,10 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { message } from 'antd';
 import { API_CONFIG, API_ENDPOINTS } from '@/config/api.config';
+import { AUTH_TOKEN_REFRESHED_EVENT } from '@/config/authMeQuery';
 import { useAuthStore, getJwtBranchId } from '@/store/authStore';
 import type { ApiError } from '@/types/api.types';
+export { AUTH_TOKEN_REFRESHED_EVENT } from '@/config/authMeQuery';
 
 interface AxiosRequestConfigWithRetry extends AxiosRequestConfig {
   _retry?: boolean;
@@ -147,7 +149,7 @@ class ApiClient {
           console.log('✅ API Response:', {
             url: response.config.url,
             status: response.status,
-            data: response.data,
+            hasData: response.data != null,
           });
         }
 
@@ -211,6 +213,8 @@ class ApiClient {
               localStorage.removeItem('refreshToken');
               sessionStorage.removeItem('authToken');
               localStorage.removeItem('user');
+              localStorage.removeItem('authRoles');
+              localStorage.removeItem('authPermissions');
               localStorage.removeItem('branchId');
               localStorage.removeItem('branchName');
 
@@ -290,6 +294,7 @@ class ApiClient {
       if (!newAccessToken) return null;
 
       localStorage.setItem('authToken', newAccessToken);
+      window.dispatchEvent(new CustomEvent(AUTH_TOKEN_REFRESHED_EVENT, { detail: { token: newAccessToken } }));
       if (newRefreshToken) {
         // Store the rotated refresh token; the old one is now revoked server-side.
         localStorage.setItem('refreshToken', newRefreshToken);

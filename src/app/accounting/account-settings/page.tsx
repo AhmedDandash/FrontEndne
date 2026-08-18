@@ -20,6 +20,7 @@ import type { AccountSettingListDto } from '@/types/accounting.types';
 import { useAuthStore } from '@/store/authStore';
 import { useAccountModals } from '../_components/AccountModals';
 import { linkProps } from '@/lib/navigation/linkProps';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import styles from './AccountSettings.module.css';
 
 export default function AccountSettingsPage() {
@@ -27,6 +28,7 @@ export default function AccountSettingsPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const accountingGates = useAccountingActionGates();
 
   // ── Table query state ───────────────────────────────────────
   const [searchInput, setSearchInput] = useState('');
@@ -140,6 +142,7 @@ export default function AccountSettingsPage() {
       fixed: 'right',
       render: (_, record) => {
         const deletable = isLeaf(record.id);
+        if (!accountingGates.canManage) return <span style={{ color: '#bbb' }}>—</span>;
         return (
           <Space size={4}>
             <Tooltip title={t('تعديل الاسم', 'Edit name')}>
@@ -218,9 +221,11 @@ export default function AccountSettingsPage() {
             >
               {t('تحديث', 'Refresh')}
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreate()} className={styles.addBtn}>
-              {t('إضافة حساب', 'Add Account')}
-            </Button>
+            {accountingGates.canCreate && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreate()} className={styles.addBtn}>
+                {t('إضافة حساب', 'Add Account')}
+              </Button>
+            )}
           </div>
         </div>
       </div>

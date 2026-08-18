@@ -17,6 +17,7 @@ import { Modal, Button, Table, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, FileDoneOutlined } from '@ant-design/icons';
 import { useReceiptVouchers } from '@/hooks/api/useReceiptVouchers';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import type { ReceiptVoucher } from '@/types/api.types';
 import { formatDate, formatCurrency } from './format';
 import ReceiptVoucherModal from './ReceiptVoucherModal';
@@ -37,6 +38,7 @@ export default function ContractReceiptsModal({
   onClose,
 }: Props) {
   const [formOpen, setFormOpen] = useState(false);
+  const accountingGates = useAccountingActionGates();
 
   const { data: vouchers = [], isLoading } = useReceiptVouchers(
     contractId ? { contractId } : undefined
@@ -128,14 +130,16 @@ export default function ContractReceiptsModal({
           <Button key="close" onClick={onClose}>
             {isRtl ? 'إغلاق' : 'Close'}
           </Button>,
-          <Button
-            key="add"
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setFormOpen(true)}
-          >
-            {isRtl ? 'سند جديد' : 'New Voucher'}
-          </Button>,
+          accountingGates.canCreate ? (
+            <Button
+              key="add"
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setFormOpen(true)}
+            >
+              {isRtl ? 'سند جديد' : 'New Voucher'}
+            </Button>
+          ) : null,
         ]}
         width={720}
         destroyOnHidden
@@ -161,7 +165,7 @@ export default function ContractReceiptsModal({
       </Modal>
 
       <ReceiptVoucherModal
-        open={formOpen}
+        open={formOpen && accountingGates.canCreate}
         isRtl={isRtl}
         contractId={contractId}
         contractLabel={contractLabel}

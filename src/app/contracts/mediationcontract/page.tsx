@@ -50,6 +50,7 @@ import {
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import {
   DateRangeFilter,
   ExportButton,
@@ -98,6 +99,11 @@ export default function MediationContractsPage() {
   const prefilledCustomerId = searchParams.get('customerId');
 
   const language = useAuthStore((state) => state.language);
+  const contractGates = useContractActionGates();
+  const canCreateContract = contractGates.canCreate;
+  const canUpdateContract = contractGates.canUpdate;
+  const canDeleteContract = contractGates.canDelete;
+  const canApproveContract = contractGates.canApprove;
   const [searchText, setSearchText] = useState('');
   const [contractNumberFilter, setContractNumberFilter] = useState<number | null>(null);
   const [musanedNumberFilter, setMusanedNumberFilter] = useState('');
@@ -529,6 +535,7 @@ export default function MediationContractsPage() {
 
   // Handle cancel contract
   const handleCancelContract = async () => {
+    if (!canDeleteContract) return;
     try {
       const values = await cancelForm.validateFields();
       const data: ContractCancelDto = {
@@ -547,6 +554,7 @@ export default function MediationContractsPage() {
 
   // Handle sign contract (Draft → Signed)
   const handleSignContract = async () => {
+    if (!canApproveContract) return;
     try {
       const values = await signForm.validateFields();
       const data: SignMediationContractDto = {
@@ -567,6 +575,7 @@ export default function MediationContractsPage() {
 
   // Handle generate delivery form
   const handleGenerateDelivery = async () => {
+    if (!canUpdateContract) return;
     try {
       const values = await deliveryForm.validateFields();
       const data: DeliveryFormDto = {
@@ -584,6 +593,7 @@ export default function MediationContractsPage() {
 
   // Handle confirm customer signed delivery (Signed → Delivered)
   const handleSignDelivery = async () => {
+    if (!canUpdateContract) return;
     try {
       const values = await deliverySignForm.validateFields();
       const data: DeliveryFormSignDto = {
@@ -603,6 +613,7 @@ export default function MediationContractsPage() {
 
   // Handle warranty return (Delivered → Returned)
   const handleWarrantyReturn = async () => {
+    if (!canUpdateContract) return;
     try {
       const values = await warrantyReturnForm.validateFields();
       const data: WarrantyReturnDto = {
@@ -624,6 +635,7 @@ export default function MediationContractsPage() {
 
   // Handle manual status update
   const handleUpdateStatus = async () => {
+    if (!canUpdateContract) return;
     try {
       const values = await updateStatusForm.validateFields();
       const data: UpdateContractStatusDto = {
@@ -642,6 +654,7 @@ export default function MediationContractsPage() {
 
   // Handle add complaint linked to this contract
   const handleAddComplaint = async () => {
+    if (!canUpdateContract) return;
     try {
       const values = await complaintForm.validateFields();
       const data: CreateComplaintDto = {
@@ -665,6 +678,7 @@ export default function MediationContractsPage() {
   // Handle end worker service
   const handleEndWorkerService = async () => {
     if (!selectedContract?.id) return;
+    if (!canUpdateContract) return;
     try {
       const values = await endServiceForm.validateFields();
       await endWorkerService({ contractId: selectedContract.id, reason: values.reason || null });
@@ -679,6 +693,7 @@ export default function MediationContractsPage() {
   // Handle assign a new worker (by picking an available worker via passport)
   const handleAssignWorker = async () => {
     if (!selectedContract?.id) return;
+    if (!canUpdateContract) return;
     try {
       const values = await assignWorkerForm.validateFields();
       const worker = (assignWorkers as Worker[]).find(
@@ -723,7 +738,7 @@ export default function MediationContractsPage() {
     let primaryAction:
       | { label: string; icon: React.ReactNode; onClick: () => void; danger?: boolean }
       | null = null;
-    if (statusKey === 'draft') {
+    if (statusKey === 'draft' && canApproveContract) {
       primaryAction = {
         label: t.actionSign,
         icon: <EditOutlined />,
@@ -733,7 +748,7 @@ export default function MediationContractsPage() {
           setShowSignModal(true);
         }),
       };
-    } else if (statusKey === 'signed') {
+    } else if (statusKey === 'signed' && canUpdateContract) {
       primaryAction = {
         label: t.actionDelivery,
         icon: <SendOutlined />,
@@ -742,7 +757,7 @@ export default function MediationContractsPage() {
           setShowDeliveryModal(true);
         }),
       };
-    } else if (statusKey === 'deliveryformissued') {
+    } else if (statusKey === 'deliveryformissued' && canUpdateContract) {
       primaryAction = {
         label: t.actionConfirm,
         icon: <CarOutlined />,
@@ -751,7 +766,7 @@ export default function MediationContractsPage() {
           setShowDeliverySignModal(true);
         }),
       };
-    } else if (statusKey === 'delivered') {
+    } else if (statusKey === 'delivered' && canUpdateContract) {
       primaryAction = {
         label: t.actionWarranty,
         icon: <RollbackOutlined />,
@@ -763,65 +778,74 @@ export default function MediationContractsPage() {
       };
     }
 
-    const moreItems: MenuProps['items'] = [
-      {
-        key: 'status',
-        icon: <FileProtectOutlined />,
-        label: t.updateStatus,
-        onClick: selectAnd(() => {
-          updateStatusForm.resetFields();
-          setShowUpdateStatusModal(true);
-        }),
-      },
-      {
-        key: 'complaint',
-        icon: <WarningOutlined />,
-        label: t.addComplaint,
-        onClick: selectAnd(() => {
-          complaintForm.resetFields();
-          setShowComplaintModal(true);
-        }),
-      },
-      ...(!isTerminal
-        ? [
-            { type: 'divider' as const },
-            {
-              key: 'end-worker-service',
-              icon: <UserDeleteOutlined />,
-              label: t.endWorkerService,
-              onClick: selectAnd(() => {
-                endServiceForm.resetFields();
-                setShowEndServiceModal(true);
-              }),
-            },
-            {
-              key: 'assign-worker',
-              icon: <UserAddOutlined />,
-              label: t.assignWorker,
-              onClick: selectAnd(() => {
-                assignWorkerForm.resetFields();
-                setAssignPassportSearch('');
-                setShowAssignWorkerModal(true);
-              }),
-            },
-          ]
-        : []),
-      ...(!isTerminal
-        ? [
-            { type: 'divider' as const },
-            {
-              key: 'cancel',
-              icon: <CloseCircleOutlined />,
-              danger: true,
-              label: t.cancelContract,
-              onClick: selectAnd(() => {
-                cancelForm.resetFields();
-                setShowCancelModal(true);
-              }),
-            },
-          ]
-        : []),
-    ];
+    const moreItems: MenuProps['items'] = [];
+
+    if (canUpdateContract) {
+      moreItems.push(
+        {
+          key: 'status',
+          icon: <FileProtectOutlined />,
+          label: t.updateStatus,
+          onClick: selectAnd(() => {
+            updateStatusForm.resetFields();
+            setShowUpdateStatusModal(true);
+          }),
+        },
+        {
+          key: 'complaint',
+          icon: <WarningOutlined />,
+          label: t.addComplaint,
+          onClick: selectAnd(() => {
+            complaintForm.resetFields();
+            setShowComplaintModal(true);
+          }),
+        }
+      );
+    }
+
+    if (!isTerminal && (canUpdateContract || canDeleteContract)) {
+      moreItems.push(
+        { type: 'divider' as const }
+      );
+      if (canUpdateContract) {
+        moreItems.push(
+          {
+            key: 'end-worker-service',
+            icon: <UserDeleteOutlined />,
+            label: t.endWorkerService,
+            onClick: selectAnd(() => {
+              endServiceForm.resetFields();
+              setShowEndServiceModal(true);
+            }),
+          },
+          {
+            key: 'assign-worker',
+            icon: <UserAddOutlined />,
+            label: t.assignWorker,
+            onClick: selectAnd(() => {
+              assignWorkerForm.resetFields();
+              setAssignPassportSearch('');
+              setShowAssignWorkerModal(true);
+            }),
+          }
+        );
+      }
+      if (canDeleteContract) {
+        moreItems.push(
+          { type: 'divider' as const },
+          {
+            key: 'cancel',
+            icon: <CloseCircleOutlined />,
+            danger: true,
+            label: t.cancelContract,
+            onClick: selectAnd(() => {
+              cancelForm.resetFields();
+              setShowCancelModal(true);
+            }),
+          }
+        );
+      }
+    }
 
     return (
       <Col xs={24} key={contract.id}>
@@ -1017,9 +1041,11 @@ export default function MediationContractsPage() {
                   {primaryAction.label}
                 </Button>
               )}
-              <Dropdown menu={{ items: moreItems }} trigger={['click']} placement="bottomRight">
-                <Button icon={<MoreOutlined />}>{t.more}</Button>
-              </Dropdown>
+              {moreItems.length > 0 && (
+                <Dropdown menu={{ items: moreItems }} trigger={['click']} placement="bottomRight">
+                  <Button icon={<MoreOutlined />}>{t.more}</Button>
+                </Dropdown>
+              )}
             </div>
           </div>
         </Card>
@@ -1051,21 +1077,23 @@ export default function MediationContractsPage() {
             <Button icon={<ReloadOutlined />} className={styles.secondaryBtn} onClick={() => refetch()}>
               {t.refresh}
             </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              className={styles.primaryBtn}
-              onClick={() => {
-                if (prefilledCustomerId) {
-                  router.push(`/contracts/mediationcontract/add?customerId=${prefilledCustomerId}`);
-                } else {
-                  setCustomerSelectId(null);
-                  setShowCustomerSelectModal(true);
-                }
-              }}
-            >
-              {t.addContract}
-            </Button>
+            {canCreateContract && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className={styles.primaryBtn}
+                onClick={() => {
+                  if (prefilledCustomerId) {
+                    router.push(`/contracts/mediationcontract/add?customerId=${prefilledCustomerId}`);
+                  } else {
+                    setCustomerSelectId(null);
+                    setShowCustomerSelectModal(true);
+                  }
+                }}
+              >
+                {t.addContract}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -1689,9 +1717,10 @@ export default function MediationContractsPage() {
       {/* ========== CUSTOMER SELECT → navigates to /add ========== */}
       <Modal
         title={language === 'ar' ? 'اختر العميل لإنشاء عقد وساطة' : 'Select Customer to Create Mediation Contract'}
-        open={showCustomerSelectModal}
+        open={showCustomerSelectModal && canCreateContract}
         onCancel={() => { setShowCustomerSelectModal(false); setCustomerSelectId(null); }}
         onOk={() => {
+          if (!canCreateContract) return;
           if (customerSelectId) {
             setShowCustomerSelectModal(false);
             router.push(`/contracts/mediationcontract/add?customerId=${customerSelectId}`);
@@ -1725,9 +1754,9 @@ export default function MediationContractsPage() {
       {/* ========== CANCEL CONTRACT MODAL ========== */}
       <Modal
         title={t.cancelContract}
-        open={showCancelModal}
+        open={showCancelModal && canDeleteContract}
         onCancel={() => setShowCancelModal(false)}
-        onOk={handleCancelContract}
+        onOk={canDeleteContract ? handleCancelContract : undefined}
         okText={t.submit}
         cancelText={t.cancel}
         confirmLoading={isCancelling}
@@ -1754,9 +1783,9 @@ export default function MediationContractsPage() {
       {/* ========== SIGN CONTRACT MODAL (Draft → Signed) ========== */}
       <Modal
         title={t.signContract}
-        open={showSignModal}
+        open={showSignModal && canApproveContract}
         onCancel={() => { setShowSignModal(false); signForm.resetFields(); }}
-        onOk={handleSignContract}
+        onOk={canApproveContract ? handleSignContract : undefined}
         okText={t.save}
         cancelText={t.cancel}
         confirmLoading={isSigning}
@@ -1778,9 +1807,9 @@ export default function MediationContractsPage() {
       {/* ========== GENERATE DELIVERY FORM MODAL ========== */}
       <Modal
         title={t.generateDelivery}
-        open={showDeliveryModal}
+        open={showDeliveryModal && canUpdateContract}
         onCancel={() => { setShowDeliveryModal(false); deliveryForm.resetFields(); }}
-        onOk={handleGenerateDelivery}
+        onOk={canUpdateContract ? handleGenerateDelivery : undefined}
         okText={t.submit}
         cancelText={t.cancel}
         confirmLoading={isGeneratingDelivery}
@@ -1798,9 +1827,9 @@ export default function MediationContractsPage() {
       {/* ========== CONFIRM DELIVERY SIGN MODAL (Signed → Delivered) ========== */}
       <Modal
         title={t.confirmDelivery}
-        open={showDeliverySignModal}
+        open={showDeliverySignModal && canUpdateContract}
         onCancel={() => { setShowDeliverySignModal(false); deliverySignForm.resetFields(); }}
-        onOk={handleSignDelivery}
+        onOk={canUpdateContract ? handleSignDelivery : undefined}
         okText={t.save}
         cancelText={t.cancel}
         confirmLoading={isSigningDelivery}
@@ -1815,9 +1844,9 @@ export default function MediationContractsPage() {
       {/* ========== WARRANTY RETURN MODAL (Delivered → Returned) ========== */}
       <Modal
         title={t.warrantyReturn}
-        open={showWarrantyReturnModal}
+        open={showWarrantyReturnModal && canUpdateContract}
         onCancel={() => { setShowWarrantyReturnModal(false); warrantyReturnForm.resetFields(); }}
-        onOk={handleWarrantyReturn}
+        onOk={canUpdateContract ? handleWarrantyReturn : undefined}
         okText={t.submit}
         cancelText={t.cancel}
         confirmLoading={isReturning}
@@ -1900,9 +1929,9 @@ export default function MediationContractsPage() {
       {/* ========== UPDATE STATUS MODAL ========== */}
       <Modal
         title={t.updateStatus}
-        open={showUpdateStatusModal}
+        open={showUpdateStatusModal && canUpdateContract}
         onCancel={() => { setShowUpdateStatusModal(false); updateStatusForm.resetFields(); }}
-        onOk={handleUpdateStatus}
+        onOk={canUpdateContract ? handleUpdateStatus : undefined}
         okText={t.save}
         cancelText={t.cancel}
         confirmLoading={isUpdatingStatus}
@@ -1930,9 +1959,9 @@ export default function MediationContractsPage() {
             {selectedContract && ` — #${selectedContract.id}`}
           </span>
         }
-        open={showComplaintModal}
+        open={showComplaintModal && canUpdateContract}
         onCancel={() => { setShowComplaintModal(false); complaintForm.resetFields(); }}
-        onOk={handleAddComplaint}
+        onOk={canUpdateContract ? handleAddComplaint : undefined}
         okText={t.submit}
         cancelText={t.cancel}
         confirmLoading={isCreatingComplaint}
@@ -1971,9 +2000,9 @@ export default function MediationContractsPage() {
             {selectedContract && ` — #${selectedContract.contractNumber ?? selectedContract.id}`}
           </span>
         }
-        open={showEndServiceModal}
+        open={showEndServiceModal && canUpdateContract}
         onCancel={() => { setShowEndServiceModal(false); endServiceForm.resetFields(); }}
-        onOk={handleEndWorkerService}
+        onOk={canUpdateContract ? handleEndWorkerService : undefined}
         okText={t.save}
         cancelText={t.cancel}
         confirmLoading={isEndingWorkerService}
@@ -1998,13 +2027,13 @@ export default function MediationContractsPage() {
             {selectedContract && ` — #${selectedContract.contractNumber ?? selectedContract.id}`}
           </span>
         }
-        open={showAssignWorkerModal}
+        open={showAssignWorkerModal && canUpdateContract}
         onCancel={() => {
           setShowAssignWorkerModal(false);
           assignWorkerForm.resetFields();
           setAssignPassportSearch('');
         }}
-        onOk={handleAssignWorker}
+        onOk={canUpdateContract ? handleAssignWorker : undefined}
         okText={t.save}
         cancelText={t.cancel}
         confirmLoading={isAssigningWorker}

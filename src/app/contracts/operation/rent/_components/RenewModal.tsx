@@ -9,6 +9,7 @@ import React from 'react';
 import { Modal, Button, Form, DatePicker } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 
 interface Props {
   open: boolean;
@@ -21,8 +22,10 @@ interface Props {
 
 export default function RenewModal({ open, isRtl, loading, onCancel, onSubmit }: Props) {
   const [form] = Form.useForm();
+  const contractGates = useContractActionGates();
 
   const handleOk = async () => {
+    if (!contractGates.canUpdate) return;
     try {
       const values = await form.validateFields();
       onSubmit(values.newEndDate.toISOString());
@@ -40,7 +43,7 @@ export default function RenewModal({ open, isRtl, loading, onCancel, onSubmit }:
           {isRtl ? 'تجديد العقد' : 'Renew Contract'}
         </span>
       }
-      open={open}
+      open={open && contractGates.canUpdate}
       onCancel={() => {
         onCancel();
         form.resetFields();
@@ -55,7 +58,7 @@ export default function RenewModal({ open, isRtl, loading, onCancel, onSubmit }:
         >
           {isRtl ? 'إلغاء' : 'Cancel'}
         </Button>,
-        <Button key="submit" type="primary" loading={loading} onClick={handleOk}>
+        <Button key="submit" type="primary" loading={loading} onClick={handleOk} disabled={!contractGates.canUpdate}>
           {isRtl ? 'تجديد' : 'Renew'}
         </Button>,
       ]}

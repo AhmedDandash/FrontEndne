@@ -31,6 +31,8 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useHREmployees, useHRCustodyRequest, useHRCustodyTypes } from '@/hooks/api/useHR';
+import AccessDenied from '@/components/common/AccessDenied';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import type { CreateCustodyRequestDto, CustodyItemDto, CreateCustodyTypeDto } from '@/types/hr.types';
 import type { EmployeeDto } from '@/types/hr.types';
 
@@ -48,6 +50,7 @@ export default function CustodyRequestPage() {
   const [items, setItems] = useState<ItemRow[]>([]);
   const [addTypeModalOpen, setAddTypeModalOpen] = useState(false);
   const rowCounter = useRef(0);
+  const hrGates = useHrActionGates();
 
   const { employees, isLoading: isLoadingEmployees } = useHREmployees({ pageSize: 200 });
   const { custodyTypes, isLoading: isLoadingTypes, createCustodyType, isCreatingType } = useHRCustodyTypes();
@@ -59,6 +62,7 @@ export default function CustodyRequestPage() {
   };
 
   const addItem = () => {
+    if (!hrGates.canCreate) return;
     rowCounter.current += 1;
     setItems((prev) => [
       ...prev,
@@ -74,16 +78,19 @@ export default function CustodyRequestPage() {
   };
 
   const removeItem = (key: number) => {
+    if (!hrGates.canCreate) return;
     setItems((prev) => prev.filter((r) => r._key !== key));
   };
 
   const updateItem = (key: number, field: keyof CustodyItemDto, value: any) => {
+    if (!hrGates.canCreate) return;
     setItems((prev) =>
       prev.map((r) => (r._key === key ? { ...r, [field]: value } : r))
     );
   };
 
   const handleAddType = async () => {
+    if (!hrGates.canCreate) return;
     try {
       const values = await typeForm.validateFields();
       await createCustodyType(values as CreateCustodyTypeDto);
@@ -97,6 +104,7 @@ export default function CustodyRequestPage() {
   };
 
   const handleSubmit = async () => {
+    if (!hrGates.canCreate) return;
     try {
       const values = await form.validateFields();
 
@@ -154,15 +162,17 @@ export default function CustodyRequestPage() {
             <>
               {menu}
               <Divider style={{ margin: '4px 0' }} />
-              <Button
-                type="link"
-                icon={<PlusOutlined />}
-                size="small"
-                onClick={() => setAddTypeModalOpen(true)}
-                style={{ width: '100%' }}
-              >
-                إضافة نوع جديد
-              </Button>
+              {hrGates.canCreate && (
+                <Button
+                  type="link"
+                  icon={<PlusOutlined />}
+                  size="small"
+                  onClick={() => setAddTypeModalOpen(true)}
+                  style={{ width: '100%' }}
+                >
+                  إضافة نوع جديد
+                </Button>
+              )}
             </>
           )}
         />
@@ -227,6 +237,10 @@ export default function CustodyRequestPage() {
       ),
     },
   ];
+
+  if (hrGates.isReady && !hrGates.canCreate) {
+    return <AccessDenied />;
+  }
 
   return (
     <div style={{ padding: 24 }}>
@@ -349,7 +363,7 @@ export default function CustodyRequestPage() {
 
       {/* Add Custody Type Modal */}
       <Modal
-        open={addTypeModalOpen}
+        open={addTypeModalOpen && hrGates.canCreate}
         title={
           <Space>
             <SettingOutlined />

@@ -17,6 +17,7 @@ import dayjs from 'dayjs';
 import type { RentContract } from './types';
 import { resolveImageUrl } from '@/utils/image';
 import SignaturePad from '@/components/common/SignaturePad';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import {
   clearStoredWorkerDeliveryRecordId,
   getStoredWorkerDeliveryRecordId,
@@ -37,6 +38,7 @@ interface Props {
 export default function WorkerDeliveryRecordModal({ open, isRtl, contract, onClose }: Props) {
   const [form] = Form.useForm();
   const [signature, setSignature] = useState<string | null>(null);
+  const contractGates = useContractActionGates();
   const [recordId, setRecordId] = useState<string | null>(null);
 
   const t = {
@@ -118,6 +120,7 @@ export default function WorkerDeliveryRecordModal({ open, isRtl, contract, onClo
   }, [open, recordId, form]);
 
   const handleSave = async () => {
+    if (!contractGates.canUpdate) return;
     if (!contract) return;
     if (!hasWorker) {
       message.warning(t.noWorker);
@@ -199,15 +202,17 @@ export default function WorkerDeliveryRecordModal({ open, isRtl, contract, onClo
         <Button key="close" onClick={onClose}>
           {t.close}
         </Button>,
-        <Button
-          key="save"
-          icon={<SaveOutlined />}
-          onClick={handleSave}
-          loading={saving}
-          disabled={!hasWorker || isLoadingRecord}
-        >
-          {t.save}
-        </Button>,
+        contractGates.canUpdate ? (
+          <Button
+            key="save"
+            icon={<SaveOutlined />}
+            onClick={handleSave}
+            loading={saving}
+            disabled={!hasWorker || isLoadingRecord}
+          >
+            {t.save}
+          </Button>
+        ) : null,
         <Button
           key="print"
           type="primary"

@@ -30,6 +30,8 @@ import {
   DownOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { APP_PERMISSIONS } from '@/config/appPermissions';
+import { useHasPermission } from '@/hooks/api/usePagePermissions';
 import {
   useMediationFollowUpItems,
   useMediationFollowUpItem,
@@ -129,6 +131,8 @@ export default function ContractFollowUpDetailPage() {
   const language = useAuthStore((state) => state.language);
   const isRTL = language === 'ar';
   const t = useT(language);
+  const { has } = useHasPermission();
+  const canManageFollowUp = has(APP_PERMISSIONS.AUTOMATIC_FOLLOW_UP_MANAGE);
 
   // Modals
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
@@ -152,11 +156,13 @@ export default function ContractFollowUpDetailPage() {
   };
 
   const openInputForm = (item: MediationFollowUpItem) => {
+    if (!canManageFollowUp) return;
     setInputFormItem(item);
   };
 
   const handleInputFormSave = async (jsonData: string) => {
     if (!inputFormItem?.id) return;
+    if (!canManageFollowUp) return;
     await updateDescMutation.mutateAsync({
       itemId: inputFormItem.id,
       inputDescription: jsonData,
@@ -171,6 +177,7 @@ export default function ContractFollowUpDetailPage() {
   // produced by the Fill-Form/update-description path, which only auto-completes.)
   const handleSetResult = (item: MediationFollowUpItem, result: 2 | 3 | 4) => {
     if (!item.id) return;
+    if (!canManageFollowUp) return;
     const labelMap: Record<number, string> = {
       2: t('statusCompleted'),
       3: t('statusFailed'),
@@ -255,6 +262,7 @@ export default function ContractFollowUpDetailPage() {
             onFillForm={openInputForm}
             onSetResult={handleSetResult}
             isSettingResult={completeMutation.isPending}
+            canManage={canManageFollowUp}
           />
         ))}
       </div>
@@ -365,6 +373,7 @@ function ItemCard({
   onFillForm,
   onSetResult,
   isSettingResult,
+  canManage,
 }: {
   item: MediationFollowUpItem;
   idx: number;
@@ -374,6 +383,7 @@ function ItemCard({
   onFillForm: (item: MediationFollowUpItem) => void;
   onSetResult: (item: MediationFollowUpItem, result: 2 | 3 | 4) => void;
   isSettingResult: boolean;
+  canManage: boolean;
 }) {
   const name = isRTL
     ? item.statusNameAr || item.statusNameEn
@@ -461,20 +471,22 @@ function ItemCard({
           <Button size="small" icon={<EyeOutlined />} onClick={() => onViewDetail(item)} />
         </Tooltip>
 
-        <Tooltip title={t('fillForm')}>
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => onFillForm(item)}
-            type={formFilled ? 'default' : 'dashed'}
-          >
-            {t('fillForm')}
-          </Button>
-        </Tooltip>
+        {canManage && (
+          <Tooltip title={t('fillForm')}>
+            <Button
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => onFillForm(item)}
+              type={formFilled ? 'default' : 'dashed'}
+            >
+              {t('fillForm')}
+            </Button>
+          </Tooltip>
+        )}
 
         {/* Explicit result (Completed / Failed / Skipped) — only while the stage
             is still open and its dependency is satisfied. */}
-        {!isSettled && (
+        {canManage && !isSettled && (
           <Tooltip title={dependencyOk ? '' : t('cannotCompleteMsg')}>
             <Dropdown
               menu={resultMenu}

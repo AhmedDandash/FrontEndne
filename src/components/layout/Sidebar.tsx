@@ -574,10 +574,10 @@ export default function Sidebar({
     // },
   ];
 
-  // Hide menu entries the current user's roles may not access. Leaf items
-  // (route keys) are checked directly; group items are kept only if at least
-  // one child survives. 'pending' (roles still loading) is treated as visible
-  // to avoid flicker — the route guard is the authoritative gate.
+  // Hide menu entries the current user's roles/permissions may not access.
+  // Leaf items (route keys) are checked directly; group items are kept only if
+  // at least one child survives. Pending auth claims are hidden so users never
+  // briefly see modules they are not allowed to use.
   const filterMenu = (items: MenuItem[]): MenuItem[] =>
     items.reduce<MenuItem[]>((acc, item) => {
       if (!item) return acc;
@@ -590,7 +590,7 @@ export default function Sidebar({
       }
 
       const key = String(node.key ?? '');
-      if (key.startsWith('/') && check(key) === 'deny') return acc;
+      if (key.startsWith('/') && check(key) !== 'allow') return acc;
       acc.push(item);
       return acc;
     }, []);

@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  PAGE_REGISTRY,
   resolvePageKey,
   isAdminRole,
   canAccessPage,
@@ -16,6 +17,7 @@ import {
   DEFAULT_RESTRICTED_PAGES,
   type PermissionMatrix,
 } from '../config/pagePermissions.config.ts';
+import { DEFAULT_ROLE_PAGE_MATRIX } from '../config/defaultRolePageMatrix.ts';
 
 // ── resolvePageKey ──────────────────────────────────────────────────────────
 test('resolvePageKey: exact match', () => {
@@ -41,6 +43,7 @@ test('resolvePageKey: unknown path → null (treated as open)', () => {
 // ── isAdminRole ─────────────────────────────────────────────────────────────
 test('isAdminRole: matches Admin case-insensitively', () => {
   assert.equal(isAdminRole(['admin']), true);
+  assert.equal(isAdminRole(['owner']), true);
   assert.equal(isAdminRole(['SuperAdmin']), true);
   assert.equal(isAdminRole(['HR', 'Employee']), false);
   assert.equal(isAdminRole([]), false);
@@ -52,8 +55,12 @@ test('canAccessPage: admins always pass, even on a restricted page', () => {
   assert.equal(canAccessPage('/hr/payroll', ['Admin'], matrix), true);
 });
 
-test('canAccessPage: unconfigured page is open to everyone', () => {
-  assert.equal(canAccessPage('/hr/payroll', ['Employee'], {}), true);
+test('canAccessPage: configured default page denies a non-listed role', () => {
+  assert.equal(canAccessPage('/hr/payroll', ['Employee'], DEFAULT_ROLE_PAGE_MATRIX), false);
+});
+
+test('canAccessPage: missing matrix entry is denied by default', () => {
+  assert.equal(canAccessPage('/hr/payroll', ['HREmployee'], {}), false);
 });
 
 test('canAccessPage: restricted page allows a listed role', () => {
@@ -93,8 +100,8 @@ test('isPageConfigured: a page with a default restriction counts as configured e
   assert.equal(isPageConfigured('/register', {}), true);
 });
 
-test('isPageConfigured: a page with neither a matrix entry nor a default restriction is unconfigured', () => {
-  assert.equal(isPageConfigured('/hr/payroll', {}), false);
+test('isPageConfigured: a page from the default role matrix counts as configured', () => {
+  assert.equal(isPageConfigured('/hr/payroll', DEFAULT_ROLE_PAGE_MATRIX), true);
 });
 
 test('isPageConfigured: an explicit matrix entry overrides having no default', () => {
@@ -114,4 +121,12 @@ test('canAccessPage: an admin explicitly widening /register access via the matri
   const matrix: PermissionMatrix = { '/register': ['HR'] };
   assert.equal(canAccessPage('/register', ['HR'], matrix), true);
   assert.equal(canAccessPage('/register', ['Employee'], matrix), false);
+});
+
+test('DEFAULT_ROLE_PAGE_MATRIX: every registered page has a default entry', () => {
+  const missing = PAGE_REGISTRY
+    .map((page) => page.key)
+    .filter((key) => DEFAULT_ROLE_PAGE_MATRIX[key] === undefined);
+
+  assert.deepEqual(missing, []);
 });

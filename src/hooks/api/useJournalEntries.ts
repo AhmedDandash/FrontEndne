@@ -15,6 +15,10 @@ const JOURNAL_ENTRIES_KEY = 'journal-entries';
  */
 function errorMessage(err: any, fallback: string): string {
   const status = err?.response?.status;
+  if (status === 403) {
+    return 'ليست لديك صلاحية لتنفيذ هذا الإجراء / You do not have permission to perform this action';
+  }
+
   const data = err?.response?.data;
   const fromArray = Array.isArray(data?.errors) ? data.errors.filter(Boolean).join(' • ') : '';
   const detail = fromArray || data?.message || data?.title;

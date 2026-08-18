@@ -21,6 +21,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAdminPositions } from '@/hooks/api/useAdmin';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import type { EmployeePosition, EmployeePositionCreateDto } from '@/types/hr.types';
 
 const { Title } = Typography;
@@ -28,6 +29,7 @@ const { Title } = Typography;
 export default function HRPositionsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const hrGates = useHrActionGates();
 
   const {
     positions,
@@ -39,11 +41,13 @@ export default function HRPositionsPage() {
   } = useAdminPositions();
 
   const openCreate = () => {
+    if (!hrGates.canCreate) return;
     form.resetFields();
     setModalOpen(true);
   };
 
   const handleSubmit = async () => {
+    if (!hrGates.canCreate) return;
     try {
       const values = await form.validateFields();
       await createPosition(values as EmployeePositionCreateDto);
@@ -82,33 +86,36 @@ export default function HRPositionsPage() {
       title: 'الإجراءات',
       key: 'actions',
       width: 90,
-      render: (_, record) => (
-        <Tooltip title="حذف">
-          <Popconfirm
-            title="حذف المسمى الوظيفي"
-            description={
-              <>
-                هل تريد حذف <strong>{record.nameAr || record.nameEn}</strong>؟
-                <br />
-                <span style={{ color: '#ff4d4f', fontSize: 12 }}>
-                  تحذير: لن يمكن التراجع عن هذا الإجراء.
-                </span>
-              </>
-            }
-            onConfirm={() => deletePosition(record.id).catch(() => {})}
-            okText="حذف"
-            cancelText="إلغاء"
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              loading={isDeleting}
-            />
-          </Popconfirm>
-        </Tooltip>
-      ),
+      render: (_, record) =>
+        hrGates.canDelete ? (
+          <Tooltip title="حذف">
+            <Popconfirm
+              title="حذف المسمى الوظيفي"
+              description={
+                <>
+                  هل تريد حذف <strong>{record.nameAr || record.nameEn}</strong>؟
+                  <br />
+                  <span style={{ color: '#ff4d4f', fontSize: 12 }}>
+                    تحذير: لن يمكن التراجع عن هذا الإجراء.
+                  </span>
+                </>
+              }
+              onConfirm={() => deletePosition(record.id).catch(() => {})}
+              okText="حذف"
+              cancelText="إلغاء"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                loading={isDeleting}
+              />
+            </Popconfirm>
+          </Tooltip>
+        ) : (
+          <span style={{ color: '#bbb' }}>—</span>
+        ),
     },
   ];
 
@@ -128,9 +135,11 @@ export default function HRPositionsPage() {
             المسميات الوظيفية
           </Title>
         </Space>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} size="large">
-          إضافة مسمى وظيفي
-        </Button>
+        {hrGates.canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} size="large">
+            إضافة مسمى وظيفي
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -145,7 +154,7 @@ export default function HRPositionsPage() {
       </Card>
 
       <Modal
-        open={modalOpen}
+        open={modalOpen && hrGates.canCreate}
         title="إضافة مسمى وظيفي جديد"
         onCancel={() => {
           setModalOpen(false);

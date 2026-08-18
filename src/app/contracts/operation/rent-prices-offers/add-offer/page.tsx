@@ -30,6 +30,8 @@ import { useBranches } from '@/hooks/api/useBranches';
 import { useJobs } from '@/hooks/api/useJobs';
 import NationalitySelect from '@/components/common/NationalitySelect';
 import { getApiErrorMessage } from '@/utils/api-error';
+import AccessDenied from '@/components/common/AccessDenied';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import styles from '../RentPricesOffers.module.css';
 
 // Period types with months count
@@ -53,6 +55,7 @@ export default function AddSpecialOfferPage() {
   const searchParams = useSearchParams();
   const offerType = searchParams.get('type') || '1';
   const [form] = Form.useForm();
+  const contractGates = useContractActionGates();
 
   const { createOfferAsync } = useEmploymentContractOffers();
   const { branches } = useBranches();
@@ -167,6 +170,7 @@ export default function AddSpecialOfferPage() {
   }, [cost, insurance, applicantSalary, monthsCount]);
 
   const handleSubmit = async (values: any) => {
+    if (!contractGates.canCreate) return;
     setIsSubmitting(true);
     try {
       // Validate that nationality is selected
@@ -219,6 +223,10 @@ export default function AddSpecialOfferPage() {
   };
 
   const isDurationType = offerType === '1';
+
+  if (contractGates.isReady && !contractGates.canCreate) {
+    return <AccessDenied />;
+  }
 
   return (
     <div className={styles.offersPage}>
@@ -525,6 +533,7 @@ export default function AddSpecialOfferPage() {
                 size="large"
                 icon={<SaveOutlined />}
                 loading={isSubmitting}
+                disabled={!contractGates.canCreate}
                 style={{ minWidth: 150, background: '#17a2b8' }}
               >
                 {t('save')}

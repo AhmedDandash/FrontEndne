@@ -11,15 +11,18 @@ import { t as tr } from '../_lib/generalVoucherDisplay';
 export interface VoucherTypeDropdownProps {
   isAr: boolean;
   className?: string;
+  canCreate?: boolean;
 }
 
 /**
  * "Add Voucher" dropdown listing the six voucher types, each routing to its
  * own create form at `/accounting/general-vouchers/new/[type]`.
  */
-export default function VoucherTypeDropdown({ isAr, className }: VoucherTypeDropdownProps) {
+export default function VoucherTypeDropdown({ isAr, className, canCreate = true }: VoucherTypeDropdownProps) {
   const router = useRouter();
   const t = (ar: string, en: string) => tr(isAr, ar, en);
+
+  if (!canCreate) return null;
 
   const items: MenuProps['items'] = Object.entries(VOUCHER_TYPE_META).map(([value, meta]) => ({
     key: value,
@@ -33,6 +36,7 @@ export default function VoucherTypeDropdown({ isAr, className }: VoucherTypeDrop
       menu={{
         items,
         onClick: ({ key }) => {
+          if (!canCreate) return;
           const slug = VOUCHER_TYPE_TO_SLUG[Number(key)];
           if (slug) router.push(`/accounting/general-vouchers/new/${slug}`);
         },

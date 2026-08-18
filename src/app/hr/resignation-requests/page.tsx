@@ -27,6 +27,7 @@ import {
 import dayjs from 'dayjs';
 import { AdvancedFilterPanel } from '@/components/filters';
 import { useHRResignationRequests } from '@/hooks/api/useHR';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import { RequestStatus, type ResignationRequestDto } from '@/types/hr.types';
 import styles from './ResignationRequests.module.css';
 
@@ -45,6 +46,7 @@ const STATUS_LABEL: Record<number, string> = {
 };
 
 export default function ResignationRequestsPage() {
+  const hrGates = useHrActionGates();
   const {
     resignationRequests,
     isLoading,
@@ -60,6 +62,7 @@ export default function ResignationRequestsPage() {
   const [actioningId, setActioningId] = useState<string | null>(null);
 
   const runAction = (id: string, fn: (id: string) => Promise<unknown>) => {
+    if (!hrGates.canManage) return Promise.resolve();
     setActioningId(id);
     // onError toast already shown by the mutation; catch here so a rejection
     // doesn't bubble as unhandled — Popconfirm's onConfirm doesn't await this.
@@ -120,7 +123,7 @@ export default function ResignationRequestsPage() {
       width: 100,
       render: (_, record) => {
         const isPending = record.status === RequestStatus.Pending;
-        if (!isPending) return null;
+        if (!isPending || !hrGates.canManage) return null;
         return (
           <Space>
             <Tooltip title="موافقة">

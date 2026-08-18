@@ -78,6 +78,17 @@ export class AgentService {
     return (payload?.data ?? payload?.result ?? payload?.value ?? payload) as Agent;
   }
 
+  static async getMe(): Promise<Agent | null> {
+    try {
+      const response = await api.get<any>(API_ENDPOINTS.AGENT.ME);
+      const payload = response.data?.data ?? response.data?.result ?? response.data?.value ?? response.data;
+      return payload ? (payload as Agent) : null;
+    } catch (error: any) {
+      if (error?.response?.status === 404) return null;
+      throw error;
+    }
+  }
+
   /**
    * Create new agent
    */

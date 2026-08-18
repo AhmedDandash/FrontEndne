@@ -7,6 +7,7 @@ import { useAccountTree } from '@/hooks/api/useAccounts';
 import { getAccountType, ACCOUNT_REPORT_SIDES } from '@/types/accounting.types';
 import type { AccountTreeNode, AccountReportSide } from '@/types/accounting.types';
 import { useAuthStore } from '@/store/authStore';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 
 /**
  * Minimal shape the modals need. The Chart-of-Accounts tree provides
@@ -67,6 +68,7 @@ export function useAccountModals() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const accountingGates = useAccountingActionGates();
 
   const {
     tree,
@@ -102,6 +104,7 @@ export function useAccountModals() {
   // ── Openers ───────────────────────────────────────────────
   /** Open the create modal, optionally rooted under a given parent. */
   const openCreate = (parentId?: string) => {
+    if (!accountingGates.canCreate) return;
     createForm.resetFields();
     if (parentId) {
       createForm.setFieldsValue({ parentId, code: codeById.get(parentId) ?? '' });
@@ -110,12 +113,14 @@ export function useAccountModals() {
   };
 
   const openEditName = (account: AccountLike) => {
+    if (!accountingGates.canUpdate) return;
     setEditing(account);
     nameForm.setFieldsValue({ name: account.name });
     setNameOpen(true);
   };
 
   const openReporting = (account: AccountLike) => {
+    if (!accountingGates.canUpdate) return;
     setEditing(account);
     reportingForm.setFieldsValue({
       incomeStatementSide: account.incomeStatementSide ?? undefined,
@@ -131,6 +136,7 @@ export function useAccountModals() {
   };
 
   const submitCreate = async () => {
+    if (!accountingGates.canCreate) return;
     try {
       const values = await createForm.validateFields();
       await createAccount({
@@ -150,7 +156,7 @@ export function useAccountModals() {
   };
 
   const submitName = async () => {
-    if (!editing) return;
+    if (!editing || !accountingGates.canUpdate) return;
     try {
       const values = await nameForm.validateFields();
       await updateAccountName({ id: editing.id, data: { name: values.name.trim() } });
@@ -163,7 +169,7 @@ export function useAccountModals() {
   };
 
   const submitReporting = async () => {
-    if (!editing) return;
+    if (!editing || !accountingGates.canUpdate) return;
     try {
       const values = await reportingForm.validateFields();
       await updateAccountReporting({

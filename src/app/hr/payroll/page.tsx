@@ -32,6 +32,7 @@ import Link from 'next/link';
 import type { ColumnsType } from 'antd/es/table';
 import { AdvancedFilterPanel } from '@/components/filters';
 import { useHRPayroll, useHRPayrollHistory } from '@/hooks/api/useHR';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import { PayrollStatus, type PayrollEmployeeDto, type PayrollRunDto } from '@/types/hr.types';
 
 const { Title, Text } = Typography;
@@ -66,6 +67,7 @@ export default function HRPayrollPage() {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [genForm] = Form.useForm();
+  const hrGates = useHrActionGates();
 
   const {
     payroll,
@@ -108,6 +110,7 @@ export default function HRPayrollPage() {
   const isApproved = status >= PayrollStatus.Approved;
 
   const handleGenerate = async () => {
+    if (!hrGates.canCreate) return;
     try {
       const values = await genForm.validateFields();
       await generatePayroll({
@@ -294,14 +297,16 @@ export default function HRPayrollPage() {
           <DollarOutlined style={{ fontSize: 22, color: '#1677ff' }} />
           <Title level={4} style={{ margin: 0 }}>الرواتب الشهرية</Title>
         </Space>
-        <Button
-          type="primary"
-          icon={<PlayCircleOutlined />}
-          onClick={() => setGenerateModalOpen(true)}
-          size="large"
-        >
-          إنشاء كشف رواتب
-        </Button>
+        {hrGates.canCreate && (
+          <Button
+            type="primary"
+            icon={<PlayCircleOutlined />}
+            onClick={() => setGenerateModalOpen(true)}
+            size="large"
+          >
+            إنشاء كشف رواتب
+          </Button>
+        )}
       </div>
 
       <AdvancedFilterPanel
@@ -356,12 +361,12 @@ export default function HRPayrollPage() {
               )}
 
               {/* Step 1 — Approve a draft run */}
-              {!isApproved && !isClosed && (
+              {hrGates.canApprove && !isApproved && !isClosed && (
                 <Tooltip title="اعتماد كشف الرواتب قبل الإغلاق">
                   <Popconfirm
                     title="اعتماد كشف الرواتب"
                     description="سيتم اعتماد الكشف تمهيداً لإغلاقه وترحيله محاسبياً. هل تريد المتابعة؟"
-                    onConfirm={() => approvePayroll(payroll.id).catch(() => {})}
+                    onConfirm={() => hrGates.canApprove && approvePayroll(payroll.id).catch(() => {})}
                     okText="اعتماد"
                     cancelText="إلغاء"
                   >
@@ -377,12 +382,12 @@ export default function HRPayrollPage() {
               )}
 
               {/* Step 2 — Close an approved run */}
-              {isApproved && !isClosed && (
+              {hrGates.canClose && isApproved && !isClosed && (
                 <Tooltip title="إغلاق كشف الرواتب — لا يمكن التراجع">
                   <Popconfirm
                     title="إغلاق كشف الرواتب"
                     description="بعد الإغلاق لا يمكن إعادة فتح الكشف. هل تريد المتابعة؟"
-                    onConfirm={() => closePayroll(payroll.id).catch(() => {})}
+                    onConfirm={() => hrGates.canClose && closePayroll(payroll.id).catch(() => {})}
                     okText="إغلاق"
                     cancelText="إلغاء"
                     okButtonProps={{ danger: true }}
@@ -517,7 +522,7 @@ export default function HRPayrollPage() {
       </Card>
 
       <Modal
-        open={generateModalOpen}
+        open={generateModalOpen && hrGates.canCreate}
         title="إنشاء كشف رواتب جديد"
         onCancel={() => {
           setGenerateModalOpen(false);

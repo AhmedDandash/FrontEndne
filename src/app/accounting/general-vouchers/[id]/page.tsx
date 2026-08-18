@@ -19,6 +19,8 @@ import {
   useUpdateGeneralVoucher,
 } from '@/hooks/api/useGeneralVouchers';
 import RecordDetailShell from '@/components/record-detail/RecordDetailShell';
+import AccessDenied from '@/components/common/AccessDenied';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import { DocumentTraceDrawer } from '../../_lib/DocumentTraceDrawer';
 import GeneralVoucherDetailView from '../_components/GeneralVoucherDetailView';
 import VoucherForm, { buildVoucherDto } from '../_components/VoucherForm';
@@ -38,11 +40,13 @@ export default function GeneralVoucherDetailPage({ params }: { params: { id: str
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const accountingGates = useAccountingActionGates();
 
   const [form] = Form.useForm();
   const [attachment, setAttachment] = useState<UploadFile[]>([]);
   // The list's edit action links straight into edit mode via ?edit=1.
-  const [isEditing, setIsEditing] = useState(searchParams.get('edit') === '1');
+  const wantsEditMode = searchParams.get('edit') === '1';
+  const [isEditing, setIsEditing] = useState(wantsEditMode);
 
   const { data: voucher, isLoading, isError, error, refetch } = useGeneralVoucher(id);
   const { mutateAsync: updateVoucher, isPending: isSaving } = useUpdateGeneralVoucher();
@@ -74,7 +78,7 @@ export default function GeneralVoucherDetailPage({ params }: { params: { id: str
     (voucher?.voucherSerialNumber != null ? `#${voucher.voucherSerialNumber}` : `#${id}`);
 
   const handleSave = async () => {
-    if (!voucher) return;
+    if (!voucher || !accountingGates.canUpdate) return;
     try {
       const values = await form.validateFields();
       const lines: JournalLineRow[] = form.getFieldValue('lines') ?? [];
@@ -92,6 +96,7 @@ export default function GeneralVoucherDetailPage({ params }: { params: { id: str
   };
 
   const handleDelete = async () => {
+    if (!accountingGates.canDelete) return;
     try {
       await deleteVoucher(id);
       router.push(LIST_ROUTE);
@@ -100,9 +105,13 @@ export default function GeneralVoucherDetailPage({ params }: { params: { id: str
     }
   };
 
+  if (wantsEditMode && accountingGates.isReady && !accountingGates.canUpdate) {
+    return <AccessDenied />;
+  }
+
   const actions = voucher && (
     <Space wrap>
-      {isEditing ? (
+      {isEditing && accountingGates.canUpdate ? (
         <>
           <Button onClick={() => setIsEditing(false)}>{t('إلغاء', 'Cancel')}</Button>
           <Button type="primary" icon={<SaveOutlined />} loading={isSaving} onClick={handleSave}>
@@ -111,13 +120,15 @@ export default function GeneralVoucherDetailPage({ params }: { params: { id: str
         </>
       ) : (
         <>
-          <Tooltip
-            title={isLocked ? t('لا يمكن تعديل سند معمد', 'Cannot edit a posted voucher') : undefined}
-          >
-            <Button icon={<EditOutlined />} disabled={isLocked} onClick={() => setIsEditing(true)}>
-              {t('تعديل', 'Edit')}
-            </Button>
-          </Tooltip>
+          {accountingGates.canUpdate && (
+            <Tooltip
+              title={isLocked ? t('لا يمكن تعديل سند معمد', 'Cannot edit a posted voucher') : undefined}
+            >
+              <Button icon={<EditOutlined />} disabled={isLocked} onClick={() => setIsEditing(true)}>
+                {t('تعديل', 'Edit')}
+              </Button>
+            </Tooltip>
+          )}
           <Button
             icon={<PrinterOutlined />}
             href={`${LIST_ROUTE}/${id}/print`}
@@ -129,25 +140,27 @@ export default function GeneralVoucherDetailPage({ params }: { params: { id: str
           <Button icon={<AuditOutlined />} onClick={() => setTraceOpen(true)}>
             {t('عرض سلسلة التتبع', 'View Audit Trail')}
           </Button>
-          <Popconfirm
-            title={t('حذف السند؟', 'Delete voucher?')}
-            description={t('لا يمكن التراجع عن هذا الإجراء.', 'This action cannot be undone.')}
-            okButtonProps={{ danger: true }}
-            okText={t('حذف', 'Delete')}
-            cancelText={t('إلغاء', 'Cancel')}
-            disabled={isLocked}
-            onConfirm={handleDelete}
-          >
-            <Tooltip
-              title={
-                isLocked ? t('لا يمكن حذف سند معمد', 'Cannot delete a posted voucher') : undefined
-              }
+          {accountingGates.canDelete && (
+            <Popconfirm
+              title={t('حذف السند؟', 'Delete voucher?')}
+              description={t('لا يمكن التراجع عن هذا الإجراء.', 'This action cannot be undone.')}
+              okButtonProps={{ danger: true }}
+              okText={t('حذف', 'Delete')}
+              cancelText={t('إلغاء', 'Cancel')}
+              disabled={isLocked}
+              onConfirm={handleDelete}
             >
-              <Button danger icon={<DeleteOutlined />} disabled={isLocked}>
-                {t('حذف', 'Delete')}
-              </Button>
-            </Tooltip>
-          </Popconfirm>
+              <Tooltip
+                title={
+                  isLocked ? t('لا يمكن حذف سند معمد', 'Cannot delete a posted voucher') : undefined
+                }
+              >
+                <Button danger icon={<DeleteOutlined />} disabled={isLocked}>
+                  {t('حذف', 'Delete')}
+                </Button>
+              </Tooltip>
+            </Popconfirm>
+          )}
         </>
       )}
     </Space>
@@ -172,7 +185,7 @@ export default function GeneralVoucherDetailPage({ params }: { params: { id: str
         actions={actions}
       >
         {voucher &&
-          (isEditing ? (
+          (isEditing && accountingGates.canUpdate ? (
             <VoucherForm
               form={form}
               voucherType={voucher.voucherType}

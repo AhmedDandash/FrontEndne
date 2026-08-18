@@ -36,6 +36,8 @@ export class AuthService {
 
       if (tokenValue) {
         localStorage.setItem('authToken', tokenValue);
+        localStorage.removeItem('authRoles');
+        localStorage.removeItem('authPermissions');
 
         // Clear any prior branch selection so this login must pick a branch
         // (the BranchGate blocks the app until a branch is chosen).
@@ -131,7 +133,12 @@ export class AuthService {
    */
   static async me(): Promise<MeResponse> {
     const response = await api.get<any>(API_ENDPOINTS.AUTH.ME);
-    return response.data?.data ?? response.data;
+    const me = (response.data?.data ?? response.data) as MeResponse;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('authRoles', JSON.stringify(me.roles ?? []));
+      localStorage.setItem('authPermissions', JSON.stringify(me.permissions ?? []));
+    }
+    return me;
   }
 
   /**
@@ -156,6 +163,8 @@ export class AuthService {
         localStorage.removeItem('authToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
+        localStorage.removeItem('authRoles');
+        localStorage.removeItem('authPermissions');
         localStorage.removeItem('userId');
         localStorage.removeItem('username');
         localStorage.removeItem('branchId');

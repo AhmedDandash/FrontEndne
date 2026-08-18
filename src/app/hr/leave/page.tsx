@@ -29,6 +29,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { AdvancedFilterPanel } from '@/components/filters';
 import { useHRLeave, useHRLeaveTypes, useHREmployees } from '@/hooks/api/useHR';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import { LeaveStatus } from '@/types/hr.types';
 import type { LeaveRequestDto, CreateLeaveRequestDto } from '@/types/hr.types';
 import styles from './Leave.module.css';
@@ -60,6 +61,7 @@ export default function HRLeavePage() {
   const [actionModal, setActionModal] = useState<{ type: ActionType; record: LeaveRequestDto } | null>(null);
   const [form] = Form.useForm();
   const [commentForm] = Form.useForm();
+  const hrGates = useHrActionGates();
 
   const {
     leaveRequests,
@@ -113,6 +115,7 @@ export default function HRLeavePage() {
   }, [leaveRequests, statusFilter, searchText, employeeNameById, leaveTypeNameById]);
 
   const handleCreate = async () => {
+    if (!hrGates.canCreate) return;
     try {
       const values = await form.validateFields();
       const dto: CreateLeaveRequestDto = {
@@ -131,6 +134,7 @@ export default function HRLeavePage() {
 
   const handleActionConfirm = async () => {
     if (!actionModal) return;
+    if (actionModal.type === 'approve' ? !hrGates.canApprove : !hrGates.canReject) return;
     try {
       const { approvalComment } = commentForm.getFieldsValue();
       if (actionModal.type === 'approve') {
@@ -214,7 +218,7 @@ export default function HRLeavePage() {
         // Only pending requests are actionable. There is no cancel action: the
         // backend exposes no cancel endpoint (404 on every variant), so a
         // pending request is resolved via reject rather than cancel.
-        if (!isPending) {
+        if (!isPending || !hrGates.canManage) {
           return <span style={{ color: '#bbb' }}>—</span>;
         }
         return (
@@ -248,14 +252,16 @@ export default function HRLeavePage() {
           <CalendarOutlined style={{ fontSize: 22, color: '#1677ff' }} />
           <Title level={4} style={{ margin: 0 }}>طلبات الإجازات</Title>
         </Space>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setCreateModalOpen(true)}
-          size="large"
-        >
-          طلب إجازة جديدة
-        </Button>
+        {hrGates.canCreate && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateModalOpen(true)}
+            size="large"
+          >
+            طلب إجازة جديدة
+          </Button>
+        )}
       </div>
 
       <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -335,7 +341,7 @@ export default function HRLeavePage() {
 
       {/* Create Leave Modal */}
       <Modal
-        open={createModalOpen}
+        open={createModalOpen && hrGates.canCreate}
         title="طلب إجازة جديدة"
         onCancel={() => {
           setCreateModalOpen(false);
@@ -388,7 +394,7 @@ export default function HRLeavePage() {
 
       {/* Approve / Reject Modal */}
       <Modal
-        open={!!actionModal}
+        open={!!actionModal && hrGates.canManage}
         title={actionModal?.type === 'approve' ? 'الموافقة على الإجازة' : 'رفض الإجازة'}
         onCancel={handleActionCancel}
         onOk={handleActionConfirm}

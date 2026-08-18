@@ -20,6 +20,8 @@ import { SendOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useHREmployees } from '@/hooks/api/useHR';
 import { useHRPermissionRequest } from '@/hooks/api/useHR';
+import AccessDenied from '@/components/common/AccessDenied';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import type { CreatePermissionRequestDto, PermissionType, PermissionNature } from '@/types/hr.types';
 import type { EmployeeDto } from '@/types/hr.types';
 
@@ -35,6 +37,7 @@ export default function PermissionRequestPage() {
   const [form] = Form.useForm();
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeDto | null>(null);
   const [permissionType, setPermissionType] = useState<number>(3);
+  const hrGates = useHrActionGates();
 
   const { employees, isLoading: isLoadingEmployees } = useHREmployees({ pageSize: 200 });
   const { createPermissionRequest, isCreating } = useHRPermissionRequest();
@@ -45,6 +48,7 @@ export default function PermissionRequestPage() {
   };
 
   const handleSubmit = async () => {
+    if (!hrGates.canCreate) return;
     try {
       const values = await form.validateFields();
 
@@ -76,6 +80,10 @@ export default function PermissionRequestPage() {
       // Mutation hooks surface the API error. Keep the form values for retry.
     }
   };
+
+  if (hrGates.isReady && !hrGates.canCreate) {
+    return <AccessDenied />;
+  }
 
   return (
     <div style={{ padding: 24 }}>

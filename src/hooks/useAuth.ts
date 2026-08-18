@@ -9,6 +9,7 @@ import { message } from 'antd';
 import { AuthService } from '@/services';
 import type { LoginDto, AddAdmin, ChangePasswordRequestDTO } from '@/types/api.types';
 import { useSearchParams } from 'next/navigation';
+import { AUTH_ME_QUERY_KEY } from '@/config/authMeQuery';
 
 export function useAuth() {
   const router = useRouter();
@@ -23,8 +24,19 @@ export function useAuth() {
       // Small delay to ensure localStorage write completes
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Verify token before redirect
       const token = AuthService.getToken();
+      await queryClient.invalidateQueries({ queryKey: AUTH_ME_QUERY_KEY });
+      try {
+        await queryClient.fetchQuery({
+          queryKey: AUTH_ME_QUERY_KEY,
+          queryFn: () => AuthService.me(),
+          staleTime: 0,
+        });
+      } catch {
+        // Login succeeded; role/permission hooks can fall back to JWT claims.
+      }
+
+      // Verify token before redirect
       console.log('🎯 Pre-redirect token check:', token ? 'Token exists ✓' : 'No token ✗');
 
       // Check for redirect parameter and decode it
@@ -64,10 +76,11 @@ export function useAuth() {
   });
 
   const meQuery = useQuery({
-    queryKey: ['auth', 'me'],
+    queryKey: AUTH_ME_QUERY_KEY,
     queryFn: () => AuthService.me(),
     enabled: AuthService.isAuthenticated(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const logoutMutation = useMutation({

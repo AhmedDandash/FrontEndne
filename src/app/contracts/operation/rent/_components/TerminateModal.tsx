@@ -9,6 +9,7 @@
 import React from 'react';
 import { Modal, Button, Form, Input, InputNumber, Alert } from 'antd';
 import { StopOutlined } from '@ant-design/icons';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import type { TerminateContractDto } from '@/types/api.types';
 
 const { TextArea } = Input;
@@ -23,8 +24,10 @@ interface Props {
 
 export default function TerminateModal({ open, isRtl, loading, onCancel, onSubmit }: Props) {
   const [form] = Form.useForm();
+  const contractGates = useContractActionGates();
 
   const handleOk = async () => {
+    if (!contractGates.canUpdate) return;
     try {
       const values = await form.validateFields();
       onSubmit({ note: values.note || null, refundAmount: values.refundAmount ?? 0 });
@@ -47,13 +50,13 @@ export default function TerminateModal({ open, isRtl, loading, onCancel, onSubmi
           {isRtl ? 'إنهاء العقد' : 'Terminate Contract'}
         </span>
       }
-      open={open}
+      open={open && contractGates.canUpdate}
       onCancel={close}
       footer={[
         <Button key="cancel" onClick={close}>
           {isRtl ? 'إلغاء' : 'Cancel'}
         </Button>,
-        <Button key="submit" danger loading={loading} onClick={handleOk}>
+        <Button key="submit" danger loading={loading} onClick={handleOk} disabled={!contractGates.canUpdate}>
           {isRtl ? 'إنهاء العقد' : 'Terminate'}
         </Button>,
       ]}

@@ -15,6 +15,7 @@ import {
 import dayjs from 'dayjs';
 
 import { useAuthStore } from '@/store/authStore';
+import AccessDenied from '@/components/common/AccessDenied';
 import { AdvancedFilterPanel, DateRangeFilter } from '@/components/filters';
 import { useEmploymentOperatingContracts } from '@/hooks/api/useEmploymentOperatingContracts';
 import { useNationalities } from '@/hooks/api/useNationalities';
@@ -50,6 +51,7 @@ import ContractReceiptsModal from './_components/ContractReceiptsModal';
 import PrintReceiptModal from './_components/PrintReceiptModal';
 import DeliveryFormModal from './_components/DeliveryFormModal';
 import WorkerDeliveryRecordModal from './_components/WorkerDeliveryRecordModal';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import styles from './RentContracts.module.css';
 
 export default function RentContractsPage() {
@@ -59,6 +61,7 @@ export default function RentContractsPage() {
 
   const language = useAuthStore((state) => state.language);
   const isRtl = language === 'ar';
+  const contractGates = useContractActionGates();
   const [mounted, setMounted] = useState(false);
 
   // Filters
@@ -188,6 +191,7 @@ export default function RentContractsPage() {
     isTerminating,
     isRefunding,
     isSavingDeliveryForm,
+    error,
   } = useEmploymentOperatingContracts({
     Search: debouncedSearchText || undefined,
     ContractNumber: debouncedContractNumber || undefined,
@@ -312,6 +316,7 @@ export default function RentContractsPage() {
   };
 
   const handleCreateSubmit = async () => {
+    if (!contractGates.canCreate) return;
     try {
       const v = await createForm.validateFields();
       createContract(
@@ -357,6 +362,7 @@ export default function RentContractsPage() {
   };
 
   const handleEditOpen = (contract: RentContract) => {
+    if (!contractGates.canUpdate) return;
     const raw = contractsMap.get(contract.id) || null;
     setEditModal({ open: true, raw });
     editForm.setFieldsValue({
@@ -380,7 +386,7 @@ export default function RentContractsPage() {
   };
 
   const handleEditSubmit = async () => {
-    if (!editModal.raw) return;
+    if (!editModal.raw || !contractGates.canUpdate) return;
     try {
       const v = await editForm.validateFields();
       updateContract(
@@ -419,7 +425,7 @@ export default function RentContractsPage() {
   };
 
   const handleRenewSubmit = (newEndDate: string) => {
-    if (!renewModal.id) return;
+    if (!renewModal.id || !contractGates.canUpdate) return;
     renewContract(
       { id: renewModal.id, newEndDate },
       { onSuccess: () => setRenewModal({ open: false, id: null }) }
@@ -427,7 +433,7 @@ export default function RentContractsPage() {
   };
 
   const handleTerminateSubmit = (data: TerminateContractDto) => {
-    if (!terminateModal.id) return;
+    if (!terminateModal.id || !contractGates.canUpdate) return;
     terminateContract(
       { id: terminateModal.id, data },
       { onSuccess: () => setTerminateModal({ open: false, id: null }) }
@@ -435,7 +441,7 @@ export default function RentContractsPage() {
   };
 
   const handleRefundSubmit = (data: CustomerRefundDto) => {
-    if (!refundModal.id) return;
+    if (!refundModal.id || !contractGates.canUpdate) return;
     recordCustomerRefund(
       { id: refundModal.id, data },
       { onSuccess: () => setRefundModal({ open: false, id: null }) }
@@ -482,24 +488,26 @@ export default function RentContractsPage() {
   };
 
   const handleSaveDeliveryForm = async (data: SaveDeliveryFormDto) => {
-    if (!deliveryModal.id) return;
+    if (!deliveryModal.id || !contractGates.canUpdate) return;
     const updated = await saveDeliveryForm({ id: deliveryModal.id, data });
     // Reflect the saved values (signature timestamps etc.) back in the modal.
     setDeliveryData((prev) => ({ ...(prev ?? {}), ...(updated ?? {}) }));
   };
 
   const cardActions = {
-    onEdit: handleEditOpen,
-    onDelete: (c: RentContract) => deleteContract(c.id),
-    onSign: (c: RentContract) => signContract(c.id),
-    onStartExecution: (c: RentContract) => startExecution(c.id),
-    onRenew: (c: RentContract) => setRenewModal({ open: true, id: c.id }),
-    onTerminate: (c: RentContract) => setTerminateModal({ open: true, id: c.id }),
-    onRefund: (c: RentContract) => setRefundModal({ open: true, id: c.id }),
+    onEdit: contractGates.canUpdate ? handleEditOpen : undefined,
+    onDelete: contractGates.canDelete ? (c: RentContract) => deleteContract(c.id) : undefined,
+    onSign: contractGates.canApprove ? (c: RentContract) => signContract(c.id) : undefined,
+    onStartExecution: contractGates.canUpdate ? (c: RentContract) => startExecution(c.id) : undefined,
+    onRenew: contractGates.canUpdate ? (c: RentContract) => setRenewModal({ open: true, id: c.id }) : undefined,
+    onTerminate: contractGates.canUpdate ? (c: RentContract) => setTerminateModal({ open: true, id: c.id }) : undefined,
+    onRefund: contractGates.canUpdate ? (c: RentContract) => setRefundModal({ open: true, id: c.id }) : undefined,
     onReceipts: (c: RentContract) => setReceiptsModal({ open: true, contract: c }),
     onPrint: handlePrint,
-    onDeliveryForm: handleDeliveryForm,
-    onHandoverReceipt: (c: RentContract) => setHandoverModal({ open: true, contract: c }),
+    onDeliveryForm: contractGates.canUpdate ? handleDeliveryForm : undefined,
+    onHandoverReceipt: contractGates.canUpdate
+      ? (c: RentContract) => setHandoverModal({ open: true, contract: c })
+      : undefined,
   };
 
   if (!mounted) return null;
@@ -510,6 +518,10 @@ export default function RentContractsPage() {
         <Spin size="large" tip={isRtl ? 'جاري التحميل...' : 'Loading...'} />
       </div>
     );
+  }
+
+  if ((error as { response?: { status?: number } } | undefined)?.response?.status === 403) {
+    return <AccessDenied />;
   }
 
   return (
@@ -525,18 +537,20 @@ export default function RentContractsPage() {
             </div>
           </div>
           <div className={styles.headerActions}>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              className={styles.primaryBtn}
-              onClick={() => {
-                setCreateSelectedOffer(null);
-                createForm.resetFields();
-                setCreateModalOpen(true);
-              }}
-            >
-              {t.addContract}
-            </Button>
+            {contractGates.canCreate && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className={styles.primaryBtn}
+                onClick={() => {
+                  setCreateSelectedOffer(null);
+                  createForm.resetFields();
+                  setCreateModalOpen(true);
+                }}
+              >
+                {t.addContract}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -834,64 +848,74 @@ export default function RentContractsPage() {
       )}
 
       {/* ─── Modals ─────────────────────────────────────────────────────────── */}
-      <ContractFormModal
-        mode="create"
-        open={createModalOpen}
-        isRtl={isRtl}
-        language={language}
-        form={createForm}
-        loading={isCreating}
-        customers={customers as any[]}
-        jobs={jobs as any[]}
-        selectedOffer={createSelectedOffer}
-        onOfferSelect={handleCreateOfferSelect}
-        onCancel={() => {
-          setCreateModalOpen(false);
-          createForm.resetFields();
-          setCreateSelectedOffer(null);
-        }}
-        onSubmit={handleCreateSubmit}
-      />
+      {contractGates.canCreate && (
+        <ContractFormModal
+          mode="create"
+          open={createModalOpen}
+          isRtl={isRtl}
+          language={language}
+          form={createForm}
+          loading={isCreating}
+          customers={customers as any[]}
+          jobs={jobs as any[]}
+          selectedOffer={createSelectedOffer}
+          onOfferSelect={handleCreateOfferSelect}
+          onCancel={() => {
+            setCreateModalOpen(false);
+            createForm.resetFields();
+            setCreateSelectedOffer(null);
+          }}
+          onSubmit={handleCreateSubmit}
+        />
+      )}
 
-      <ContractFormModal
-        mode="edit"
-        open={editModal.open}
-        isRtl={isRtl}
-        language={language}
-        form={editForm}
-        loading={isUpdating}
-        customers={customers as any[]}
-        jobs={jobs as any[]}
-        onCancel={() => {
-          setEditModal({ open: false, raw: null });
-          editForm.resetFields();
-        }}
-        onSubmit={handleEditSubmit}
-      />
+      {contractGates.canUpdate && (
+        <ContractFormModal
+          mode="edit"
+          open={editModal.open}
+          isRtl={isRtl}
+          language={language}
+          form={editForm}
+          loading={isUpdating}
+          customers={customers as any[]}
+          jobs={jobs as any[]}
+          onCancel={() => {
+            setEditModal({ open: false, raw: null });
+            editForm.resetFields();
+          }}
+          onSubmit={handleEditSubmit}
+        />
+      )}
 
-      <RenewModal
-        open={renewModal.open}
-        isRtl={isRtl}
-        loading={isRenewing}
-        onCancel={() => setRenewModal({ open: false, id: null })}
-        onSubmit={handleRenewSubmit}
-      />
+      {contractGates.canUpdate && (
+        <RenewModal
+          open={renewModal.open}
+          isRtl={isRtl}
+          loading={isRenewing}
+          onCancel={() => setRenewModal({ open: false, id: null })}
+          onSubmit={handleRenewSubmit}
+        />
+      )}
 
-      <TerminateModal
-        open={terminateModal.open}
-        isRtl={isRtl}
-        loading={isTerminating}
-        onCancel={() => setTerminateModal({ open: false, id: null })}
-        onSubmit={handleTerminateSubmit}
-      />
+      {contractGates.canUpdate && (
+        <TerminateModal
+          open={terminateModal.open}
+          isRtl={isRtl}
+          loading={isTerminating}
+          onCancel={() => setTerminateModal({ open: false, id: null })}
+          onSubmit={handleTerminateSubmit}
+        />
+      )}
 
-      <CustomerRefundModal
-        open={refundModal.open}
-        isRtl={isRtl}
-        loading={isRefunding}
-        onCancel={() => setRefundModal({ open: false, id: null })}
-        onSubmit={handleRefundSubmit}
-      />
+      {contractGates.canUpdate && (
+        <CustomerRefundModal
+          open={refundModal.open}
+          isRtl={isRtl}
+          loading={isRefunding}
+          onCancel={() => setRefundModal({ open: false, id: null })}
+          onSubmit={handleRefundSubmit}
+        />
+      )}
 
       <ContractReceiptsModal
         open={receiptsModal.open}
@@ -910,23 +934,27 @@ export default function RentContractsPage() {
         onClose={() => setPrintModal({ open: false, title: '' })}
       />
 
-      <DeliveryFormModal
-        open={deliveryModal.open}
-        isRtl={isRtl}
-        data={deliveryData}
-        loading={deliveryLoading}
-        saving={isSavingDeliveryForm}
-        title={deliveryModal.title}
-        onClose={() => setDeliveryModal({ open: false, id: null, title: '' })}
-        onSave={handleSaveDeliveryForm}
-      />
+      {contractGates.canUpdate && (
+        <DeliveryFormModal
+          open={deliveryModal.open}
+          isRtl={isRtl}
+          data={deliveryData}
+          loading={deliveryLoading}
+          saving={isSavingDeliveryForm}
+          title={deliveryModal.title}
+          onClose={() => setDeliveryModal({ open: false, id: null, title: '' })}
+          onSave={handleSaveDeliveryForm}
+        />
+      )}
 
-      <WorkerDeliveryRecordModal
-        open={handoverModal.open}
-        isRtl={isRtl}
-        contract={handoverModal.contract}
-        onClose={() => setHandoverModal({ open: false, contract: null })}
-      />
+      {contractGates.canUpdate && (
+        <WorkerDeliveryRecordModal
+          open={handoverModal.open}
+          isRtl={isRtl}
+          contract={handoverModal.contract}
+          onClose={() => setHandoverModal({ open: false, contract: null })}
+        />
+      )}
     </div>
   );
 }

@@ -24,13 +24,14 @@ import {
   type JournalEntryLineDetail,
 } from '@/types/journal-entry.types';
 import { GoToSourceButton } from './GoToSourceButton';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import styles from '../JournalEntries.module.css';
 
 interface EntryDetailDrawerProps {
   open: boolean;
   entryId: string | null;
   onClose: () => void;
-  onEdit: (id: string) => void;
+  onEdit?: (id: string) => void;
 }
 
 export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetailDrawerProps) {
@@ -42,8 +43,10 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
   const { deleteEntry, postEntry, unpostEntry, isDeleting, isPosting, isUnposting } =
     useJournalEntryMutations();
   const { isYearClosed } = useClosedYears();
+  const accountingGates = useAccountingActionGates();
 
   const isDraft = entry?.status === JE_STATUS.Draft;
+  const canManage = accountingGates.canManage;
   // Posting/unposting is rejected by the backend inside a closed fiscal year.
   const yearClosed = isYearClosed(entry?.date);
 
@@ -88,6 +91,7 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
 
   const handleDelete = async () => {
     if (!entry) return;
+    if (!accountingGates.canDelete) return;
     try {
       await deleteEntry(entry.id);
       onClose();
@@ -100,6 +104,7 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
 
   const handlePost = async () => {
     if (!entry) return;
+    if (!accountingGates.canPost) return;
     try {
       await postEntry(entry.id);
     } catch {
@@ -109,6 +114,7 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
 
   const handleUnpost = async () => {
     if (!entry) return;
+    if (!accountingGates.canUnpost) return;
     try {
       await unpostEntry(entry.id);
     } catch {
@@ -144,7 +150,7 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
                 }}
                 isAr={isAr}
               />
-              {isDraft ? (
+              {canManage && isDraft ? (
                 <Tooltip
                   title={
                     yearClosed
@@ -162,7 +168,7 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
                     {t('اعتماد', 'Post')}
                   </Button>
                 </Tooltip>
-              ) : (
+              ) : canManage ? (
                 <Popconfirm
                   title={t('إلغاء اعتماد القيد؟', 'Unpost this entry?')}
                   description={t(
@@ -183,12 +189,12 @@ export function EntryDetailDrawer({ open, entryId, onClose, onEdit }: EntryDetai
                     </Button>
                   </Tooltip>
                 </Popconfirm>
-              )}
+              ) : null}
             </Space>
             <Space>
-              {isDraft && (
+              {canManage && isDraft && onEdit && (
                 <>
-                  <Button icon={<EditOutlined />} onClick={() => onEdit(entry.id)}>
+                  <Button icon={<EditOutlined />} onClick={() => onEdit?.(entry.id)}>
                     {t('تعديل', 'Edit')}
                   </Button>
                   <Popconfirm

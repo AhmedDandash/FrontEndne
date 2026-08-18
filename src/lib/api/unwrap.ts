@@ -39,6 +39,10 @@ export function unwrapList<T>(payload: any): T[] {
  * (`errors: { field: string[] }` / `title`). Falls back to `fallback`.
  */
 export function extractApiError(err: unknown, fallback: string): string {
+  if ((err as any)?.response?.status === 403) {
+    return 'ليست لديك صلاحية لتنفيذ هذا الإجراء / You do not have permission to perform this action';
+  }
+
   const d = (err as any)?.response?.data;
   if (!d) return (err as any)?.message || fallback;
 

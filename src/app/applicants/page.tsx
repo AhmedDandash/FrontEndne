@@ -60,6 +60,8 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
+import { APP_PERMISSIONS } from '@/config/appPermissions';
+import { useHasPermission } from '@/hooks/api/usePagePermissions';
 import { resolveImageUrl } from '@/utils/image';
 import {
   useWorkersFiltered,
@@ -76,7 +78,7 @@ import {
   useDeleteMedicalExamination,
   useCheckWorkerMedicalExamination,
 } from '@/hooks/api/useWorkers';
-import { useAgents } from '@/hooks/api/useAgents';
+import { useAgentMe, useAgents } from '@/hooks/api/useAgents';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { linkProps } from '@/lib/navigation/linkProps';
@@ -576,6 +578,22 @@ export default function WorkersPage() {
   const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const userBranchId = useAuthStore((state) => state.branchId);
+  const { has } = useHasPermission();
+  const canCreateWorker = has([
+    APP_PERMISSIONS.WORKERS_CREATE,
+    APP_PERMISSIONS.WORKERS_OWN_CREATE,
+  ]);
+  const canUpdateWorker = has([
+    APP_PERMISSIONS.WORKERS_UPDATE,
+    APP_PERMISSIONS.WORKERS_OWN_UPDATE,
+  ]);
+  const canDeleteWorker = has(APP_PERMISSIONS.WORKERS_DELETE);
+  const canViewAllWorkers = has(APP_PERMISSIONS.WORKERS_VIEW);
+  const canViewOwnWorkers = has([
+    APP_PERMISSIONS.WORKERS_VIEW,
+    APP_PERMISSIONS.WORKERS_OWN_VIEW,
+  ]);
+  const canViewAgentDirectory = has(APP_PERMISSIONS.AGENTS_VIEW);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingWorkerId, setEditingWorkerId] = useState<string | null>(null);
   const [medicalExamWorkerId, setMedicalExamWorkerId] = useState<number | string | null>(null);
@@ -662,7 +680,7 @@ export default function WorkersPage() {
     if (filters.mobile) p.Mobile = filters.mobile;
     if (filters.nationality) p.NationalityId = String(filters.nationality);
     if (filters.job) p.JobId = String(filters.job);
-    if (filters.agent) p.AgentId = String(filters.agent);
+    if (canViewAllWorkers && filters.agent) p.AgentId = String(filters.agent);
     if (activeTab !== 0) p.WorkerStatus = activeTab;
     else if (filters.status) p.WorkerStatus = Number(filters.status);
     if (filters.ageMin !== undefined) p.MinAge = filters.ageMin;
@@ -693,7 +711,7 @@ export default function WorkersPage() {
     if (filters.englishLanguageLevelMin !== undefined) p.MinEnglishLanguageLevel = filters.englishLanguageLevelMin;
     if (filters.englishLanguageLevelMax !== undefined) p.MaxEnglishLanguageLevel = filters.englishLanguageLevelMax;
     return p;
-  }, [filters, activeTab, pageNumber]);
+  }, [filters, activeTab, pageNumber, canViewAllWorkers]);
 
   const {
     data: workersResult,
@@ -703,7 +721,8 @@ export default function WorkersPage() {
   const workers = workersResult?.workers ?? [];
   const totalWorkers = workersResult?.total ?? 0;
   const { data: jobs = [] } = useJobs();
-  const { data: agents = [] } = useAgents();
+  const { data: agents = [] } = useAgents(canViewAllWorkers && canViewAgentDirectory);
+  const { data: ownAgent } = useAgentMe(!canViewAllWorkers && canViewOwnWorkers);
   const { data: nationalities = [] } = useNationalities();
   const { employees: hrEmployees } = useHREmployees({ pageSize: 200 });
   const { data: medicalExaminations = [] } = useMedicalExaminations();
@@ -724,7 +743,12 @@ export default function WorkersPage() {
   }, [jobs, language]);
 
   const availableAgents = useMemo(() => {
-    return agents
+    const sourceAgents = canViewAllWorkers
+      ? agents
+      : ownAgent
+        ? [ownAgent]
+        : [];
+    return sourceAgents
       .filter((a: any) => (a.isActive === undefined ? true : a.isActive))
       .map((a: any) => ({
         value: String(a.id),
@@ -733,7 +757,7 @@ export default function WorkersPage() {
             ? a.agentNameAr || a.agentNameEn || ''
             : a.agentNameEn || a.agentNameAr || '',
       }));
-  }, [agents, language]);
+  }, [agents, ownAgent, canViewAllWorkers, language]);
 
   const employeeOptions = useMemo(() => {
     return hrEmployees.map((e) => ({
@@ -892,7 +916,13 @@ export default function WorkersPage() {
         restValues.maritalStatus !== undefined ? Number(restValues.maritalStatus) : undefined,
       nationalityId: restValues.nationalityId ? String(restValues.nationalityId) : undefined,
       jobId: restValues.jobId ? String(restValues.jobId) : undefined,
-      agentId: restValues.agentId ? String(restValues.agentId) : undefined,
+      agentId: canViewAllWorkers
+        ? restValues.agentId
+          ? String(restValues.agentId)
+          : undefined
+        : ownAgent?.id
+          ? String(ownAgent.id)
+          : undefined,
       workerType: restValues.workerType ? Number(restValues.workerType) : undefined,
       workerStatus: restValues.workerStatus ? Number(restValues.workerStatus) : undefined,
       uploadImage: workerImageFile || undefined,
@@ -912,6 +942,7 @@ export default function WorkersPage() {
 
   const handleMedicalExamSubmit = async (values: any) => {
     if (medicalExamWorkerId === null) return;
+    if (!canUpdateWorker) return;
 
     const medicalStatus = Number(values.medicalStatus);
     const payload = {
@@ -941,6 +972,7 @@ export default function WorkersPage() {
 
   const handleMedicalExamDelete = () => {
     if (medicalExamId === null) return;
+    if (!canDeleteWorker) return;
     Modal.confirm({
       title: language === 'ar' ? 'حذف الفحص الطبي' : 'Delete Medical Examination',
       icon: <ExclamationCircleOutlined />,
@@ -1151,9 +1183,11 @@ export default function WorkersPage() {
   const getGenderLabel = (g?: number | null) => getEnumLabel(GENDER, g, language);
 
   // Action menu
-  const getActionMenu = (worker: Worker): MenuProps => ({
-    items: [
-      {
+  const getActionMenu = (worker: Worker): MenuProps => {
+    const items: MenuProps['items'] = [];
+
+    if (canUpdateWorker) {
+      items.push({
         key: 'status-actions',
         label: t('workerStatus'),
         icon: <ClockCircleOutlined />,
@@ -1201,17 +1235,22 @@ export default function WorkersPage() {
             onClick: () => confirmWorkerStatusAction(worker, 'deactivate'),
           },
         ],
-      },
-      { type: 'divider' },
-      {
+      });
+    }
+
+    if (canDeleteWorker) {
+      if (items.length > 0) items.push({ type: 'divider' });
+      items.push({
         key: 'delete',
         label: t('delete'),
         icon: <DeleteOutlined />,
         danger: true,
         onClick: () => handleDelete(worker.id),
-      },
-    ],
-  });
+      });
+    }
+
+    return { items };
+  };
 
   if (isLoading) {
     return (
@@ -1249,16 +1288,18 @@ export default function WorkersPage() {
             >
               {t('downloadPdf')}
             </Button>
-            <Button
-              type="primary"
-              size="large"
-              icon={<PlusOutlined />}
-              className={styles.addButton}
-              onClick={() => handleOpenModal()}
-              loading={isCreating}
-            >
-              {t('addWorker')}
-            </Button>
+            {canCreateWorker && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<PlusOutlined />}
+                className={styles.addButton}
+                onClick={() => handleOpenModal()}
+                loading={isCreating}
+              >
+                {t('addWorker')}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -1352,20 +1393,22 @@ export default function WorkersPage() {
                 />
               </Col>
 
-              <Col xs={24} md={6}>
-                <label className={styles.filterLabel}>{t('agent')}</label>
-                <Select
-                  size="large"
-                  placeholder={t('agent')}
-                  value={filters.agent}
-                  onChange={(value) => setFilters({ ...filters, agent: value })}
-                  style={{ width: '100%' }}
-                  allowClear
-                  showSearch
-                  optionFilterProp="label"
-                  options={availableAgents}
-                />
-              </Col>
+              {canViewAllWorkers && (
+                <Col xs={24} md={6}>
+                  <label className={styles.filterLabel}>{t('agent')}</label>
+                  <Select
+                    size="large"
+                    placeholder={t('agent')}
+                    value={filters.agent}
+                    onChange={(value) => setFilters({ ...filters, agent: value })}
+                    style={{ width: '100%' }}
+                    allowClear
+                    showSearch
+                    optionFilterProp="label"
+                    options={availableAgents}
+                  />
+                </Col>
+              )}
 
               <Col xs={24} md={6}>
                 <label className={styles.filterLabel}>{t('employee')}</label>
@@ -1882,34 +1925,38 @@ export default function WorkersPage() {
                     onClick={() => openDetail(worker.id)}
                   />
                 </Tooltip>
-                <Tooltip title={t('markRefused')}>
-                  <Button
-                    type="text"
-                    icon={<CloseCircleOutlined />}
-                    className={styles.actionButton}
-                    onClick={() => confirmWorkerStatusAction(worker, 'refused')}
-                  />
-                </Tooltip>
-                <Tooltip title={language === 'ar' ? 'إسكان' : 'Assign Housing'}>
-                  <Button
-                    type="text"
-                    icon={<HomeOutlined />}
-                    className={styles.actionButton}
-                    onClick={() => {
-                      setHousingModalWorkerId(String(worker.id));
-                      housingForm.resetFields();
-                      housingForm.setFieldsValue({ statusDate: dayjs() });
-                    }}
-                  />
-                </Tooltip>
-                <Tooltip title={t('edit')}>
-                  <Button
-                    type="text"
-                    icon={<EditOutlined />}
-                    className={styles.actionButton}
-                    onClick={() => handleOpenModal(worker)}
-                  />
-                </Tooltip>
+                {canUpdateWorker && (
+                  <>
+                    <Tooltip title={t('markRefused')}>
+                      <Button
+                        type="text"
+                        icon={<CloseCircleOutlined />}
+                        className={styles.actionButton}
+                        onClick={() => confirmWorkerStatusAction(worker, 'refused')}
+                      />
+                    </Tooltip>
+                    <Tooltip title={language === 'ar' ? 'إسكان' : 'Assign Housing'}>
+                      <Button
+                        type="text"
+                        icon={<HomeOutlined />}
+                        className={styles.actionButton}
+                        onClick={() => {
+                          setHousingModalWorkerId(String(worker.id));
+                          housingForm.resetFields();
+                          housingForm.setFieldsValue({ statusDate: dayjs() });
+                        }}
+                      />
+                    </Tooltip>
+                    <Tooltip title={t('edit')}>
+                      <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        className={styles.actionButton}
+                        onClick={() => handleOpenModal(worker)}
+                      />
+                    </Tooltip>
+                  </>
+                )}
                 <Tooltip title={t('printCV')}>
                   <Button
                     type="text"
@@ -1918,20 +1965,24 @@ export default function WorkersPage() {
                     onClick={() => handlePrintCV(worker)}
                   />
                 </Tooltip>
-                <Tooltip title={t('medicalExamination')}>
-                  <Button
-                    type="text"
-                    icon={<MedicineBoxOutlined />}
-                    className={styles.actionButton}
-                    loading={pendingMedicalCheckId === String(worker.id)}
-                    onClick={() => handleOpenMedicalExam(worker.id)}
-                  />
-                </Tooltip>
-                <Dropdown menu={getActionMenu(worker)} trigger={['click']}>
-                  <Tooltip title={t('moreActions')}>
-                    <Button type="text" icon={<MoreOutlined />} className={styles.actionButton} />
+                {canUpdateWorker && (
+                  <Tooltip title={t('medicalExamination')}>
+                    <Button
+                      type="text"
+                      icon={<MedicineBoxOutlined />}
+                      className={styles.actionButton}
+                      loading={pendingMedicalCheckId === String(worker.id)}
+                      onClick={() => handleOpenMedicalExam(worker.id)}
+                    />
                   </Tooltip>
-                </Dropdown>
+                )}
+                {(canUpdateWorker || canDeleteWorker) && (
+                  <Dropdown menu={getActionMenu(worker)} trigger={['click']}>
+                    <Tooltip title={t('moreActions')}>
+                      <Button type="text" icon={<MoreOutlined />} className={styles.actionButton} />
+                    </Tooltip>
+                  </Dropdown>
+                )}
               </div>
             </Card>
           ))}
@@ -2405,18 +2456,20 @@ export default function WorkersPage() {
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
-              <Form.Item label={t('agent')} name="agentId">
-                <Select
-                  size="large"
-                  placeholder={t('agent')}
-                  showSearch
-                  optionFilterProp="label"
-                  style={{ width: '100%' }}
-                  options={availableAgents.map((a) => ({ value: a.value, label: a.label }))}
-                />
-              </Form.Item>
-            </Col>
+            {canViewAllWorkers && (
+              <Col xs={24} md={8}>
+                <Form.Item label={t('agent')} name="agentId">
+                  <Select
+                    size="large"
+                    placeholder={t('agent')}
+                    showSearch
+                    optionFilterProp="label"
+                    style={{ width: '100%' }}
+                    options={availableAgents.map((a) => ({ value: a.value, label: a.label }))}
+                  />
+                </Form.Item>
+              </Col>
+            )}
 
             <Col xs={24} md={8}>
               <Form.Item label={t('boxNumber')} name="boxNumber">
@@ -2544,14 +2597,16 @@ export default function WorkersPage() {
                   >
                     {language === 'ar' ? 'عرض التقرير' : 'View Report'}
                   </Button>
-                  <Button
-                    danger
-                    icon={<DeleteOutlined />}
-                    loading={isDeletingMedicalExam}
-                    onClick={handleMedicalExamDelete}
-                  >
-                    {t('delete')}
-                  </Button>
+                  {canDeleteWorker && (
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      loading={isDeletingMedicalExam}
+                      onClick={handleMedicalExamDelete}
+                    >
+                      {t('delete')}
+                    </Button>
+                  )}
                   <Button
                     onClick={() => {
                       setMedicalExamWorkerId(null);
@@ -2563,13 +2618,15 @@ export default function WorkersPage() {
                   >
                     {t('cancel')}
                   </Button>
-                  <Button
-                    type="primary"
-                    icon={<EditOutlined />}
-                    onClick={() => setMedicalExamViewOnly(false)}
-                  >
-                    {t('edit')}
-                  </Button>
+                  {canUpdateWorker && (
+                    <Button
+                      type="primary"
+                      icon={<EditOutlined />}
+                      onClick={() => setMedicalExamViewOnly(false)}
+                    >
+                      {t('edit')}
+                    </Button>
+                  )}
                 </div>
               </div>
             );
@@ -2609,7 +2666,7 @@ export default function WorkersPage() {
             </Form.Item>
 
             <div className={styles.modalActions}>
-              {medicalExamId !== null && (
+              {medicalExamId !== null && canDeleteWorker && (
                 <Button
                   danger
                   icon={<DeleteOutlined />}
@@ -2638,6 +2695,7 @@ export default function WorkersPage() {
               <Button
                 type="primary"
                 htmlType="submit"
+                disabled={!canUpdateWorker}
                 loading={isCreatingMedicalExam || isUpdatingMedicalExam}
                 icon={<MedicineBoxOutlined />}
               >

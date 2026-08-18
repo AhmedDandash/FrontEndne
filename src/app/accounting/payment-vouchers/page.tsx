@@ -39,6 +39,7 @@ import {
 import { DocumentTraceDrawer } from '../_lib/DocumentTraceDrawer';
 import { useAccountingDocFilters } from '../_lib/useAccountingDocFilters';
 import AccountingDocFilters from '../_lib/AccountingDocFilters';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 import styles from '../accounting-doc.module.css';
 
 export default function PaymentVouchersPage() {
@@ -46,6 +47,7 @@ export default function PaymentVouchersPage() {
   const language = useAuthStore((state) => state.language);
   const isAr = language !== 'en';
   const t = (ar: string, en: string) => (isAr ? ar : en);
+  const accountingGates = useAccountingActionGates();
 
   const filters = useAccountingDocFilters();
 
@@ -66,6 +68,7 @@ export default function PaymentVouchersPage() {
   const openTrace = (id: string) => setTraceId(id);
 
   const handleCreate = async () => {
+    if (!accountingGates.canCreate) return;
     try {
       const values = await form.validateFields();
       const dto: CreatePaymentVoucherDto = {
@@ -175,9 +178,11 @@ export default function PaymentVouchersPage() {
             <Button icon={<ReloadOutlined spin={isFetching} />} onClick={() => refetch()} className={styles.refreshBtn}>
               {t('تحديث', 'Refresh')}
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} className={styles.addBtn}>
-              {t('إضافة سند', 'New Voucher')}
-            </Button>
+            {accountingGates.canCreate && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} className={styles.addBtn}>
+                {t('إضافة سند', 'New Voucher')}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -218,7 +223,7 @@ export default function PaymentVouchersPage() {
       {/* Create Drawer */}
       <Drawer
         title={t('إضافة سند صرف', 'New Payment Voucher')}
-        open={createOpen}
+        open={createOpen && accountingGates.canCreate}
         onClose={() => { setCreateOpen(false); form.resetFields(); }}
         width={480}
         footer={

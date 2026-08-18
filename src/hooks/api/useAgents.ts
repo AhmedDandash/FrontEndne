@@ -15,18 +15,28 @@ export const AGENTS_KEY = 'agents';
 /**
  * Fetch all agents
  */
-export const useAgents = () => {
+export const useAgents = (enabled = true) => {
   return useQuery<Agent[], Error>({
     queryKey: [AGENTS_KEY],
     queryFn: AgentService.getAll,
+    enabled,
   });
 };
 
-export const useAgentsPaged = (query?: AgentQuery) => {
+export const useAgentsPaged = (query?: AgentQuery, enabled = true) => {
   return useQuery<PagedResponse<Agent>, Error>({
     queryKey: [AGENTS_KEY, 'paged', query],
     queryFn: () => AgentService.getPaged(query),
+    enabled,
     placeholderData: (previous) => previous,
+  });
+};
+
+export const useAgentMe = (enabled = true) => {
+  return useQuery<Agent | null, Error>({
+    queryKey: [AGENTS_KEY, 'me'],
+    queryFn: AgentService.getMe,
+    enabled,
   });
 };
 
@@ -38,11 +48,11 @@ export const useAgentsPaged = (query?: AgentQuery) => {
  * and this hook backs the `/agents/[id]` route where `params.id` is always a
  * string. `AgentService.getById` already accepts `number | string`.
  */
-export const useAgent = (id: string | undefined) => {
+export const useAgent = (id: string | undefined, enabled = true) => {
   return useQuery<Agent, Error>({
     queryKey: [AGENTS_KEY, id],
     queryFn: () => AgentService.getById(id as string),
-    enabled: !!id,
+    enabled: !!id && enabled,
   });
 };
 

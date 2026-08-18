@@ -50,6 +50,7 @@ export interface MeResponse {
   email?: string | null;
   fullName?: string | null;
   roles?: string[] | null;
+  permissions?: string[] | null;
 }
 
 // ==================== Branch Types ====================

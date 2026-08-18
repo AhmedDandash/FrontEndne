@@ -13,6 +13,7 @@ import { PrinterOutlined, SaveOutlined } from '@ant-design/icons';
 import type { OperatingContractDeliveryFormDto, SaveDeliveryFormDto } from '@/types/api.types';
 import { resolveImageUrl } from '@/utils/image';
 import { useAuthStore } from '@/store/authStore';
+import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import { toDeliveryFormSections, printDeliveryForm } from './delivery-form';
 import styles from '../RentContracts.module.css';
 
@@ -46,6 +47,7 @@ export default function DeliveryFormModal({
   const [customerSigned, setCustomerSigned] = useState(false);
   const [workerSigned, setWorkerSigned] = useState(false);
   const [companySigned, setCompanySigned] = useState(false);
+  const contractGates = useContractActionGates();
 
   const sections = toDeliveryFormSections(data, isRtl);
 
@@ -83,6 +85,7 @@ export default function DeliveryFormModal({
   };
 
   const handleSave = async () => {
+    if (!contractGates.canUpdate) return;
     try {
       await onSave(buildPayload());
     } catch {
@@ -115,15 +118,17 @@ export default function DeliveryFormModal({
         <Button key="close" onClick={onClose}>
           {isRtl ? 'إغلاق' : 'Close'}
         </Button>,
-        <Button
-          key="save"
-          icon={<SaveOutlined />}
-          onClick={handleSave}
-          loading={saving}
-          disabled={loading || !data}
-        >
-          {isRtl ? 'حفظ' : 'Save'}
-        </Button>,
+        contractGates.canUpdate ? (
+          <Button
+            key="save"
+            icon={<SaveOutlined />}
+            onClick={handleSave}
+            loading={saving}
+            disabled={loading || !data}
+          >
+            {isRtl ? 'حفظ' : 'Save'}
+          </Button>
+        ) : null,
         <Button
           key="print"
           type="primary"

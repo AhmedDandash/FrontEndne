@@ -12,6 +12,7 @@ import { Modal, Button, Form, Input, InputNumber, DatePicker, Select } from 'ant
 import { FileDoneOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useCreateReceiptVoucher } from '@/hooks/api/useReceiptVouchers';
+import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
 
 interface Props {
   open: boolean;
@@ -32,6 +33,7 @@ export default function ReceiptVoucherModal({
 }: Props) {
   const [form] = Form.useForm();
   const { mutate: createVoucher, isPending: isCreating } = useCreateReceiptVoucher();
+  const accountingGates = useAccountingActionGates();
 
   // Reset to defaults whenever the modal opens.
   useEffect(() => {
@@ -47,7 +49,7 @@ export default function ReceiptVoucherModal({
   }, [open, form]);
 
   const handleOk = async () => {
-    if (!contractId) return;
+    if (!contractId || !accountingGates.canCreate) return;
     try {
       const values = await form.validateFields();
       const payload = {
@@ -85,13 +87,13 @@ export default function ReceiptVoucherModal({
           {contractLabel ? ` — ${contractLabel}` : ''}
         </span>
       }
-      open={open}
+      open={open && accountingGates.canCreate}
       onCancel={close}
       footer={[
         <Button key="cancel" onClick={close}>
           {isRtl ? 'إلغاء' : 'Cancel'}
         </Button>,
-        <Button key="submit" type="primary" loading={isCreating} onClick={handleOk}>
+        <Button key="submit" type="primary" loading={isCreating} onClick={handleOk} disabled={!accountingGates.canCreate}>
           {isRtl ? 'حفظ السند' : 'Save Voucher'}
         </Button>,
       ]}

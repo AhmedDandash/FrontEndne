@@ -15,6 +15,8 @@ import {
 } from 'antd';
 import { SendOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useHREmployees, useHRResignationRequest } from '@/hooks/api/useHR';
+import AccessDenied from '@/components/common/AccessDenied';
+import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import type { CreateResignationRequestDto } from '@/types/hr.types';
 import type { EmployeeDto } from '@/types/hr.types';
 
@@ -24,6 +26,7 @@ const { TextArea } = Input;
 export default function ResignationRequestPage() {
   const [form] = Form.useForm();
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeDto | null>(null);
+  const hrGates = useHrActionGates();
 
   const { employees, isLoading: isLoadingEmployees } = useHREmployees({ pageSize: 200 });
   const { createResignationRequest, isCreating } = useHRResignationRequest();
@@ -34,6 +37,7 @@ export default function ResignationRequestPage() {
   };
 
   const handleSubmit = async () => {
+    if (!hrGates.canCreate) return;
     try {
       const values = await form.validateFields();
 
@@ -53,6 +57,10 @@ export default function ResignationRequestPage() {
       // promise rejection.
     }
   };
+
+  if (hrGates.isReady && !hrGates.canCreate) {
+    return <AccessDenied />;
+  }
 
   return (
     <div style={{ padding: 24 }}>
