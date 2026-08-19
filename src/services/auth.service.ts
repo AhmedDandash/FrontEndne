@@ -49,7 +49,7 @@ export class AuthService {
         if (authData?.refreshToken) {
           localStorage.setItem('refreshToken', authData.refreshToken);
           // Keep compatibility with middleware that checks the refreshToken cookie
-          document.cookie = `refreshToken=${encodeURIComponent(authData.refreshToken)}; path=/; SameSite=Lax`;
+          document.cookie = `refreshToken=${encodeURIComponent(authData.refreshToken)}; path=/; SameSite=Lax; Secure`;
         }
 
         const userData = authData?.user;

@@ -298,7 +298,7 @@ class ApiClient {
       if (newRefreshToken) {
         // Store the rotated refresh token; the old one is now revoked server-side.
         localStorage.setItem('refreshToken', newRefreshToken);
-        document.cookie = `refreshToken=${encodeURIComponent(newRefreshToken)}; path=/; SameSite=Lax`;
+        document.cookie = `refreshToken=${encodeURIComponent(newRefreshToken)}; path=/; SameSite=Lax; Secure`;
       }
 
       return newAccessToken;
