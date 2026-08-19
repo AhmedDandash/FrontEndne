@@ -158,29 +158,38 @@ export class AuthService {
         storedRefreshToken ? { refreshToken: storedRefreshToken } : undefined,
       );
     } finally {
-      // Clear local storage and cookies regardless of API response
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        localStorage.removeItem('authRoles');
-        localStorage.removeItem('authPermissions');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('username');
-        localStorage.removeItem('branchId');
-        localStorage.removeItem('branchName');
-        sessionStorage.clear();
-
-        // Both cookies are written via `document.cookie` at login time (see
-        // login() above), so neither is actually HttpOnly — clear both here.
-        // Previously only authToken was cleared, so the refreshToken cookie
-        // (which middleware.ts's edge gate keys off) survived logout.
-        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'authToken=; path=/; max-age=0';
-        document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'refreshToken=; path=/; max-age=0';
-      }
+      AuthService.clearAuthStorage();
     }
+  }
+
+  /**
+   * Clear all client-side auth state (tokens, cached user/roles/permissions,
+   * branch selection, cookies) without calling the backend. Shared by logout()
+   * and by the backend-cutover session guard (see src/lib/auth/backendGuard.ts)
+   * — kept as a single source of truth so the two stay in sync.
+   */
+  static clearAuthStorage(): void {
+    if (typeof window === 'undefined') return;
+
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('authRoles');
+    localStorage.removeItem('authPermissions');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('username');
+    localStorage.removeItem('branchId');
+    localStorage.removeItem('branchName');
+    sessionStorage.clear();
+
+    // Both cookies are written via `document.cookie` at login time (see
+    // login() above), so neither is actually HttpOnly — clear both here.
+    // Previously only authToken was cleared, so the refreshToken cookie
+    // (which middleware.ts's edge gate keys off) survived logout.
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'authToken=; path=/; max-age=0';
+    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'refreshToken=; path=/; max-age=0';
   }
 
   /**

@@ -1,4 +1,5 @@
-const R2_CDN_BASE = 'https://pub-f187258d7c85424fa237dc86a126271b.r2.dev';
+const R2_CDN_BASE =
+  process.env.NEXT_PUBLIC_CDN_BASE_URL || 'https://pub-f187258d7c85424fa237dc86a126271b.r2.dev';
 
 /**
  * Normalizes an uploadImage value to an absolute URL.

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Spin } from 'antd';
+import { purgeStaleBackendSession } from '@/lib/auth/backendGuard';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -19,6 +20,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     const checkAuth = () => {
+      // Must run first: wipes stale tokens/branch state from a previous
+      // backend deployment before we trust anything in localStorage below.
+      purgeStaleBackendSession();
+
       const token = localStorage.getItem('authToken');
       const isPublicRoute = publicRoutes.includes(pathname);
 
