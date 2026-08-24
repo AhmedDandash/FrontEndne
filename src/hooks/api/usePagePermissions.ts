@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import { AuthService } from '@/services/auth.service';
+import { useAuthStore } from '@/store/authStore';
 import { PermissionService, getPermissionsSync } from '@/services/permission.service';
 import { extractApiError } from '@/lib/api/unwrap';
 import {
@@ -144,6 +145,19 @@ export function useCurrentRoles() {
       ),
     [claimsState, query.data]
   );
+
+  // Keep the Zustand-cached display name (read by the Header/navbar and any
+  // other component that wants an instant paint before /me resolves) in sync
+  // with the authoritative /me response. Without this, `authStore.username`
+  // is only ever set once from localStorage at module-load time, so the
+  // navbar shows a stale/empty name after login until a full page reload.
+  useEffect(() => {
+    if (!query.isSuccess || !query.data) return;
+    const liveName = query.data.fullName?.trim() || query.data.username?.trim() || null;
+    if (liveName && useAuthStore.getState().username !== liveName) {
+      useAuthStore.getState().setUsername(liveName);
+    }
+  }, [query.isSuccess, query.data]);
 
   return {
     roles,

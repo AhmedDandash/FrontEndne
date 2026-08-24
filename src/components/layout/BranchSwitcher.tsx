@@ -70,7 +70,7 @@ export default function BranchSwitcher() {
   return (
     <Dropdown menu={menu} trigger={['click']} placement={language === 'ar' ? 'bottomLeft' : 'bottomRight'}>
       <Button type="text" className={styles.langBtn} icon={<ApartmentOutlined />}>
-        <span className={styles.desktopOnly}>{currentLabel}</span>
+        <span className={`${styles.desktopOnly} ${styles.branchLabel}`}>{currentLabel}</span>
         <DownOutlined style={{ fontSize: 10 }} />
       </Button>
     </Dropdown>

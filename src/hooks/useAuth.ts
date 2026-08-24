@@ -10,6 +10,17 @@ import { AuthService } from '@/services';
 import type { LoginDto, AddAdmin, ChangePasswordRequestDTO } from '@/types/api.types';
 import { useSearchParams } from 'next/navigation';
 import { AUTH_ME_QUERY_KEY } from '@/config/authMeQuery';
+import { useAuthStore } from '@/store/authStore';
+
+/** Reset the reactive, Zustand-cached identity fields (username/userId/branch)
+ * so the navbar and branch switcher clear immediately on logout instead of
+ * showing the previous user's data until a full page reload. */
+function clearReactiveAuthState(): void {
+  const store = useAuthStore.getState();
+  store.setUsername(null);
+  store.setUserId(null);
+  store.setBranch(null, null);
+}
 
 export function useAuth() {
   const router = useRouter();
@@ -87,6 +98,7 @@ export function useAuth() {
     mutationFn: () => AuthService.logout(),
     onSuccess: () => {
       queryClient.clear();
+      clearReactiveAuthState();
       message.success('تم تسجيل الخروج بنجاح / Logged out successfully');
       // Use replace to clear history after logout
       router.replace('/login');
@@ -94,6 +106,7 @@ export function useAuth() {
     onError: () => {
       // Still clear local data even if API call fails
       queryClient.clear();
+      clearReactiveAuthState();
       router.replace('/login');
     },
   });

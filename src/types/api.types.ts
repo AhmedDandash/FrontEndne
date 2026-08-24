@@ -185,6 +185,8 @@ export interface Customer {
   /** Preferred DOB key on the new API; legacy `birthDate` kept for read tolerance. */
   dateOfBirth?: string | null;
   birthDate?: string | null;
+  /** Hijri (Umm al-Qura) rendering of the same date of birth, e.g. "1410/05/15". */
+  birthDateHijri?: string | null;
   /** National ID — copied from `identityNumber` server-side when left blank. */
   nationalId?: string | null;
   /** Secondary mobile number (ErpImprovementsJul2026). */
@@ -237,6 +239,8 @@ export interface CreateCustomerDto {
   /** Preferred DOB key on the new API. */
   dateOfBirth?: string | null;
   birthDate?: string | null;
+  /** Hijri (Umm al-Qura) rendering of the same date of birth, e.g. "1410/05/15". */
+  birthDateHijri?: string | null;
   /** National ID — server copies from `identityNumber` when blank. */
   nationalId?: string | null;
   /** Secondary mobile number (ErpImprovementsJul2026). */
@@ -269,6 +273,8 @@ export interface UpdateCustomerDto {
   /** Preferred DOB key on the new API. */
   dateOfBirth?: string | null;
   birthDate?: string | null;
+  /** Hijri (Umm al-Qura) rendering of the same date of birth, e.g. "1410/05/15". */
+  birthDateHijri?: string | null;
   /** National ID — server copies from `identityNumber` when blank. */
   nationalId?: string | null;
   /** Secondary mobile number (ErpImprovementsJul2026). */
@@ -1236,6 +1242,12 @@ export interface MediationContract {
   workerImageUrl?: string | null;
   /** True when a worker is currently assigned to the contract. */
   hasAssignedWorker?: boolean | null;
+  /**
+   * Passport number for a worker not yet in the system (no Worker row yet).
+   * Set via create (workerPassportNumber without workerId) or
+   * `set-pending-worker-passport`; cleared once a real worker is assigned.
+   */
+  pendingWorkerPassportNumber?: string | null;
   /** True when the contract's invoice has been paid. */
   isPaid?: boolean | null;
   // ── Customer-payment / financial summary fields (list + detail responses). ──
@@ -1262,9 +1274,13 @@ export interface MediationContract {
 export interface CreateMediationContractDto {
   contractType?: number | null;
   customerId?: string | null;
-  /** Required per swagger — worker UUID */
+  /** Optional — omit to create without a worker (assign one later). Worker UUID. */
   workerId?: string | null;
-  /** Required per swagger — used for identity verification on create */
+  /**
+   * Passport number. If `workerId` is set, used for identity verification.
+   * If set WITHOUT `workerId`, the backend stores it as
+   * `pendingWorkerPassportNumber` (worker not yet in the system).
+   */
   workerPassportNumber?: string | null;
   /** Required per swagger — offer UUID */
   offerId?: string | null;
@@ -1322,6 +1338,16 @@ export interface EndWorkerServiceDto {
 export interface AssignWorkerDto {
   contractId: string;
   workerId: string;
+  workerPassportNumber: string;
+}
+
+/**
+ * POST /api/Mediation/MediationContract/set-pending-worker-passport
+ * For a worker not yet in the system. Fails if the contract already has an
+ * assigned worker, or if the passport already exists as a real Worker row.
+ */
+export interface SetPendingWorkerPassportDto {
+  contractId: string;
   workerPassportNumber: string;
 }
 
@@ -1506,12 +1532,21 @@ export interface RecruitmentRequestItem {
   branchId?: string | null;
   branchNameAr?: string | null;
   branchNameEn?: string | null;
-  /** True → a specific worker is attached; false → show `workerSelectionLabel`. */
+  /**
+   * True → a specific worker is attached OR a pending passport was given for
+   * a worker not yet in the system; false → show `workerSelectionLabel`
+   * ("any matching worker" / specs-only). Distinguish the first two cases via
+   * `workerId`/`workerName` (booked) vs `pendingWorkerPassportNumber` alone
+   * (worker not yet in the system).
+   */
   hasSpecificWorker?: boolean | null;
   /** Displayed when `hasSpecificWorker` is false (e.g. "أي عامل مطابق"). */
   workerSelectionLabel?: string | null;
+  workerId?: string | null;
   workerName?: string | null;
   workerPassportNumber?: string | null;
+  /** Set when `hasSpecificWorker` is true but no real Worker exists yet. */
+  pendingWorkerPassportNumber?: string | null;
   /** Relative R2 key — resolve via resolveImageUrl. */
   workerPhotoUrl?: string | null;
   /** FEdits-2 successor field; resolves from the same source as workerPhotoUrl. */

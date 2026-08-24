@@ -63,6 +63,7 @@ import NationalitySelect from '@/components/common/NationalitySelect';
 import { CUSTOMER_COMMON_NATIONALITIES } from '@/constants/nationalities';
 import { linkProps } from '@/lib/navigation/linkProps';
 import HijriDatePicker from '@/components/common/HijriDatePicker';
+import { toHijriIsoString } from '@/utils/hijri';
 import { useAgents } from '@/hooks/api/useAgents';
 import { useMarketers } from '@/hooks/api/useMarketers';
 import RentOfferSelector from '@/components/contracts/RentOfferSelector';
@@ -678,8 +679,19 @@ export default function CustomersPage() {
           ? otherPhones
           : undefined;
 
+      // Backend stores the Hijri rendering of the same birth date verbatim
+      // (BACKEND_REVIEW_README.md #8) — derive it from the Gregorian value
+      // this form already collects rather than adding a second date input.
+      const dobValue = rest.dateOfBirth as string | undefined;
+      // Parse as local midnight (not UTC) so the derived Hijri date always
+      // matches the Gregorian day HijriDatePicker showed the user — a bare
+      // "YYYY-MM-DD" strings parses as UTC per the Date spec, which drifts a
+      // day in negative-UTC-offset locales.
+      const birthDateHijri = dobValue ? toHijriIsoString(new Date(`${dobValue}T00:00:00`)) : null;
+
       const payload = {
         ...rest,
+        ...(birthDateHijri ? { birthDateHijri } : {}),
         phones,
         ...(editingCustomer ? { identityNumber: editingCustomer.identityNumber } : {}),
       };

@@ -71,6 +71,7 @@ export default function MediationRequestsPage() {
     totalRequests: isRtl ? 'إجمالي الطلبات' : 'Total Requests',
     withWorker: isRtl ? 'بعامل محدد' : 'With Worker',
     anyWorker: isRtl ? 'أي عامل مطابق' : 'Any Matching Worker',
+    pendingWorker: isRtl ? 'عامل غير مسجّل (جواز فقط)' : 'Pending Worker (Passport Only)',
     search: isRtl ? 'بحث باسم العميل أو رقم الطلب...' : 'Search by customer name or request number...',
     refresh: isRtl ? 'تحديث' : 'Refresh',
     requestDetails: isRtl ? 'تفاصيل الطلب' : 'Request Details',
@@ -125,6 +126,24 @@ export default function MediationRequestsPage() {
   // Worker display: either a specific worker (name/passport/photo) or the
   // "any matching worker" label. Requirement edits.md §3.7.
   const renderWorkerSummary = (r: RecruitmentRequestItem) => {
+    // hasSpecificWorker covers two distinct cases: a real booked worker, and
+    // a passport-only worker not yet in the system (BACKEND_REVIEW_README.md
+    // #5/#9) — the latter has no workerId/workerName, only the pending
+    // passport, and must not render as a nameless "booked" row.
+    if (r.hasSpecificWorker && !r.workerId && !r.workerName && r.pendingWorkerPassportNumber) {
+      return (
+        <div className={styles.customerSection}>
+          <Avatar size={44} icon={<IdcardOutlined />} className={styles.customerAvatar} />
+          <div className={styles.customerDetails}>
+            <span className={styles.customerName}>{t.pendingWorker}</span>
+            <div className={styles.customerMeta}>
+              <IdcardOutlined />
+              <span dir="ltr">{r.pendingWorkerPassportNumber}</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
     if (r.hasSpecificWorker) {
       return (
         <div className={styles.customerSection}>

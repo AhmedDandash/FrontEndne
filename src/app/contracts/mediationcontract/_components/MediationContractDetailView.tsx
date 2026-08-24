@@ -140,6 +140,14 @@ export default function MediationContractDetailView({
                 <Descriptions.Item label={language === 'ar' ? 'نوع العامل' : 'Worker Type'}>
                   {contract.workerTypeName || '-'}
                 </Descriptions.Item>
+                {!(contract.hasAssignedWorker ?? !!contract.workerId) && contract.pendingWorkerPassportNumber && (
+                  <Descriptions.Item
+                    label={language === 'ar' ? 'جواز عامل غير مسجّل' : 'Pending Passport (Not Yet in System)'}
+                    span={2}
+                  >
+                    <Tag color="gold">{contract.pendingWorkerPassportNumber}</Tag>
+                  </Descriptions.Item>
+                )}
               </Descriptions>
 
               <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>

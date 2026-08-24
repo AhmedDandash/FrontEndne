@@ -18,6 +18,7 @@ import type {
   UpdateContractStatusDto,
   EndWorkerServiceDto,
   AssignWorkerDto,
+  SetPendingWorkerPassportDto,
   CreateMediationContractPaymentDto,
 } from '@/types/api.types';
 
@@ -286,6 +287,20 @@ export function useMediationContracts(params?: MediationContractListParams) {
     },
   });
 
+  const setPendingWorkerPassportMutation = useMutation({
+    mutationFn: (data: SetPendingWorkerPassportDto) =>
+      MediationContractService.setPendingWorkerPassport(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      message.success('تم حفظ رقم جواز العامل / Worker passport saved');
+    },
+    onError: (error: any) => {
+      message.error(
+        getApiErrorMessage(error, 'فشل حفظ رقم جواز العامل / Failed to save worker passport')
+      );
+    },
+  });
+
   return {
     contracts,
     total,
@@ -301,6 +316,7 @@ export function useMediationContracts(params?: MediationContractListParams) {
     updateContractStatus: updateStatusMutation.mutateAsync,
     endWorkerService: endWorkerServiceMutation.mutateAsync,
     assignWorker: assignWorkerMutation.mutateAsync,
+    setPendingWorkerPassport: setPendingWorkerPassportMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isCancelling: cancelMutation.isPending,
     isSigning: signMutation.isPending,
@@ -310,6 +326,7 @@ export function useMediationContracts(params?: MediationContractListParams) {
     isUpdatingStatus: updateStatusMutation.isPending,
     isEndingWorkerService: endWorkerServiceMutation.isPending,
     isAssigningWorker: assignWorkerMutation.isPending,
+    isSettingPendingWorkerPassport: setPendingWorkerPassportMutation.isPending,
   };
 }
 

@@ -47,6 +47,7 @@ import {
   MoreOutlined,
   UserDeleteOutlined,
   UserAddOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons';
 
 import { useAuthStore } from '@/store/authStore';
@@ -151,6 +152,13 @@ export default function MediationContractsPage() {
     undefined,
     undefined,
   ]);
+  // Distinct from invoicePaymentDateRange (Musaned invoice payment date) —
+  // BACKEND_REVIEW_README.md #7 lists PaymentDateFrom/PaymentDateTo as a
+  // separate filter on the contract's own payment record dates.
+  const [paymentDateRange, setPaymentDateRange] = useState<[string | undefined, string | undefined]>([
+    undefined,
+    undefined,
+  ]);
   const [visaDateRange, setVisaDateRange] = useState<[string | undefined, string | undefined]>([
     undefined,
     undefined,
@@ -178,6 +186,7 @@ export default function MediationContractsPage() {
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
   const [showEndServiceModal, setShowEndServiceModal] = useState(false);
   const [showAssignWorkerModal, setShowAssignWorkerModal] = useState(false);
+  const [showPendingPassportModal, setShowPendingPassportModal] = useState(false);
 
   // Advanced filters (ErpImprovementsJul2026)
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
@@ -218,6 +227,7 @@ export default function MediationContractsPage() {
     (arrivalDateRange[0] || arrivalDateRange[1] ? 1 : 0) +
     (paymentFilter !== 'all' ? 1 : 0) +
     (invoicePaymentDateRange[0] || invoicePaymentDateRange[1] ? 1 : 0) +
+    (paymentDateRange[0] || paymentDateRange[1] ? 1 : 0) +
     (agentFilter !== 'all' ? 1 : 0) +
     (marketerFilter !== 'all' ? 1 : 0) +
     (visaDateRange[0] || visaDateRange[1] ? 1 : 0);
@@ -257,6 +267,7 @@ export default function MediationContractsPage() {
     setArrivalDateRange([undefined, undefined]);
     setPaymentFilter('all');
     setInvoicePaymentDateRange([undefined, undefined]);
+    setPaymentDateRange([undefined, undefined]);
     setAgentFilter('all');
     setMarketerFilter('all');
     setVisaDateRange([undefined, undefined]);
@@ -283,6 +294,7 @@ export default function MediationContractsPage() {
   const [complaintForm] = Form.useForm();
   const [endServiceForm] = Form.useForm();
   const [assignWorkerForm] = Form.useForm();
+  const [pendingPassportForm] = Form.useForm();
 
   // API hooks
   const {
@@ -298,6 +310,7 @@ export default function MediationContractsPage() {
     updateContractStatus,
     endWorkerService,
     assignWorker,
+    setPendingWorkerPassport,
     isCancelling,
     isSigning,
     isGeneratingDelivery,
@@ -306,6 +319,7 @@ export default function MediationContractsPage() {
     isUpdatingStatus,
     isEndingWorkerService,
     isAssigningWorker,
+    isSettingPendingWorkerPassport,
   } = useMediationContracts({
     pageNumber: currentPage,
     pageSize,
@@ -354,6 +368,8 @@ export default function MediationContractsPage() {
     isVip: vipFilter === 'all' ? undefined : vipFilter === 'true',
     invoicePaymentDateFrom: invoicePaymentDateRange[0],
     invoicePaymentDateTo: invoicePaymentDateRange[1],
+    paymentDateFrom: paymentDateRange[0],
+    paymentDateTo: paymentDateRange[1],
     visaDateFrom: visaDateRange[0],
     visaDateTo: visaDateRange[1],
     hasContractInsurance:
@@ -457,6 +473,12 @@ export default function MediationContractsPage() {
     endServiceReason: language === 'ar' ? 'سبب الإنهاء (اختياري)' : 'End Reason (optional)',
     selectWorkerPassport:
       language === 'ar' ? 'ابحث عن عامل برقم الجواز' : 'Search worker by passport',
+    setPendingPassport: language === 'ar' ? 'تسجيل جواز عامل غير مسجّل' : 'Set Pending Worker Passport',
+    pendingPassportHint:
+      language === 'ar'
+        ? 'للعامل غير المسجّل في النظام بعد — يُحفظ رقم الجواز ريثما يُضاف كعامل فعلي.'
+        : 'For a worker not yet in the system — the passport is saved until a real worker is added.',
+    pendingPassportNumberLabel: language === 'ar' ? 'رقم الجواز' : 'Passport Number',
     paymentStatus: language === 'ar' ? 'حالة السداد' : 'Payment Status',
     paid: language === 'ar' ? 'مدفوع' : 'Paid',
     unpaid: language === 'ar' ? 'غير مدفوع' : 'Unpaid',
@@ -713,6 +735,25 @@ export default function MediationContractsPage() {
     }
   };
 
+  // Record a passport number for a worker not yet in the system
+  // (BACKEND_REVIEW_README.md #5 — set-pending-worker-passport).
+  const handleSetPendingWorkerPassport = async () => {
+    if (!selectedContract?.id) return;
+    if (!canUpdateContract) return;
+    try {
+      const values = await pendingPassportForm.validateFields();
+      await setPendingWorkerPassport({
+        contractId: selectedContract.id,
+        workerPassportNumber: values.workerPassportNumber,
+      });
+      setShowPendingPassportModal(false);
+      pendingPassportForm.resetFields();
+      setSelectedContract(null);
+    } catch {
+      // validation + API errors surfaced by the mutation
+    }
+  };
+
   // Render a contract card
   const renderContractCard = (contract: MediationContract) => {
     const statusConfig = contract.statusName
@@ -808,8 +849,13 @@ export default function MediationContractsPage() {
         { type: 'divider' as const }
       );
       if (canUpdateContract) {
-        moreItems.push(
-          {
+        // BACKEND_REVIEW_README.md #4: hide "assign" once a worker is
+        // assigned (only "end service" applies then); show "assign" again
+        // once the contract has no worker. Fall back to workerId presence
+        // if hasAssignedWorker is ever missing from a list row.
+        const hasWorkerAssigned = contract.hasAssignedWorker ?? !!contract.workerId;
+        if (hasWorkerAssigned) {
+          moreItems.push({
             key: 'end-worker-service',
             icon: <UserDeleteOutlined />,
             label: t.endWorkerService,
@@ -817,8 +863,9 @@ export default function MediationContractsPage() {
               endServiceForm.resetFields();
               setShowEndServiceModal(true);
             }),
-          },
-          {
+          });
+        } else {
+          moreItems.push({
             key: 'assign-worker',
             icon: <UserAddOutlined />,
             label: t.assignWorker,
@@ -827,8 +874,20 @@ export default function MediationContractsPage() {
               setAssignPassportSearch('');
               setShowAssignWorkerModal(true);
             }),
+          });
+          // #5: only offered while no pending passport is recorded yet.
+          if (!contract.pendingWorkerPassportNumber) {
+            moreItems.push({
+              key: 'set-pending-passport',
+              icon: <IdcardOutlined />,
+              label: t.setPendingPassport,
+              onClick: selectAnd(() => {
+                pendingPassportForm.resetFields();
+                setShowPendingPassportModal(true);
+              }),
+            });
           }
-        );
+        }
       }
       if (canDeleteContract) {
         moreItems.push(
@@ -1196,6 +1255,8 @@ export default function MediationContractsPage() {
               IsVip: vipFilter === 'all' ? undefined : vipFilter === 'true',
               InvoicePaymentDateFrom: invoicePaymentDateRange[0],
               InvoicePaymentDateTo: invoicePaymentDateRange[1],
+              PaymentDateFrom: paymentDateRange[0],
+              PaymentDateTo: paymentDateRange[1],
               VisaDateFrom: visaDateRange[0],
               VisaDateTo: visaDateRange[1],
               HasContractInsurance:
@@ -1653,6 +1714,15 @@ export default function MediationContractsPage() {
             <Col xs={24} md={12}>
               <label className={styles.filterLabel}>{t.paymentDateLabel}</label>
               <DateRangeFilter
+                value={paymentDateRange}
+                onChange={(range) => { setPaymentDateRange(range); setCurrentPage(1); }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <label className={styles.filterLabel}>{t.invoicePaymentDate}</label>
+              <DateRangeFilter
                 value={invoicePaymentDateRange}
                 onChange={(range) => { setInvoicePaymentDateRange(range); setCurrentPage(1); }}
                 style={{ width: '100%' }}
@@ -2065,6 +2135,37 @@ export default function MediationContractsPage() {
                   (w.passportNo ? ` — ${w.passportNo}` : ''),
               }))}
             />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ========== SET PENDING WORKER PASSPORT MODAL ========== */}
+      <Modal
+        title={
+          <span>
+            <IdcardOutlined style={{ marginInlineEnd: 8 }} />
+            {t.setPendingPassport}
+            {selectedContract && ` — #${selectedContract.contractNumber ?? selectedContract.id}`}
+          </span>
+        }
+        open={showPendingPassportModal && canUpdateContract}
+        onCancel={() => {
+          setShowPendingPassportModal(false);
+          pendingPassportForm.resetFields();
+        }}
+        onOk={canUpdateContract ? handleSetPendingWorkerPassport : undefined}
+        okText={t.save}
+        cancelText={t.cancel}
+        confirmLoading={isSettingPendingWorkerPassport}
+      >
+        <p style={{ color: '#8c8c8c', marginBottom: 16 }}>{t.pendingPassportHint}</p>
+        <Form form={pendingPassportForm} layout="vertical">
+          <Form.Item
+            name="workerPassportNumber"
+            label={t.pendingPassportNumberLabel}
+            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
+          >
+            <Input placeholder={t.pendingPassportNumberLabel} />
           </Form.Item>
         </Form>
       </Modal>

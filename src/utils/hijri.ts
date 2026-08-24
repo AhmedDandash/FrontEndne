@@ -80,6 +80,20 @@ export function toHijriParts(date: Date): HijriParts | null {
   return { year, month, day };
 }
 
+/**
+ * Machine-readable Hijri date string `"YYYY/MM/DD"` (zero-padded) for API
+ * payloads that store the Hijri value verbatim alongside the Gregorian one
+ * (e.g. `Customer.birthDateHijri`). Null when Umm al-Qura support or the
+ * input date is unavailable — callers should omit the field in that case.
+ */
+export function toHijriIsoString(date: Date): string | null {
+  const parts = toHijriParts(date);
+  if (!parts) return null;
+  const mm = String(parts.month).padStart(2, '0');
+  const dd = String(parts.day).padStart(2, '0');
+  return `${parts.year}/${mm}/${dd}`;
+}
+
 /** e.g. "١٢ جمادى الأولى ١٤٤٦ هـ" (ar) / "12 Jumada al-Awwal 1446 AH" (en). Falls back to a Gregorian string if unsupported. */
 export function formatHijri(date: Date, lang: 'ar' | 'en'): string {
   const parts = toHijriParts(date);

@@ -9,6 +9,9 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  /* Safety net: a wrapped/overflowing child (e.g. a long user name — see
+     .userName below) must never bleed into the page under the sticky bar. */
+  overflow: hidden;
 }
 
 .headerLeft {
@@ -40,6 +43,10 @@
   gap: 16px;
   flex: 1;
   justify-content: flex-end;
+  /* flex items default to min-width:auto, which stops them shrinking below
+     their content size and blocks text-overflow:ellipsis further down the
+     tree. Without this a long .userName wraps instead of truncating. */
+  min-width: 0;
 }
 
 .toggleBtn {
@@ -63,12 +70,22 @@
 .langSwitcher {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .langBtn {
   height: 40px;
   border-radius: 8px;
   font-weight: 500;
+  /* BranchSwitcher reuses this class for a button whose label can be long
+     (.branchLabel caps it at 140px, but that's a ceiling, not a floor). The
+     plain language-toggle button ("EN"/"عربي") that also uses this class is
+     unaffected — its wrapper (.langSwitcher) already has flex-shrink:0, so
+     it never actually gets squeezed by this. Without this, the *button's*
+     own automatic min-width (not just its label span's) stays content-sized
+     and flexbox refuses to shrink it below ~212px, overflowing past
+     .headerRight's box into the logo zone under real-world crowding. */
+  min-width: 0;
 }
 
 .iconBtn {
@@ -97,6 +114,13 @@
   padding: 8px 12px;
   border-radius: 8px;
   transition: all 0.3s ease;
+  min-width: 0;
+  /* Priority: under real-world crowding (long branch name + narrow header —
+     see .branchLabel/.desktopOnly.branchLabel) the user's identity should be
+     the last thing to give up space. Hold userInfo at its own natural size
+     (bounded by .userName's own max-width) and let the branch button, which
+     already has its own ellipsis cap, absorb the shrink instead. */
+  flex-shrink: 0;
 }
 
 .userInfo:hover {
@@ -105,11 +129,44 @@
 
 .avatar {
   background-color: var(--primary-blue, #00478c);
+  flex-shrink: 0;
 }
 
 .userName {
   font-weight: 500;
   color: var(--gray-900, #111827);
+  /* antd's Layout.Header sets line-height:64px, which inherits here and
+     turns a wrapped two-line name into a ~128px-tall text block inside the
+     72px header — the reported bug (the second word visually escaping the
+     header). Reset it, then force single-line + ellipsis truncation below.
+     Combined with .userName.desktopOnly for specificity over .desktopOnly's
+     `display: inline-flex` (ellipsis requires a block-level box). */
+  line-height: 1.4;
+}
+
+.userName.desktopOnly {
+  display: block;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* BranchSwitcher reuses .langBtn/.desktopOnly (see BranchSwitcher.tsx) and its
+   label has no natural length cap — a long branch name (real accounts observed
+   with a 25-char branch name at ~218px) otherwise consumes nearly all of
+   .headerRight's available width and squeezes .userName down to 0, hiding the
+   name entirely once it can no longer wrap out of the header.
+   Compound selector (0,2,0), same reasoning as .userName.desktopOnly above:
+   beats plain .desktopOnly's `display: inline-flex` (text-overflow is a
+   no-op on a flex container) regardless of source order. */
+.desktopOnly.branchLabel {
+  display: inline-block;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .userNameSkeleton {
@@ -120,6 +177,7 @@
   animation: shimmer 1.2s infinite;
   border-radius: 4px;
   display: inline-block;
+  flex-shrink: 0;
 }
 
 @keyframes shimmer {
@@ -186,6 +244,17 @@
   }
 
   .desktopOnly {
+    display: none;
+  }
+
+  /* .userName.desktopOnly's (0,2,0) specificity beats the plain rule above
+     (0,1,0); a media query adds no specificity of its own, so it must be
+     restated here or the name reappears below 768px. */
+  .userName.desktopOnly {
+    display: none;
+  }
+
+  .desktopOnly.branchLabel {
     display: none;
   }
 

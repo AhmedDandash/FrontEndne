@@ -12,6 +12,7 @@ import type {
   UpdateContractStatusDto,
   EndWorkerServiceDto,
   AssignWorkerDto,
+  SetPendingWorkerPassportDto,
   RecruitmentRequestItem,
   CreateMediationContractPaymentDto,
   RecordMediationPaymentResult,
@@ -366,6 +367,19 @@ export class MediationContractService {
     const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.ASSIGN_WORKER, {
       contractId: data.contractId,
       workerId: data.workerId,
+      workerPassportNumber: data.workerPassportNumber,
+    });
+    return this.unwrap<any>(response.data);
+  }
+
+  /**
+   * POST /api/Mediation/MediationContract/set-pending-worker-passport
+   * For a worker not yet in the system. Fails if the contract already has an
+   * assigned worker or the passport already exists as a real Worker.
+   */
+  static async setPendingWorkerPassport(data: SetPendingWorkerPassportDto): Promise<any> {
+    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.SET_PENDING_WORKER_PASSPORT, {
+      contractId: data.contractId,
       workerPassportNumber: data.workerPassportNumber,
     });
     return this.unwrap<any>(response.data);

@@ -65,6 +65,11 @@ export default function AddMediationContractPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
   const [hasInsurance, setHasInsurance] = useState(false);
+  // Worker step: whether the worker is a real, already-registered Worker
+  // (search + select by passport) or not yet in the system (BACKEND_REVIEW_README.md
+  // #1/#5 — create is allowed with only a passport number, saved server-side as
+  // pendingWorkerPassportNumber once no workerId is sent).
+  const [workerInSystem, setWorkerInSystem] = useState(true);
   const [selectedOffer, setSelectedOffer] = useState<MediationContractOffer | null>(null);
   const [attachmentFiles, setAttachmentFiles] = useState<UploadFile[]>([]);
 
@@ -143,6 +148,11 @@ export default function AddMediationContractPage() {
     workerPassportNote: isRtl
       ? 'يتم ملؤه تلقائياً عند اختيار العامل'
       : 'Auto-filled when a worker is selected',
+    workerInSystemToggle: isRtl ? 'العامل مسجّل في النظام' : 'Worker is registered in the system',
+    workerNotInSystemHint: isRtl
+      ? 'العامل غير مسجّل بعد — يمكنك إدخال رقم الجواز فقط، أو ترك العقد بدون عامل وإسناد واحد لاحقاً.'
+      : 'Worker is not registered yet — you may enter just the passport number, or leave the contract without a worker and assign one later.',
+    workerPassportManualPlaceholder: isRtl ? 'أدخل رقم الجواز (اختياري)' : 'Enter passport number (optional)',
     workerNomination: isRtl ? 'نوع الترشيح' : 'Worker Nomination',
     offerSelection: isRtl ? 'اختر العرض' : 'Select Offer',
     offer: isRtl ? 'العرض' : 'Offer',
@@ -359,57 +369,79 @@ export default function AddMediationContractPage() {
   const renderStep2 = () => (
     <>
       <Row gutter={[24, 0]}>
-        {/* Worker selection — required per PDF spec */}
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="workerId"
-            label={t.worker}
-            rules={[{ required: true, message: t.required }]}
-          >
-            <Select
-              showSearch
-              loading={isLoadingWorkers}
-              placeholder={isRtl ? 'ابحث برقم الجواز' : 'Search by passport number'}
-              size="large"
-              // Passport search is server-side (available workers only); disable
-              // the built-in client filter so results aren't hidden.
-              filterOption={false}
-              onSearch={setPassportSearch}
-              searchValue={passportSearch}
-              notFoundContent={
-                isLoadingWorkers ? (
-                  <span>{isRtl ? 'جارٍ البحث...' : 'Searching...'}</span>
-                ) : debouncedPassport ? (
-                  <span>{isRtl ? 'لا يوجد عامل متاح مطابق' : 'No matching available worker'}</span>
-                ) : (
-                  <span>{isRtl ? 'اكتب رقم الجواز للبحث' : 'Type a passport number to search'}</span>
-                )
-              }
-              onChange={(workerId) => {
-                const selected = (workers as Worker[]).find((w) => String(w.id) === String(workerId));
-                form.setFieldsValue({ workerPassportNumber: selected?.passportNo ?? '' });
+        <Col xs={24}>
+          <Form.Item label={t.workerInSystemToggle} style={{ marginBottom: 8 }}>
+            <Switch
+              checked={workerInSystem}
+              onChange={(checked) => {
+                setWorkerInSystem(checked);
+                // Clear the worker-select value when switching modes so a
+                // stale workerId never rides along with a manual passport,
+                // and vice versa.
+                form.setFieldsValue({ workerId: undefined, workerPassportNumber: undefined });
               }}
-            >
-              {(workers as Worker[]).map((w) => (
-                <Option key={w.id} value={w.id}>
-                  {(isRtl ? w.fullNameAr : w.fullNameEn || w.fullNameAr) || `#${w.id}`}
-                  {w.passportNo ? ` — ${w.passportNo}` : ''}
-                </Option>
-              ))}
-            </Select>
+              checkedChildren={isRtl ? 'نعم' : 'Yes'}
+              unCheckedChildren={isRtl ? 'لا' : 'No'}
+            />
           </Form.Item>
         </Col>
+        {!workerInSystem && (
+          <Col xs={24}>
+            <Alert type="info" showIcon message={t.workerNotInSystemHint} style={{ marginBottom: 16 }} />
+          </Col>
+        )}
+
+        {/* Worker selection — optional (BACKEND_REVIEW_README.md #1: create
+            without a worker is allowed; assign one later). */}
+        {workerInSystem ? (
+          <Col xs={24} md={12}>
+            <Form.Item name="workerId" label={t.worker}>
+              <Select
+                showSearch
+                allowClear
+                loading={isLoadingWorkers}
+                placeholder={isRtl ? 'ابحث برقم الجواز' : 'Search by passport number'}
+                size="large"
+                // Passport search is server-side (available workers only); disable
+                // the built-in client filter so results aren't hidden.
+                filterOption={false}
+                onSearch={setPassportSearch}
+                searchValue={passportSearch}
+                notFoundContent={
+                  isLoadingWorkers ? (
+                    <span>{isRtl ? 'جارٍ البحث...' : 'Searching...'}</span>
+                  ) : debouncedPassport ? (
+                    <span>{isRtl ? 'لا يوجد عامل متاح مطابق' : 'No matching available worker'}</span>
+                  ) : (
+                    <span>{isRtl ? 'اكتب رقم الجواز للبحث' : 'Type a passport number to search'}</span>
+                  )
+                }
+                onChange={(workerId) => {
+                  const selected = (workers as Worker[]).find((w) => String(w.id) === String(workerId));
+                  form.setFieldsValue({ workerPassportNumber: selected?.passportNo ?? '' });
+                }}
+              >
+                {(workers as Worker[]).map((w) => (
+                  <Option key={w.id} value={w.id}>
+                    {(isRtl ? w.fullNameAr : w.fullNameEn || w.fullNameAr) || `#${w.id}`}
+                    {w.passportNo ? ` — ${w.passportNo}` : ''}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+        ) : null}
         <Col xs={24} md={12}>
           <Form.Item
             name="workerPassportNumber"
             label={t.workerPassportNumber}
-            extra={t.workerPassportNote}
+            extra={workerInSystem ? t.workerPassportNote : undefined}
           >
             <Input
               size="large"
-              readOnly
-              style={{ background: '#f5f5f5', cursor: 'default' }}
-              placeholder={isRtl ? 'يُملأ تلقائياً' : 'Auto-filled'}
+              readOnly={workerInSystem}
+              style={workerInSystem ? { background: '#f5f5f5', cursor: 'default' } : undefined}
+              placeholder={workerInSystem ? (isRtl ? 'يُملأ تلقائياً' : 'Auto-filled') : t.workerPassportManualPlaceholder}
             />
           </Form.Item>
         </Col>

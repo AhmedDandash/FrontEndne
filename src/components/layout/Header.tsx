@@ -30,11 +30,18 @@ export default function Header({ collapsed, onToggleSidebar, onToggleMobileDrawe
   const router = useRouter();
   const language = useAuthStore((state) => state.language);
   const setLanguage = useAuthStore((state) => state.setLanguage);
-  const { logout } = useAuth();
+  const { logout, me, isMeLoading } = useAuth();
 
+  // Cached name (localStorage-backed via authStore) — used as an instant
+  // paint on reload before /me resolves. The live /me response is preferred
+  // once available so the name updates immediately after login without
+  // needing a page refresh (see usePagePermissions.useCurrentRoles, which
+  // keeps this store field in sync going forward).
   const storedUsername = useAuthStore((state) => state.username);
-
-  const displayName = storedUsername || (language === 'ar' ? 'المستخدم' : 'User');
+  const liveName = me?.fullName?.trim() || me?.username?.trim() || null;
+  const resolvedName = liveName || storedUsername;
+  const showNameSkeleton = !resolvedName && isMeLoading;
+  const displayName = resolvedName || (language === 'ar' ? 'المستخدم' : 'User');
 
   const handleLanguageChange = (lang: 'ar' | 'en') => {
     setLanguage(lang);
@@ -137,7 +144,11 @@ export default function Header({ collapsed, onToggleSidebar, onToggleMobileDrawe
         >
           <div className={styles.userInfo}>
             <Avatar icon={<UserOutlined />} className={styles.avatar} />
-            <span className={`${styles.userName} ${styles.desktopOnly}`}>{displayName}</span>
+            {showNameSkeleton ? (
+              <span className={`${styles.userNameSkeleton} ${styles.desktopOnly}`} />
+            ) : (
+              <span className={`${styles.userName} ${styles.desktopOnly}`}>{displayName}</span>
+            )}
           </div>
         </Dropdown>
       </div>

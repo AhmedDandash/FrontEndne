@@ -209,6 +209,8 @@ export const API_ENDPOINTS = {
     END_WORKER_SERVICE: '/api/Mediation/MediationContract/end-worker-service',
     // POST { contractId, workerId, workerPassportNumber } — assigns a new worker
     ASSIGN_WORKER: '/api/Mediation/MediationContract/assign-worker',
+    // POST { contractId, workerPassportNumber } — worker not yet in the system
+    SET_PENDING_WORKER_PASSPORT: '/api/Mediation/MediationContract/set-pending-worker-passport',
     CONTRACT_CANCEL: '/api/Mediation/MediationContract/cancel',
     // POST { contractId, amount, ... } — records a customer payment against the contract
     CUSTOMER_PAYMENT: '/api/Mediation/MediationContract/customer-payment',
