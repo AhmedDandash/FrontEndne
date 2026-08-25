@@ -826,7 +826,7 @@ export default function AddMediationContractPage() {
 
       {/* Step Form Content */}
       <Card className={styles.formCard}>
-        <Form form={form} layout="vertical" requiredMark initialValues={{ totalCost: 0 }}>
+        <Form form={form} layout="vertical" requiredMark initialValues={{ contractType: 1, totalCost: 0 }}>
           {stepContent[currentStep]?.()}
         </Form>
 

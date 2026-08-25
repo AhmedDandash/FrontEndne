@@ -111,7 +111,8 @@ export function toReceiptSections(
           value: formatOperationDuration(
             c.duration,
             isRtl ? 'ar' : 'en',
-            (isRtl ? c.durationNameAr : c.durationNameEn) || null
+            (isRtl ? c.durationNameAr : c.durationNameEn) || null,
+            { preferEnum: true }
           ),
         },
         { label: isRtl ? 'تاريخ البداية' : 'Start Date', value: formatValue(c.contractStartDate) },

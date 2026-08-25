@@ -78,7 +78,7 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
     edit: isRtl ? 'تعديل' : 'Edit',
     delete: isRtl ? 'حذف' : 'Delete',
     printReceipt: isRtl ? 'طباعة الإيصال' : 'Print Receipt',
-    deliveryForm: isRtl ? 'نموذج تسليم العامل' : 'Worker Delivery Form',
+    deliveryForm: isRtl ? 'نموذج تسليم العميل للعاملة' : 'Customer Worker Handover Form',
     handoverReceipt: isRtl ? 'إيصال استلام موقّع' : 'Signed Handover Receipt',
     signContract: isRtl ? 'توقيع العقد' : 'Sign Contract',
     startExecution: isRtl ? 'بدء التنفيذ' : 'Start Execution',
@@ -214,6 +214,11 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
             <Button icon={<PrinterOutlined />} size="small" onClick={() => actions.onPrint(contract)}>
               {t.printReceipt}
             </Button>
+            {actions.onDeliveryForm && (
+              <Button icon={<SolutionOutlined />} size="small" onClick={() => actions.onDeliveryForm?.(contract)}>
+                {t.deliveryForm}
+              </Button>
+            )}
             {actions.onEdit && (
               <Button icon={<EditOutlined />} size="small" onClick={() => actions.onEdit?.(contract)}>
                 {t.edit}
@@ -232,6 +237,11 @@ export default function ContractCard({ contract, isRtl, loading, actions }: Prop
             <Button icon={<FileDoneOutlined />} size="small" onClick={() => actions.onReceipts(contract)}>
               {t.receipts}
             </Button>
+            {actions.onDeliveryForm && (
+              <Button icon={<SolutionOutlined />} size="small" onClick={() => actions.onDeliveryForm?.(contract)}>
+                {t.deliveryForm}
+              </Button>
+            )}
             {actions.onTerminate && (
               <Button danger icon={<StopOutlined />} size="small" onClick={() => actions.onTerminate?.(contract)} loading={loading.isTerminating}>
                 {t.terminateContract}

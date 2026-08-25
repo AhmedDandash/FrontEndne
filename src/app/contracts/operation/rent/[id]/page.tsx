@@ -6,18 +6,23 @@
  * same `RentContractDetailView` the list page's card modal used to show.
  */
 import React, { useMemo, useState } from 'react';
-import { Badge, Button } from 'antd';
-import { SafetyCertificateOutlined } from '@ant-design/icons';
+import { Badge, Button, Space } from 'antd';
+import { SafetyCertificateOutlined, SolutionOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
-import { useEmploymentOperatingContract } from '@/hooks/api/useEmploymentOperatingContracts';
+import {
+  useEmploymentOperatingContract,
+  useOperatingContractDeliveryFormActions,
+} from '@/hooks/api/useEmploymentOperatingContracts';
 import { useNationalities } from '@/hooks/api/useNationalities';
 import { useJobs } from '@/hooks/api/useJobs';
 import { useCustomers } from '@/hooks/api/useCustomers';
 import RecordDetailShell from '@/components/record-detail/RecordDetailShell';
 import RentContractDetailView from '../_components/RentContractDetailView';
 import WorkerDeliveryRecordModal from '../_components/WorkerDeliveryRecordModal';
+import DeliveryFormModal from '../_components/DeliveryFormModal';
 import { useContractActionGates } from '@/hooks/useActionPermissionGates';
 import { buildNationalityResolver, buildJobResolver, buildCustomerResolver, mapContract, getStatusMeta } from '../_components/mapping';
+import type { OperatingContractDeliveryFormDto, SaveDeliveryFormDto } from '@/types/api.types';
 
 const LIST_ROUTE = '/contracts/operation/rent';
 
@@ -36,6 +41,14 @@ export default function RentContractDetailPage({ params }: { params: { id: strin
   const { data: nationalities = [] } = useNationalities();
   const { customers = [] } = useCustomers();
   const [handoverOpen, setHandoverOpen] = useState(false);
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [deliveryData, setDeliveryData] = useState<OperatingContractDeliveryFormDto | null>(null);
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
+  const {
+    printDeliveryForm,
+    saveDeliveryForm,
+    isSavingDeliveryForm,
+  } = useOperatingContractDeliveryFormActions();
 
   const contract = useMemo(() => {
     if (!rawContract) return null;
@@ -48,6 +61,7 @@ export default function RentContractDetailPage({ params }: { params: { id: strin
   const t = {
     contracts: isRtl ? 'عقود العاملات المقيمة' : 'Operation Contracts',
     handoverReceipt: isRtl ? 'إيصال استلام موقّع' : 'Signed Handover Receipt',
+    deliveryForm: isRtl ? 'نموذج تسليم العميل للعاملة' : 'Customer Worker Handover Form',
   };
 
   const notFound = isError && isNotFoundError(error);
@@ -58,6 +72,28 @@ export default function RentContractDetailPage({ params }: { params: { id: strin
     contractGates.canUpdate &&
     !!contract?.workerId &&
     (contract?.contractStatus === 2 || contract?.contractStatus === 3);
+  const canPrintDeliveryForm = contractGates.canUpdate && !!contract && contract.contractStatus !== 1;
+
+  const handleOpenDeliveryForm = async () => {
+    if (!contract || !canPrintDeliveryForm) return;
+    setDeliveryData(null);
+    setDeliveryLoading(true);
+    setDeliveryOpen(true);
+    try {
+      const data = await printDeliveryForm(contract.id);
+      setDeliveryData(data);
+    } catch {
+      // hook surfaces the error toast; modal stays open with an empty state
+    } finally {
+      setDeliveryLoading(false);
+    }
+  };
+
+  const handleSaveDeliveryForm = async (data: SaveDeliveryFormDto) => {
+    if (!contract || !canPrintDeliveryForm) return;
+    const updated = await saveDeliveryForm({ id: contract.id, data });
+    setDeliveryData((prev) => ({ ...(prev ?? {}), ...(updated ?? {}) }));
+  };
 
   return (
     <>
@@ -81,15 +117,37 @@ export default function RentContractDetailPage({ params }: { params: { id: strin
           ) : undefined
         }
         actions={
-          contract && canCreateHandoverReceipt ? (
-            <Button icon={<SafetyCertificateOutlined />} onClick={() => setHandoverOpen(true)}>
-              {t.handoverReceipt}
-            </Button>
+          contract && (canPrintDeliveryForm || canCreateHandoverReceipt) ? (
+            <Space wrap>
+              {canPrintDeliveryForm && (
+                <Button icon={<SolutionOutlined />} onClick={handleOpenDeliveryForm}>
+                  {t.deliveryForm}
+                </Button>
+              )}
+              {canCreateHandoverReceipt && (
+                <Button icon={<SafetyCertificateOutlined />} onClick={() => setHandoverOpen(true)}>
+                  {t.handoverReceipt}
+                </Button>
+              )}
+            </Space>
           ) : undefined
         }
       >
         {contract && <RentContractDetailView contract={contract} isRtl={isRtl} />}
       </RecordDetailShell>
+
+      {contractGates.canUpdate && (
+        <DeliveryFormModal
+          open={deliveryOpen}
+          isRtl={isRtl}
+          data={deliveryData}
+          loading={deliveryLoading}
+          saving={isSavingDeliveryForm}
+          title={contract ? `#${contract.contractNumber}` : `#${id}`}
+          onClose={() => setDeliveryOpen(false)}
+          onSave={handleSaveDeliveryForm}
+        />
+      )}
 
       {contractGates.canUpdate && (
         <WorkerDeliveryRecordModal

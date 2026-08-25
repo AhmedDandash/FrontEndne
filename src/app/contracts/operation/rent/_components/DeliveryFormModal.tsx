@@ -109,7 +109,7 @@ export default function DeliveryFormModal({
       title={
         <span>
           <PrinterOutlined style={{ marginInlineEnd: 8 }} />
-          {isRtl ? 'نموذج تسليم العامل' : 'Worker Delivery Form'} — {title}
+          {isRtl ? 'نموذج تسليم العميل للعاملة' : 'Customer Worker Handover Form'} — {title}
         </span>
       }
       open={open}
@@ -206,10 +206,10 @@ export default function DeliveryFormModal({
             <Form.Item label={isRtl ? 'التوقيعات' : 'Signatures'} style={{ marginBottom: 0 }}>
               <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
                 <Checkbox checked={customerSigned} onChange={(e) => setCustomerSigned(e.target.checked)}>
-                  {isRtl ? 'وقّع العميل' : 'Customer signed'}
+                  {isRtl ? 'وقّع العميل بالاستلام' : 'Customer signed receipt'}
                 </Checkbox>
                 <Checkbox checked={workerSigned} onChange={(e) => setWorkerSigned(e.target.checked)}>
-                  {isRtl ? 'وقّع العامل' : 'Worker signed'}
+                  {isRtl ? 'وقّعت العاملة' : 'Worker signed'}
                 </Checkbox>
                 <Checkbox checked={companySigned} onChange={(e) => setCompanySigned(e.target.checked)}>
                   {isRtl ? 'وقّع ممثل الشركة' : 'Company rep signed'}

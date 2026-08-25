@@ -15,14 +15,22 @@ import dayjs from 'dayjs';
 import { useAuthStore } from '@/store/authStore';
 import {
   useMediationContract,
+  useMediationContracts,
   useRecordMediationPayment,
 } from '@/hooks/api/useMediationContracts';
+import { useAvailableMediationWorkers } from '@/hooks/api/useWorkers';
 import RecordDetailShell from '@/components/record-detail/RecordDetailShell';
 import MediationContractDetailView from '../_components/MediationContractDetailView';
 import { getStatusConfigFromName } from '../_lib/format';
 import { MEDIATION_PAYMENT_METHOD, toSelectOptions } from '@/constants/enums';
-import type { CreateMediationContractPaymentDto } from '@/types/api.types';
-import { useAccountingActionGates } from '@/hooks/useActionPermissionGates';
+import type { CreateMediationContractPaymentDto, Worker } from '@/types/api.types';
+import { useAccountingActionGates, useContractActionGates } from '@/hooks/useActionPermissionGates';
+import {
+  ExclamationCircleOutlined,
+  IdcardOutlined,
+  UserAddOutlined,
+  UserDeleteOutlined,
+} from '@ant-design/icons';
 
 const LIST_ROUTE = '/contracts/mediationcontract';
 
@@ -35,12 +43,31 @@ export default function MediationContractDetailPage({ params }: { params: { id: 
   const language = useAuthStore((state) => state.language);
   const isRtl = language === 'ar';
   const accountingGates = useAccountingActionGates();
+  const contractGates = useContractActionGates();
 
   const { data: contract, isLoading, isError, error, refetch } = useMediationContract(id);
   const { recordPayment, isRecordingPayment } = useRecordMediationPayment();
+  const {
+    assignWorker,
+    endWorkerService,
+    isAssigningWorker,
+    isEndingWorkerService,
+  } = useMediationContracts({ enabled: false });
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showAssignWorkerModal, setShowAssignWorkerModal] = useState(false);
+  const [showEndServiceModal, setShowEndServiceModal] = useState(false);
+  const [assignPassportSearch, setAssignPassportSearch] = useState('');
+  const [assignPassportDebounced, setAssignPassportDebounced] = useState('');
   const [paymentForm] = Form.useForm();
+  const [assignWorkerForm] = Form.useForm();
+  const [endServiceForm] = Form.useForm();
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => setAssignPassportDebounced(assignPassportSearch.trim()), 400);
+    return () => clearTimeout(timeoutId);
+  }, [assignPassportSearch]);
+  const { data: assignWorkers = [], isLoading: isLoadingAssignWorkers } =
+    useAvailableMediationWorkers(assignPassportDebounced, showAssignWorkerModal);
 
   const t = {
     contracts: isRtl ? 'عقود الاستقدام' : 'Mediation Contracts',
@@ -51,6 +78,18 @@ export default function MediationContractDetailPage({ params }: { params: { id: 
     referenceNumber: isRtl ? 'رقم المرجع' : 'Reference #',
     bankFees: isRtl ? 'رسوم بنكية' : 'Bank Fees',
     notes: isRtl ? 'ملاحظات' : 'Notes',
+    assignWorker: isRtl ? 'إسناد عامل جديد' : 'Assign New Worker',
+    endWorkerService: isRtl ? 'إنهاء خدمة العامل' : 'End Worker Service',
+    selectWorkerPassport: isRtl ? 'ابحث عن عامل برقم الجواز' : 'Search worker by passport',
+    workerPassportNumber: isRtl ? 'رقم الجواز' : 'Passport Number',
+    endServiceReason: isRtl ? 'سبب الإنهاء (اختياري)' : 'End Reason (optional)',
+    assignWorkerHint: isRtl
+      ? 'ابحث برقم الجواز لاختيار عامل مسجّل. إذا لم يظهر عامل مطابق، يمكنك حفظ رقم الجواز كعامل غير مسجّل.'
+      : 'Search by passport to select a registered worker. If no match appears, save the passport as an external worker.',
+    externalWorkerConfirmTitle: isRtl ? 'تسجيل عامل غير مسجّل؟' : 'Save external worker?',
+    externalWorkerConfirmBody: isRtl
+      ? 'لم يتم اختيار عامل مسجّل. سيتم حفظ رقم الجواز فقط على العقد.'
+      : 'No registered worker was selected. The passport number will be saved on the contract only.',
     save: isRtl ? 'حفظ' : 'Save',
     cancel: isRtl ? 'إلغاء' : 'Cancel',
     required: isRtl ? 'مطلوب' : 'Required',
@@ -87,6 +126,55 @@ export default function MediationContractDetailPage({ params }: { params: { id: 
     }
   };
 
+  const handleAssignWorker = async () => {
+    if (!contractGates.canUpdate) return;
+    try {
+      const values = await assignWorkerForm.validateFields();
+      const passportNumber = String(values.workerPassportNumber || assignPassportSearch || '').trim();
+      const worker = (assignWorkers as Worker[]).find(
+        (w) => String(w.id) === String(values.workerId)
+      );
+      if (!values.workerId) {
+        const confirmed = await new Promise<boolean>((resolve) => {
+          Modal.confirm({
+            title: t.externalWorkerConfirmTitle,
+            content: t.externalWorkerConfirmBody,
+            icon: <ExclamationCircleOutlined />,
+            okText: t.save,
+            cancelText: t.cancel,
+            onOk: () => resolve(true),
+            onCancel: () => resolve(false),
+          });
+        });
+        if (!confirmed) return;
+      }
+      await assignWorker({
+        contractId: id,
+        workerId: values.workerId ? String(values.workerId) : null,
+        workerPassportNumber: worker?.passportNo ?? passportNumber,
+      });
+      setShowAssignWorkerModal(false);
+      assignWorkerForm.resetFields();
+      setAssignPassportSearch('');
+      refetch();
+    } catch {
+      // validation + API errors surfaced by the mutation/hook
+    }
+  };
+
+  const handleEndWorkerService = async () => {
+    if (!contractGates.canUpdate) return;
+    try {
+      const values = await endServiceForm.validateFields();
+      await endWorkerService({ contractId: id, reason: values.reason || null });
+      setShowEndServiceModal(false);
+      endServiceForm.resetFields();
+      refetch();
+    } catch {
+      // validation + API errors surfaced by the mutation/hook
+    }
+  };
+
   const canRecordPayment = !!contract && contract.paymentStatusCode !== 2 && accountingGates.canCreate;
 
   return (
@@ -118,7 +206,22 @@ export default function MediationContractDetailPage({ params }: { params: { id: 
           ) : undefined
         }
       >
-        {contract && <MediationContractDetailView contract={contract} language={language} />}
+        {contract && (
+          <MediationContractDetailView
+            contract={contract}
+            language={language}
+            canUpdateWorker={contractGates.canUpdate}
+            onAddWorker={() => {
+              assignWorkerForm.resetFields();
+              setAssignPassportSearch('');
+              setShowAssignWorkerModal(true);
+            }}
+            onEndWorkerService={() => {
+              endServiceForm.resetFields();
+              setShowEndServiceModal(true);
+            }}
+          />
+        )}
       </RecordDetailShell>
 
       {/* ========== RECORD PAYMENT MODAL ========== */}
@@ -163,6 +266,106 @@ export default function MediationContractDetailPage({ params }: { params: { id: 
           </Form.Item>
           <Form.Item name="notes" label={t.notes}>
             <Input.TextArea rows={3} maxLength={1000} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ========== ASSIGN WORKER MODAL ========== */}
+      <Modal
+        title={
+          <span>
+            <UserAddOutlined style={{ marginInlineEnd: 8 }} />
+            {t.assignWorker}
+          </span>
+        }
+        open={showAssignWorkerModal && contractGates.canUpdate}
+        onCancel={() => {
+          setShowAssignWorkerModal(false);
+          assignWorkerForm.resetFields();
+          setAssignPassportSearch('');
+        }}
+        onOk={contractGates.canUpdate ? handleAssignWorker : undefined}
+        okText={t.save}
+        cancelText={t.cancel}
+        confirmLoading={isAssigningWorker}
+      >
+        <p style={{ color: '#8c8c8c', marginBottom: 16 }}>{t.assignWorkerHint}</p>
+        <Form form={assignWorkerForm} layout="vertical">
+          <Form.Item name="workerId" label={t.assignWorker}>
+            <Select
+              showSearch
+              allowClear
+              loading={isLoadingAssignWorkers}
+              placeholder={t.selectWorkerPassport}
+              filterOption={false}
+              onSearch={setAssignPassportSearch}
+              searchValue={assignPassportSearch}
+              onChange={(workerId) => {
+                const worker = (assignWorkers as Worker[]).find(
+                  (w) => String(w.id) === String(workerId)
+                );
+                assignWorkerForm.setFieldValue('workerPassportNumber', worker?.passportNo ?? assignPassportSearch);
+              }}
+              notFoundContent={
+                isLoadingAssignWorkers
+                  ? (isRtl ? 'جارٍ البحث...' : 'Searching...')
+                  : assignPassportDebounced
+                  ? (isRtl ? 'لا يوجد عامل متاح مطابق' : 'No matching available worker')
+                  : (isRtl ? 'اكتب رقم الجواز للبحث' : 'Type a passport number to search')
+              }
+              options={(assignWorkers as Worker[]).map((w) => ({
+                value: String(w.id),
+                label:
+                  ((isRtl ? w.fullNameAr : w.fullNameEn || w.fullNameAr) || `#${w.id}`) +
+                  (w.passportNo ? ` — ${w.passportNo}` : ''),
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="workerPassportNumber"
+            label={t.workerPassportNumber}
+            rules={[
+              {
+                validator: (_, value) => {
+                  const workerId = assignWorkerForm.getFieldValue('workerId');
+                  const passport = String(value || assignPassportSearch || '').trim();
+                  if (workerId || passport) return Promise.resolve();
+                  return Promise.reject(new Error(t.required));
+                },
+              },
+            ]}
+          >
+            <Input
+              prefix={<IdcardOutlined />}
+              placeholder={t.workerPassportNumber}
+              onChange={(event) => setAssignPassportSearch(event.target.value)}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ========== END WORKER SERVICE MODAL ========== */}
+      <Modal
+        title={
+          <span>
+            <UserDeleteOutlined style={{ marginInlineEnd: 8 }} />
+            {t.endWorkerService}
+          </span>
+        }
+        open={showEndServiceModal && contractGates.canUpdate}
+        onCancel={() => {
+          setShowEndServiceModal(false);
+          endServiceForm.resetFields();
+        }}
+        onOk={contractGates.canUpdate ? handleEndWorkerService : undefined}
+        okText={t.save}
+        cancelText={t.cancel}
+        confirmLoading={isEndingWorkerService}
+        okButtonProps={{ danger: true }}
+      >
+        <Form form={endServiceForm} layout="vertical">
+          <Form.Item name="reason" label={t.endServiceReason}>
+            <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
       </Modal>

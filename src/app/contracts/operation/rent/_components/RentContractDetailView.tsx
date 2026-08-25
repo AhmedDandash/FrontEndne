@@ -40,7 +40,8 @@ export default function RentContractDetailView({ contract, isRtl }: RentContract
     formatOperationDuration(
       contract.duration,
       isRtl ? 'ar' : 'en',
-      (isRtl ? contract.durationNameAr : contract.durationNameEn) || null
+      (isRtl ? contract.durationNameAr : contract.durationNameEn) || null,
+      { preferEnum: true }
     );
 
   return (

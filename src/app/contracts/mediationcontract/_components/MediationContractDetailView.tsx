@@ -16,6 +16,8 @@ import {
   FilePdfOutlined,
   DownloadOutlined,
   PaperClipOutlined,
+  UserAddOutlined,
+  UserDeleteOutlined,
 } from '@ant-design/icons';
 import { resolveImageUrl } from '@/utils/image';
 import { ARRIVAL_DESTINATIONS, CANCEL_BY, getEnumLabel } from '@/constants/enums';
@@ -26,16 +28,29 @@ import styles from '../MediationContracts.module.css';
 export interface MediationContractDetailViewProps {
   contract: MediationContractDetail;
   language: Language;
+  canUpdateWorker?: boolean;
+  onAddWorker?: () => void;
+  onEndWorkerService?: () => void;
 }
 
 export default function MediationContractDetailView({
   contract,
   language,
+  canUpdateWorker = false,
+  onAddWorker,
+  onEndWorkerService,
 }: MediationContractDetailViewProps) {
   const fmtCurrency = (v: number | null | undefined) => formatCurrency(v, language);
   const fmtDate = (v: string | null | undefined) => formatDate(v, language);
   const statusConfig = (name: string | null | undefined) => getStatusConfigFromName(name, language);
+  const worker = contract.worker;
+  const hasRegisteredWorker = contract.hasAssignedWorker ?? !!contract.workerId;
+  const externalPassport =
+    worker?.isExternal || contract.pendingWorkerPassportNumber
+      ? worker?.passportNumber || contract.pendingWorkerPassportNumber || contract.workerPassportNumber
+      : null;
   const workerPhoto =
+    worker?.imageUrl ||
     contract.workerImageUrl ||
     contract.workerPhotoUrl ||
     (contract as any).worker?.workerImageUrl ||
@@ -129,10 +144,10 @@ export default function MediationContractDetailView({
               )}
               <Descriptions column={2} size="small" bordered>
                 <Descriptions.Item label={language === 'ar' ? 'اسم العامل' : 'Worker Name'}>
-                  {contract.workerName || '-'}
+                  {worker?.name || contract.workerName || '-'}
                 </Descriptions.Item>
                 <Descriptions.Item label={language === 'ar' ? 'رقم الجواز' : 'Passport'}>
-                  {contract.workerPassportNumber || '-'}
+                  {worker?.passportNumber || contract.workerPassportNumber || externalPassport || '-'}
                 </Descriptions.Item>
                 <Descriptions.Item label={language === 'ar' ? 'الجنسية' : 'Nationality'}>
                   {contract.workerNationalityAr || '-'}
@@ -140,15 +155,31 @@ export default function MediationContractDetailView({
                 <Descriptions.Item label={language === 'ar' ? 'نوع العامل' : 'Worker Type'}>
                   {contract.workerTypeName || '-'}
                 </Descriptions.Item>
-                {!(contract.hasAssignedWorker ?? !!contract.workerId) && contract.pendingWorkerPassportNumber && (
+                {!hasRegisteredWorker && externalPassport && (
                   <Descriptions.Item
                     label={language === 'ar' ? 'جواز عامل غير مسجّل' : 'Pending Passport (Not Yet in System)'}
                     span={2}
                   >
-                    <Tag color="gold">{contract.pendingWorkerPassportNumber}</Tag>
+                    <Tag color="gold">{externalPassport}</Tag>
+                    <Tag color="orange" style={{ marginInlineStart: 8 }}>
+                      {language === 'ar' ? 'عامل غير مسجّل' : 'External'}
+                    </Tag>
                   </Descriptions.Item>
                 )}
               </Descriptions>
+              {canUpdateWorker && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBlockStart: 12 }}>
+                  {hasRegisteredWorker || externalPassport ? (
+                    <Button danger icon={<UserDeleteOutlined />} onClick={onEndWorkerService}>
+                      {language === 'ar' ? 'إنهاء خدمة العامل' : 'End Worker Service'}
+                    </Button>
+                  ) : (
+                    <Button type="primary" icon={<UserAddOutlined />} onClick={onAddWorker}>
+                      {language === 'ar' ? 'إضافة عامل' : 'Add Worker'}
+                    </Button>
+                  )}
+                </div>
+              )}
 
               <Divider titlePlacement="left" style={{ fontSize: 13, color: '#8c8c8c', marginBlockStart: 20 }}>
                 {language === 'ar' ? 'بيانات العقد' : 'Contract'}

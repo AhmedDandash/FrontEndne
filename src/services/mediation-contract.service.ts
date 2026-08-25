@@ -242,8 +242,7 @@ export class MediationContractService {
     append('WorkerId', data.workerId);
     append('WorkerPassportNumber', data.workerPassportNumber);
     append('OfferId', data.offerId);
-    append('ContractType', data.contractType != null ? Number(data.contractType) : 0);
-    if (data.contractCategory != null) append('ContractCategory', Number(data.contractCategory));
+    append('ContractType', data.contractType != null ? Number(data.contractType) : 1);
     if (data.marketerId) append('MarketerId', data.marketerId);
     if (data.visaNumber) append('VisaNumber', data.visaNumber);
     if (data.visaDate) append('VisaDate', data.visaDate);
@@ -258,8 +257,6 @@ export class MediationContractService {
     if (data.costDescription) append('CostDescription', data.costDescription);
     form.append('HasContractInsurance', String(data.hasContractInsurance ?? false));
     if (data.domesticWorkerInsurance != null) append('DomesticWorkerInsurance', Number(data.domesticWorkerInsurance));
-    if (data.musanedContractNumber) append('MusanedContractNumber', data.musanedContractNumber);
-    if (data.musanedDocumentationNumber) append('MusanedDocumentationNumber', data.musanedDocumentationNumber);
 
     if (data.attachments?.length) {
       data.attachments.forEach((file) => form.append('Attachments', file));
@@ -364,11 +361,12 @@ export class MediationContractService {
 
   /** POST /api/Mediation/MediationContract/assign-worker */
   static async assignWorker(data: AssignWorkerDto): Promise<any> {
-    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.ASSIGN_WORKER, {
+    const body: Record<string, string | null> = {
       contractId: data.contractId,
-      workerId: data.workerId,
-      workerPassportNumber: data.workerPassportNumber,
-    });
+    };
+    if (data.workerId) body.workerId = data.workerId;
+    if (data.workerPassportNumber) body.workerPassportNumber = data.workerPassportNumber;
+    const response = await api.post(API_ENDPOINTS.MEDIATION_CONTRACT.ASSIGN_WORKER, body);
     return this.unwrap<any>(response.data);
   }
 

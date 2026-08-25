@@ -186,7 +186,6 @@ export default function MediationContractsPage() {
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
   const [showEndServiceModal, setShowEndServiceModal] = useState(false);
   const [showAssignWorkerModal, setShowAssignWorkerModal] = useState(false);
-  const [showPendingPassportModal, setShowPendingPassportModal] = useState(false);
 
   // Advanced filters (ErpImprovementsJul2026)
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
@@ -294,7 +293,6 @@ export default function MediationContractsPage() {
   const [complaintForm] = Form.useForm();
   const [endServiceForm] = Form.useForm();
   const [assignWorkerForm] = Form.useForm();
-  const [pendingPassportForm] = Form.useForm();
 
   // API hooks
   const {
@@ -310,7 +308,6 @@ export default function MediationContractsPage() {
     updateContractStatus,
     endWorkerService,
     assignWorker,
-    setPendingWorkerPassport,
     isCancelling,
     isSigning,
     isGeneratingDelivery,
@@ -319,7 +316,6 @@ export default function MediationContractsPage() {
     isUpdatingStatus,
     isEndingWorkerService,
     isAssigningWorker,
-    isSettingPendingWorkerPassport,
   } = useMediationContracts({
     pageNumber: currentPage,
     pageSize,
@@ -475,12 +471,17 @@ export default function MediationContractsPage() {
     endServiceReason: language === 'ar' ? 'سبب الإنهاء (اختياري)' : 'End Reason (optional)',
     selectWorkerPassport:
       language === 'ar' ? 'ابحث عن عامل برقم الجواز' : 'Search worker by passport',
-    setPendingPassport: language === 'ar' ? 'تسجيل جواز عامل غير مسجّل' : 'Set Pending Worker Passport',
-    pendingPassportHint:
+    workerPassportNumber: language === 'ar' ? 'رقم الجواز' : 'Passport Number',
+    assignWorkerHint:
       language === 'ar'
-        ? 'للعامل غير المسجّل في النظام بعد — يُحفظ رقم الجواز ريثما يُضاف كعامل فعلي.'
-        : 'For a worker not yet in the system — the passport is saved until a real worker is added.',
-    pendingPassportNumberLabel: language === 'ar' ? 'رقم الجواز' : 'Passport Number',
+        ? 'ابحث برقم الجواز لاختيار عامل مسجّل. إذا لم يظهر عامل مطابق، يمكنك حفظ رقم الجواز كعامل غير مسجّل.'
+        : 'Search by passport to select a registered worker. If no match appears, save the passport as an external worker.',
+    externalWorkerConfirmTitle:
+      language === 'ar' ? 'تسجيل عامل غير مسجّل؟' : 'Save external worker?',
+    externalWorkerConfirmBody:
+      language === 'ar'
+        ? 'لم يتم اختيار عامل مسجّل. سيتم حفظ رقم الجواز فقط على العقد.'
+        : 'No registered worker was selected. The passport number will be saved on the contract only.',
     paymentStatus: language === 'ar' ? 'حالة السداد' : 'Payment Status',
     paid: language === 'ar' ? 'مدفوع' : 'Paid',
     unpaid: language === 'ar' ? 'غير مدفوع' : 'Unpaid',
@@ -714,42 +715,39 @@ export default function MediationContractsPage() {
     }
   };
 
-  // Handle assign a new worker (by picking an available worker via passport)
+  // Handle assign a new worker. A selected worker sends workerId + passport;
+  // passport-only records an external/pending worker through the same endpoint.
   const handleAssignWorker = async () => {
     if (!selectedContract?.id) return;
     if (!canUpdateContract) return;
     try {
       const values = await assignWorkerForm.validateFields();
+      const passportNumber = String(values.workerPassportNumber || assignPassportSearch || '').trim();
       const worker = (assignWorkers as Worker[]).find(
         (w) => String(w.id) === String(values.workerId)
       );
+      if (!values.workerId) {
+        const confirmed = await new Promise<boolean>((resolve) => {
+          Modal.confirm({
+            title: t.externalWorkerConfirmTitle,
+            content: t.externalWorkerConfirmBody,
+            icon: <ExclamationCircleOutlined />,
+            okText: t.save,
+            cancelText: t.cancel,
+            onOk: () => resolve(true),
+            onCancel: () => resolve(false),
+          });
+        });
+        if (!confirmed) return;
+      }
       await assignWorker({
         contractId: selectedContract.id,
-        workerId: String(values.workerId),
-        workerPassportNumber: worker?.passportNo ?? values.workerPassportNumber ?? '',
+        workerId: values.workerId ? String(values.workerId) : null,
+        workerPassportNumber: worker?.passportNo ?? passportNumber,
       });
       setShowAssignWorkerModal(false);
       assignWorkerForm.resetFields();
       setAssignPassportSearch('');
-      setSelectedContract(null);
-    } catch {
-      // validation + API errors surfaced by the mutation
-    }
-  };
-
-  // Record a passport number for a worker not yet in the system
-  // (BACKEND_REVIEW_README.md #5 — set-pending-worker-passport).
-  const handleSetPendingWorkerPassport = async () => {
-    if (!selectedContract?.id) return;
-    if (!canUpdateContract) return;
-    try {
-      const values = await pendingPassportForm.validateFields();
-      await setPendingWorkerPassport({
-        contractId: selectedContract.id,
-        workerPassportNumber: values.workerPassportNumber,
-      });
-      setShowPendingPassportModal(false);
-      pendingPassportForm.resetFields();
       setSelectedContract(null);
     } catch {
       // validation + API errors surfaced by the mutation
@@ -851,12 +849,12 @@ export default function MediationContractsPage() {
         { type: 'divider' as const }
       );
       if (canUpdateContract) {
-        // BACKEND_REVIEW_README.md #4: hide "assign" once a worker is
-        // assigned (only "end service" applies then); show "assign" again
-        // once the contract has no worker. Fall back to workerId presence
-        // if hasAssignedWorker is ever missing from a list row.
-        const hasWorkerAssigned = contract.hasAssignedWorker ?? !!contract.workerId;
-        if (hasWorkerAssigned) {
+        const hasActiveWorker =
+          contract.hasAssignedWorker === true ||
+          !!contract.workerId ||
+          !!contract.pendingWorkerPassportNumber ||
+          contract.worker?.isExternal === true;
+        if (hasActiveWorker) {
           moreItems.push({
             key: 'end-worker-service',
             icon: <UserDeleteOutlined />,
@@ -877,18 +875,6 @@ export default function MediationContractsPage() {
               setShowAssignWorkerModal(true);
             }),
           });
-          // #5: only offered while no pending passport is recorded yet.
-          if (!contract.pendingWorkerPassportNumber) {
-            moreItems.push({
-              key: 'set-pending-passport',
-              icon: <IdcardOutlined />,
-              label: t.setPendingPassport,
-              onClick: selectAnd(() => {
-                pendingPassportForm.resetFields();
-                setShowPendingPassportModal(true);
-              }),
-            });
-          }
         }
       }
       if (canDeleteContract) {
@@ -1866,7 +1852,6 @@ export default function MediationContractsPage() {
           <Form.Item
             name="musanedContractNumber"
             label={t.musanedNumber}
-            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
           >
             <Input placeholder={t.musanedNumber} />
           </Form.Item>
@@ -2110,19 +2095,26 @@ export default function MediationContractsPage() {
         cancelText={t.cancel}
         confirmLoading={isAssigningWorker}
       >
+        <p style={{ color: '#8c8c8c', marginBottom: 16 }}>{t.assignWorkerHint}</p>
         <Form form={assignWorkerForm} layout="vertical">
           <Form.Item
             name="workerId"
             label={t.assignWorker}
-            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
           >
             <Select
               showSearch
+              allowClear
               loading={isLoadingAssignWorkers}
               placeholder={t.selectWorkerPassport}
               filterOption={false}
               onSearch={setAssignPassportSearch}
               searchValue={assignPassportSearch}
+              onChange={(workerId) => {
+                const worker = (assignWorkers as Worker[]).find(
+                  (w) => String(w.id) === String(workerId)
+                );
+                assignWorkerForm.setFieldValue('workerPassportNumber', worker?.passportNo ?? assignPassportSearch);
+              }}
               notFoundContent={
                 isLoadingAssignWorkers
                   ? (language === 'ar' ? 'جارٍ البحث...' : 'Searching...')
@@ -2138,36 +2130,25 @@ export default function MediationContractsPage() {
               }))}
             />
           </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* ========== SET PENDING WORKER PASSPORT MODAL ========== */}
-      <Modal
-        title={
-          <span>
-            <IdcardOutlined style={{ marginInlineEnd: 8 }} />
-            {t.setPendingPassport}
-            {selectedContract && ` — #${selectedContract.contractNumber ?? selectedContract.id}`}
-          </span>
-        }
-        open={showPendingPassportModal && canUpdateContract}
-        onCancel={() => {
-          setShowPendingPassportModal(false);
-          pendingPassportForm.resetFields();
-        }}
-        onOk={canUpdateContract ? handleSetPendingWorkerPassport : undefined}
-        okText={t.save}
-        cancelText={t.cancel}
-        confirmLoading={isSettingPendingWorkerPassport}
-      >
-        <p style={{ color: '#8c8c8c', marginBottom: 16 }}>{t.pendingPassportHint}</p>
-        <Form form={pendingPassportForm} layout="vertical">
           <Form.Item
             name="workerPassportNumber"
-            label={t.pendingPassportNumberLabel}
-            rules={[{ required: true, message: language === 'ar' ? 'مطلوب' : 'Required' }]}
+            label={t.workerPassportNumber}
+            rules={[
+              {
+                validator: (_, value) => {
+                  const workerId = assignWorkerForm.getFieldValue('workerId');
+                  const passport = String(value || assignPassportSearch || '').trim();
+                  if (workerId || passport) return Promise.resolve();
+                  return Promise.reject(new Error(language === 'ar' ? 'مطلوب' : 'Required'));
+                },
+              },
+            ]}
           >
-            <Input placeholder={t.pendingPassportNumberLabel} />
+            <Input
+              prefix={<IdcardOutlined />}
+              placeholder={t.workerPassportNumber}
+              onChange={(event) => setAssignPassportSearch(event.target.value)}
+            />
           </Form.Item>
         </Form>
       </Modal>

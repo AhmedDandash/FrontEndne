@@ -1257,6 +1257,8 @@ export interface MediationContract {
   workerPhotoUrl?: string | null;
   /** FEdits-2 successor field; resolves from the same source as workerPhotoUrl. */
   workerImageUrl?: string | null;
+  /** Nested current-worker shape returned by list/detail endpoints. */
+  worker?: MediationContractWorkerInfo | null;
   /** True when a worker is currently assigned to the contract. */
   hasAssignedWorker?: boolean | null;
   /**
@@ -1302,7 +1304,6 @@ export interface CreateMediationContractDto {
   /** Required per swagger — offer UUID */
   offerId?: string | null;
   marketerId?: string | null;
-  contractCategory?: number | null;
   visaNumber?: string | null;
   visaDate?: string | null;
   // visaType removed from creation (ErpImprovementsJul2026) — no longer sent.
@@ -1315,8 +1316,6 @@ export interface CreateMediationContractDto {
   costDescription?: string | null;
   hasContractInsurance?: boolean | null;
   domesticWorkerInsurance?: number | null;
-  musanedContractNumber?: string | null;
-  musanedDocumentationNumber?: string | null;
   attachments?: File[];
 }
 
@@ -1345,6 +1344,14 @@ export interface MediationWorkerAssignment {
   isActive?: boolean | null;
 }
 
+export interface MediationContractWorkerInfo {
+  id?: string | null;
+  name?: string | null;
+  passportNumber?: string | null;
+  imageUrl?: string | null;
+  isExternal?: boolean | null;
+}
+
 /** POST /api/Mediation/MediationContract/end-worker-service */
 export interface EndWorkerServiceDto {
   contractId: string;
@@ -1354,8 +1361,8 @@ export interface EndWorkerServiceDto {
 /** POST /api/Mediation/MediationContract/assign-worker */
 export interface AssignWorkerDto {
   contractId: string;
-  workerId: string;
-  workerPassportNumber: string;
+  workerId?: string | null;
+  workerPassportNumber?: string | null;
 }
 
 /**
@@ -1373,7 +1380,7 @@ export interface SetPendingWorkerPassportDto {
 /** POST /api/Mediation/MediationContract/sign */
 export interface SignMediationContractDto {
   contractId: string;
-  musanedContractNumber: string;
+  musanedContractNumber?: string | null;
   /** ISO datetime string — optional per swagger */
   invoicePaymentDate?: string | null;
 }

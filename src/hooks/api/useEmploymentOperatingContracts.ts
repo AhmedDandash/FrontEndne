@@ -69,6 +69,37 @@ export function useEmploymentOperatingContractsFiltered(params?: GetContractsPar
   };
 }
 
+export function useOperatingContractDeliveryFormActions() {
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+
+  const printDeliveryFormMutation = useMutation({
+    mutationFn: (id: number | string) => EmploymentOperatingContractService.printDeliveryForm(id),
+    onError: (error) =>
+      message.error(
+        getApiErrorMessage(error, 'فشل جلب نموذج التسليم / Failed to fetch delivery form')
+      ),
+  });
+
+  const saveDeliveryFormMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: SaveDeliveryFormDto }) =>
+      EmploymentOperatingContractService.saveDeliveryForm(id, data),
+    onSuccess: () => {
+      invalidate();
+      message.success('تم حفظ نموذج التسليم / Delivery form saved');
+    },
+    onError: (error) =>
+      message.error(getApiErrorMessage(error, 'فشل حفظ نموذج التسليم / Failed to save delivery form')),
+  });
+
+  return {
+    printDeliveryForm: printDeliveryFormMutation.mutateAsync,
+    saveDeliveryForm: saveDeliveryFormMutation.mutateAsync,
+    isLoadingDeliveryForm: printDeliveryFormMutation.isPending,
+    isSavingDeliveryForm: saveDeliveryFormMutation.isPending,
+  };
+}
+
 export function useEmploymentOperatingContracts(
   params?: GetContractsParams | Record<string, any>
 ) {

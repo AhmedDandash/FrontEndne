@@ -101,10 +101,10 @@ export function printDeliveryForm(
   const signatureBlock = `
     <section class="signatures">
       <div class="sig"><div class="line"></div><span>${escapeHtml(
-        isRtl ? 'توقيع العميل' : 'Customer Signature'
+        isRtl ? 'توقيع العميل بالاستلام' : 'Customer Receipt Signature'
       )}</span></div>
       <div class="sig"><div class="line"></div><span>${escapeHtml(
-        isRtl ? 'توقيع العامل' : 'Worker Signature'
+        isRtl ? 'توقيع العاملة' : 'Worker Signature'
       )}</span></div>
       <div class="sig"><div class="line"></div><span>${escapeHtml(
         isRtl ? 'ممثل الشركة' : 'Company Representative'
@@ -133,7 +133,7 @@ export function printDeliveryForm(
 </head>
 <body>
   <h1>
-    <span>${escapeHtml(isRtl ? 'نموذج تسليم العامل' : 'Worker Delivery Form')} — ${escapeHtml(title)}</span>
+    <span>${escapeHtml(isRtl ? 'نموذج تسليم العميل للعاملة' : 'Customer Worker Handover Form')} — ${escapeHtml(title)}</span>
     ${photo ? `<img class="worker-photo" src="${escapeHtml(photo)}" alt="worker" />` : ''}
   </h1>
   ${sectionsHtml}
