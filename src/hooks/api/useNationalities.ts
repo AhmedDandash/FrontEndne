@@ -4,7 +4,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { NationalityService } from '@/services/nationality.service';
+import { NationalityService, type NationalityListParams } from '@/services/nationality.service';
 import type {
   Nationality,
   CreateNationalityDto,
@@ -17,13 +17,27 @@ const QUERY_KEY = 'nationalities';
 
 /**
  * Fetch nationalities.
- * @param params Optional server-side filters. Pass `{ isActiveOnly: true, pageSize: 100 }`
- *   for customer-facing dropdowns so disabled nationalities are excluded.
+ * @param params Optional server-side filters. Pass `{ type: 1, isActiveOnly: true }`
+ *   for a Customers-catalog dropdown, `{ type: 2, isActiveOnly: true }` for a
+ *   Contracts-catalog one. Omit `type` only for ID→name resolvers that must
+ *   see both catalogs (see FRONTEND_NATIONALITY_API.md).
  */
-export const useNationalities = (params?: { isActiveOnly?: boolean; pageSize?: number }) => {
+export const useNationalities = (params?: NationalityListParams) => {
   return useQuery<Nationality[], Error>({
     queryKey: [QUERY_KEY, params ?? {}],
     queryFn: () => NationalityService.getAll(params),
+    placeholderData: (previous) => previous,
+  });
+};
+
+/**
+ * Fetch a paged nationality list with `totalCount` — for the admin
+ * management screen (settings/nationalities), which needs pagination.
+ */
+export const useNationalitiesPaged = (params?: NationalityListParams) => {
+  return useQuery({
+    queryKey: [QUERY_KEY, 'paged', params ?? {}],
+    queryFn: () => NationalityService.getAllPaged(params),
     placeholderData: (previous) => previous,
   });
 };

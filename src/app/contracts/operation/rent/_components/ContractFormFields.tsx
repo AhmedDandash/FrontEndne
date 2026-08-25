@@ -47,7 +47,7 @@ export default function ContractFormFields({ isRtl, customers, jobs }: Props) {
         </Col>
         <Col xs={24} sm={12}>
           <Form.Item name="nationalityId" label={isRtl ? 'الجنسية' : 'Nationality'}>
-            <NationalitySelect placeholder={isRtl ? 'اختر الجنسية' : 'Select Nationality'} />
+            <NationalitySelect type={2} placeholder={isRtl ? 'اختر الجنسية' : 'Select Nationality'} />
           </Form.Item>
         </Col>
       </Row>

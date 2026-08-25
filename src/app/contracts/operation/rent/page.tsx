@@ -221,6 +221,10 @@ export default function RentContractsPage() {
 
   const { data: jobs = [] } = useJobs();
   const { data: nationalities = [] } = useNationalities();
+  // Filter dropdown only — Contracts catalog (operating contracts are for
+  // live-in migrant workers). The resolver above stays untyped so it can
+  // still resolve any contract's stored nationality regardless of catalog.
+  const { data: nationalityFilterOptions = [] } = useNationalities({ type: 2, isActiveOnly: true });
   const { customers = [] } = useCustomers();
   const { data: marketers = [] } = useMarketers();
   const { users = [] } = useUsers();
@@ -688,7 +692,7 @@ export default function RentContractsPage() {
                 optionFilterProp="label"
                 options={[
                   { value: 'all', label: t.allNationalities },
-                  ...(nationalities as any[]).map((n) => ({
+                  ...(nationalityFilterOptions as any[]).map((n) => ({
                     value: String(n.id),
                     label: isRtl ? n.nationalityNameAr : n.nationalityNameEn,
                   })),

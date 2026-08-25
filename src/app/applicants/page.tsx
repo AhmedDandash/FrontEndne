@@ -724,6 +724,11 @@ export default function WorkersPage() {
   const { data: agents = [] } = useAgents(canViewAllWorkers && canViewAgentDirectory);
   const { data: ownAgent } = useAgentMe(!canViewAllWorkers && canViewOwnWorkers);
   const { data: nationalities = [] } = useNationalities();
+  // Filter dropdown only — Contracts catalog, since workers are the migrant
+  // nationalities recruited under contracts. Kept separate from the resolver
+  // above, which must stay untyped so it can still resolve any worker's
+  // stored nationality regardless of catalog (see FRONTEND_NATIONALITY_API.md).
+  const { data: nationalityFilterOptions = [] } = useNationalities({ type: 2, isActiveOnly: true });
   const { employees: hrEmployees } = useHREmployees({ pageSize: 200 });
   const { data: medicalExaminations = [] } = useMedicalExaminations();
   const { data: activeHousings = [] } = useHousingActiveList();
@@ -1371,7 +1376,7 @@ export default function WorkersPage() {
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  options={nationalities.map((n) => ({
+                  options={nationalityFilterOptions.map((n) => ({
                     value: n.id,
                     label: language === 'ar' ? n.nationalityNameAr : n.nationalityNameEn,
                   }))}
@@ -2362,7 +2367,7 @@ export default function WorkersPage() {
             </Col>
             <Col xs={24} md={6}>
               <Form.Item label={t('nationality')} name="nationalityId">
-                <NationalitySelect size="large" placeholder={t('nationality')} />
+                <NationalitySelect type={2} size="large" placeholder={t('nationality')} />
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>

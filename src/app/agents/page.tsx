@@ -827,6 +827,7 @@ export default function AgentsPage() {
             <Col xs={24} md={12}>
               <Form.Item label={t('nationality')} name="nationalityId">
                 <NationalitySelect
+                  type={2}
                   size="large"
                   placeholder={t('nationality')}
                   isActiveOnly

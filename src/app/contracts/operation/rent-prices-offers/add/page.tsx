@@ -246,7 +246,7 @@ export default function AddOfferPage() {
                 name="nationalityId"
                 rules={[{ required: true, message: t('nationalityRequired') }]}
               >
-                <NationalitySelect placeholder={t('choose')} size="large" />
+                <NationalitySelect type={2} placeholder={t('choose')} size="large" />
               </Form.Item>
 
               <Form.Item

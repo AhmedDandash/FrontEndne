@@ -314,7 +314,7 @@ function FollowUpStatusesTab({ t, isRTL }: TabProps) {
 // ==================== Tab 2: Contract Nationalities ====================
 function ContractNationalitiesTab({ t, isRTL }: TabProps) {
   const { data: contractNationalities = [], isLoading } = useContractNationalities();
-  const { data: allNationalities = [] } = useNationalities();
+  const { data: allNationalities = [] } = useNationalities({ type: 2 });
   const createMutation = useCreateContractNationality();
   const updateMutation = useUpdateContractNationality();
   const deleteMutation = useDeleteContractNationality();

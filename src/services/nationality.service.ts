@@ -10,22 +10,39 @@
 
 import { api } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/config/api.config';
-import type { Nationality, CreateNationalityDto, UpdateNationalityDto } from '@/types/api.types';
+import type { Nationality, CreateNationalityDto, UpdateNationalityDto, NationalityType } from '@/types/api.types';
+import type { StringMatchMode } from '@/components/filters/TextMatchFilter';
+
+export interface NationalityListParams {
+  /** Filter by catalog — 1 = Customers, 2 = Contracts. Omit to return both. */
+  type?: NationalityType;
+  isActiveOnly?: boolean;
+  isActive?: boolean;
+  searchName?: string;
+  nationalityNameAr?: string;
+  nationalityNameArMatch?: StringMatchMode;
+  nationalityNameEn?: string;
+  nationalityNameEnMatch?: StringMatchMode;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface NationalityPagedResult {
+  data: Nationality[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+}
 
 export class NationalityService {
   /**
    * GET /api/V1/Nationality
    * @param params Optional server-side filters. Pass `{ isActiveOnly: true }`
    *   for customer-facing dropdowns so disabled nationalities are excluded.
-   *   `searchName` and `pageNumber` complete backend support (SearchName,
-   *   PageNumber, PageSize) alongside the existing pageSize/isActiveOnly.
+   *   Pass `type` (1 = Customers, 2 = Contracts) to scope to one catalog —
+   *   omit only for resolvers that must map IDs from either catalog to a name.
    */
-  static async getAll(params?: {
-    isActiveOnly?: boolean;
-    searchName?: string;
-    pageNumber?: number;
-    pageSize?: number;
-  }): Promise<Nationality[]> {
+  static async getAll(params?: NationalityListParams): Promise<Nationality[]> {
     // The backend defaults to a small page size (10) when none is sent —
     // live-verified this silently truncates the list once more than 10
     // nationalities exist (confirmed: 12 real nationalities, unparameterized
@@ -44,6 +61,7 @@ export class NationalityService {
       body?.items,
       body?.data?.items,
       body?.result?.items,
+      body?.data?.data,
     ];
 
     for (const candidate of candidates) {
@@ -52,6 +70,39 @@ export class NationalityService {
     }
 
     return [];
+  }
+
+  /**
+   * GET /api/V1/Nationality — same endpoint, but keeps `totalCount`/paging
+   * metadata for the admin management list (settings/nationalities) instead
+   * of discarding it like `getAll` does.
+   */
+  static async getAllPaged(params?: NationalityListParams): Promise<NationalityPagedResult> {
+    const pageNumber = params?.pageNumber ?? 1;
+    const pageSize = params?.pageSize ?? 20;
+    const response = await api.get<any>(API_ENDPOINTS.NATIONALITY.GET_ALL, {
+      params: { ...params, pageNumber, pageSize },
+    });
+
+    const body = response.data;
+    const paged = body?.data ?? body;
+    // Live-verified: the actual response nests the array under `items`, not
+    // `data` as the doc's example shows (`{ data: { items: [...], totalCount,
+    // pageNumber, pageSize } }`) — check both so either shape is handled.
+    const items: Nationality[] =
+      (Array.isArray(paged?.items) && paged.items) ||
+      (Array.isArray(paged?.items?.$values) && paged.items.$values) ||
+      (Array.isArray(paged?.data) && paged.data) ||
+      (Array.isArray(paged?.data?.$values) && paged.data.$values) ||
+      (Array.isArray(paged) && paged) ||
+      [];
+
+    return {
+      data: items,
+      totalCount: paged?.totalCount ?? items.length,
+      pageNumber: paged?.pageNumber ?? pageNumber,
+      pageSize: paged?.pageSize ?? pageSize,
+    };
   }
 
   /**
@@ -64,7 +115,8 @@ export class NationalityService {
 
   /**
    * POST /api/V1/Nationality
-   * Body: { nationalityNameAr, nationalityNameEn, isActive }
+   * Body: { nationalityNameAr, nationalityNameEn, isActive, type }
+   * Requires `Administration.Manage`.
    *
    * Response is wrapped in the standard `{ success, data, errors, statusCode }`
    * envelope (no global unwrap interceptor exists), so the created entity —
@@ -78,7 +130,8 @@ export class NationalityService {
 
   /**
    * PUT /api/V1/Nationality/{id}
-   * Body: { id (uuid), nationalityNameAr, nationalityNameEn, isActive }
+   * Body: { id (uuid, must match URL), nationalityNameAr, nationalityNameEn, isActive, type }
+   * Requires `Administration.Manage`.
    */
   static async update(id: number | string, data: UpdateNationalityDto): Promise<Nationality> {
     const payload: UpdateNationalityDto = { ...data, id: String(id) };
@@ -88,6 +141,8 @@ export class NationalityService {
 
   /**
    * DELETE /api/V1/Nationality/{id}
+   * Requires `Administration.Manage`. Hard delete — prefer toggleStatus if
+   * the nationality may be referenced elsewhere.
    */
   static async delete(id: number | string): Promise<void> {
     await api.delete(API_ENDPOINTS.NATIONALITY.DELETE(id));
@@ -96,6 +151,7 @@ export class NationalityService {
   /**
    * PUT /api/V1/Nationality/{id}/toggle-status
    * Toggles isActive for the nationality. No request body.
+   * Requires `Administration.Manage`.
    */
   static async toggleStatus(id: number | string): Promise<void> {
     await api.put(API_ENDPOINTS.NATIONALITY.TOGGLE_STATUS(id), null);

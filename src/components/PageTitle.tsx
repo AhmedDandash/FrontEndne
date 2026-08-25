@@ -106,6 +106,7 @@ const ROUTE_TITLES: Array<[string, Title]> = [
   ['/settings/mediation', { ar: 'إعدادات عقود الاستقدام', en: 'Mediation Settings' }],
   ['/settings/marketer', { ar: 'المسوقون', en: 'Marketers' }],
   ['/settings/custody-types', { ar: 'أنواع العهد', en: 'Custody Types' }],
+  ['/settings/nationalities', { ar: 'الجنسيات', en: 'Nationalities' }],
   ['/settings/permissions', { ar: 'صلاحيات الصفحات', en: 'Page Permissions' }],
 ];
 

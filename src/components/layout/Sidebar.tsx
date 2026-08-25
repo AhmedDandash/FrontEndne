@@ -549,6 +549,10 @@ export default function Sidebar({
           key: '/settings/custody-types',
           label: language === 'ar' ? 'أنواع العهد' : 'Custody Types',
         },
+        {
+          key: '/settings/nationalities',
+          label: language === 'ar' ? 'الجنسيات' : 'Nationalities',
+        },
       ],
     },
     // {

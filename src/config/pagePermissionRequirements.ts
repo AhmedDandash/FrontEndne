@@ -92,6 +92,7 @@ export const PAGE_PERMISSION_REQUIREMENTS: Record<string, readonly string[]> = {
   '/settings/mediation': ADMIN_MANAGE_PERMISSIONS,
   '/settings/marketer': ADMIN_MANAGE_PERMISSIONS,
   '/settings/custody-types': ADMIN_MANAGE_PERMISSIONS,
+  '/settings/nationalities': ADMIN_MANAGE_PERMISSIONS,
   '/register': ADMIN_MANAGE_PERMISSIONS,
   '/settings/permissions': ADMIN_MANAGE_PERMISSIONS,
 

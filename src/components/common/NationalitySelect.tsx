@@ -16,8 +16,10 @@ import type { SelectProps, RefSelectProps } from 'antd/es/select';
 import { PlusOutlined } from '@ant-design/icons';
 import { useNationalityOptions } from '@/hooks/api/useNationalityOptions';
 import { useCreateNationality } from '@/hooks/api/useNationalities';
+import { useHasPermission } from '@/hooks/api/usePagePermissions';
+import { APP_PERMISSIONS } from '@/config/appPermissions';
 import { getApiErrorMessage } from '@/utils/api-error';
-import type { Nationality } from '@/types/api.types';
+import type { Nationality, NationalityType } from '@/types/api.types';
 
 const defaultGetOptionValue = (n: Nationality) => String(n.id);
 
@@ -61,6 +63,13 @@ export interface NationalitySelectProps {
   size?: SelectProps['size'];
   style?: React.CSSProperties;
   className?: string;
+  /**
+   * Which catalog to show — 1 = Customers, 2 = Contracts (separate lists per
+   * FRONTEND_NATIONALITY_API.md). Required: every picker must know which
+   * catalog it's writing into, both to filter the list and so "Others — add
+   * new nationality" tags the created row with the right type.
+   */
+  type: NationalityType;
   /** Server-side filter — omit to match legacy per-page behavior of loading all nationalities. */
   isActiveOnly?: boolean;
   /** Set to false to render a plain picker with no "Others" affordance (e.g. future filter reuse). */
@@ -86,22 +95,29 @@ export default function NationalitySelect({
   size,
   style,
   className,
+  type,
   isActiveOnly,
   allowAdd = true,
   getOptionValue = defaultGetOptionValue,
   priorityNames,
 }: NationalitySelectProps) {
   const { nationalities, isLoading, getLabel, language, refetch } = useNationalityOptions({
+    type,
     isActiveOnly,
   });
-  // Duplicate-checking must see EVERY nationality, active or not — callers that
-  // pass isActiveOnly (e.g. customers/page.tsx, agents/page.tsx) would otherwise
-  // only compare against the filtered subset, letting a user "add" a nationality
-  // that already exists but is currently inactive (live-verified: the backend
-  // itself does not reject duplicate names, so this client-side check is the
-  // only guard there is).
-  const { nationalities: allNationalitiesForDupCheck } = useNationalityOptions();
+  // Duplicate-checking must see EVERY nationality in this catalog, active or
+  // not — callers that pass isActiveOnly (e.g. customers/page.tsx,
+  // agents/page.tsx) would otherwise only compare against the filtered
+  // subset, letting a user "add" a nationality that already exists but is
+  // currently inactive (live-verified: the backend itself does not reject
+  // duplicate names, so this client-side check is the only guard there is).
+  // Scoped to `type` — post-split, the same name can legitimately exist in
+  // BOTH catalogs (e.g. "سعودي" in Customers and, separately, in Contracts),
+  // so comparing across catalogs would produce false-positive duplicates.
+  const { nationalities: allNationalitiesForDupCheck } = useNationalityOptions({ type });
   const createMutation = useCreateNationality();
+  const { has } = useHasPermission();
+  const canAdd = allowAdd && has(APP_PERMISSIONS.ADMINISTRATION_MANAGE);
   const selectRef = useRef<RefSelectProps>(null);
   const t = TEXT[language === 'ar' ? 'ar' : 'en'];
 
@@ -193,6 +209,7 @@ export default function NationalitySelect({
         nationalityNameAr: ar,
         nationalityNameEn: en,
         isActive: true,
+        type,
       });
 
       let newValue = created?.id ? getOptionValue(created) : undefined;
@@ -251,7 +268,7 @@ export default function NationalitySelect({
         if (!open) resetAddForm();
       }}
       popupRender={
-        allowAdd
+        canAdd
           ? (menu) => (
               <>
                 {menu}

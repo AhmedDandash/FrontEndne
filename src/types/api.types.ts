@@ -581,13 +581,26 @@ export interface UpdateJobDto {
 }
 
 // ==================== Nationality Types ====================
+/** 1 = Customers catalog, 2 = Contracts catalog — separate lists (FRONTEND_NATIONALITY_API.md). */
+export type NationalityType = 1 | 2;
+export const NATIONALITY_TYPE_VALUES = { Customers: 1, Contracts: 2 } as const satisfies Record<string, NationalityType>;
+export const NATIONALITY_TYPE_LABELS: Record<NationalityType, { ar: string; en: string }> = {
+  1: { ar: 'عملاء', en: 'Customers' },
+  2: { ar: 'عقود', en: 'Contracts' },
+};
+
 export interface Nationality {
   /** UUID string per swagger */
   id: string;
+  /** @deprecated Not present on the current NationalityDto — resolve by `id` (GUID) instead. */
   nationalityId?: number | null;
   nationalityNameAr?: string | null;
   nationalityNameEn?: string | null;
   isActive?: boolean;
+  /** Which catalog this nationality belongs to — Customers or Contracts. */
+  type?: NationalityType;
+  createdDate?: string | null;
+  updatedDate?: string | null;
 }
 
 // NOTE: the legacy RecruitmentRequest DTOs (RecruitmentRequest,
@@ -1098,14 +1111,18 @@ export interface CreateNationalityDto {
   nationalityNameAr?: string | null;
   nationalityNameEn?: string | null;
   isActive?: boolean | null;
+  /** Required — 1 = Customers catalog, 2 = Contracts catalog. */
+  type: NationalityType;
 }
 
 export interface UpdateNationalityDto {
-  /** UUID — required in new PUT body */
+  /** UUID — required in new PUT body, must match the URL id */
   id: string;
   nationalityNameAr?: string | null;
   nationalityNameEn?: string | null;
   isActive?: boolean | null;
+  /** Required — 1 = Customers catalog, 2 = Contracts catalog. */
+  type: NationalityType;
 }
 
 // ==================== Mediation Contract Offer Types ====================

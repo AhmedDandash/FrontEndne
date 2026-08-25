@@ -434,7 +434,11 @@ export default function CustomersPage() {
   const { data: jobsData, isLoading: isLoadingJobs } = useJobs();
 
   // Nationalities API — customer dropdown shows active nationalities only.
-  const { data: nationalitiesData = [] } = useNationalities({ isActiveOnly: true, pageSize: 100 });
+  // type: 1 (Customers catalog) is safe for both the filter AND the
+  // resolver here, unlike other pages — a customer's own nationality can
+  // only ever have been set from this same form, which sends type 1
+  // exclusively (see FRONTEND_NATIONALITY_API.md).
+  const { data: nationalitiesData = [] } = useNationalities({ type: 1, isActiveOnly: true, pageSize: 100 });
 
   // Agents/Marketers — for the advanced-filter dropdowns below.
   const { data: agentsData = [] } = useAgents();
@@ -1780,6 +1784,7 @@ export default function CustomersPage() {
             rules={[{ required: true, message: 'Please select nationality' }]}
           >
             <NationalitySelect
+              type={1}
               isActiveOnly
               placeholder={t('nationality')}
               priorityNames={CUSTOMER_COMMON_NATIONALITIES}
@@ -2020,6 +2025,7 @@ export default function CustomersPage() {
                 ]}
               >
                 <NationalitySelect
+                  type={2}
                   placeholder={language === 'ar' ? 'اختر الجنسية' : 'Select Nationality'}
                 />
               </Form.Item>

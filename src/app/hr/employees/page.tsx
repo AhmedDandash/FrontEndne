@@ -580,6 +580,7 @@ export default function HREmployeesPage() {
                 الجنسية
               </label>
               <NationalitySelect
+                type={1}
                 value={nationalityIdFilter}
                 onChange={(value) => { setNationalityIdFilter(value); setPage(1); }}
                 allowAdd={false}
@@ -944,7 +945,7 @@ export default function HREmployeesPage() {
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item name="nationalityId" label="الجنسية">
-                <NationalitySelect placeholder="اختر الجنسية" />
+                <NationalitySelect type={1} placeholder="اختر الجنسية" />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>

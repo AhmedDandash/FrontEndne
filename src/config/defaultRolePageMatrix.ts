@@ -101,6 +101,7 @@ export const DEFAULT_ROLE_PAGE_MATRIX: PermissionMatrix = {
   '/settings/mediation': [],
   '/settings/marketer': [],
   '/settings/custody-types': [],
+  '/settings/nationalities': [],
   '/register': [],
   '/settings/permissions': [],
 

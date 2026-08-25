@@ -381,7 +381,9 @@ export default function MediationContractsPage() {
   const { customers: allCustomers, isLoading: isLoadingCustomers } = useCustomers();
   const { data: agents = [] } = useAgents();
   const { data: marketers = [] } = useMarketers();
-  const { data: nationalities = [] } = useNationalities();
+  // Filter only, so scoped directly — mediation contracts recruit workers,
+  // whose nationalities live in the Contracts catalog.
+  const { data: nationalities = [] } = useNationalities({ type: 2, isActiveOnly: true });
   const { data: jobs = [] } = useJobs();
   const { users = [] } = useUsers();
 

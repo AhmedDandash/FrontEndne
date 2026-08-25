@@ -122,6 +122,7 @@ export const PAGE_REGISTRY: PageDef[] = [
   { key: '/settings/mediation', labelAr: 'إعدادات عقود الاستقدام', labelEn: 'Mediation Settings', group: 'settings', groupAr: 'الإعدادات', groupEn: 'Settings' },
   { key: '/settings/marketer', labelAr: 'المسوقون', labelEn: 'Marketers', group: 'settings', groupAr: 'الإعدادات', groupEn: 'Settings' },
   { key: '/settings/custody-types', labelAr: 'أنواع العهد', labelEn: 'Custody Types', group: 'settings', groupAr: 'الإعدادات', groupEn: 'Settings' },
+  { key: '/settings/nationalities', labelAr: 'الجنسيات', labelEn: 'Nationalities', group: 'settings', groupAr: 'الإعدادات', groupEn: 'Settings' },
   { key: '/register', labelAr: 'إضافة مسؤول', labelEn: 'Add Admin', group: 'settings', groupAr: 'الإعدادات', groupEn: 'Settings' },
   { key: '/settings/permissions', labelAr: 'صلاحيات الصفحات', labelEn: 'Page Permissions', group: 'settings', groupAr: 'الإعدادات', groupEn: 'Settings' },
 

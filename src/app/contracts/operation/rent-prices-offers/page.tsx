@@ -125,6 +125,10 @@ export default function RentPricesOffersPage() {
 
   const { branches } = useBranches();
   const { data: nationalities = [] } = useNationalities();
+  // Filter dropdown only — Contracts catalog (offers are worker packages,
+  // e.g. "Filipino housemaid"). The resolver above stays untyped so it can
+  // still resolve any offer's stored nationality regardless of catalog.
+  const { data: nationalityFilterOptions = [] } = useNationalities({ type: 2, isActiveOnly: true });
   const { data: jobsData } = useJobs();
 
   // ── translations ─────────────────────────────────────────────────────────
@@ -351,10 +355,10 @@ export default function RentPricesOffersPage() {
 
   // ── nationality / job options for filters ─────────────────────────────────
   const natOptions = useMemo(() =>
-    nationalities.map((n) => ({
+    nationalityFilterOptions.map((n) => ({
       value: String(n.id),
       label: isAr ? n.nationalityNameAr || n.nationalityNameEn : n.nationalityNameEn || n.nationalityNameAr,
-    })), [nationalities, isAr]);
+    })), [nationalityFilterOptions, isAr]);
 
   const jobOptions = useMemo(() => {
     const arr = Array.isArray(jobsData) ? jobsData : ((jobsData as any)?.data ?? []);
@@ -822,7 +826,7 @@ export default function RentPricesOffersPage() {
               {/* Left */}
               <Col xs={24} md={12}>
                 <Form.Item label={t('nationality')} name="nationalityId">
-                  <NationalitySelect size="large" />
+                  <NationalitySelect type={2} size="large" />
                 </Form.Item>
                 <Form.Item label={t('job')} name="jobId">
                   <Select showSearch optionFilterProp="label" options={jobEditOptions} size="large" />
