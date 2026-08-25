@@ -107,6 +107,17 @@ export default function HRAttendancePage() {
     label: `${e.nameAr || e.nameEn || '—'} ${e.employeeNumber ? `(${e.employeeNumber})` : ''}`.trim(),
   }));
 
+  const employeeNameById = useMemo(
+    () => Object.fromEntries(employees.map((e) => [e.id, e.nameAr || e.nameEn || e.id])),
+    [employees]
+  );
+
+  const resolveEmployeeName = (record: AttendanceRecord) =>
+    record.employeeName ||
+    (record.employeeId ? employeeNameById[record.employeeId] : undefined) ||
+    record.employeeId ||
+    '—';
+
   // Status is NOT honoured by the backend Filter endpoint, so it's applied
   // client-side on top of the (server-filtered) result set.
   const displayRecords = useMemo(() => {
@@ -147,6 +158,12 @@ export default function HRAttendancePage() {
   ].filter((v) => v !== undefined && v !== null).length;
 
   const columns: ColumnsType<AttendanceRecord> = [
+    {
+      title: 'الموظف',
+      dataIndex: 'employeeName',
+      width: 200,
+      render: (_, record) => <Text strong>{resolveEmployeeName(record)}</Text>,
+    },
     {
       title: 'التاريخ',
       dataIndex: 'attendanceDay',
@@ -370,7 +387,7 @@ export default function HRAttendancePage() {
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: false }}
           locale={{ emptyText: hasSearched ? 'لا توجد سجلات حضور مطابقة' : 'استخدم الفلتر للبحث عن سجلات الحضور' }}
-          scroll={{ x: 1160 }}
+          scroll={{ x: 1360 }}
         />
       </Card>
     </div>
