@@ -134,6 +134,9 @@ export function toReceiptSections(
   return sections.filter((s) => s.rows.some((r) => r.value !== '—'));
 }
 
+const COMPANY_NAME_AR = 'شركة سيجما للاستقدام';
+const COMPANY_NAME_EN = 'Sigma Recruitment Company';
+
 /** Open a print window containing only the rendered receipt. */
 export function printReceipt(
   data: ContractPrintReceiptData | null,
@@ -143,14 +146,18 @@ export function printReceipt(
   const sections = toReceiptSections(data, isRtl);
   const dir = isRtl ? 'rtl' : 'ltr';
   const lang = isRtl ? 'ar' : 'en';
+  // The print window opens blank (about:blank), so relative paths won't
+  // resolve — the logo needs an absolute URL back to this app's origin.
+  const logoUrl = typeof window !== 'undefined' ? `${window.location.origin}/images/logo.png` : '';
+  const printedAt = new Date().toLocaleString(isRtl ? 'ar-SA' : 'en-US');
 
   const body =
     sections.length === 0
-      ? `<p>${isRtl ? 'لا توجد بيانات للطباعة' : 'No data to print'}</p>`
+      ? `<p class="empty">${isRtl ? 'لا توجد بيانات للطباعة' : 'No data to print'}</p>`
       : sections
           .map(
             (s) => `
-        <section>
+        <section class="card">
           <h2>${escapeHtml(s.title)}</h2>
           <table>
             ${s.rows
@@ -164,28 +171,128 @@ export function printReceipt(
           )
           .join('');
 
+  const signatureBlock =
+    sections.length === 0
+      ? ''
+      : `
+    <section class="signatures">
+      <div class="sig">
+        <div class="line"></div>
+        <span class="role">${escapeHtml(isRtl ? 'توقيع العميل' : 'Customer Signature')}</span>
+        <span class="hint">${escapeHtml(isRtl ? 'الاسم والتاريخ' : 'Name & Date')}</span>
+      </div>
+      <div class="sig">
+        <div class="line"></div>
+        <span class="role">${escapeHtml(isRtl ? 'ممثل الشركة' : 'Company Representative')}</span>
+        <span class="hint">${escapeHtml(isRtl ? 'الاسم والتاريخ' : 'Name & Date')}</span>
+      </div>
+    </section>`;
+
   const html = `<!DOCTYPE html>
 <html lang="${lang}" dir="${dir}">
 <head>
   <meta charset="utf-8" />
   <title>${escapeHtml(title)}</title>
   <style>
-    body { font-family: -apple-system, 'Segoe UI', Tahoma, sans-serif; color: #1a1a2e; padding: 32px; }
-    h1 { font-size: 20px; border-bottom: 2px solid #003366; padding-bottom: 8px; }
-    h2 { font-size: 14px; color: #003366; margin: 20px 0 8px; }
+    @page { margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, 'Segoe UI', Tahoma, sans-serif;
+      color: #1a1a2e;
+      padding: 28px;
+      font-size: 13px;
+    }
+
+    /* ── Letterhead ─────────────────────────────────────────── */
+    .letterhead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 14px;
+      border-bottom: 3px solid #003366;
+    }
+    .letterhead .brand { display: flex; align-items: center; gap: 12px; }
+    .letterhead img.logo { height: 46px; width: auto; display: block; }
+    .letterhead .brand-name { font-size: 15px; font-weight: 700; color: #003366; line-height: 1.3; }
+    .letterhead .brand-name small { display: block; font-size: 11px; font-weight: 500; color: #667; }
+    .letterhead .doc-meta { text-align: ${isRtl ? 'left' : 'right'}; }
+    .letterhead .doc-title { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+    .letterhead .doc-sub { font-size: 11.5px; color: #667; margin: 0; }
+
+    h2 {
+      font-size: 12.5px;
+      color: #ffffff;
+      background: #003366;
+      margin: 0;
+      padding: 6px 12px;
+      border-radius: 6px 6px 0 0;
+      letter-spacing: 0.02em;
+    }
+    section.card {
+      margin-top: 16px;
+      border: 1px solid #e3e6ec;
+      border-radius: 6px;
+      overflow: hidden;
+      break-inside: avoid;
+    }
     table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: ${isRtl ? 'right' : 'left'}; padding: 6px 10px; border-bottom: 1px solid #eee; font-size: 13px; }
-    th { width: 40%; color: #555; font-weight: 600; }
+    th, td {
+      text-align: ${isRtl ? 'right' : 'left'};
+      padding: 7px 12px;
+      border-bottom: 1px solid #eef0f4;
+      font-size: 12.5px;
+      font-variant-numeric: tabular-nums;
+    }
+    tr:last-child th, tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) { background: #f8f9fb; }
+    th { width: 38%; color: #555; font-weight: 600; }
+    .empty { text-align: center; color: #667; padding: 32px 0; }
+
+    /* ── Signatures ─────────────────────────────────────────── */
+    .signatures { display: flex; justify-content: space-between; gap: 32px; margin-top: 52px; break-inside: avoid; }
+    .sig { flex: 1; text-align: center; }
+    .sig .line { border-top: 1px solid #333; margin-bottom: 8px; height: 44px; }
+    .sig .role { display: block; font-size: 12.5px; font-weight: 600; color: #1a1a2e; }
+    .sig .hint { display: block; font-size: 10.5px; color: #889; margin-top: 2px; }
+
+    .print-footer {
+      margin-top: 28px;
+      padding-top: 10px;
+      border-top: 1px solid #eef0f4;
+      font-size: 10px;
+      color: #99a;
+      display: flex;
+      justify-content: space-between;
+    }
+
     @media print { body { padding: 0; } }
   </style>
 </head>
 <body>
-  <h1>${escapeHtml(title)}</h1>
+  <div class="letterhead">
+    <div class="brand">
+      ${logoUrl ? `<img class="logo" src="${escapeHtml(logoUrl)}" alt="${escapeHtml(isRtl ? COMPANY_NAME_AR : COMPANY_NAME_EN)}" />` : ''}
+      <span class="brand-name">
+        ${escapeHtml(isRtl ? COMPANY_NAME_AR : COMPANY_NAME_EN)}
+        <small>${escapeHtml(isRtl ? COMPANY_NAME_EN : COMPANY_NAME_AR)}</small>
+      </span>
+    </div>
+    <div class="doc-meta">
+      <p class="doc-title">${escapeHtml(isRtl ? 'ملخص بيانات العقد' : 'Contract Summary')}</p>
+      <p class="doc-sub">${escapeHtml(title)}</p>
+    </div>
+  </div>
   ${body}
+  ${signatureBlock}
+  <div class="print-footer">
+    <span>${escapeHtml(isRtl ? 'مستند صادر آليًا من النظام' : 'System-generated document')}</span>
+    <span>${escapeHtml(isRtl ? 'تاريخ الطباعة: ' : 'Printed: ')}${escapeHtml(printedAt)}</span>
+  </div>
 </body>
 </html>`;
 
-  const w = window.open('', '_blank', 'width=820,height=900');
+  const w = window.open('', '_blank', 'width=820,height=980');
   if (!w) return false; // popup blocked
   w.document.write(html);
   w.document.close();

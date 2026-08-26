@@ -446,6 +446,7 @@ export default function CustomersPage() {
 
   // English-name auto-generation (from the Arabic name) state.
   const [isGeneratingName, setIsGeneratingName] = useState(false);
+  const [isGeneratingCity, setIsGeneratingCity] = useState(false);
 
   const nationalities = useMemo(() => {
     const raw = Array.isArray(nationalitiesData)
@@ -496,6 +497,14 @@ export default function CustomersPage() {
       generateNameFailed: {
         ar: 'تعذّر توليد الاسم الإنجليزي',
         en: 'Failed to generate English name',
+      },
+      generateCityTip: {
+        ar: 'تُولّد تلقائياً من المدينة العربية — يمكنك تعديلها',
+        en: 'Auto-generated from the Arabic city — you can edit it',
+      },
+      generateCityFailed: {
+        ar: 'تعذّر توليد المدينة بالإنجليزية',
+        en: 'Failed to generate English city',
       },
       dateOfBirth: { ar: 'تاريخ الميلاد', en: 'Date of Birth' },
       nationalId: { ar: 'رقم الهوية الوطنية', en: 'National ID' },
@@ -619,6 +628,21 @@ export default function CustomersPage() {
       message.error(t('generateNameFailed'));
     } finally {
       setIsGeneratingName(false);
+    }
+  };
+
+  const handleGenerateEnglishCity = async () => {
+    const cityAr = (form.getFieldValue('cityAr') || '').trim();
+    if (!cityAr) return;
+    if ((form.getFieldValue('cityEn') || '').trim()) return; // keep manual value
+    try {
+      setIsGeneratingCity(true);
+      const cityEn = await CustomerService.generateEnglishText(cityAr);
+      if (cityEn) form.setFieldsValue({ cityEn });
+    } catch {
+      message.error(t('generateCityFailed'));
+    } finally {
+      setIsGeneratingCity(false);
     }
   };
 
@@ -1828,16 +1852,25 @@ export default function CustomersPage() {
                 name="cityAr"
                 rules={[{ required: true, message: 'Please enter city in Arabic' }]}
               >
-                <Input prefix={<EnvironmentOutlined />} placeholder={t('cityAr')} />
+                <Input
+                  prefix={<EnvironmentOutlined />}
+                  placeholder={t('cityAr')}
+                  onBlur={handleGenerateEnglishCity}
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
                 label={t('cityEn')}
                 name="cityEn"
+                tooltip={t('generateCityTip')}
                 rules={[{ required: true, message: 'Please enter city in English' }]}
               >
-                <Input prefix={<EnvironmentOutlined />} placeholder={t('cityEn')} />
+                <Input
+                  prefix={<EnvironmentOutlined />}
+                  placeholder={t('cityEn')}
+                  suffix={isGeneratingCity ? <Spin size="small" /> : null}
+                />
               </Form.Item>
             </Col>
           </Row>

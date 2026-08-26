@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -50,6 +50,7 @@ import { useBranches } from '@/hooks/api/useBranches';
 import { linkProps } from '@/lib/navigation/linkProps';
 import { useHrActionGates } from '@/hooks/useActionPermissionGates';
 import type { EmployeeDto, CreateEmployeeDto, UpdateEmployeeDto } from '@/types/hr.types';
+import type { Branch } from '@/types/api.types';
 
 const { Title } = Typography;
 
@@ -81,6 +82,25 @@ const emptyTextFilters: Record<EmployeeTextFilterKey, TextMatchValue> = {
   bankAccountNumber: {},
   iban: {},
 };
+
+interface BranchOption {
+  value: string;
+  label: string;
+}
+
+function flattenBranchOptions(branches: Branch[], level = 0): BranchOption[] {
+  return branches.flatMap((branch) => {
+    if (!branch?.id) return [];
+
+    const label = branch.nameAr || branch.nameEn || String(branch.id);
+    const option = {
+      value: String(branch.id),
+      label: level > 0 ? `${'  '.repeat(level - 1)}↳ ${label}` : label,
+    };
+
+    return [option, ...flattenBranchOptions(branch.subBranches ?? [], level + 1)];
+  });
+}
 
 export default function HREmployeesPage() {
   const router = useRouter();
@@ -346,10 +366,10 @@ export default function HREmployeesPage() {
     label: d.nameAr || d.nameEn || d.id,
   }));
 
-  const branchOptions = (branches as any[]).map((b) => ({
-    value: String(b.id),
-    label: b.nameAr || b.nameEn || String(b.id),
-  }));
+  const branchOptions = useMemo(
+    () => flattenBranchOptions(Array.isArray(branches) ? branches : []),
+    [branches]
+  );
 
   const sortOrder = (key: string) =>
     sortBy === key ? (sortDescending ? 'descend' : 'ascend') : null;
